@@ -338,7 +338,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
 
         <div className={styles.calendars}>
           <div className={styles.sectionTitleRow}>
-            <span className={styles.sectionTitle}>My Calendars</span>
+            <span className={styles.sectionTitle}>Calendars</span>
             <button
               className={styles.addCalendarButton}
               onClick={() => setShowAddCalendar(true)}

@@ -464,23 +464,6 @@
   color: var(--color-text-primary);
 }
 
-.proxyHeader {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.infoIcon {
-  display: inline-flex;
-  color: var(--color-text-secondary);
-  cursor: help;
-  margin-top: -2px;
-}
-
-.infoIcon:hover {
-  color: var(--color-accent);
-}
-
 .chevronLabel {
   display: flex;
   align-items: center;

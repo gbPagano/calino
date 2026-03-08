@@ -64,23 +64,6 @@
   color: #202124;
 }
 
-.proxyHeader {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.infoIcon {
-  display: inline-flex;
-  color: #5f6368;
-  cursor: help;
-  margin-top: -2px;
-}
-
-.infoIcon:hover {
-  color: #1a73e8;
-}
-
 .chevronLabel {
   display: flex;
   align-items: center;

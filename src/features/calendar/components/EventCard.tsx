@@ -224,11 +224,6 @@ export function EventCard({
             </div>
             <div className={styles.taskInfo}>
               <div className={styles.title}>{event.title}</div>
-              {event.dueDate && (
-                <div className={styles.dueDate}>
-                  Due: {format(parseISO(event.dueDate), 'MMM d')}
-                </div>
-              )}
             </div>
           </div>
         ) : (

@@ -238,10 +238,26 @@ export function CalendarGrid(): JSX.Element {
 
     const isTask = originalEvent.type === 'task'
 
+    // For tasks, preserve the time in dueDate if it exists
+    let newDueDate = dayStr
+    if (isTask && originalEvent.dueDate) {
+      const originalDueDate = parseISO(originalEvent.dueDate)
+      const hasTime =
+        originalEvent.dueDate.includes('T') &&
+        !originalEvent.dueDate.endsWith('T00:00:00') &&
+        !originalEvent.dueDate.endsWith('T00:00')
+
+      if (hasTime) {
+        const timeHours = originalDueDate.getHours().toString().padStart(2, '0')
+        const timeMinutes = originalDueDate.getMinutes().toString().padStart(2, '0')
+        newDueDate = `${dayStr}T${timeHours}:${timeMinutes}:00`
+      }
+    }
+
     const updates = {
       start: newStart.toISOString(),
       end: newEnd.toISOString(),
-      ...(isTask && { dueDate: dayStr }),
+      ...(isTask && { dueDate: newDueDate }),
     }
 
     storeUpdateEvent(active.id as string, updates)

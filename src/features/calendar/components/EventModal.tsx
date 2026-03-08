@@ -400,6 +400,9 @@ export function EventModal(): JSX.Element | null {
         const taskEndTime = dueAllDay ? '23:59:59' : `${dueTime}:00`
         const eventStart = isTaskMode && dueDate ? `${dueDate}T${taskTime}` : startDateTime
         const eventEnd = isTaskMode && dueDate ? `${dueDate}T${taskEndTime}` : endDateTime
+        // Include time in dueDate for non-all-day tasks so we can display it
+        const taskDueDate =
+          isTaskMode && dueDate ? (dueAllDay ? dueDate : `${dueDate}T${taskTime}`) : undefined
         updateEvent(eventId!, {
           title,
           description: description || undefined,
@@ -411,7 +414,7 @@ export function EventModal(): JSX.Element | null {
           recurrence: isTaskMode ? undefined : recurrenceRule,
           travelDuration: isTaskMode ? undefined : travelDuration,
           type: isTaskMode ? 'task' : 'event',
-          dueDate: isTaskMode ? dueDate : undefined,
+          dueDate: taskDueDate,
           completed: isTaskMode ? completed : undefined,
           priority: isTaskMode ? priority : undefined,
           reminders: isTaskMode ? undefined : reminders,
@@ -432,7 +435,7 @@ export function EventModal(): JSX.Element | null {
               recurrence: isTaskMode ? undefined : recurrenceRule,
               travelDuration: isTaskMode ? undefined : travelDuration,
               type: isTaskMode ? 'task' : 'event',
-              dueDate: isTaskMode ? dueDate : undefined,
+              dueDate: taskDueDate,
               completed: isTaskMode ? completed : undefined,
               priority: isTaskMode ? priority : undefined,
               reminders: isTaskMode ? undefined : reminders,
@@ -448,6 +451,9 @@ export function EventModal(): JSX.Element | null {
       const taskEndTime = dueAllDay ? '23:59:59' : `${dueTime}:00`
       const eventStart = isTaskMode && dueDate ? `${dueDate}T${taskTime}` : startDateTime
       const eventEnd = isTaskMode && dueDate ? `${dueDate}T${taskEndTime}` : endDateTime
+      // Include time in dueDate for non-all-day tasks so we can display it
+      const taskDueDate =
+        isTaskMode && dueDate ? (dueAllDay ? dueDate : `${dueDate}T${taskTime}`) : undefined
 
       const newEvent: CalendarEvent = {
         id: uuidv4(),
@@ -461,7 +467,7 @@ export function EventModal(): JSX.Element | null {
         recurrence: isTaskMode ? undefined : recurrenceRule,
         travelDuration: isTaskMode ? undefined : travelDuration,
         type: isTaskMode ? 'task' : 'event',
-        dueDate: isTaskMode ? dueDate : undefined,
+        dueDate: taskDueDate,
         completed: isTaskMode ? completed : undefined,
         priority: isTaskMode ? priority : undefined,
         reminders: isTaskMode ? undefined : reminders,

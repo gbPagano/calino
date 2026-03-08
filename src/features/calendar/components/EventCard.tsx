@@ -92,6 +92,17 @@ export function EventCard({
   const isTask = event.type === 'task'
   const isRecurring = !!event.recurrence || !!event.rruleString
 
+  const hasDueTime = (): boolean => {
+    if (!event.dueDate) return false
+    if (event.isAllDay) return false
+    if (!event.dueDate.includes('T')) return false
+    const timePart = event.dueDate.split('T')[1]
+    if (!timePart) return false
+    // Check if time is midnight (00:00:00 or 00:00)
+    const normalizedTime = timePart.split('.')[0] // Remove milliseconds if present
+    return normalizedTime !== '00:00:00' && normalizedTime !== '00:00'
+  }
+
   const handleClick = (e: React.MouseEvent): void => {
     let moved = false
     if (pointerStartPos.current) {
@@ -224,12 +235,9 @@ export function EventCard({
             </div>
             <div className={styles.taskInfo}>
               <div className={styles.title}>{event.title}</div>
-              {event.dueDate &&
-                !event.isAllDay &&
-                event.dueDate.split('T')[1] &&
-                event.dueDate.split('T')[1] !== '00:00:00' && (
-                  <div className={styles.dueDate}>{format(parseISO(event.dueDate), 'h:mm a')}</div>
-                )}
+              {hasDueTime() && event.dueDate && (
+                <div className={styles.dueDate}>{format(parseISO(event.dueDate), 'h:mm a')}</div>
+              )}
             </div>
           </div>
         ) : (

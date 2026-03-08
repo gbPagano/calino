@@ -74,16 +74,28 @@ export function EventPreviewPopup({
     return format(parseISO(event.start), dateFormatPattern)
   }
 
+  const hasDueTime = (): boolean => {
+    if (!event.dueDate) return false
+    if (event.isAllDay) return false
+    if (!event.dueDate.includes('T')) return false
+    const timePart = event.dueDate.split('T')[1]
+    if (!timePart) return false
+    // Check if time is midnight (00:00:00 or 00:00)
+    const normalizedTime = timePart.split('.')[0] // Remove milliseconds if present
+    return normalizedTime !== '00:00:00' && normalizedTime !== '00:00'
+  }
+
   const getEventTime = (): string => {
     if (isTask) {
-      if (event.isAllDay || !event.dueDate) {
-        return event.dueDate ? format(parseISO(event.dueDate), dateFormatPattern) : 'No due date'
+      if (!event.dueDate) {
+        return 'No due date'
       }
-      const dueTime = event.dueDate.split('T')[1]
-      if (!dueTime || dueTime === '00:00:00' || dueTime === '00:00') {
-        return format(parseISO(event.dueDate), dateFormatPattern)
+      // For tasks with an actual time (not midnight), show the time
+      if (hasDueTime()) {
+        return format(parseISO(event.dueDate), timeFormatPattern)
       }
-      return format(parseISO(event.dueDate), timeFormatPattern)
+      // For all-day tasks or tasks with no specific time
+      return format(parseISO(event.dueDate), dateFormatPattern)
     }
     if (event.isAllDay) {
       return 'All day'

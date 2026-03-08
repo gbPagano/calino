@@ -77,26 +77,28 @@ export function EventFormFields({
 }: EventFormFieldsProps): JSX.Element {
   return (
     <>
-      <div className={styles.field}>
-        <label className={styles.checkbox}>
-          <input
-            type="checkbox"
-            checked={isAllDay}
-            onChange={(e) => onIsAllDayChange(e.target.checked)}
-          />
-          <span>All day</span>
-        </label>
-      </div>
+      <div className={styles.row}>
+        <div className={styles.field}>
+          <label className={styles.checkbox}>
+            <input
+              type="checkbox"
+              checked={isAllDay}
+              onChange={(e) => onIsAllDayChange(e.target.checked)}
+            />
+            <span>All day</span>
+          </label>
+        </div>
 
-      <div className={styles.field}>
-        <label className={styles.checkbox}>
-          <input
-            type="checkbox"
-            checked={transparency === 'transparent'}
-            onChange={(e) => onTransparencyChange(e.target.checked ? 'transparent' : 'opaque')}
-          />
-          <span>Show as available (transparent)</span>
-        </label>
+        <div className={styles.field}>
+          <label className={styles.checkbox}>
+            <input
+              type="checkbox"
+              checked={transparency === 'transparent'}
+              onChange={(e) => onTransparencyChange(e.target.checked ? 'transparent' : 'opaque')}
+            />
+            <span>Show as available (transparent)</span>
+          </label>
+        </div>
       </div>
 
       <div className={styles.dateTimeRow}>

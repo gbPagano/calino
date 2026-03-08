@@ -125,6 +125,7 @@
   left: 8px;
   right: 8px;
   pointer-events: auto;
+  z-index: 2;
 }
 
 .eventTransparent {

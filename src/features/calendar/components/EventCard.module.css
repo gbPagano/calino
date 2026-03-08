@@ -17,6 +17,8 @@
 
 .card.noTopRadius {
   border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
 }
 
 .card.transparent {

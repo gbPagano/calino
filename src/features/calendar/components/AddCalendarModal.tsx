@@ -159,26 +159,6 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
           </div>
           <div className={styles.formGroup}>
             <div className={styles.proxyHeader}>
-              <span
-                className={styles.infoIcon}
-                title="Using a proxy means your requests go through another server. Your CalDAV server, requests, and authorization credentials might be visible to the proxy provider, but not calendar data. It's recommended to either enable CORS headers on your CalDAV server or run your own proxy."
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
-                  <path
-                    d="M8 7V11M8 5V5.01"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
               <button
                 type="button"
                 className={styles.chevronLabel}
@@ -203,6 +183,26 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
                 </svg>
                 <span>Proxy URL (optional)</span>
               </button>
+              <span
+                className={styles.infoIcon}
+                title="Using a proxy means your requests go through another server. Your CalDAV server, requests, and authorization credentials might be visible to the proxy provider, but not calendar data. It's recommended to either enable CORS headers on your CalDAV server or run your own proxy."
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+                  <path
+                    d="M8 7V11M8 5V5.01"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
             </div>
             {showProxyField && (
               <>
@@ -249,13 +249,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
           {connectionStatus === 'success' && (
             <p className={styles.successMessage}>✓ Connection successful!</p>
           )}
-          {connectionStatus === 'error' && (
-            <p className={styles.errorMessage}>
-              ✕{' '}
-              {connectionError ||
-                'Connection failed. Please check your credentials and server URL.'}
-            </p>
-          )}
+          {connectionStatus === 'error' && <p className={styles.errorMessage}>{connectionError}</p>}
           <div className={styles.modalFooter}>
             <button
               type="button"

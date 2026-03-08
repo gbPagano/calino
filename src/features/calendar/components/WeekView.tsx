@@ -93,7 +93,12 @@ export function WeekView(): JSX.Element {
 
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null)
   const [isDraggingToCreate, setIsDraggingToCreate] = useState(false)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; day: Date } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    day: Date
+    hour?: number
+  } | null>(null)
   const [dragStart, setDragStart] = useState<string | null>(null)
   const [dragEnd, setDragEnd] = useState<string | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -609,7 +614,10 @@ export function WeekView(): JSX.Element {
                 onContextMenu={(e) => {
                   e.preventDefault()
                   openMenu('weekview')
-                  setContextMenu({ x: e.clientX, y: e.clientY, day })
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const y = e.clientY - rect.top
+                  const hourClicked = Math.max(0, Math.min(23, Math.floor(y / hourHeight)))
+                  setContextMenu({ x: e.clientX, y: e.clientY, day, hour: hourClicked })
                 }}
               >
                 <div className={styles.hourCells}>
@@ -675,7 +683,10 @@ export function WeekView(): JSX.Element {
                 onContextMenu={(e) => {
                   e.preventDefault()
                   openMenu('weekview')
-                  setContextMenu({ x: e.clientX, y: e.clientY, day })
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const y = e.clientY - rect.top
+                  const hourClicked = Math.max(0, Math.min(23, Math.floor(y / hourHeight)))
+                  setContextMenu({ x: e.clientX, y: e.clientY, day, hour: hourClicked })
                 }}
               >
                 <div className={styles.hourCells}>
@@ -749,14 +760,27 @@ export function WeekView(): JSX.Element {
             {
               label: 'Create event',
               onClick: () => {
-                openModal(format(contextMenu.day, 'yyyy-MM-dd'))
+                const hourStr =
+                  contextMenu.hour !== undefined
+                    ? `T${String(contextMenu.hour).padStart(2, '0')}:00`
+                    : ''
+                openModal(`${format(contextMenu.day, 'yyyy-MM-dd')}${hourStr}`)
                 setContextMenu(null)
               },
             },
             {
               label: 'Create task',
               onClick: () => {
-                openModal(format(contextMenu.day, 'yyyy-MM-dd'), undefined, undefined, 'task')
+                const hourStr =
+                  contextMenu.hour !== undefined
+                    ? `T${String(contextMenu.hour).padStart(2, '0')}:00`
+                    : ''
+                openModal(
+                  `${format(contextMenu.day, 'yyyy-MM-dd')}${hourStr}`,
+                  undefined,
+                  undefined,
+                  'task'
+                )
                 setContextMenu(null)
               },
             },

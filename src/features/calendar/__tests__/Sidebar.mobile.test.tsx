@@ -16,7 +16,7 @@ describe('Sidebar Mobile', () => {
         <Sidebar isOpen={true} onClose={() => {}} />
       </BrowserRouter>
     )
-    expect(screen.getByText('My Calendars')).toBeInTheDocument()
+    expect(screen.getByText('Calendars')).toBeInTheDocument()
   })
 
   it('calls onClose when overlay is clicked in mobile mode', () => {

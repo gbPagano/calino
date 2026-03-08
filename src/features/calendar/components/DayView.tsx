@@ -70,7 +70,9 @@ export function DayView(): JSX.Element {
 
   const { updateEvent: caldavUpdateEvent } = useCalDAV()
 
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; hour?: number } | null>(
+    null
+  )
   const bodyRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.7)
@@ -472,7 +474,10 @@ export function DayView(): JSX.Element {
         onContextMenu={(e) => {
           e.preventDefault()
           openMenu('dayview')
-          setContextMenu({ x: e.clientX, y: e.clientY })
+          const rect = e.currentTarget.getBoundingClientRect()
+          const y = e.clientY - rect.top
+          const hourClicked = Math.max(0, Math.min(23, Math.floor(y / (60 * scale))))
+          setContextMenu({ x: e.clientX, y: e.clientY, hour: hourClicked })
         }}
         {...bind}
       >
@@ -527,14 +532,22 @@ export function DayView(): JSX.Element {
             {
               label: 'Create event',
               onClick: () => {
-                openModal(format(date, 'yyyy-MM-dd'))
+                const hourStr =
+                  contextMenu.hour !== undefined
+                    ? `T${String(contextMenu.hour).padStart(2, '0')}:00`
+                    : ''
+                openModal(`${format(date, 'yyyy-MM-dd')}${hourStr}`)
                 setContextMenu(null)
               },
             },
             {
               label: 'Create task',
               onClick: () => {
-                openModal(format(date, 'yyyy-MM-dd'), undefined, undefined, 'task')
+                const hourStr =
+                  contextMenu.hour !== undefined
+                    ? `T${String(contextMenu.hour).padStart(2, '0')}:00`
+                    : ''
+                openModal(`${format(date, 'yyyy-MM-dd')}${hourStr}`, undefined, undefined, 'task')
                 setContextMenu(null)
               },
             },

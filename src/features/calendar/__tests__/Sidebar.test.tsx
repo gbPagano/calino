@@ -26,7 +26,7 @@ describe('Sidebar', () => {
 
   it('renders sidebar by default', () => {
     renderWithRouter(<Sidebar />)
-    expect(screen.getByText('My Calendars')).toBeInTheDocument()
+    expect(screen.getByText('Calendars')).toBeInTheDocument()
   })
 
   it('renders mini calendar', () => {
@@ -42,7 +42,7 @@ describe('Sidebar', () => {
 
   it('renders calendars list', () => {
     renderWithRouter(<Sidebar />)
-    expect(screen.getByText('My Calendars')).toBeInTheDocument()
+    expect(screen.getByText('Calendars')).toBeInTheDocument()
     expect(screen.getByText('Default Calendar')).toBeInTheDocument()
   })
 
@@ -58,7 +58,7 @@ describe('Sidebar', () => {
 
     // The sidebar should render with expand button when collapsed
     const expandButton = container.querySelector('[title="Expand sidebar"]')
-    expect(expandButton || screen.getByText('My Calendars')).toBeInTheDocument()
+    expect(expandButton || screen.getByText('Calendars')).toBeInTheDocument()
   })
 
   it('shows color dot for each calendar', () => {

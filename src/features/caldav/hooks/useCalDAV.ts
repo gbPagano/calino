@@ -137,12 +137,15 @@ export function useCalDAV(): UseCalDAVReturn {
           })
         }
 
-        const allCalendars = storeCalendars
-        const hasDefault = allCalendars.some((c) => c.isDefault && c.id !== 'default')
+        const storedCalendars = storage.getAllCalendars()
+        const hasDefault = storedCalendars.some((c) => c.isDefault && c.id !== 'default')
         if (!hasDefault && serverCalendars.length > 0) {
           const firstCal = serverCalendars[0]
-          storeUpdateCalendar(firstCal.id, { isDefault: true })
-          storage.updateCalendar(firstCal.id, { isDefault: true })
+          const storeCalId = storedCalendars.find((c) => c.url === firstCal.url)?.id
+          if (storeCalId) {
+            storeUpdateCalendar(storeCalId, { isDefault: true })
+            storage.updateCalendar(storeCalId, { isDefault: true })
+          }
         }
 
         setAccounts(storage.getAllAccounts())

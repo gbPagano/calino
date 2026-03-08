@@ -4,6 +4,8 @@ A browser-based CalDAV client — sync with your own server, no cloud required.
 
 **Philosophy:** Your calendar data should belong to you, not Google or Apple. Calino connects to any CalDAV server (Nextcloud, Baikal, Radicale, etc.). Your events stay in your own server, not in ours. The only thing that lives locally is your preferences. No accounts, no signups, no data mining.
 
+> **⚠️ New Project Alert:** Calino is a new project and under very active development. Expect breaking changes, evolving UI, and frequent updates. Use at your own risk — but report bugs, we'd love the feedback!
+
 ## Features
 
 **Views:**
@@ -114,6 +116,10 @@ yourcaldav.server.com {
 ## Tech Stack
 
 React 18 + TypeScript + Vite, Zustand, Dexie.js, date-fns, chrono-node, @dnd-kit, framer-motion, Fuse.js, tsdav, Vitest
+
+---
+
+**Disclaimer:** This project is entirely vibe coded by [MiniMax-M2.5](https://minimax.io), but thoroughly tested. Issues may arise. Bug reports welcome.
 
 ## License
 

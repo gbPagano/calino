@@ -21,7 +21,7 @@ export const selectSetCurrentDate = (state: CalendarStore) => state.setCurrentDa
 
 const DEFAULT_CALENDAR: Calendar = {
   id: 'default',
-  name: 'My Calendar',
+  name: 'Offline calendar',
   color: DEFAULT_CALENDAR_COLOR,
   isVisible: true,
   isDefault: true,

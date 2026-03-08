@@ -16,6 +16,7 @@ const selectUpdateEvent = (state: CalendarStore) => state.updateEvent
 const selectDeleteEvent = (state: CalendarStore) => state.deleteEvent
 const selectAddCalendar = (state: CalendarStore) => state.addCalendar
 const selectDeleteCalendar = (state: CalendarStore) => state.deleteCalendar
+const selectUpdateCalendar = (state: CalendarStore) => state.updateCalendar
 const selectCalendars = (state: CalendarStore) => state.calendars
 const selectEvents = (state: CalendarStore) => state.events
 const selectCalDavDebugMode = (state: { caldavDebugMode: boolean }) => state.caldavDebugMode
@@ -54,6 +55,7 @@ export function useCalDAV(): UseCalDAVReturn {
   const storeDeleteEvent = useCalendarStore(selectDeleteEvent)
   const storeAddCalendar = useCalendarStore(selectAddCalendar)
   const storeDeleteCalendar = useCalendarStore(selectDeleteCalendar)
+  const storeUpdateCalendar = useCalendarStore(selectUpdateCalendar)
   const storeCalendars = useCalendarStore(selectCalendars)
   const existingEvents = useCalendarStore(selectEvents)
   const caldavDebugMode = useSettingsStore(selectCalDavDebugMode)
@@ -133,6 +135,14 @@ export function useCalDAV(): UseCalDAVReturn {
             accountId: newAccount.id,
             showTasksInViews: true,
           })
+        }
+
+        const allCalendars = storeCalendars
+        const hasDefault = allCalendars.some((c) => c.isDefault && c.id !== 'default')
+        if (!hasDefault && serverCalendars.length > 0) {
+          const firstCal = serverCalendars[0]
+          storeUpdateCalendar(firstCal.id, { isDefault: true })
+          storage.updateCalendar(firstCal.id, { isDefault: true })
         }
 
         setAccounts(storage.getAllAccounts())

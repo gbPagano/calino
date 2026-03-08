@@ -13,6 +13,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [connectionError, setConnectionError] = useState<string>('')
   const [isTesting, setIsTesting] = useState(false)
+  const [showProxyField, setShowProxyField] = useState(false)
 
   const { addAccount } = useCalDAV()
 
@@ -157,8 +158,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
             <span className={styles.formHint}>Enter the full URL of your CalDAV server</span>
           </div>
           <div className={styles.formGroup}>
-            <label htmlFor="proxyUrl" className={styles.formLabel}>
-              Proxy URL (optional)
+            <div className={styles.proxyHeader}>
               <span
                 className={styles.infoIcon}
                 title="Using a proxy means your requests go through another server. Your CalDAV server, requests, and authorization credentials might be visible to the proxy provider, but not calendar data. It's recommended to either enable CORS headers on your CalDAV server or run your own proxy."
@@ -179,16 +179,47 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
                   />
                 </svg>
               </span>
-            </label>
-            <input
-              id="proxyUrl"
-              name="proxyUrl"
-              className={styles.input}
-              placeholder="https://proxy.calino.io"
-            />
-            <span className={styles.formHint}>
-              Use proxy.calino.io if your server doesn't support CORS
-            </span>
+              <button
+                type="button"
+                className={styles.chevronLabel}
+                onClick={() => setShowProxyField(!showProxyField)}
+              >
+                <svg
+                  className={styles.chevronIcon}
+                  style={{ transform: showProxyField ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M4 6L8 10L12 6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span>Proxy URL (optional)</span>
+              </button>
+            </div>
+            {showProxyField && (
+              <>
+                <input
+                  id="proxyUrl"
+                  name="proxyUrl"
+                  className={styles.input}
+                  placeholder="https://proxy.calino.io"
+                />
+                <span className={styles.proxyInfoText}>
+                  Using a proxy means your requests go through another server. Your CalDAV server,
+                  requests, and authorization credentials might be visible to the proxy provider,
+                  but not calendar data. It's recommended to either enable CORS headers on your
+                  CalDAV server or run your own proxy.
+                </span>
+              </>
+            )}
           </div>
           <div className={styles.formGroup}>
             <label htmlFor="username" className={styles.formLabel}>

@@ -464,6 +464,59 @@
   color: var(--color-text-primary);
 }
 
+.proxyHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.infoIcon {
+  display: inline-flex;
+  color: var(--color-text-secondary);
+  cursor: help;
+  margin-top: -2px;
+}
+
+.infoIcon:hover {
+  color: var(--color-accent);
+}
+
+.chevronLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.chevronLabel:hover {
+  color: var(--color-accent);
+}
+
+.chevronIcon {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  margin-top: -1px;
+  transition: transform 0.2s ease;
+}
+
+.chevronLabel:hover .chevronIcon {
+  color: var(--color-accent);
+}
+
+.proxyInfoText {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
 .infoIcon {
   display: inline-flex;
   margin-left: 6px;

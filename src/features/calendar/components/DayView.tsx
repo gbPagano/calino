@@ -543,11 +543,8 @@ export function DayView(): JSX.Element {
             {
               label: 'Create task',
               onClick: () => {
-                const hourStr =
-                  contextMenu.hour !== undefined
-                    ? `T${String(contextMenu.hour).padStart(2, '0')}:00`
-                    : ''
-                openModal(`${format(date, 'yyyy-MM-dd')}${hourStr}`, undefined, undefined, 'task')
+                const dateStr = format(date, 'yyyy-MM-dd')
+                openModal(dateStr, undefined, undefined, 'task')
                 setContextMenu(null)
               },
             },

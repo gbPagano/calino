@@ -464,6 +464,18 @@
   color: var(--color-text-primary);
 }
 
+.infoIcon {
+  display: inline-flex;
+  margin-left: 6px;
+  color: var(--color-text-secondary);
+  cursor: help;
+  vertical-align: middle;
+}
+
+.infoIcon:hover {
+  color: var(--color-accent);
+}
+
 .formHint {
   font-size: 12px;
   color: var(--color-text-secondary);

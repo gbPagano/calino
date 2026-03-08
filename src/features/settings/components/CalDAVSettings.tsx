@@ -274,7 +274,29 @@ export function CalDAVSettings(): JSX.Element {
                 <span className={styles.formHint}>Enter the full URL of your CalDAV server</span>
               </div>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Proxy URL (optional)</label>
+                <label className={styles.formLabel}>
+                  Proxy URL (optional)
+                  <span
+                    className={styles.infoIcon}
+                    title="Using a proxy means your requests go through another server. Your CalDAV server, requests, and authorization credentials might will be visible to the proxy provider, but not calendar data. It's recommended to either enable CORS headers on your CalDAV server or run your own proxy."
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+                      <path
+                        d="M8 7V11M8 5V5.01"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </span>
+                </label>
                 <input
                   name="proxyUrl"
                   className={styles.input}

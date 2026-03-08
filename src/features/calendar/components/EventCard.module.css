@@ -19,6 +19,10 @@
   border-top-left-radius: 0;
 }
 
+.card.transparent {
+  opacity: 0.5;
+}
+
 .recurringIcon {
   position: absolute;
   top: 2px;

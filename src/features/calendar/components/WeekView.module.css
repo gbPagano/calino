@@ -187,6 +187,7 @@
 
 .eventTransparent {
   z-index: 1;
+  border-radius: var(--event-border-radius, 8px);
 }
 
 .selectionOverlay {

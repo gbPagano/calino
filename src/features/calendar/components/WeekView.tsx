@@ -453,7 +453,7 @@ export function WeekView(): JSX.Element {
             backgroundColor: `${eventColor}20`,
           }}
         >
-          <EventCard event={event} enableResize hideTopRadius />
+          <EventCard event={event} enableResize transparent />
         </div>
       )
     }

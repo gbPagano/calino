@@ -368,7 +368,7 @@ export function DayView(): JSX.Element {
             backgroundColor: `${eventColor}20`,
           }}
         >
-          <EventCard event={event} hideTopRadius />
+          <EventCard event={event} transparent />
         </div>
       )
     }

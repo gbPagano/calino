@@ -21,6 +21,7 @@
 
 .card.transparent {
   opacity: 0.5;
+  border-left: none;
 }
 
 .recurringIcon {

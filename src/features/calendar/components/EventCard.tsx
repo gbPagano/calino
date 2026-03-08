@@ -224,6 +224,9 @@ export function EventCard({
             </div>
             <div className={styles.taskInfo}>
               <div className={styles.title}>{event.title}</div>
+              {event.dueDate && !event.isAllDay && event.dueDate.includes('T') && (
+                <div className={styles.dueDate}>{format(parseISO(event.dueDate), 'h:mm a')}</div>
+              )}
             </div>
           </div>
         ) : (

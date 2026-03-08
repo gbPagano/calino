@@ -161,7 +161,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
               Proxy URL (optional)
               <span
                 className={styles.infoIcon}
-                title="Using a proxy means your requests go through another server. Your CalDAV server, requests, and authorization credentials might will be visible to the proxy provider, but not calendar data. It's recommended to either enable CORS headers on your CalDAV server or run your own proxy."
+                title="Using a proxy means your requests go through another server. Your CalDAV server, requests, and authorization credentials might be visible to the proxy provider, but not calendar data. It's recommended to either enable CORS headers on your CalDAV server or run your own proxy."
               >
                 <svg
                   width="16"

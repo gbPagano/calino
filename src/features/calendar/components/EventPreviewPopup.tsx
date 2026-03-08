@@ -75,22 +75,14 @@ export function EventPreviewPopup({
   }
 
   const hasDueTime = (): boolean => {
-    console.log('EventPreviewPopup DEBUG dueDate:', event.dueDate, 'isAllDay:', event.isAllDay)
     if (!event.dueDate) return false
     if (event.isAllDay) return false
-    if (!event.dueDate.includes('T')) {
-      console.log('EventPreviewPopup DEBUG: No T in dueDate')
-      return false
-    }
+    if (!event.dueDate.includes('T')) return false
     const timePart = event.dueDate.split('T')[1]
-    console.log('EventPreviewPopup DEBUG timePart:', timePart)
     if (!timePart) return false
     // Check if time is midnight (00:00:00 or 00:00)
     const normalizedTime = timePart.split('.')[0] // Remove milliseconds if present
-    console.log('EventPreviewPopup DEBUG normalizedTime:', normalizedTime)
-    const result = normalizedTime !== '00:00:00' && normalizedTime !== '00:00'
-    console.log('EventPreviewPopup DEBUG hasDueTime result:', result)
-    return result
+    return normalizedTime !== '00:00:00' && normalizedTime !== '00:00'
   }
 
   const getEventTime = (): string => {

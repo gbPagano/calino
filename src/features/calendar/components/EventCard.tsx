@@ -93,22 +93,14 @@ export function EventCard({
   const isRecurring = !!event.recurrence || !!event.rruleString
 
   const hasDueTime = (): boolean => {
-    console.log('EventCard DEBUG dueDate:', event.dueDate, 'isAllDay:', event.isAllDay)
     if (!event.dueDate) return false
     if (event.isAllDay) return false
-    if (!event.dueDate.includes('T')) {
-      console.log('EventCard DEBUG: No T in dueDate')
-      return false
-    }
+    if (!event.dueDate.includes('T')) return false
     const timePart = event.dueDate.split('T')[1]
-    console.log('EventCard DEBUG timePart:', timePart)
     if (!timePart) return false
     // Check if time is midnight (00:00:00 or 00:00)
     const normalizedTime = timePart.split('.')[0] // Remove milliseconds if present
-    console.log('EventCard DEBUG normalizedTime:', normalizedTime)
-    const result = normalizedTime !== '00:00:00' && normalizedTime !== '00:00'
-    console.log('EventCard DEBUG hasDueTime result:', result)
-    return result
+    return normalizedTime !== '00:00:00' && normalizedTime !== '00:00'
   }
 
   const handleClick = (e: React.MouseEvent): void => {

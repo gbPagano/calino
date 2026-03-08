@@ -41,6 +41,7 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
           reminders: currentAlarms.length > 0 ? currentAlarms : undefined,
           rruleString: currentEvent.rruleString,
           travelDuration: currentEvent.travelDuration,
+          transparency: currentEvent.transparency,
         }
 
         if (existingIndex !== undefined) {
@@ -98,6 +99,9 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
         if (minutes !== null) {
           currentEvent.travelDuration = minutes
         }
+      } else if (line.startsWith('TRANSP:')) {
+        const value = line.substring(7)
+        currentEvent.transparency = value === 'TRANSPARENT' ? 'transparent' : 'opaque'
       } else if (inAlarm && line.startsWith('TRIGGER:')) {
         const trigger = line.substring(8)
         const minutes = parseTriggerDuration(trigger)
@@ -297,6 +301,12 @@ export function eventToICAL(event: CalendarEvent): string {
 
   if (event.rruleString) {
     lines.push(`RRULE:${event.rruleString}`)
+  }
+
+  if (event.transparency === 'transparent') {
+    lines.push('TRANSP:TRANSPARENT')
+  } else {
+    lines.push('TRANSP:OPAQUE')
   }
 
   if (event.travelDuration) {

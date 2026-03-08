@@ -1,4 +1,4 @@
-import { Fragment, type JSX } from 'react'
+import { type JSX } from 'react'
 import { useMemo, useState, useCallback, useRef, useLayoutEffect, useEffect } from 'react'
 import {
   DndContext,
@@ -336,10 +336,46 @@ export function DayView(): JSX.Element {
       (a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime()
     )
 
+    const transparentEvents = sortedEvents.filter((e) => e.transparency === 'transparent')
+    const opaqueEvents = sortedEvents.filter((e) => e.transparency !== 'transparent')
+
+    const elements: JSX.Element[] = []
+
+    for (const event of transparentEvents) {
+      const start = parseISO(event.start)
+      const end = parseISO(event.end)
+      const startHour = start.getHours()
+      const startMinutes = start.getMinutes()
+      const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
+      const height = Math.max((durationMinutes / 60) * hourHeight, 20)
+
+      const calendar = calendars.find((c: Calendar) => c.id === event.calendarId)
+      const eventColor = event.color || calendar?.color || DEFAULT_CALENDAR_COLOR
+
+      const gap = 2
+      const leftPercent = gap / 2
+      const widthPercent = 100 - gap
+
+      elements.push(
+        <div
+          key={event.id}
+          className={`${styles.eventPositioned} ${styles.eventTransparent}`}
+          style={{
+            top: `${(startHour * 60 + startMinutes) * (hourHeight / 60)}px`,
+            height: `${height}px`,
+            left: `${leftPercent}%`,
+            width: `${widthPercent}%`,
+            backgroundColor: `${eventColor}20`,
+          }}
+        >
+          <EventCard event={event} hideTopRadius />
+        </div>
+      )
+    }
+
     const positioned: { event: CalendarEvent; column: number }[] = []
 
-    // First pass: assign columns
-    sortedEvents.forEach((event) => {
+    opaqueEvents.forEach((event) => {
       const eventStart = parseISO(event.start).getTime()
       const eventEnd = parseISO(event.end).getTime()
 
@@ -358,7 +394,6 @@ export function DayView(): JSX.Element {
       positioned.push({ event, column })
     })
 
-    // Second pass: calculate totalColumns for each event
     const withTotals = positioned.map(({ event, column }) => {
       const eventStart = parseISO(event.start).getTime()
       const eventEnd = parseISO(event.end).getTime()
@@ -379,7 +414,7 @@ export function DayView(): JSX.Element {
       return { event, column, totalColumns }
     })
 
-    return withTotals.map(({ event, column, totalColumns }) => {
+    for (const { event, column, totalColumns } of withTotals) {
       const start = parseISO(event.start)
       const end = parseISO(event.end)
 
@@ -395,8 +430,6 @@ export function DayView(): JSX.Element {
 
       const calendar = calendars.find((c: Calendar) => c.id === event.calendarId)
       const eventColor = event.color || calendar?.color || DEFAULT_CALENDAR_COLOR
-
-      const elements: JSX.Element[] = []
 
       if (event.travelDuration && event.travelDuration > 0) {
         const travelStart = new Date(start.getTime() - event.travelDuration * 60 * 1000)
@@ -439,9 +472,9 @@ export function DayView(): JSX.Element {
           <EventCard event={event} hideTopRadius={!!event.travelDuration} />
         </div>
       )
+    }
 
-      return <Fragment key={event.id}>{elements}</Fragment>
-    })
+    return elements
   }
 
   const isCurrentDay = isToday(date)

@@ -38,6 +38,7 @@ export interface CalendarEvent {
   completed?: boolean
   priority?: TaskPriority
   percentComplete?: number
+  transparency?: 'opaque' | 'transparent'
 }
 
 export interface Calendar {

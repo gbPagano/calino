@@ -19,6 +19,8 @@ interface EventFormFieldsProps {
   onTravelDurationChange: (duration: number | undefined) => void
   reminders: Reminder[]
   onRemindersChange: (reminders: Reminder[]) => void
+  transparency?: 'opaque' | 'transparent'
+  onTransparencyChange: (transparency: 'opaque' | 'transparent') => void
 }
 
 const TRAVEL_DURATION_OPTIONS: { value: number | undefined; label: string }[] = [
@@ -70,6 +72,8 @@ export function EventFormFields({
   onTravelDurationChange,
   reminders,
   onRemindersChange,
+  transparency = 'opaque',
+  onTransparencyChange,
 }: EventFormFieldsProps): JSX.Element {
   return (
     <>
@@ -81,6 +85,17 @@ export function EventFormFields({
             onChange={(e) => onIsAllDayChange(e.target.checked)}
           />
           <span>All day</span>
+        </label>
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.checkbox}>
+          <input
+            type="checkbox"
+            checked={transparency === 'transparent'}
+            onChange={(e) => onTransparencyChange(e.target.checked ? 'transparent' : 'opaque')}
+          />
+          <span>Show as available (transparent)</span>
         </label>
       </div>
 

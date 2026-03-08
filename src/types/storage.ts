@@ -22,6 +22,7 @@ export interface StoredEvent {
   completed?: boolean
   priority?: 1 | 2 | 3
   percentComplete?: number
+  transparency?: 'opaque' | 'transparent'
 }
 
 export interface StoredCalendar {

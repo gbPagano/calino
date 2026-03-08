@@ -185,6 +185,10 @@
   pointer-events: auto;
 }
 
+.eventTransparent {
+  z-index: 1;
+}
+
 .selectionOverlay {
   position: absolute;
   left: 2px;

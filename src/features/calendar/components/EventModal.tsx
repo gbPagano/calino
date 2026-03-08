@@ -36,6 +36,7 @@ interface InitialFormState {
   recurrence: RecurrenceRule['frequency'] | 'none'
   travelDuration: number | undefined
   reminders: Reminder[]
+  transparency: 'opaque' | 'transparent'
 }
 
 function getInitialFormState(
@@ -84,6 +85,7 @@ function getInitialFormState(
         recurrence: existingEvent.recurrence?.frequency || 'none',
         travelDuration: existingEvent.travelDuration,
         reminders: existingEvent.reminders || [],
+        transparency: existingEvent.transparency || 'opaque',
         isRecurringInstance,
         originalEventId,
       }
@@ -119,6 +121,7 @@ function getInitialFormState(
             recurrence: 'none',
             travelDuration: undefined,
             reminders: [],
+            transparency: 'opaque',
             isRecurringInstance: false,
             originalEventId: null,
           }
@@ -138,6 +141,7 @@ function getInitialFormState(
         recurrence: 'none',
         travelDuration: undefined,
         reminders: [],
+        transparency: 'opaque',
         isRecurringInstance: false,
         originalEventId: null,
       }
@@ -158,6 +162,7 @@ function getInitialFormState(
     recurrence: 'none',
     travelDuration: undefined,
     reminders: [],
+    transparency: 'opaque',
     isRecurringInstance: false,
     originalEventId: null,
   }
@@ -209,6 +214,9 @@ export function EventModal(): JSX.Element | null {
   const [travelDuration, setTravelDuration] = useState<number | undefined>(
     initialState.travelDuration
   )
+  const [transparency, setTransparency] = useState<'opaque' | 'transparent'>(
+    initialState.transparency
+  )
   const [reminders, setReminders] = useState<Reminder[]>(initialState.reminders)
   const [showRecurrenceDialog, setShowRecurrenceDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -240,6 +248,7 @@ export function EventModal(): JSX.Element | null {
       setCalendarId(initialState.calendarId)
       setRecurrence(initialState.recurrence)
       setTravelDuration(initialState.travelDuration)
+      setTransparency(initialState.transparency)
       setReminders(initialState.reminders)
       setShowDescription(!!initialState.description)
 
@@ -377,6 +386,7 @@ export function EventModal(): JSX.Element | null {
           recurrence: undefined,
           travelDuration,
           reminders,
+          transparency,
         }
         addEvent(newEvent)
         try {
@@ -405,6 +415,7 @@ export function EventModal(): JSX.Element | null {
           completed: isTaskMode ? completed : undefined,
           priority: isTaskMode ? priority : undefined,
           reminders: isTaskMode ? undefined : reminders,
+          transparency: isTaskMode ? undefined : transparency,
         })
         const existingEvent = events.find((e) => e.id === eventId)
         if (existingEvent) {
@@ -425,6 +436,7 @@ export function EventModal(): JSX.Element | null {
               completed: isTaskMode ? completed : undefined,
               priority: isTaskMode ? priority : undefined,
               reminders: isTaskMode ? undefined : reminders,
+              transparency: isTaskMode ? undefined : transparency,
             })
           } catch {
             // error already handled by useCalDAV
@@ -453,6 +465,7 @@ export function EventModal(): JSX.Element | null {
         completed: isTaskMode ? completed : undefined,
         priority: isTaskMode ? priority : undefined,
         reminders: isTaskMode ? undefined : reminders,
+        transparency: isTaskMode ? undefined : transparency,
       }
       addEvent(newEvent)
       try {
@@ -593,6 +606,8 @@ export function EventModal(): JSX.Element | null {
               onTravelDurationChange={setTravelDuration}
               reminders={reminders}
               onRemindersChange={setReminders}
+              transparency={transparency}
+              onTransparencyChange={setTransparency}
             />
           )}
 

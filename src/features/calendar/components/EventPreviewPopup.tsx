@@ -79,6 +79,10 @@ export function EventPreviewPopup({
       if (event.isAllDay || !event.dueDate) {
         return event.dueDate ? format(parseISO(event.dueDate), dateFormatPattern) : 'No due date'
       }
+      const dueTime = event.dueDate.split('T')[1]
+      if (!dueTime || dueTime === '00:00:00' || dueTime === '00:00') {
+        return format(parseISO(event.dueDate), dateFormatPattern)
+      }
       return format(parseISO(event.dueDate), timeFormatPattern)
     }
     if (event.isAllDay) {

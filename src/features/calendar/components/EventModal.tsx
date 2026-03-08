@@ -256,8 +256,10 @@ export function EventModal(): JSX.Element | null {
         ? events.find((e) => e.id === selectedEventId)
         : undefined
       if (existingEvent?.type === 'task') {
+        // Extract just the date part from dueDate (which may include time)
         const taskDueDate =
-          existingEvent.dueDate || format(parseISO(existingEvent.start), 'yyyy-MM-dd')
+          existingEvent.dueDate?.split('T')[0] ||
+          format(parseISO(existingEvent.start), 'yyyy-MM-dd')
         setDueDate(taskDueDate)
         const taskTime = format(parseISO(existingEvent.start), 'HH:mm')
         setDueTime(taskTime !== '00:00' ? taskTime : '09:00')

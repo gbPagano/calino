@@ -68,7 +68,7 @@ export function TaskFormFields({
           <input
             type="date"
             id="due-date"
-            value={dueDate}
+            value={dueDate.split('T')[0]}
             onChange={(e) => onDueDateChange(e.target.value)}
             className={styles.input}
             required

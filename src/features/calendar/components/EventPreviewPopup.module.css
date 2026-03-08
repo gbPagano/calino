@@ -165,6 +165,44 @@
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  cursor: pointer;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: 4px;
+  transition: background-color 0.15s;
+}
+
+.descriptionText:hover {
+  background: var(--color-border-subtle, #e8eaed);
+}
+
+.descriptionInput {
+  width: 100%;
+  font-size: 13px;
+  color: var(--color-text, #202124);
+  border: none;
+  border-bottom: 2px solid var(--color-primary, #4285f4);
+  background: transparent;
+  outline: none;
+  padding: 4px 0;
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+}
+
+.addDescription {
+  font-size: 13px;
+  color: var(--color-text-secondary, #5f6368);
+  cursor: pointer;
+  padding: 4px;
+  margin: -4px;
+  border-radius: 4px;
+  transition: background-color 0.15s;
+}
+
+.addDescription:hover {
+  background: var(--color-border-subtle, #e8eaed);
+  color: var(--color-text, #202124);
 }
 
 .footer {

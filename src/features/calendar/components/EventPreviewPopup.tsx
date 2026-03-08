@@ -64,6 +64,7 @@ export function EventPreviewPopup({
   const [editTime, setEditTime] = useState('')
   const [editEndTime, setEditEndTime] = useState('')
   const [editLocation, setEditLocation] = useState(event.location || '')
+  const [editDescription, setEditDescription] = useState(event.description || '')
   const [hasChanges, setHasChanges] = useState(false)
 
   const getEventDate = (): string => {
@@ -105,6 +106,8 @@ export function EventPreviewPopup({
       }
     } else if (field === 'location') {
       setEditLocation(event.location || '')
+    } else if (field === 'description') {
+      setEditDescription(event.description || '')
     }
   }
 
@@ -112,6 +115,7 @@ export function EventPreviewPopup({
     const updates: Partial<CalendarEvent> = {
       title: editTitle,
       location: editLocation || undefined,
+      description: editDescription || undefined,
     }
 
     if (isTask && editDate) {
@@ -157,6 +161,8 @@ export function EventPreviewPopup({
       setEditEndTime(value)
     } else if (field === 'location') {
       setEditLocation(value)
+    } else if (field === 'description') {
+      setEditDescription(value)
     }
   }
 
@@ -322,6 +328,33 @@ export function EventPreviewPopup({
       )
     }
     return null
+  }
+
+  const renderDescription = (): JSX.Element | null => {
+    if (editingField === 'description') {
+      return (
+        <textarea
+          value={editDescription}
+          onChange={(e) => handleFieldChange('description', e.target.value)}
+          onBlur={() => setEditingField(null)}
+          className={styles.descriptionInput}
+          rows={3}
+          autoFocus
+        />
+      )
+    }
+    if (event.description) {
+      return (
+        <div className={styles.descriptionText} onClick={() => startEditing('description')}>
+          {event.description}
+        </div>
+      )
+    }
+    return (
+      <div className={styles.addDescription} onClick={() => startEditing('description')}>
+        + Add description
+      </div>
+    )
   }
 
   const getReminderLabel = (): string | null => {
@@ -513,10 +546,10 @@ export function EventPreviewPopup({
             </div>
           )}
 
-          {event.description && (
+          {(event.description || editingField === 'description') && (
             <div className={styles.description}>
               <div className={styles.descriptionLabel}>Description</div>
-              <div className={styles.descriptionText}>{event.description}</div>
+              {renderDescription()}
             </div>
           )}
         </div>

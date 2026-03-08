@@ -41,6 +41,30 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+  flex: 1;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: 4px;
+  transition: background-color 0.15s;
+}
+
+.title:hover {
+  background: var(--color-border-subtle, #e8eaed);
+}
+
+.titleInput {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text, #202124);
+  border: none;
+  border-bottom: 2px solid var(--color-primary, #4285f4);
+  background: transparent;
+  outline: none;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  min-width: 0;
 }
 
 .closeBtn {
@@ -75,6 +99,15 @@
   gap: 10px;
   font-size: 13px;
   color: var(--color-text, #202124);
+  cursor: pointer;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: 4px;
+  transition: background-color 0.15s;
+}
+
+.field:hover {
+  background: var(--color-border-subtle, #e8eaed);
 }
 
 .icon {
@@ -86,6 +119,27 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.inlineInput {
+  font-size: 13px;
+  color: var(--color-text, #202124);
+  border: none;
+  border-bottom: 2px solid var(--color-primary, #4285f4);
+  background: transparent;
+  outline: none;
+  padding: 2px 0;
+  min-width: 80px;
+}
+
+.inlineTimeInputs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.inlineTimeInputs .inlineInput {
+  width: 70px;
 }
 
 .description {
@@ -139,6 +193,26 @@
 .deleteBtn:hover {
   background: var(--color-error, #dc3545);
   color: #fff;
+}
+
+.saveBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: #fff;
+  background: #34a853;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  flex-shrink: 0;
+}
+
+.saveBtn:hover {
+  background: #2e8b47;
 }
 
 .openBtn {

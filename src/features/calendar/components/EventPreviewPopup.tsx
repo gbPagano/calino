@@ -1,9 +1,10 @@
-import { type JSX, useRef, useEffect } from 'react'
+import { type JSX, useRef, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { format, parseISO } from 'date-fns'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import type { CalendarEvent } from '@/types'
 import styles from './EventPreviewPopup.module.css'
 
@@ -21,6 +22,17 @@ function extractOriginalEventId(eventId: string): string | null {
   return null
 }
 
+const REMINDER_LABELS: Record<number, string> = {
+  0: 'At time of event',
+  5: '5 minutes before',
+  10: '10 minutes before',
+  15: '15 minutes before',
+  30: '30 minutes before',
+  60: '1 hour before',
+  120: '2 hours before',
+  1440: '1 day before',
+}
+
 export function EventPreviewPopup({
   event,
   position,
@@ -32,7 +44,10 @@ export function EventPreviewPopup({
   const openModal = useCalendarStore((state) => state.openModal)
   const closePreview = useCalendarStore((state) => state.closePreview)
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
+  const updateEvent = useCalendarStore((state) => state.updateEvent)
+  const { updateEvent: updateCalDAVEvent } = useCalDAV()
   const originalEventId = extractOriginalEventId(clickedEventId)
+  const eventIdToUse = originalEventId || event.id
 
   const isTask = event.type === 'task'
   const timeFormatPattern = timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
@@ -42,6 +57,14 @@ export function EventPreviewPopup({
       : dateFormat === 'dd/MM/yyyy'
         ? 'd MMM yyyy'
         : 'yyyy-MM-dd'
+
+  const [editingField, setEditingField] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState(event.title)
+  const [editDate, setEditDate] = useState('')
+  const [editTime, setEditTime] = useState('')
+  const [editEndTime, setEditEndTime] = useState('')
+  const [editLocation, setEditLocation] = useState(event.location || '')
+  const [hasChanges, setHasChanges] = useState(false)
 
   const getEventDate = (): string => {
     if (isTask && event.dueDate) {
@@ -61,6 +84,80 @@ export function EventPreviewPopup({
       return 'All day'
     }
     return `${format(parseISO(event.start), timeFormatPattern)} - ${format(parseISO(event.end), timeFormatPattern)}`
+  }
+
+  const startEditing = (field: string): void => {
+    setEditingField(field)
+    if (field === 'title') {
+      setEditTitle(event.title)
+    } else if (field === 'date') {
+      if (isTask && event.dueDate) {
+        setEditDate(event.dueDate)
+      } else {
+        setEditDate(format(parseISO(event.start), 'yyyy-MM-dd'))
+      }
+    } else if (field === 'time') {
+      if (isTask && event.dueDate) {
+        setEditTime(format(parseISO(event.dueDate), 'HH:mm'))
+      } else {
+        setEditTime(format(parseISO(event.start), 'HH:mm'))
+        setEditEndTime(format(parseISO(event.end), 'HH:mm'))
+      }
+    } else if (field === 'location') {
+      setEditLocation(event.location || '')
+    }
+  }
+
+  const saveChanges = async (): Promise<void> => {
+    const updates: Partial<CalendarEvent> = {
+      title: editTitle,
+      location: editLocation || undefined,
+    }
+
+    if (isTask && editDate) {
+      updates.dueDate = editDate
+      if (editTime) {
+        updates.start = `${editDate}T${editTime}:00`
+      } else {
+        updates.start = `${editDate}T00:00:00`
+        updates.isAllDay = true
+      }
+    } else if (!isTask && editDate) {
+      const startTime = editTime || '09:00'
+      const endTime = editEndTime || format(parseISO(event.end), 'HH:mm')
+      updates.start = `${editDate}T${startTime}:00`
+      updates.end = `${editDate}T${endTime}:00`
+    }
+
+    updateEvent(eventIdToUse, updates)
+    setHasChanges(false)
+    setEditingField(null)
+
+    try {
+      await updateCalDAVEvent(event.calendarId, { ...event, ...updates })
+    } catch {
+      // error handled by useCalDAV
+    }
+  }
+
+  const cancelEditing = (): void => {
+    setEditingField(null)
+    setHasChanges(false)
+  }
+
+  const handleFieldChange = (field: string, value: string): void => {
+    setHasChanges(true)
+    if (field === 'title') {
+      setEditTitle(value)
+    } else if (field === 'date') {
+      setEditDate(value)
+    } else if (field === 'time') {
+      setEditTime(value)
+    } else if (field === 'endTime') {
+      setEditEndTime(value)
+    } else if (field === 'location') {
+      setEditLocation(value)
+    }
   }
 
   const handleOpen = (): void => {
@@ -96,21 +193,31 @@ export function EventPreviewPopup({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') closePreview()
+      if (e.key === 'Escape') {
+        if (editingField) {
+          cancelEditing()
+        } else {
+          closePreview()
+        }
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [closePreview])
+  }, [closePreview, editingField])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent): void => {
       if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
-        closePreview()
+        if (editingField) {
+          cancelEditing()
+        } else {
+          closePreview()
+        }
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [closePreview])
+  }, [closePreview, editingField])
 
   useEffect(() => {
     const handleContextMenu = (): void => {
@@ -119,6 +226,112 @@ export function EventPreviewPopup({
     document.addEventListener('contextmenu', handleContextMenu)
     return () => document.removeEventListener('contextmenu', handleContextMenu)
   }, [closePreview])
+
+  const renderTitle = (): JSX.Element => {
+    if (editingField === 'title') {
+      return (
+        <input
+          type="text"
+          value={editTitle}
+          onChange={(e) => handleFieldChange('title', e.target.value)}
+          onBlur={cancelEditing}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              saveChanges()
+            }
+          }}
+          className={styles.titleInput}
+          autoFocus
+        />
+      )
+    }
+    return (
+      <span className={styles.title} onClick={() => startEditing('title')}>
+        {event.title}
+      </span>
+    )
+  }
+
+  const renderDate = (): JSX.Element => {
+    if (editingField === 'date') {
+      return (
+        <input
+          type="date"
+          value={editDate}
+          onChange={(e) => handleFieldChange('date', e.target.value)}
+          onBlur={() => setEditingField(null)}
+          className={styles.inlineInput}
+          autoFocus
+        />
+      )
+    }
+    return <span onClick={() => startEditing('date')}>{getEventDate()}</span>
+  }
+
+  const renderTime = (): JSX.Element => {
+    if (editingField === 'time') {
+      return (
+        <div className={styles.inlineTimeInputs}>
+          <input
+            type="time"
+            value={editTime}
+            onChange={(e) => handleFieldChange('time', e.target.value)}
+            className={styles.inlineInput}
+            autoFocus
+          />
+          {!isTask && (
+            <>
+              <span>-</span>
+              <input
+                type="time"
+                value={editEndTime}
+                onChange={(e) => handleFieldChange('endTime', e.target.value)}
+                className={styles.inlineInput}
+              />
+            </>
+          )}
+        </div>
+      )
+    }
+    return <span onClick={() => startEditing('time')}>{getEventTime()}</span>
+  }
+
+  const renderLocation = (): JSX.Element | null => {
+    if (editingField === 'location') {
+      return (
+        <input
+          type="text"
+          value={editLocation}
+          onChange={(e) => handleFieldChange('location', e.target.value)}
+          onBlur={() => setEditingField(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              saveChanges()
+            }
+          }}
+          className={styles.inlineInput}
+          autoFocus
+        />
+      )
+    }
+    if (event.location) {
+      return (
+        <span className={styles.location} onClick={() => startEditing('location')}>
+          {event.location}
+        </span>
+      )
+    }
+    return null
+  }
+
+  const getReminderLabel = (): string | null => {
+    if (!event.reminders || event.reminders.length === 0) return null
+    const minutes = event.reminders[0]?.minutesBefore
+    if (minutes === undefined) return null
+    return REMINDER_LABELS[minutes] || `${minutes} minutes before`
+  }
+
+  const reminderLabel = getReminderLabel()
 
   return createPortal(
     <AnimatePresence>
@@ -137,7 +350,7 @@ export function EventPreviewPopup({
               className={styles.colorDot}
               style={{ backgroundColor: event.color || '#4285F4' }}
             />
-            <span className={styles.title}>{event.title}</span>
+            {renderTitle()}
           </div>
           <button className={styles.closeBtn} onClick={closePreview} aria-label="Close">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -152,7 +365,7 @@ export function EventPreviewPopup({
         </div>
 
         <div className={styles.content}>
-          <div className={styles.field}>
+          <div className={styles.field} onClick={() => startEditing('date')}>
             <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
               <rect
                 x="2"
@@ -171,19 +384,19 @@ export function EventPreviewPopup({
                 strokeLinecap="round"
               />
             </svg>
-            <span>{getEventDate()}</span>
+            {renderDate()}
           </div>
 
-          <div className={styles.field}>
+          <div className={styles.field} onClick={() => startEditing('time')}>
             <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
               <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
               <path d="M7 4V7L9 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
             </svg>
-            <span>{getEventTime()}</span>
+            {renderTime()}
           </div>
 
           {event.location && (
-            <div className={styles.field}>
+            <div className={styles.field} onClick={() => startEditing('location')}>
               <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path
                   d="M7 6.5C8.10457 6.5 9 5.60457 9 4.5C9 3.39543 8.10457 2.5 7 2.5C5.89543 2.5 5 3.39543 5 4.5C5 5.60457 5.89543 6.5 7 6.5Z"
@@ -196,7 +409,7 @@ export function EventPreviewPopup({
                   strokeWidth="1.2"
                 />
               </svg>
-              <span className={styles.location}>{event.location}</span>
+              {renderLocation()}
             </div>
           )}
 
@@ -241,6 +454,26 @@ export function EventPreviewPopup({
                 />
               </svg>
               <span>{Math.round(event.travelDuration)} min travel</span>
+            </div>
+          )}
+
+          {reminderLabel && (
+            <div className={styles.field}>
+              <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path
+                  d="M7 1.5C4.51472 1.5 2.5 3.51472 2.5 6C2.5 8.48528 4.51472 10.5 7 10.5C9.48528 10.5 11.5 8.48528 11.5 6C11.5 3.51472 9.48528 1.5 7 1.5Z"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                />
+                <path
+                  d="M7 3V6L9 8"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span>{reminderLabel}</span>
             </div>
           )}
 
@@ -289,6 +522,19 @@ export function EventPreviewPopup({
         </div>
 
         <div className={styles.footer}>
+          {hasChanges && (
+            <button className={styles.saveBtn} onClick={saveChanges}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path
+                  d="M2 7L5.5 10.5L12 4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
           <button className={styles.openBtn} onClick={handleOpen}>
             {isTask ? 'Open task' : 'Open event'}
           </button>

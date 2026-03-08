@@ -21,18 +21,18 @@ describe('EventModal', () => {
 
   it('does not render when modal is closed', () => {
     render(<EventModal />)
-    expect(screen.queryByRole('heading', { name: /create event/i })).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Add title')).not.toBeInTheDocument()
   })
 
-  it('renders create event title when creating new event', () => {
+  it('renders title input in header when creating new event', () => {
     const store = useCalendarStore.getState()
     store.openModal()
 
     render(<EventModal />)
-    expect(screen.getByRole('heading', { name: /create event/i })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Add title')).toBeInTheDocument()
   })
 
-  it('renders edit event title when editing', () => {
+  it('renders title input with event title when editing', () => {
     const store = useCalendarStore.getState()
     store.addEvent({
       id: 'edit-test',
@@ -45,7 +45,7 @@ describe('EventModal', () => {
     store.openModal(undefined, undefined, 'edit-test')
 
     render(<EventModal />)
-    expect(screen.getByRole('heading', { name: /edit event/i })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Add title')).toHaveValue('Existing Event')
   })
 
   it('shows delete button when editing', () => {
@@ -77,14 +77,15 @@ describe('EventModal', () => {
     store.openModal()
 
     render(<EventModal />)
-    expect(screen.getByRole('checkbox')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /all day/i })).toBeInTheDocument()
   })
 
-  it('shows recurrence dropdown', () => {
+  it('shows recurrence dropdown after clicking More', () => {
     const store = useCalendarStore.getState()
     store.openModal()
 
     render(<EventModal />)
+    fireEvent.click(screen.getByRole('button', { name: /more/i }))
     expect(screen.getByLabelText('Repeat')).toBeInTheDocument()
   })
 

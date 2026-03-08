@@ -8,35 +8,59 @@ A browser-based CalDAV client — sync with your own server, no cloud required.
 
 ## Features
 
-**Views:**
+### Views
 
-- Month, week, day, agenda
+- **Month, Week, Day, Agenda** — four views for every preference
+- **Tasks** — dedicated view for VTODOs with filtering and sorting
 - Click week numbers to jump straight to that week
 - Click any date to see it in day view
 - Drag events to move them, drag edges to resize
 
-**Time stuff:**
+### Smart Input
 
-- Auto timezone detection
-- 12h/24h toggle
-- Compact recurring events (no giant blocks cluttering your week)
-- Apple Travel Time support
+- Type naturally: _"coffee with friends on wednesday, at 12-18"_ → creates a 4-hour event on that Wednesday
+- Press `Cmd+K` (or `Ctrl+K`) for the command palette — navigate, create events, sync, search, settings
+- Smart detection: start typing and NLP parses dates, times, and durations
 
-**Tasks:**
+### Tasks (VTODO)
 
 - Full VTODO support with due dates, priorities, and completion status
-- Shows up as checkboxes in month view, inline in week/day view
+- Shows as checkboxes in month view, inline in week/day view
+- Filter by calendar, sort by date/priority
+- Mark complete directly from notifications
 
-**Smart input:**
+### Time & Calendar
 
-- Type naturally: _"coffee with friends on wednesday, at 12-18"_ → creates a 4-hour event on March 4, 2026
-- Press `Cmd+K` (or `Ctrl+K`) for the command palette — navigate, create events, sync, everything from one bar
+- Auto timezone detection with manual override
+- 12h/24h toggle
+- Multiple calendars with custom colors
+- Compact recurring events (no giant blocks cluttering your week)
+- Event transparency (TRANSP) — see busy/free status
+- Apple Travel Time support
 
-**Coming:**
+### Search
 
-- Theme support (dark mode + custom)
+- Full-text search across all event fields
+- Filter by calendar, date range, event type
+- Fuzzy matching with Fuse.js
 
-**No login screen.** Open the app, you're in.
+### Desktop Integration
+
+- **PWA** — install as a native app (works offline)
+- **Desktop notifications** with customizable reminders
+- Native event handling for dates and times
+
+### Customization
+
+- **Themes** — light, dark, or follow system
+- **Event density** — comfortable or compact
+- Configurable first day of week, date format, default duration
+- Show/hide week numbers, completed tasks
+
+### Mobile
+
+- Swipe left/right to navigate between months/weeks/days
+- Touch-friendly interface
 
 ## Quick Start
 
@@ -44,6 +68,8 @@ A browser-based CalDAV client — sync with your own server, no cloud required.
 pnpm install
 pnpm dev
 ```
+
+Open http://localhost:5173
 
 ## Selfhosting
 
@@ -66,20 +92,28 @@ cp .env.example .env.local
 pnpm build
 ```
 
-**Supported CalDAV servers:**
+### CalDAV Proxy (Cloudflare Worker)
+
+If your CalDAV server doesn't support CORS, you can use the built-in proxy:
+
+```bash
+# Option 1: Use Calino's hosted proxy
+# Set proxy URL in settings to: https://proxy.calino.io
+
+# Option 2: Self-host the proxy
+# See docs/CORS_PROXY.md for setup instructions
+```
+
+### Supported CalDAV Servers
 
 - Baikal
 - Nextcloud Calendar
 - Radicale
 - Any RFC 4791 compliant server
 
-**CORS note:** Most CalDAV servers don't send CORS headers by default. If you get CORS errors, you have three options:
+### CORS Headers
 
-1. **Add CORS headers to your server** (recommended)
-2. **Use the Calino proxy** — enter `https://proxy.calino.io` as the proxy URL in settings (we see your IP and server URL, but not credentials or data)
-3. **Self-host a proxy** — see [docs/CORS_PROXY.md](docs/CORS_PROXY.md) for setup instructions
-
-If adding headers to your server, use these:
+If adding headers to your server:
 
 ```
 Access-Control-Allow-Origin: <your-calino-origin>
@@ -87,7 +121,7 @@ Access-Control-Allow-Headers: Authorization, Content-Type, Depth, If-Match, If-N
 Access-Control-Allow-Methods: GET, PUT, POST, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS
 ```
 
-### Caddy example
+### Caddy Example
 
 ```caddy
 yourcaldav.server.com {

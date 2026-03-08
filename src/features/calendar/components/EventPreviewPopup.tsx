@@ -546,12 +546,10 @@ export function EventPreviewPopup({
             </div>
           )}
 
-          {(event.description || editingField === 'description') && (
-            <div className={styles.description}>
-              <div className={styles.descriptionLabel}>Description</div>
-              {renderDescription()}
-            </div>
-          )}
+          <div className={styles.description}>
+            <div className={styles.descriptionLabel}>Description</div>
+            {renderDescription()}
+          </div>
         </div>
 
         <div className={styles.footer}>

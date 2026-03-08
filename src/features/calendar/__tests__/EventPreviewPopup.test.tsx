@@ -164,4 +164,124 @@ describe('EventPreviewPopup', () => {
 
     expect(useCalendarStore.getState().previewEventId).toBeNull()
   })
+
+  it('makes title editable when clicked', () => {
+    render(
+      <EventPreviewPopup event={mockEvent} position={mockPosition} clickedEventId="test-event-1" />
+    )
+
+    const title = screen.getByText('Test Meeting')
+    fireEvent.click(title)
+
+    expect(screen.getByDisplayValue('Test Meeting')).toBeInTheDocument()
+  })
+
+  it('makes date editable when clicked', () => {
+    render(
+      <EventPreviewPopup event={mockEvent} position={mockPosition} clickedEventId="test-event-1" />
+    )
+
+    const date = screen.getByText(/15 Mar 2024/)
+    fireEvent.click(date)
+
+    expect(screen.getByDisplayValue('2024-03-15')).toBeInTheDocument()
+  })
+
+  it('makes time editable when clicked', () => {
+    render(
+      <EventPreviewPopup event={mockEvent} position={mockPosition} clickedEventId="test-event-1" />
+    )
+
+    const time = screen.getByText(/11:00/)
+    fireEvent.click(time)
+
+    expect(screen.getByDisplayValue('11:00')).toBeInTheDocument()
+  })
+
+  it('makes location editable when clicked', () => {
+    render(
+      <EventPreviewPopup event={mockEvent} position={mockPosition} clickedEventId="test-event-1" />
+    )
+
+    const location = screen.getByText('Conference Room A')
+    fireEvent.click(location)
+
+    expect(screen.getByDisplayValue('Conference Room A')).toBeInTheDocument()
+  })
+
+  it('makes description editable when clicked', () => {
+    render(
+      <EventPreviewPopup event={mockEvent} position={mockPosition} clickedEventId="test-event-1" />
+    )
+
+    const description = screen.getByText('This is a test meeting description.')
+    fireEvent.click(description)
+
+    expect(screen.getByDisplayValue('This is a test meeting description.')).toBeInTheDocument()
+  })
+
+  it('shows save button when changes are made', () => {
+    render(
+      <EventPreviewPopup event={mockEvent} position={mockPosition} clickedEventId="test-event-1" />
+    )
+
+    const title = screen.getByText('Test Meeting')
+    fireEvent.click(title)
+
+    const input = screen.getByDisplayValue('Test Meeting')
+    fireEvent.change(input, { target: { value: 'Updated Meeting' } })
+
+    expect(screen.getByRole('button', { name: '' })).toBeInTheDocument()
+  })
+
+  it('shows add description option when no description exists', () => {
+    const eventWithoutDescription: CalendarEvent = {
+      ...mockEvent,
+      description: undefined,
+    }
+
+    render(
+      <EventPreviewPopup
+        event={eventWithoutDescription}
+        position={mockPosition}
+        clickedEventId="test-event-1"
+      />
+    )
+
+    expect(screen.getByText('+ Add description')).toBeInTheDocument()
+  })
+
+  it('renders reminder when present', () => {
+    const eventWithReminder: CalendarEvent = {
+      ...mockEvent,
+      reminders: [{ id: '1', minutesBefore: 15, method: 'popup' }],
+    }
+
+    render(
+      <EventPreviewPopup
+        event={eventWithReminder}
+        position={mockPosition}
+        clickedEventId="test-event-1"
+      />
+    )
+
+    expect(screen.getByText('15 minutes before')).toBeInTheDocument()
+  })
+
+  it('renders travel time when present', () => {
+    const eventWithTravel: CalendarEvent = {
+      ...mockEvent,
+      travelDuration: 30,
+    }
+
+    render(
+      <EventPreviewPopup
+        event={eventWithTravel}
+        position={mockPosition}
+        clickedEventId="test-event-1"
+      />
+    )
+
+    expect(screen.getByText('30 min travel')).toBeInTheDocument()
+  })
 })

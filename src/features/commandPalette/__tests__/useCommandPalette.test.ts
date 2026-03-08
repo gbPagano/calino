@@ -98,6 +98,7 @@ vi.mock('@/store/settingsStore', () => ({
       lightTheme: 'default',
       darkTheme: 'default',
       caldavDebugMode: false,
+      hideCompletedTasksInMonthView: true,
       monthViewEventLimit: 3,
       updateSettings: vi.fn(),
       resetSettings: vi.fn(),

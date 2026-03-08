@@ -10,6 +10,7 @@ export function CalendarSettings(): JSX.Element {
     compactRecurringEvents,
     compressPastWeeks,
     monthViewEventLimit,
+    hideCompletedTasksInMonthView,
     updateSettings,
   } = useSettingsStore()
 
@@ -99,6 +100,22 @@ export function CalendarSettings(): JSX.Element {
           className={`${styles.toggle} ${compressPastWeeks ? styles.active : ''}`}
           onClick={() => updateSettings({ compressPastWeeks: !compressPastWeeks })}
           aria-pressed={compressPastWeeks}
+        >
+          <span className={styles.toggleKnob} />
+        </button>
+      </div>
+
+      <div className={styles.settingRow}>
+        <div className={styles.settingLabel}>
+          <span className={styles.settingLabelText}>Hide Completed Tasks in Month View</span>
+          <span className={styles.settingLabelHint}>Don't show completed tasks in month view</span>
+        </div>
+        <button
+          className={`${styles.toggle} ${hideCompletedTasksInMonthView ? styles.active : ''}`}
+          onClick={() =>
+            updateSettings({ hideCompletedTasksInMonthView: !hideCompletedTasksInMonthView })
+          }
+          aria-pressed={hideCompletedTasksInMonthView}
         >
           <span className={styles.toggleKnob} />
         </button>

@@ -121,6 +121,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   lightTheme: config.defaultLightTheme,
   darkTheme: config.defaultDarkTheme,
   caldavDebugMode: false,
+  hideCompletedTasksInMonthView: true,
 }
 
 export const useSettingsStore = create<SettingsStore>()(

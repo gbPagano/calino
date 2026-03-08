@@ -125,6 +125,7 @@ export interface UserSettings {
   lightTheme: string
   darkTheme: string
   caldavDebugMode: boolean
+  hideCompletedTasksInMonthView: boolean
 }
 
 export type SettingsState = UserSettings

@@ -63,6 +63,9 @@ export function CalendarGrid(): JSX.Element {
   const compactRecurringEvents = useSettingsStore((state) => state.compactRecurringEvents ?? false)
   const compressPastWeeks = useSettingsStore((state) => state.compressPastWeeks ?? false)
   const monthViewEventLimit = useSettingsStore((state) => state.monthViewEventLimit ?? 3)
+  const hideCompletedTasksInMonthView = useSettingsStore(
+    (state) => state.hideCompletedTasksInMonthView ?? true
+  )
 
   const { updateEvent: caldavUpdateEvent } = useCalDAV()
 
@@ -314,7 +317,8 @@ export function CalendarGrid(): JSX.Element {
         (event) =>
           event.type === 'task' &&
           visibleCalendarIds.includes(event.calendarId) &&
-          taskCalendarsWithTasks.includes(event.calendarId)
+          taskCalendarsWithTasks.includes(event.calendarId) &&
+          !(hideCompletedTasksInMonthView && event.completed)
       )
       .forEach((task) => {
         const taskDate = task.dueDate
@@ -324,7 +328,7 @@ export function CalendarGrid(): JSX.Element {
         map.set(taskDate, [...existing, task])
       })
     return map
-  }, [events, calendars])
+  }, [events, calendars, hideCompletedTasksInMonthView])
 
   const handleDayClick = (day: Date): void => {
     openModal(format(day, 'yyyy-MM-dd'))

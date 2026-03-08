@@ -1,4 +1,5 @@
 import type { JSX } from 'react'
+import { useState } from 'react'
 import type { RecurrenceRule, Reminder } from '@/types'
 import styles from './EventModal.module.css'
 
@@ -75,32 +76,10 @@ export function EventFormFields({
   transparency = 'opaque',
   onTransparencyChange,
 }: EventFormFieldsProps): JSX.Element {
+  const [showMoreOptions, setShowMoreOptions] = useState(false)
+
   return (
     <>
-      <div className={styles.row}>
-        <div className={styles.field}>
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              checked={isAllDay}
-              onChange={(e) => onIsAllDayChange(e.target.checked)}
-            />
-            <span>All day</span>
-          </label>
-        </div>
-
-        <div className={styles.field}>
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              checked={transparency === 'transparent'}
-              onChange={(e) => onTransparencyChange(e.target.checked ? 'transparent' : 'opaque')}
-            />
-            <span>Show as available (transparent)</span>
-          </label>
-        </div>
-      </div>
-
       <div className={styles.dateTimeRow}>
         <div className={styles.dateTimeGroup}>
           <label className={styles.label}>Start</label>
@@ -158,74 +137,118 @@ export function EventFormFields({
       </div>
 
       <div className={styles.row}>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="recurrence-select">
-            Repeat
-          </label>
-          <select
-            id="recurrence-select"
-            value={recurrence}
-            onChange={(e) =>
-              onRecurrenceChange(e.target.value as RecurrenceRule['frequency'] | 'none')
-            }
-            className={styles.select}
-          >
-            {RECURRENCE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <label className={styles.checkbox}>
+          <input
+            type="checkbox"
+            checked={isAllDay}
+            onChange={(e) => onIsAllDayChange(e.target.checked)}
+          />
+          <span>All day</span>
+        </label>
 
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="travel-duration-select">
-            Travel time
-          </label>
-          <select
-            id="travel-duration-select"
-            value={travelDuration ?? ''}
-            onChange={(e) =>
-              onTravelDurationChange(e.target.value ? Number(e.target.value) : undefined)
-            }
-            className={styles.select}
-          >
-            {TRAVEL_DURATION_OPTIONS.map((option) => (
-              <option key={option.label} value={option.value ?? ''}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+        <label className={styles.checkbox}>
+          <input
+            type="checkbox"
+            checked={transparency === 'transparent'}
+            onChange={(e) => onTransparencyChange(e.target.checked ? 'transparent' : 'opaque')}
+          />
+          <span>Available</span>
+        </label>
 
-      <div className={styles.row}>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="reminder-select">
-            Reminder
-          </label>
-          <select
-            id="reminder-select"
-            value={reminders[0]?.minutesBefore ?? ''}
-            onChange={(e) => {
-              const value = e.target.value ? Number(e.target.value) : undefined
-              if (value !== undefined) {
-                onRemindersChange([{ id: 'default', minutesBefore: value, method: 'popup' }])
-              } else {
-                onRemindersChange([])
-              }
+        <button
+          type="button"
+          className={styles.chevronButton}
+          onClick={() => setShowMoreOptions(!showMoreOptions)}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            style={{
+              transform: showMoreOptions ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s',
             }}
-            className={styles.select}
           >
-            <option value="">None</option>
-            {REMINDER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+          <span style={{ fontSize: '12px', marginLeft: '4px' }}>More</span>
+        </button>
       </div>
+
+      {showMoreOptions && (
+        <div className={styles.moreOptionsSection}>
+          <div className={styles.row}>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="recurrence-select">
+                Repeat
+              </label>
+              <select
+                id="recurrence-select"
+                value={recurrence}
+                onChange={(e) =>
+                  onRecurrenceChange(e.target.value as RecurrenceRule['frequency'] | 'none')
+                }
+                className={styles.select}
+              >
+                {RECURRENCE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="travel-duration-select">
+                Travel time
+              </label>
+              <select
+                id="travel-duration-select"
+                value={travelDuration ?? ''}
+                onChange={(e) =>
+                  onTravelDurationChange(e.target.value ? Number(e.target.value) : undefined)
+                }
+                className={styles.select}
+              >
+                {TRAVEL_DURATION_OPTIONS.map((option) => (
+                  <option key={option.label} value={option.value ?? ''}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="reminder-select">
+                Reminder
+              </label>
+              <select
+                id="reminder-select"
+                value={reminders[0]?.minutesBefore ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value ? Number(e.target.value) : undefined
+                  if (value !== undefined) {
+                    onRemindersChange([{ id: 'default', minutesBefore: value, method: 'popup' }])
+                  } else {
+                    onRemindersChange([])
+                  }
+                }}
+                className={styles.select}
+              >
+                <option value="">None</option>
+                {REMINDER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

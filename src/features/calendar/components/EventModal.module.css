@@ -58,18 +58,35 @@
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
+  padding: 12px 16px;
   border-bottom: 1px solid #e0e0e0;
 }
 
-.title {
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.titleInput {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-bottom: 2px solid transparent;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
   color: #202124;
-  margin: 0;
+  background: transparent;
+  transition: border-color 0.15s ease;
+}
+
+.titleInput::placeholder {
+  color: #9aa0a6;
+}
+
+.titleInput:focus {
+  outline: none;
+  border-bottom-color: #4285f4;
 }
 
 .closeButton {
@@ -79,13 +96,12 @@
   width: 32px;
   height: 32px;
   border: none;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: transparent;
   border-radius: 50%;
   color: #5f6368;
   cursor: pointer;
   transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .closeButton:hover {
@@ -273,6 +289,47 @@
   background: #fce8e6;
 }
 
+.chevronButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  color: #5f6368;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.chevronButton:hover {
+  background: #f1f3f4;
+  color: #202124;
+}
+
+.moreOptionsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .dateTimeRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -288,6 +345,31 @@
 .dateTimeInputs {
   display: flex;
   gap: 6px;
+}
+
+.dateTimeInputs .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.chevronButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: #5f6368;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: auto;
+}
+
+.chevronButton:hover {
+  background: #f1f3f4;
+  color: #202124;
 }
 
 .dateTimeInputs .input {

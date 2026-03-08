@@ -537,32 +537,7 @@ export function EventModal(): JSX.Element | null {
     <div className={styles.overlay} onClick={closeModal}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <h2 className={styles.title}>
-            {isEditing
-              ? isTaskMode
-                ? 'Edit task'
-                : 'Edit event'
-              : isTaskMode
-                ? 'Create task'
-                : 'Create event'}
-          </h2>
-          <button className={styles.closeButton} onClick={closeModal}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M18 6L6 18M6 6L18 18"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
-        </div>
-        <form
-          key={`${selectedEventId}-${selectedDate}`}
-          onSubmit={handleSubmit}
-          className={styles.form}
-        >
-          <div className={styles.field}>
+          <div className={styles.headerContent}>
             <input
               type="text"
               placeholder="Add title"
@@ -571,8 +546,23 @@ export function EventModal(): JSX.Element | null {
               className={styles.titleInput}
               required
             />
+            <button className={styles.closeButton} onClick={closeModal}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M18 6L6 18M6 6l12 12"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
           </div>
-
+        </div>
+        <form
+          key={`${selectedEventId}-${selectedDate}`}
+          onSubmit={handleSubmit}
+          className={styles.form}
+        >
           {isTaskMode && (
             <TaskFormFields
               completed={completed}

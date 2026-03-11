@@ -22,6 +22,27 @@
   flex: 1;
 }
 
+.allDayEvent {
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  border-left: 3px solid;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: filter 0.15s ease;
+}
+
+.allDayEvent:hover {
+  filter: brightness(0.95);
+}
+
+.allDayEventTitle {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
 .headerShadow {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -87,6 +108,19 @@
   align-items: center;
   padding: var(--space-1, 4px);
   border-right: 1px solid var(--color-border-subtle, var(--color-border));
+  min-height: 48px;
+}
+
+.dayHeader.hasAllDayEvents {
+  min-height: 60px;
+}
+
+.allDayEventsInHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  margin-top: 2px;
 }
 
 .dayHeader:last-child {

@@ -221,6 +221,25 @@ export function WeekView(): JSX.Element {
     return eachDayOfInterval({ start: weekStart, end: weekEnd })
   }, [date, firstDayOfWeek])
 
+  const allDayEventsMap = useMemo(() => {
+    const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
+    const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
+    const weekEvents = getEventsForDateRange(
+      format(weekStart, 'yyyy-MM-dd'),
+      format(weekEnd, 'yyyy-MM-dd')
+    )
+
+    const map = new Map<string, CalendarEvent[]>()
+    weekEvents
+      .filter((event) => event.type !== 'task' && event.isAllDay)
+      .forEach((event: CalendarEvent) => {
+        const dateKey = format(parseISO(event.start), 'yyyy-MM-dd')
+        const existing = map.get(dateKey) || []
+        map.set(dateKey, [...existing, event])
+      })
+    return map
+  }, [date, firstDayOfWeek, getEventsForDateRange, events])
+
   const eventsMap = useMemo(() => {
     const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
     const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
@@ -232,7 +251,7 @@ export function WeekView(): JSX.Element {
     const map = new Map<string, CalendarEvent[]>()
     weekEvents
       .filter((event) => {
-        if (event.type !== 'task') return true
+        if (event.type !== 'task') return !event.isAllDay
         if (event.isAllDay) return false
         return event.start && event.dueDate
       })
@@ -676,74 +695,107 @@ export function WeekView(): JSX.Element {
     </div>
   )
 
-  const renderDesktopContent = () => (
-    <>
-      <div className={`${styles.header} ${isScrolled ? styles.headerShadow : ''}`}>
-        <div className={styles.weekNumberHeader}>W{weekNumber}</div>
-        <div className={styles.headerDays}>
-          {weekDays.map((day) => (
-            <div
-              key={day.toISOString()}
-              className={`${styles.dayHeader} ${isToday(day) ? styles.today : ''}`}
-            >
-              <div className={styles.dayName}>{format(day, 'EEE')}</div>
-              <div className={styles.dayNumber}>{format(day, 'd')}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div
-        ref={bodyRef}
-        className={styles.body}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onScroll={handleScroll}
-      >
-        <div className={styles.timeColumn}>
-          {HOURS.map((hour) => (
-            <div key={hour.toISOString()} className={styles.timeCell}>
-              {format(hour, timeFormat === '24h' ? 'HH:mm' : 'h a')}
-            </div>
-          ))}
-        </div>
-        <div ref={daysContainerRef} className={styles.daysContainer}>
-          {weekDays.map((day) => {
-            return (
-              <div
-                key={day.toISOString()}
-                className={styles.dayColumn}
-                onContextMenu={(e) => {
-                  e.preventDefault()
-                  openMenu('weekview')
-                  const rect = e.currentTarget.getBoundingClientRect()
-                  const y = e.clientY - rect.top
-                  const hourClicked = Math.max(0, Math.min(23, Math.floor(y / hourHeight)))
-                  setContextMenu({ x: e.clientX, y: e.clientY, day, hour: hourClicked })
-                }}
-              >
-                <div className={styles.hourCells}>
-                  {HOURS.map((hour) => (
-                    <DroppableCell
-                      key={`${day.toISOString()}-${hour.toISOString()}`}
-                      day={day}
-                      hour={hour}
-                      onClick={() => handleCellClick(day, hour)}
-                      onMouseDown={(e) => handleDragStartFromCell(day, hour, e)}
-                    />
-                  ))}
+  const renderDesktopContent = () => {
+    const allDayEventsByDay = weekDays.map((day) => {
+      const dateKey = format(day, 'yyyy-MM-dd')
+      return allDayEventsMap.get(dateKey) || []
+    })
+
+    return (
+      <>
+        <div className={`${styles.header} ${isScrolled ? styles.headerShadow : ''}`}>
+          <div className={styles.weekNumberHeader}>W{weekNumber}</div>
+          <div className={styles.headerDays}>
+            {weekDays.map((day, idx) => {
+              const dayAllDayEvents = allDayEventsByDay[idx]
+              return (
+                <div
+                  key={day.toISOString()}
+                  className={`${styles.dayHeader} ${isToday(day) ? styles.today : ''} ${dayAllDayEvents.length > 0 ? styles.hasAllDayEvents : ''}`}
+                >
+                  <div className={styles.dayName}>{format(day, 'EEE')}</div>
+                  <div className={styles.dayNumber}>{format(day, 'd')}</div>
+                  {dayAllDayEvents.length > 0 && (
+                    <div className={styles.allDayEventsInHeader}>
+                      {dayAllDayEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className={styles.allDayEvent}
+                          style={{
+                            backgroundColor: `${event.color || calendars.find((c) => c.id === event.calendarId)?.color || DEFAULT_CALENDAR_COLOR}20`,
+                            borderLeftColor:
+                              event.color ||
+                              calendars.find((c) => c.id === event.calendarId)?.color ||
+                              DEFAULT_CALENDAR_COLOR,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openModal(undefined, undefined, event.id)
+                          }}
+                        >
+                          <span className={styles.allDayEventTitle}>{event.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className={styles.eventsOverlay} style={{ height: 24 * hourHeight }}>
-                  {day === weekDays[0] && selectionOverlay}
-                  {renderDayEvents(day)}
-                </div>
+              )
+            })}
+          </div>
+        </div>
+        <div
+          ref={bodyRef}
+          className={styles.body}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onScroll={handleScroll}
+        >
+          <div className={styles.timeColumn}>
+            {HOURS.map((hour) => (
+              <div key={hour.toISOString()} className={styles.timeCell}>
+                {format(hour, timeFormat === '24h' ? 'HH:mm' : 'h a')}
               </div>
-            )
-          })}
+            ))}
+          </div>
+          <div ref={daysContainerRef} className={styles.daysContainer}>
+            {weekDays.map((day) => {
+              return (
+                <div
+                  key={day.toISOString()}
+                  className={styles.dayColumn}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    openMenu('weekview')
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    const y = e.clientY - rect.top
+                    const hourClicked = Math.max(0, Math.min(23, Math.floor(y / hourHeight)))
+                    setContextMenu({ x: e.clientX, y: e.clientY, day, hour: hourClicked })
+                  }}
+                >
+                  <div className={styles.hourCells}>
+                    {HOURS.map((hour) => (
+                      <DroppableCell
+                        key={`${day.toISOString()}-${hour.toISOString()}`}
+                        day={day}
+                        hour={hour}
+                        onClick={() => handleCellClick(day, hour)}
+                        onMouseDown={(e) => handleDragStartFromCell(day, hour, e)}
+                      />
+                    ))}
+                  </div>
+                  <div className={styles.eventsOverlay} style={{ height: 24 * hourHeight }}>
+                    {day === weekDays[0] && selectionOverlay}
+                    {renderDayEvents(day)}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
-      </div>
-    </>
-  )
+      </>
+    )
+  }
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>

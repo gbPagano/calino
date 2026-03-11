@@ -146,9 +146,15 @@ export function DayView(): JSX.Element {
 
   const date = parseISO(currentDate)
 
+  const allDayEvents = useMemo(() => {
+    return getEventsForDateRange(format(date, 'yyyy-MM-dd'), format(date, 'yyyy-MM-dd')).filter(
+      (e) => e.type !== 'task' && e.isAllDay
+    )
+  }, [date, getEventsForDateRange, events])
+
   const dayEvents = useMemo(() => {
     return getEventsForDateRange(format(date, 'yyyy-MM-dd'), format(date, 'yyyy-MM-dd')).filter(
-      (e) => e.type !== 'task'
+      (e) => e.type !== 'task' && !e.isAllDay
     )
   }, [date, getEventsForDateRange, events])
 
@@ -514,12 +520,37 @@ export function DayView(): JSX.Element {
         }}
         {...bind}
       >
-        <div className={`${styles.header} ${isScrolled ? styles.headerShadow : ''}`}>
+        <div
+          className={`${styles.header} ${isScrolled ? styles.headerShadow : ''} ${allDayEvents.length > 0 ? styles.hasAllDayEvents : ''}`}
+        >
           <div className={styles.dayInfo}>
             <div className={styles.dayName}>{format(date, 'EEEE')}</div>
             <div className={`${styles.dayNumber} ${isCurrentDay ? styles.today : ''}`}>
               {format(date, 'd')}
             </div>
+            {allDayEvents.length > 0 && (
+              <div className={styles.allDayEventsInHeader}>
+                {allDayEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className={styles.allDayEvent}
+                    style={{
+                      backgroundColor: `${event.color || calendars.find((c) => c.id === event.calendarId)?.color || DEFAULT_CALENDAR_COLOR}20`,
+                      borderLeftColor:
+                        event.color ||
+                        calendars.find((c) => c.id === event.calendarId)?.color ||
+                        DEFAULT_CALENDAR_COLOR,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openModal(undefined, undefined, event.id)
+                    }}
+                  >
+                    <span className={styles.allDayEventTitle}>{event.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <div

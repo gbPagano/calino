@@ -14,6 +14,42 @@
   flex-shrink: 0;
 }
 
+.header.hasAllDayEvents {
+  align-items: flex-start;
+}
+
+.allDayEventsInHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.allDayEvent {
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border-left: 3px solid;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: filter 0.15s ease;
+  display: flex;
+  align-items: center;
+}
+
+.allDayEvent:hover {
+  filter: brightness(0.95);
+}
+
+.allDayEventTitle {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
 .headerShadow {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }

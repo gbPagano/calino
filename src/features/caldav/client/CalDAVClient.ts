@@ -83,7 +83,7 @@ export class CalDAVClient {
       ctag: null,
       syncToken: null,
       isVisible: true,
-      isDefault: false,
+      isDefault: index === 0,
     }))
   }
 

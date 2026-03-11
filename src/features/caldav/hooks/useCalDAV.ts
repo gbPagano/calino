@@ -138,8 +138,18 @@ export function useCalDAV(): UseCalDAVReturn {
         }
 
         const storedCalendars = storage.getAllCalendars()
-        const hasDefault = storedCalendars.some((c) => c.isDefault && c.id !== 'default')
-        if (!hasDefault && serverCalendars.length > 0) {
+        const allCalendarsInStore = useCalendarStore.getState().calendars
+        if (serverCalendars.length > 0) {
+          for (const cal of allCalendarsInStore) {
+            if (cal.isDefault) {
+              storeUpdateCalendar(cal.id, { isDefault: false })
+            }
+          }
+          for (const cal of storedCalendars) {
+            if (cal.isDefault) {
+              storage.updateCalendar(cal.id, { isDefault: false })
+            }
+          }
           const firstCal = serverCalendars[0]
           const storeCalId = storedCalendars.find((c) => c.url === firstCal.url)?.id
           if (storeCalId) {

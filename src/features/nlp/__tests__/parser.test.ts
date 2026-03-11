@@ -185,4 +185,55 @@ describe('NLParser', () => {
     expect(result.location).toBe('hvidovre')
     expect(result.title).toBe('Climbing in hvidovre')
   })
+
+  it('parses time range with "between X-Y"', () => {
+    const result = parseNaturalLanguage('swimming with friends tomorrow, between 17-18')
+    expect(result.title).toBe('Swimming with friends')
+    expect(result.startDate).toBeDefined()
+    expect(result.endDate).toBeDefined()
+    expect(result.isAllDay).toBe(false)
+  })
+
+  it('parses time range with "between X and Y"', () => {
+    const result = parseNaturalLanguage('swimming with friends tomorrow, between 17 and 18')
+    expect(result.title).toBe('Swimming with friends')
+    expect(result.startDate).toBeDefined()
+    expect(result.endDate).toBeDefined()
+    expect(result.isAllDay).toBe(false)
+  })
+
+  it('parses time range without comma', () => {
+    const result = parseNaturalLanguage('swimming with friends tomorrow between 17 and 18')
+    expect(result.title).toBe('Swimming with friends')
+    expect(result.startDate).toBeDefined()
+    expect(result.endDate).toBeDefined()
+    expect(result.isAllDay).toBe(false)
+  })
+
+  it('parses ordinal date without month', () => {
+    const result = parseNaturalLanguage('dentist on the 15th')
+    expect(result.title).toBe('Dentist')
+    expect(result.isAllDay).toBe(true)
+  })
+
+  it('parses ordinal date with day only', () => {
+    const result = parseNaturalLanguage('appointment on 21st')
+    expect(result.title).toBe('Appointment')
+    expect(result.isAllDay).toBe(true)
+  })
+
+  it('parses time range with between without date', () => {
+    const result = parseNaturalLanguage('meeting between 17 and 18')
+    expect(result.title).toBe('Meeting')
+    expect(result.startDate).toBeDefined()
+    expect(result.endDate).toBeDefined()
+    expect(result.isAllDay).toBe(false)
+  })
+
+  it('extracts recurrence for every weekday', () => {
+    const result = parseNaturalLanguage('team standup every weekday at 9am')
+    expect(result.recurrence).toBeDefined()
+    expect(result.recurrence?.frequency).toBe('weekly')
+    expect(result.recurrence?.byWeekday).toEqual([1, 2, 3, 4, 5])
+  })
 })

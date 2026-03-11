@@ -31,6 +31,47 @@ function stripTaskPrefix(input: string): string {
   return input
 }
 
+const MONTH_NAMES = [
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
+]
+
+function preprocessInput(input: string, refDate: Date = new Date()): string {
+  let processed = input
+
+  // Replace ", between X-Y" with " at X-Y"
+  processed = processed.replace(/,\s*between\s+(\d{1,2})-(\d{1,2})\b/gi, ' at $1-$2')
+
+  // Replace ", between X and Y" with " at X to Y"
+  processed = processed.replace(/,\s*between\s+(\d{1,2})\s+and\s+(\d{1,2})\b/gi, ' at $1 to $2')
+
+  // Replace " between X-Y" with " at X-Y" (if preceded by date keyword or space)
+  // This handles "tomorrow between 17-18"
+  processed = processed.replace(/\s+between\s+(\d{1,2})-(\d{1,2})\b/gi, ' at $1-$2')
+
+  // Replace " between X and Y" with " X to Y" (if preceded by date keyword or space)
+  // This handles "tomorrow between 17 and 18" and "meeting between 17 and 18"
+  processed = processed.replace(/\s+between\s+(\d{1,2})\s+and\s+(\d{1,2})\b/gi, ' $1 to $2')
+
+  // Fix ordinal dates: "the 15th", "15th", "the 1st", etc. -> add month reference
+  // chrono-node handles "15th March" but not ordinal alone, so we add current month
+  const currentMonth = MONTH_NAMES[refDate.getMonth()]
+  processed = processed.replace(/\bthe\s+(\d{1,2})(st|nd|rd|th)\b/gi, `$1 ${currentMonth}`)
+  processed = processed.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, `$1 ${currentMonth}`)
+
+  return processed
+}
+
 export class NLParser {
   private defaultDuration: number
   private defaultDate: Date
@@ -47,7 +88,8 @@ export class NLParser {
 
     const isTask = detectTask(input)
 
-    const parsed = chrono.parse(input, this.defaultDate, {
+    const processedInput = preprocessInput(input, this.defaultDate)
+    const parsed = chrono.parse(processedInput, this.defaultDate, {
       forwardDate: true,
     })
 
@@ -88,16 +130,16 @@ export class NLParser {
       confidence = 0.3
     }
 
-    const duration = extractDuration(input, this.defaultDuration)
+    const duration = extractDuration(processedInput, this.defaultDuration)
 
     if (!endDate && !isAllDay && isValid(startDate)) {
       endDate = addMinutes(startDate, duration)
     }
 
-    const titleInput = isTask ? stripTaskPrefix(input) : input
+    const titleInput = isTask ? stripTaskPrefix(processedInput) : processedInput
     const title = extractTitle(titleInput, parsedText)
-    const location = extractLocation(input)
-    const recurrenceResult = extractRecurrence(input)
+    const location = extractLocation(processedInput)
+    const recurrenceResult = extractRecurrence(processedInput)
 
     const result: NLPParseResult = {
       title,

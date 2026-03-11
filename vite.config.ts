@@ -8,8 +8,10 @@ export default defineConfig({
   base: '/',
   plugins: [react(), nodePolyfills()],
   server: {
+    host: '0.0.0.0',
+    allowedHosts: ['jankyboi', 'localhost'],
     hmr: {
-      host: 'localhost',
+      host: '0.0.0.0',
       port: 5173,
     },
   },

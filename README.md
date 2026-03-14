@@ -1,20 +1,22 @@
 # Calino
 
-A browser-based CalDAV client — sync with your own server, no cloud required.
+A browser-based CalDAV client — sync with your own server, no data is sent elsewhere.
 
 Check out the hosted version at [Calino.io](https://calino.io).
+
+Despite Calino being a web app, it acts as a desktop client, in the sense that it only sends data between your computer and the CalDAV servers; there is no central Calino server to store your information, as it is a static web app.
 
 > **⚠️ New Project Alert:** Calino is a new project and under very active development. Expect breaking changes, evolving UI, and frequent updates. Use at your own risk — but report bugs, we'd love the feedback!
 
 ### CalDAV Proxy
 
-If your CalDAV server doesn't support CORS, you can use Calino's hosted proxy URL during setup: https://proxy.calino.io
+Due to the browser based nature of Calino, if your CalDAV server doesn't support CORS, you can use Calino's hosted proxy URL during setup: https://proxy.calino.io
 
-With that said, I urge you to either selfhost Calino or at least use your own proxy, to minimize the amount of data being sent to servers that are not your own. Calino.proxy.io is solely for convenience. Don't rely on it.
+With that said, I urge you to either selfhost Calino or at least use your own proxy, to minimize the amount of data being sent to servers that are not your own. Calino.proxy.io is solely for convenience. Don't rely on it. Instructions for setting up your own proxy is further down in the readme.
 
 ## Features
 
-I have made it as close as possible, as to what I envision the perfect CalDAV non-enterprise calendar to be.
+I have made it as close as possible, as to what I envision the perfect CalDAV non-enterprise calendar to be, for my own usage. I'm simply sharing it with the world. The design philosophy is to have sensible and automatic default settings, so that you can use it from any clients, without needing further customization.
 
 ### Views
 
@@ -44,7 +46,7 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 - Multiple calendars with custom colors
 - Compact recurring events (no giant blocks cluttering your week)
 - Event transparency (TRANSP) — see busy/free status
-- Apple Travel Time support
+- Apple Travel Time support (!!)
 
 ### Search
 
@@ -69,6 +71,8 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 
 - Swipe left/right to navigate between months/weeks/days
 - Touch-friendly interface
+
+The only non-standard iCalendar feature, is the support for Apples travel time, so it plays well with iPhones and MacOS calendars. I chose to include that feature, as all edits will otherwise still be compatible with other CalDAV clients - although they'll naturally not show the travel time, if it's not supported.
 
 ## Quick Start
 

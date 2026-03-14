@@ -46,7 +46,7 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps) {
   const themeMode = useSettingsStore(selectThemeMode)
   const updateSettings = useSettingsStore(selectUpdateSettings)
 
-  const { syncAll } = useCalDAV()
+  const { syncAll, createEvent: createCalDAVEvent } = useCalDAV()
 
   const commands = useMemo(() => {
     return createCommandRegistry({
@@ -260,7 +260,7 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps) {
   }, [query, parseInput])
 
   const executeSelected = useCallback(
-    (index?: number) => {
+    async (index?: number) => {
       const executeIndex = index ?? selectedIndex
       const selected = results[executeIndex]
       if (!selected) return { success: false, message: '' }
@@ -286,31 +286,44 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps) {
       if (selected.type === 'quick-add') {
         const qa = selected.item as QuickAddResult
         const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
+        const calendarId = defaultCalendar?.id || 'default'
 
         if (qa.isTask) {
-          addEvent({
+          const newEvent = {
             id: crypto.randomUUID(),
-            calendarId: defaultCalendar?.id || 'default',
+            calendarId,
             title: qa.title,
             location: qa.location,
             start: qa.startDate.toISOString(),
             end: qa.endDate ? qa.endDate.toISOString() : qa.startDate.toISOString(),
             isAllDay: qa.isAllDay,
-            type: 'task',
+            type: 'task' as const,
             dueDate: format(qa.startDate, 'yyyy-MM-dd'),
-          })
+          }
+          addEvent(newEvent)
+          try {
+            await createCalDAVEvent(calendarId, newEvent)
+          } catch {
+            // error already handled by useCalDAV
+          }
           return { success: true, message: `Created task: ${qa.title}` }
         }
 
-        addEvent({
+        const newEvent = {
           id: crypto.randomUUID(),
-          calendarId: defaultCalendar?.id || 'default',
+          calendarId,
           title: qa.title,
           location: qa.location,
           start: qa.startDate.toISOString(),
           end: qa.endDate ? qa.endDate.toISOString() : qa.startDate.toISOString(),
           isAllDay: qa.isAllDay,
-        })
+        }
+        addEvent(newEvent)
+        try {
+          await createCalDAVEvent(calendarId, newEvent)
+        } catch {
+          // error already handled by useCalDAV
+        }
         return { success: true, message: `Created event: ${qa.title}` }
       }
 
@@ -322,7 +335,7 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps) {
 
       return { success: false, message: '' }
     },
-    [results, selectedIndex, openModal, navigate, addEvent, calendars]
+    [results, selectedIndex, openModal, navigate, addEvent, calendars, createCalDAVEvent]
   )
 
   const handleKeyDown = useCallback(

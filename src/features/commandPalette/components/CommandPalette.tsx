@@ -28,12 +28,15 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
         setSelectedIndex((i) => Math.max(i - 1, 0))
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        const result = executeSelected()
-        if (result?.success && result.message) {
-          window.dispatchEvent(
-            new CustomEvent('show-toast', { detail: { message: result.message } })
-          )
+        const handleEnter = async () => {
+          const result = await executeSelected()
+          if (result?.success && result.message) {
+            window.dispatchEvent(
+              new CustomEvent('show-toast', { detail: { message: result.message } })
+            )
+          }
         }
+        handleEnter()
         onClose()
       }
     },
@@ -77,8 +80,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
 
   if (!isOpen) return null
 
-  const handleItemClick = (index: number) => {
-    const result = executeSelected(index)
+  const handleItemClick = async (index: number) => {
+    const result = await executeSelected(index)
     if (result?.success && result.message) {
       window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: result.message } }))
     }

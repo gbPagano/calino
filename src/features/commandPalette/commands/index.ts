@@ -12,8 +12,14 @@ interface CommandFactoryDeps {
   toggleSidebar?: () => void
   triggerSync?: () => void
   themeMode?: ThemeMode
+  caldavDebugMode?: boolean
   updateSettings?: (
-    settings: Partial<{ themeMode: ThemeMode; lightTheme: string; darkTheme: string }>
+    settings: Partial<{
+      themeMode: ThemeMode
+      lightTheme: string
+      darkTheme: string
+      caldavDebugMode: boolean
+    }>
   ) => void
 }
 
@@ -220,8 +226,20 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
     keywords: ['calendars', 'calendar settings'],
     icon: '📅',
     action: () => {
-      deps.navigate('/settings?tab=calendars')
+      deps.navigate('/settings?tab=calendar')
       return 'Opened calendar settings'
+    },
+  },
+  {
+    id: 'settings-events',
+    label: 'Event Defaults Settings',
+    description: 'Configure default event settings',
+    category: 'settings',
+    keywords: ['event defaults', 'event settings', 'default duration'],
+    icon: '📝',
+    action: () => {
+      deps.navigate('/settings?tab=events')
+      return 'Opened event defaults settings'
     },
   },
   {
@@ -244,8 +262,20 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
     keywords: ['sync settings', 'caldav', 'account'],
     icon: '🔗',
     action: () => {
-      deps.navigate('/settings?tab=sync')
+      deps.navigate('/settings?tab=caldav')
       return 'Opened sync settings'
+    },
+  },
+  {
+    id: 'settings-data',
+    label: 'Data Settings',
+    description: 'Import and export calendar data',
+    category: 'settings',
+    keywords: ['data', 'import', 'export', 'backup'],
+    icon: '💾',
+    action: () => {
+      deps.navigate('/settings?tab=data')
+      return 'Opened data settings'
     },
   },
   {
@@ -275,6 +305,19 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
       deps.updateSettings?.({ themeMode: nextMode })
       const modeLabels = { light: 'Light', dark: 'Dark', auto: 'System' }
       return `Switched to ${modeLabels[nextMode]} mode`
+    },
+  },
+  {
+    id: 'debug-toggle',
+    label: 'Toggle CalDAV Debug Mode',
+    description: 'Enable or disable CalDAV sync debug logging',
+    category: 'settings',
+    keywords: ['debug', 'caldav', 'sync', 'logging', 'console'],
+    icon: '🐛',
+    action: () => {
+      const newValue = !deps.caldavDebugMode
+      deps.updateSettings?.({ caldavDebugMode: newValue })
+      return newValue ? 'CalDAV debug mode enabled' : 'CalDAV debug mode disabled'
     },
   },
 ]

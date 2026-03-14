@@ -45,6 +45,7 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps) {
 
   const themeMode = useSettingsStore(selectThemeMode)
   const updateSettings = useSettingsStore(selectUpdateSettings)
+  const caldavDebugMode = useSettingsStore((state) => state.caldavDebugMode)
 
   const { syncAll, createEvent: createCalDAVEvent } = useCalDAV()
 
@@ -55,10 +56,20 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps) {
       setCurrentDate,
       openModal,
       themeMode,
+      caldavDebugMode,
       updateSettings,
       triggerSync: syncAll,
     })
-  }, [navigate, setCurrentView, setCurrentDate, openModal, themeMode, updateSettings, syncAll])
+  }, [
+    navigate,
+    setCurrentView,
+    setCurrentDate,
+    openModal,
+    themeMode,
+    caldavDebugMode,
+    updateSettings,
+    syncAll,
+  ])
 
   const parseInput = useCallback((input: string): ParsedInput => {
     const trimmed = input.trim().toLowerCase()

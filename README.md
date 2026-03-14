@@ -94,14 +94,14 @@ pnpm build
 
 ### CalDAV Proxy (Cloudflare Worker)
 
-If your CalDAV server doesn't support CORS, you can use the built-in proxy:
+If your CalDAV server doesn't support CORS, you can use Calino's hosted proxy:
 
 ```bash
-# Option 1: Use Calino's hosted proxy
+# Use Calino's hosted proxy
 # Set proxy URL in settings to: https://proxy.calino.io
 
-# Option 2: Self-host the proxy
-# See docs/CORS_PROXY.md for setup instructions
+# Set CalDAV URL like:
+https://proxy.calino.io/https%3A%2F%2Fyour-caldav-server.com
 ```
 
 ### Supported CalDAV Servers

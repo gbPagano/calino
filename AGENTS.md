@@ -1,6 +1,6 @@
 # Calino - AI Agent Guidelines
 
-**Version:** 0.2.0 (follows semver: 0.x.y = breaking changes allowed, bump minor for features, patch for fixes)
+**Version:** 0.3.0 (follows semver: 0.x.y = breaking changes allowed, bump minor for features, patch for fixes)
 
 React 18 + TypeScript + Vite calendar app with CalDAV sync, NLP event creation, and PWA support.
 
@@ -55,6 +55,7 @@ src/
 | ------------------------------------ | ----------------------- |
 | `/`                                  | Calendar (default view) |
 | `/month`, `/week`, `/day`, `/agenda` | Calendar views          |
+| `/tasks`                             | TodoView                |
 | `/settings`                          | SettingsPage            |
 | `/privacy`                           | PrivacyPolicy           |
 
@@ -95,81 +96,17 @@ src/
 - Set `VITE_SITE_URL=https://your-domain.com` in `.env`
 - See `.env.example`
 
-### CalDAV Proxy (Cloudflare Worker)
+### CalDAV Proxy
 
-```javascript
-export default {
-  async fetch(request) {
-    const url = new URL(request.url)
+If your CalDAV server doesn't support CORS, you can use Calino's hosted proxy:
 
-    // Restrict to Calino production only
-    const origin = request.headers.get('Origin') || request.headers.get('Referer') || ''
-    const allowedOrigins = ['https://calino.io', 'https://www.calino.io']
-    const isAllowed = !origin || allowedOrigins.some((allowed) => origin.startsWith(allowed))
-    if (!isAllowed) {
-      return new Response('Forbidden: This proxy is only for Calino users', { status: 403 })
-    }
-
-    const pathParts = url.pathname.split('/').filter(Boolean)
-
-    if (pathParts.length === 0) {
-      return new Response('Missing target server in path', { status: 400 })
-    }
-
-    const targetBase = decodeURIComponent(pathParts[0])
-    let targetPath = '/' + pathParts.slice(1).join('/')
-
-    if (targetPath === '/.well-known/caldav') {
-      targetPath = '/dav.php'
-    }
-
-    if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods':
-            'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS',
-          'Access-Control-Allow-Headers':
-            'Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match',
-        },
-      })
-    }
-
-    const targetUrl = targetBase.replace(/\/$/, '') + targetPath
-    const headers = new Headers(request.headers)
-    headers.delete('host')
-
-    try {
-      const response = await fetch(targetUrl, {
-        method: request.method,
-        headers,
-        body: request.body,
-      })
-      const corsHeaders = new Headers(response.headers)
-      corsHeaders.set('Access-Control-Allow-Origin', '*')
-      corsHeaders.set(
-        'Access-Control-Allow-Methods',
-        'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS'
-      )
-      corsHeaders.set(
-        'Access-Control-Allow-Headers',
-        'Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match'
-      )
-      return new Response(response.body, { status: response.status, headers: corsHeaders })
-    } catch (e) {
-      return new Response('Proxy error: ' + e.message, { status: 502 })
-    }
-  },
-}
-```
-
-**Usage:** In Calino, set CalDAV URL to:
+**Usage:** Set CalDAV URL to:
 
 ```
-https://caldavproxy.cf-e13.workers.dev/https%3A%2F%2Fcal.malinov.ski
+https://proxy.calino.io/https%3A%2F%2Fyour-caldav-server.com
 ```
 
-### CalDAV Proxy (Cloudflare Worker)
+**Self-host the proxy:**
 
 ```javascript
 export default {
@@ -240,5 +177,5 @@ export default {
 **Usage:** Set CalDAV URL to:
 
 ```
-https://caldavproxy.cf-e13.workers.dev?server=https://cal.malinov.ski
+https://your-proxy-url?server=https://your-caldav-server.com
 ```

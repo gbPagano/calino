@@ -78,7 +78,7 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
         <h2 className={styles.title}>Your calendar stays private</h2>
 
         <p className={styles.description}>
-          All your events are stored locally in your browser. GoodCal doesn't send any data to
+          All your events are stored locally in your browser. Calino doesn't send any data to
           external servers.
         </p>
 

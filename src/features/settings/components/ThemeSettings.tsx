@@ -37,7 +37,7 @@ export function ThemeSettings(): JSX.Element {
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>Theme</h2>
       <p className={styles.sectionDescription}>
-        Customize how GoodCal looks. Add custom themes by placing CSS files in the themes folder.
+        Customize how Calino looks. Add custom themes by placing CSS files in the themes folder.
       </p>
 
       <div className={styles.settingRow}>

@@ -1,6 +1,6 @@
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//GoodCal//Sample Events//EN
+PRODID:-//Calino//Sample Events//EN
 CALSCALE:GREGORIAN
 
 BEGIN:VEVENT

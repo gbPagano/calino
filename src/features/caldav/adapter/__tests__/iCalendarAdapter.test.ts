@@ -119,6 +119,37 @@ describe('iCalendarAdapter', () => {
       expect(iCal).toContain('RRULE:FREQ=WEEKLY;INTERVAL=1')
     })
 
+    it('includes SEQUENCE when present', () => {
+      const event: CalendarEvent = {
+        id: 'test-id',
+        title: 'Event',
+        start: '2024-03-15T14:00:00',
+        end: '2024-03-15T15:00:00',
+        isAllDay: false,
+        calendarId: 'cal-1',
+        sequence: 5,
+      }
+
+      const iCal = eventToICAL(event)
+
+      expect(iCal).toContain('SEQUENCE:5')
+    })
+
+    it('defaults SEQUENCE to 0 when not present', () => {
+      const event: CalendarEvent = {
+        id: 'test-id',
+        title: 'Event',
+        start: '2024-03-15T14:00:00',
+        end: '2024-03-15T15:00:00',
+        isAllDay: false,
+        calendarId: 'cal-1',
+      }
+
+      const iCal = eventToICAL(event)
+
+      expect(iCal).toContain('SEQUENCE:0')
+    })
+
     it('excludes optional fields when not present', () => {
       const event: CalendarEvent = {
         id: 'test-id',
@@ -230,6 +261,39 @@ END:VCALENDAR`
       expect(events[0].recurrence?.interval).toBe(1)
     })
 
+    it('parses SEQUENCE field', () => {
+      const iCal = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:event-123
+DTSTART:20240315T140000Z
+DTEND:20240315T150000Z
+SUMMARY:Test Event
+SEQUENCE:3
+END:VEVENT
+END:VCALENDAR`
+
+      const events = parseICALEvent(iCal, 'cal-1')
+
+      expect(events[0].sequence).toBe(3)
+    })
+
+    it('defaults sequence to undefined when not present', () => {
+      const iCal = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:event-123
+DTSTART:20240315T140000Z
+DTEND:20240315T150000Z
+SUMMARY:Test Event
+END:VEVENT
+END:VCALENDAR`
+
+      const events = parseICALEvent(iCal, 'cal-1')
+
+      expect(events[0].sequence).toBeUndefined()
+    })
+
     it('handles multiple events in one iCal', () => {
       const iCal = `BEGIN:VCALENDAR
 VERSION:2.0
@@ -309,6 +373,23 @@ END:VCALENDAR`
       const parsedEvents = parseICALEvent(iCal, 'cal-1')
 
       expect(parsedEvents[0].isAllDay).toBe(true)
+    })
+
+    it('round-trip preserves SEQUENCE', () => {
+      const originalEvent: CalendarEvent = {
+        id: 'sequence-test',
+        title: 'Sequence Test',
+        start: '2024-03-15T14:00:00',
+        end: '2024-03-15T15:00:00',
+        isAllDay: false,
+        calendarId: 'cal-1',
+        sequence: 7,
+      }
+
+      const iCal = eventToICAL(originalEvent)
+      const parsedEvents = parseICALEvent(iCal, 'cal-1')
+
+      expect(parsedEvents[0].sequence).toBe(7)
     })
   })
 
@@ -439,6 +520,21 @@ END:VCALENDAR`
 
         expect(tasks).toHaveLength(2)
       })
+
+      it('parses SEQUENCE from VTODO', () => {
+        const iCalData = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VTODO
+UID:task-seq
+SUMMARY:Task with sequence
+SEQUENCE:4
+END:VTODO
+END:VCALENDAR`
+
+        const tasks = parseICALTask(iCalData, 'cal-1')
+
+        expect(tasks[0].sequence).toBe(4)
+      })
     })
 
     describe('taskToICAL', () => {
@@ -513,6 +609,39 @@ END:VCALENDAR`
 
         expect(iCalHigh).toContain('PRIORITY:1')
         expect(iCalLow).toContain('PRIORITY:9')
+      })
+
+      it('includes SEQUENCE when present', () => {
+        const task: CalendarEvent = {
+          id: 'task-seq',
+          title: 'Task with sequence',
+          start: '2024-03-20T00:00:00',
+          end: '2024-03-20T23:59:59',
+          isAllDay: true,
+          calendarId: 'cal-1',
+          type: 'task',
+          sequence: 2,
+        }
+
+        const iCal = taskToICAL(task)
+
+        expect(iCal).toContain('SEQUENCE:2')
+      })
+
+      it('defaults SEQUENCE to 0 for tasks', () => {
+        const task: CalendarEvent = {
+          id: 'task-no-seq',
+          title: 'Task without sequence',
+          start: '2024-03-20T00:00:00',
+          end: '2024-03-20T23:59:59',
+          isAllDay: true,
+          calendarId: 'cal-1',
+          type: 'task',
+        }
+
+        const iCal = taskToICAL(task)
+
+        expect(iCal).toContain('SEQUENCE:0')
       })
     })
   })

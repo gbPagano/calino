@@ -24,12 +24,17 @@ export class SyncEngine {
       throw new Error(`Calendar not found: ${this.calendarId}`)
     }
 
-    const serverEvents = await this.client.fetchEvents(calendar.url, start, end)
+    const serverEventsRaw = await this.client.fetchEvents(calendar.url, start, end)
 
     const parsedEvents: CalendarEvent[] = []
-    for (const serverEvent of serverEvents) {
+    for (const serverEvent of serverEventsRaw) {
       const events = parseICALData(serverEvent.data, this.calendarId)
-      parsedEvents.push(...events)
+      for (const event of events) {
+        parsedEvents.push({
+          ...event,
+          etag: serverEvent.etag,
+        })
+      }
     }
 
     const result: SyncResult = {
@@ -41,15 +46,23 @@ export class SyncEngine {
 
     const serverEventIds = new Set(parsedEvents.map((e) => e.id))
 
-    for (const event of parsedEvents) {
-      const localEvent = existingEvents.find((e) => e.id === event.id)
+    for (const serverEvent of parsedEvents) {
+      const localEvent = existingEvents.find((e) => e.id === serverEvent.id)
 
       if (!localEvent) {
-        result.added.push(event.id)
-      } else if (this.hasConflict(localEvent, event)) {
-        result.conflicts.push(event.id)
-      } else if (this.isNewer(event, localEvent)) {
-        result.updated.push(event.id)
+        result.added.push(serverEvent.id)
+      } else if (this.hasConflict(localEvent, serverEvent)) {
+        const conflictResolved = this.resolveVersionConflict(localEvent, serverEvent)
+        if (conflictResolved === 'server') {
+          result.updated.push(serverEvent.id)
+        } else if (conflictResolved === 'local') {
+          // Keep local version, mark as needing push
+          result.conflicts.push(serverEvent.id)
+        } else {
+          result.conflicts.push(serverEvent.id)
+        }
+      } else if (this.isNewer(serverEvent, localEvent)) {
+        result.updated.push(serverEvent.id)
       }
     }
 
@@ -96,13 +109,51 @@ export class SyncEngine {
   }
 
   private hasConflict(local: CalendarEvent, server: CalendarEvent): boolean {
-    return local.start !== server.start || local.end !== server.end || local.title !== server.title
+    if (local.start !== server.start || local.end !== server.end || local.title !== server.title) {
+      return true
+    }
+    if (local.description !== server.description) {
+      return true
+    }
+    if (local.location !== server.location) {
+      return true
+    }
+    return false
   }
 
   private isNewer(server: CalendarEvent, local: CalendarEvent): boolean {
-    const serverTime = new Date(server.start).getTime()
-    const localTime = new Date(local.start).getTime()
-    return serverTime > localTime
+    const serverSeq = server.sequence ?? 0
+    const localSeq = local.sequence ?? 0
+
+    if (serverSeq > localSeq) {
+      return true
+    }
+
+    if (serverSeq === localSeq) {
+      const serverTime = new Date(server.start).getTime()
+      const localTime = new Date(local.start).getTime()
+      return serverTime > localTime
+    }
+
+    return false
+  }
+
+  private resolveVersionConflict(
+    local: CalendarEvent,
+    server: CalendarEvent
+  ): 'server' | 'local' | 'conflict' {
+    const serverSeq = server.sequence ?? 0
+    const localSeq = local.sequence ?? 0
+
+    if (serverSeq > localSeq) {
+      return 'server'
+    }
+
+    if (localSeq > serverSeq) {
+      return 'local'
+    }
+
+    return 'conflict'
   }
 
   resolveConflict(

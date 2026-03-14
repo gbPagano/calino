@@ -42,6 +42,7 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
           rruleString: currentEvent.rruleString,
           travelDuration: currentEvent.travelDuration,
           transparency: currentEvent.transparency,
+          sequence: currentEvent.sequence,
         }
 
         if (existingIndex !== undefined) {
@@ -102,6 +103,11 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
       } else if (line.startsWith('TRANSP:')) {
         const value = line.substring(7)
         currentEvent.transparency = value === 'TRANSPARENT' ? 'transparent' : 'opaque'
+      } else if (line.startsWith('SEQUENCE:')) {
+        const seq = parseInt(line.substring(9), 10)
+        if (!isNaN(seq)) {
+          currentEvent.sequence = seq
+        }
       } else if (inAlarm && line.startsWith('TRIGGER:')) {
         const trigger = line.substring(8)
         const minutes = parseTriggerDuration(trigger)
@@ -286,6 +292,7 @@ export function eventToICAL(event: CalendarEvent): string {
     'BEGIN:VEVENT',
     `UID:${event.id}`,
     `DTSTAMP:${formatICalTimestamp(new Date())}`,
+    `SEQUENCE:${event.sequence ?? 0}`,
     `DTSTART${event.isAllDay ? ';VALUE=DATE' : ''}:${formatICalDateTime(event.start, event.isAllDay)}`,
     `DTEND${event.isAllDay ? ';VALUE=DATE' : ''}:${formatICalDateTime(event.end, event.isAllDay)}`,
     `SUMMARY:${event.title}`,
@@ -412,6 +419,7 @@ export function parseICALTask(iCalData: string, calendarId: string): CalendarEve
           completed: currentTask.completed,
           priority: currentTask.priority,
           percentComplete: currentTask.percentComplete,
+          sequence: currentTask.sequence,
         }
         if (uid) {
           uidToIndex.set(uid, tasks.length)
@@ -459,6 +467,11 @@ export function parseICALTask(iCalData: string, calendarId: string): CalendarEve
       } else if (line.startsWith('STATUS:')) {
         const status = line.substring(7)
         currentTask.completed = status === 'COMPLETED'
+      } else if (line.startsWith('SEQUENCE:')) {
+        const seq = parseInt(line.substring(9), 10)
+        if (!isNaN(seq)) {
+          currentTask.sequence = seq
+        }
       }
     }
   }
@@ -476,6 +489,7 @@ export function taskToICAL(task: CalendarEvent): string {
     'BEGIN:VTODO',
     `UID:${task.id}`,
     `DTSTAMP:${formatICalTimestamp(new Date())}`,
+    `SEQUENCE:${task.sequence ?? 0}`,
     `SUMMARY:${task.title}`,
   ]
 

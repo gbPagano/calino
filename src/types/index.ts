@@ -39,6 +39,8 @@ export interface CalendarEvent {
   priority?: TaskPriority
   percentComplete?: number
   transparency?: 'opaque' | 'transparent'
+  sequence?: number
+  etag?: string
 }
 
 export interface Calendar {

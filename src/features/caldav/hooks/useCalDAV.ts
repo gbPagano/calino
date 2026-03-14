@@ -20,6 +20,7 @@ const selectUpdateCalendar = (state: CalendarStore) => state.updateCalendar
 const selectCalendars = (state: CalendarStore) => state.calendars
 const selectEvents = (state: CalendarStore) => state.events
 const selectCalDavDebugMode = (state: { caldavDebugMode: boolean }) => state.caldavDebugMode
+const selectConflictResolution = (state: { conflictResolution: string }) => state.conflictResolution
 
 interface UseCalDAVReturn {
   accounts: CalDAVAccount[]
@@ -59,6 +60,7 @@ export function useCalDAV(): UseCalDAVReturn {
   const storeCalendars = useCalendarStore(selectCalendars)
   const existingEvents = useCalendarStore(selectEvents)
   const caldavDebugMode = useSettingsStore(selectCalDavDebugMode)
+  const conflictResolution = useSettingsStore(selectConflictResolution)
 
   useEffect(() => {
     const loadedAccounts = storage.getAllAccounts()
@@ -254,9 +256,25 @@ export function useCalDAV(): UseCalDAVReturn {
               for (const parsedEvent of parsedEvents) {
                 serverEventIds.add(parsedEvent.id)
                 const existingIndex = calendarEvents.findIndex((e) => e.id === parsedEvent.id)
+                const existingEvent = existingIndex >= 0 ? calendarEvents[existingIndex] : null
 
-                if (existingIndex >= 0) {
-                  storeUpdateEvent(parsedEvent.id, parsedEvent)
+                if (existingEvent) {
+                  const serverSeq = parsedEvent.sequence ?? 0
+                  const localSeq = existingEvent.sequence ?? 0
+
+                  let shouldUpdate = false
+
+                  if (serverSeq > localSeq) {
+                    shouldUpdate = conflictResolution === 'server-wins'
+                  } else if (localSeq > serverSeq) {
+                    shouldUpdate = conflictResolution === 'local-wins'
+                  } else {
+                    shouldUpdate = true
+                  }
+
+                  if (shouldUpdate) {
+                    storeUpdateEvent(parsedEvent.id, parsedEvent)
+                  }
                 } else {
                   storeAddEvent(parsedEvent)
                 }
@@ -288,7 +306,7 @@ export function useCalDAV(): UseCalDAVReturn {
         throw error
       }
     },
-    [existingEvents]
+    [existingEvents, conflictResolution]
   )
 
   const syncAll = useCallback(async (): Promise<void> => {
@@ -343,11 +361,16 @@ export function useCalDAV(): UseCalDAVReturn {
         const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
         const engine = new SyncEngine(client, calendarId)
 
+        const eventWithSequence: CalendarEvent = {
+          ...event,
+          sequence: 0,
+        }
+
         if (caldavDebugMode) {
           console.log('[CalDAV] Pushing event to server...')
         }
 
-        await engine.pushEvent(event)
+        await engine.pushEvent(eventWithSequence)
 
         if (caldavDebugMode) {
           console.log('[CalDAV] Event pushed successfully!')
@@ -403,11 +426,17 @@ export function useCalDAV(): UseCalDAVReturn {
         const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
         const engine = new SyncEngine(client, calendarId)
 
+        const currentSequence = event.sequence ?? 0
+        const eventWithSequence: CalendarEvent = {
+          ...event,
+          sequence: currentSequence + 1,
+        }
+
         if (caldavDebugMode) {
           console.log('[CalDAV] Updating event on server...')
         }
 
-        await engine.updateEvent(event, '')
+        await engine.updateEvent(eventWithSequence, event.etag ?? '')
 
         if (caldavDebugMode) {
           console.log('[CalDAV] Event updated successfully!')

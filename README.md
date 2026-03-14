@@ -8,12 +8,7 @@ Check out the hosted version at [Calino.io](https://calino.io).
 
 ### CalDAV Proxy
 
-If your CalDAV server doesn't support CORS, you can use Calino's hosted proxy:
-
-```bash
-# Use Calino's hosted proxy
-# Set proxy URL during setup to: https://proxy.calino.io
-```
+If your CalDAV server doesn't support CORS, you can use Calino's hosted proxy URL during setup: https://proxy.calino.io
 
 With that said, I urge you to either selfhost Calino or at least use your own proxy, to minimize the amount of data being sent to servers that are not your own. Calino.proxy.io is solely for convenience. Don't rely on it.
 

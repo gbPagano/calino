@@ -2,11 +2,24 @@
 
 A browser-based CalDAV client — sync with your own server, no cloud required.
 
-**Philosophy:** Your calendar data should belong to you, not Google or Apple. Calino connects to any CalDAV server (Nextcloud, Baikal, Radicale, etc.). Your events stay in your own server, not in ours. The only thing that lives locally is your preferences. No accounts, no signups, no data mining.
+Check out the hosted version at [Calino.io](https://calino.io).
 
 > **⚠️ New Project Alert:** Calino is a new project and under very active development. Expect breaking changes, evolving UI, and frequent updates. Use at your own risk — but report bugs, we'd love the feedback!
 
+### CalDAV Proxy
+
+If your CalDAV server doesn't support CORS, you can use Calino's hosted proxy:
+
+```bash
+# Use Calino's hosted proxy
+# Set proxy URL during setup to: https://proxy.calino.io
+```
+
+With that said, I urge you to either selfhost Calino or at least use your own proxy, to minimize the amount of data being sent to servers that are not your own. Calino.proxy.io is solely for convenience. Don't rely on it.
+
 ## Features
+
+I have made it as close as possible, as to what I envision the perfect CalDAV non-enterprise calendar to be.
 
 ### Views
 
@@ -82,7 +95,7 @@ Calino is just a static React app — host it anywhere that serves HTML/JS.
 
 - Click the gear icon or use `Cmd+K` → "Settings"
 - Add your CalDAV server URL, username, password
-- App stores credentials in localStorage (encrypted)
+- App stores credentials in localStorage
 
 **Site URL (for SEO/social cards):**
 
@@ -90,18 +103,6 @@ Calino is just a static React app — host it anywhere that serves HTML/JS.
 cp .env.example .env.local
 # Edit .env.local and set VITE_SITE_URL=https://your-domain.com
 pnpm build
-```
-
-### CalDAV Proxy (Cloudflare Worker)
-
-If your CalDAV server doesn't support CORS, you can use Calino's hosted proxy:
-
-```bash
-# Use Calino's hosted proxy
-# Set proxy URL in settings to: https://proxy.calino.io
-
-# Set CalDAV URL like:
-https://proxy.calino.io/https%3A%2F%2Fyour-caldav-server.com
 ```
 
 ### Supported CalDAV Servers

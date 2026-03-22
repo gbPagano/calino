@@ -41,6 +41,7 @@ const HOURS = eachHourOfInterval({
 })
 
 const BASE_HOUR_HEIGHT = 60
+const MINUTE_SNAP_INTERVAL = 15
 
 function formatTravelDuration(minutes: number): string {
   if (minutes >= 60) {
@@ -360,14 +361,14 @@ export function WeekView(): JSX.Element {
       if (!day) return
 
       const totalMinutes = (y / hourHeight) * 60
-      const snappedMinutes = Math.round(totalMinutes / 15) * 15
+      const snappedMinutes = Math.round(totalMinutes / MINUTE_SNAP_INTERVAL) * MINUTE_SNAP_INTERVAL
       const hours = Math.floor(snappedMinutes / 60)
       const mins = snappedMinutes % 60
       const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
       const endTime = `${format(day, 'yyyy-MM-dd')}T${timeStr}`
       setDragEnd(endTime)
     },
-    [isDraggingToCreate, dragStart, date, firstDayOfWeek, weekDays, hourHeight, daysContainerRef]
+    [isDraggingToCreate, dragStart, weekDays, hourHeight, daysContainerRef]
   )
 
   const handleMouseUp = useCallback((): void => {

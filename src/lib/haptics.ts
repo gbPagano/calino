@@ -14,9 +14,10 @@ export function haptic(type: HapticType): void {
   navigator.vibrate(HAPTIC_PATTERNS[type])
 }
 
+const MOBILE_REGEX = /iPhone|iPad|iPod|Android/i
+
 export function hapticIfEnabled(type: HapticType): void {
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-  if (isMobile) {
+  if (MOBILE_REGEX.test(navigator.userAgent)) {
     haptic(type)
   }
 }

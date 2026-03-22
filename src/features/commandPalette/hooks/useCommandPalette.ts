@@ -338,12 +338,6 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps) {
         return { success: true, message: `Created event: ${qa.title}` }
       }
 
-      if (selected.type === 'command') {
-        const cmd = selected.item as Command
-        const message = cmd.action()
-        return { success: true, message: message || 'Executed' }
-      }
-
       return { success: false, message: '' }
     },
     [results, selectedIndex, openModal, navigate, addEvent, calendars, createCalDAVEvent]

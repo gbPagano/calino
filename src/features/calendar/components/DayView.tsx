@@ -37,6 +37,8 @@ const HOURS = eachHourOfInterval({
 })
 
 const BASE_hourHeight = 60
+const DRAG_ACTIVATION_CONSTRAINT = 8
+const MINUTE_SNAP_INTERVAL = 15
 
 function formatTravelDuration(minutes: number): string {
   if (minutes >= 60) {
@@ -118,7 +120,7 @@ export function DayView(): JSX.Element {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: DRAG_ACTIVATION_CONSTRAINT,
       },
     })
   )
@@ -236,7 +238,7 @@ export function DayView(): JSX.Element {
       const rect = target.getBoundingClientRect()
       const y = e.clientY - rect.top
       const totalMinutes = (y / hourHeight) * 60
-      const snappedMinutes = Math.round(totalMinutes / 15) * 15
+      const snappedMinutes = Math.round(totalMinutes / MINUTE_SNAP_INTERVAL) * MINUTE_SNAP_INTERVAL
       const hours = Math.floor(snappedMinutes / 60)
       const mins = snappedMinutes % 60
       const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`

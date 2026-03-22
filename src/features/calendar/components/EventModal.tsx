@@ -9,19 +9,12 @@ import { TaskFormFields } from './TaskFormFields'
 import { EventFormFields } from './EventFormFields'
 import { RecurrenceDialog } from './RecurrenceDialog'
 import { DeleteDialog } from './DeleteDialog'
+import { extractOriginalEventId } from '@/lib/events'
 import styles from './EventModal.module.css'
 
 const DEFAULT_DURATION_HOURS = 1
 
 type RecurrenceEditMode = 'all' | 'future' | 'this'
-
-function extractOriginalEventId(eventId: string): string | null {
-  const isoDateMatch = eventId.match(/(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/)
-  if (isoDateMatch) {
-    return isoDateMatch[1]
-  }
-  return null
-}
 
 interface InitialFormState {
   title: string
@@ -256,7 +249,6 @@ export function EventModal(): JSX.Element | null {
         ? events.find((e) => e.id === selectedEventId)
         : undefined
       if (existingEvent?.type === 'task') {
-        // Extract just the date part from dueDate (which may include time)
         const taskDueDate =
           existingEvent.dueDate?.split('T')[0] ||
           format(parseISO(existingEvent.start), 'yyyy-MM-dd')
@@ -280,7 +272,7 @@ export function EventModal(): JSX.Element | null {
         setPriority(undefined)
       }
     }
-  }, [selectedEventId, selectedDate, initialState, events, selectedEventType])
+  }, [selectedEventId, selectedDate, initialState, selectedEventType])
 
   const isEditing = selectedEventId !== null
   const isRecurringEvent = initialState.recurrence !== 'none'

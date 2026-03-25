@@ -4,27 +4,27 @@
   "description": "An easy, private, local web calendar with CalDAV sync",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fafafa",
-  "theme_color": "#4285f4",
+  "background_color": "#faf9f7",
+  "theme_color": "#faf9f7",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/appicon.png",
+      "src": "/web-app-manifest-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/appicon.png",
+      "src": "/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/appicon.png",
-      "sizes": "192x192 512x512",
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "categories": ["productivity", "utilities"]

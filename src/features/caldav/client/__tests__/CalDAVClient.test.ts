@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { CalDAVClient, createCalDAVClient } from '../CalDAVClient'
 import type { CalDAVCredentials } from '../../types'
-import type { DAVClient } from 'tsdav'
 
 vi.mock('tsdav', () => ({
   createDAVClient: vi.fn(),
@@ -52,7 +51,7 @@ END:VCALENDAR`,
     etag: '"todo-etag"',
   }
 
-  const mockClientMethods: DAVClient = {
+  const mockClientMethods = {
     fetchCalendars: vi.fn(),
     fetchCalendarObjects: vi.fn(),
     createCalendarObject: vi.fn(),
@@ -66,7 +65,7 @@ END:VCALENDAR`,
     updateVCard: vi.fn(),
     deleteVCard: vi.fn(),
     syncCollection: vi.fn(),
-  } as unknown as DAVClient
+  } as any
 
   beforeEach(() => {
     vi.clearAllMocks()

@@ -17,6 +17,7 @@ import {
   startOfMonth,
   endOfMonth,
   startOfWeek,
+  endOfWeek,
   eachDayOfInterval,
   isSameMonth,
   isToday,
@@ -283,8 +284,7 @@ export function CalendarGrid(): JSX.Element {
   const days = useMemo(() => {
     const monthStart = startOfMonth(date)
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: firstDayOfWeek })
-    const calendarEnd = new Date(calendarStart)
-    calendarEnd.setDate(calendarEnd.getDate() + 35)
+    const calendarEnd = endOfWeek(endOfMonth(date), { weekStartsOn: firstDayOfWeek })
 
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd })
   }, [date, firstDayOfWeek])

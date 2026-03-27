@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { CalDAVClient, createCalDAVClient } from '../CalDAVClient'
 import type { CalDAVCredentials } from '../../types'
+import type { DAVClient } from 'tsdav'
 
 vi.mock('tsdav', () => ({
   createDAVClient: vi.fn(),
 }))
 
-const mockCreateDAVClient = vi.mocked(
-  await import('tsdav').then((m) => m.createDAVClient)
-)
+const mockCreateDAVClient = vi.mocked(await import('tsdav').then((m) => m.createDAVClient))
 
 describe('CalDAVClient', () => {
   let client: CalDAVClient
@@ -53,7 +52,7 @@ END:VCALENDAR`,
     etag: '"todo-etag"',
   }
 
-  const mockClientMethods = {
+  const mockClientMethods: DAVClient = {
     fetchCalendars: vi.fn(),
     fetchCalendarObjects: vi.fn(),
     createCalendarObject: vi.fn(),
@@ -67,7 +66,7 @@ END:VCALENDAR`,
     updateVCard: vi.fn(),
     deleteVCard: vi.fn(),
     syncCollection: vi.fn(),
-  } as any
+  } as unknown as DAVClient
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -79,10 +78,7 @@ END:VCALENDAR`,
 
   describe('createCalDAVClient', () => {
     it('creates and connects a client', async () => {
-      const result = await createCalDAVClient(
-        mockCredentials.serverUrl,
-        mockCredentials
-      )
+      const result = await createCalDAVClient(mockCredentials.serverUrl, mockCredentials)
 
       expect(mockCreateDAVClient).toHaveBeenCalledWith({
         serverUrl: mockCredentials.serverUrl,
@@ -137,11 +133,7 @@ END:VCALENDAR`,
         .mockResolvedValueOnce([mockEventObject])
         .mockResolvedValueOnce([])
 
-      await client.fetchEvents(
-        mockCalendar.url,
-        '2024-01-01T00:00:00Z',
-        '2024-12-31T23:59:59Z'
-      )
+      await client.fetchEvents(mockCalendar.url, '2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z')
 
       expect(mockClientMethods.fetchCalendarObjects).toHaveBeenNthCalledWith(1, {
         calendar: mockCalendar,
@@ -159,11 +151,7 @@ END:VCALENDAR`,
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([mockTodoObject])
 
-      await client.fetchEvents(
-        mockCalendar.url,
-        '2024-01-01T00:00:00Z',
-        '2024-12-31T23:59:59Z'
-      )
+      await client.fetchEvents(mockCalendar.url, '2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z')
 
       expect(mockClientMethods.fetchCalendarObjects).toHaveBeenNthCalledWith(2, {
         calendar: mockCalendar,
@@ -201,9 +189,7 @@ END:VCALENDAR`,
     it('returns empty array when no events or tasks found', async () => {
       await client.connect()
 
-      mockClientMethods.fetchCalendarObjects
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([])
+      mockClientMethods.fetchCalendarObjects.mockResolvedValueOnce([]).mockResolvedValueOnce([])
 
       const result = await client.fetchEvents(
         mockCalendar.url,
@@ -223,11 +209,7 @@ END:VCALENDAR`,
         url: mockEventObject.url,
       })
 
-      const result = await client.createEvent(
-        mockCalendar.url,
-        mockEventObject.data,
-        'event-1.ics'
-      )
+      const result = await client.createEvent(mockCalendar.url, mockEventObject.data, 'event-1.ics')
 
       expect(mockClientMethods.createCalendarObject).toHaveBeenCalledWith({
         calendar: mockCalendar,

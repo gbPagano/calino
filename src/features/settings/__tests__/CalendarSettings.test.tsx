@@ -43,7 +43,7 @@ describe('CalendarSettings', () => {
     render(<CalendarSettings />)
 
     const buttons = screen.getAllByRole('button')
-    const compressToggle = buttons[buttons.length - 1]
+    const compressToggle = buttons[2]
 
     expect(compressToggle).toHaveAttribute('aria-pressed', 'true')
 

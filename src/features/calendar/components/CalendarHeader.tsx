@@ -1,6 +1,17 @@
 import type { JSX } from 'react'
 import { useState, useCallback, useEffect } from 'react'
-import { format, addMonths, addWeeks, addDays, parseISO, startOfWeek, endOfWeek } from 'date-fns'
+import {
+  format,
+  addMonths,
+  addWeeks,
+  addDays,
+  parseISO,
+  startOfWeek,
+  endOfWeek,
+  subMonths,
+  subWeeks,
+  subDays,
+} from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
@@ -64,16 +75,16 @@ export function CalendarHeader({
     let newDate: Date
     switch (currentView) {
       case 'month':
-        newDate = direction === 'prev' ? addMonths(date, -1) : addMonths(date, 1)
+        newDate = direction === 'prev' ? subMonths(date, 1) : addMonths(date, 1)
         break
       case 'week':
-        newDate = direction === 'prev' ? addWeeks(date, -1) : addWeeks(date, 1)
+        newDate = direction === 'prev' ? subWeeks(date, 1) : addWeeks(date, 1)
         break
       case 'day':
-        newDate = direction === 'prev' ? addDays(date, -1) : addDays(date, 1)
+        newDate = direction === 'prev' ? subDays(date, 1) : addDays(date, 1)
         break
       case 'agenda':
-        newDate = direction === 'prev' ? addMonths(date, -1) : addMonths(date, 1)
+        newDate = direction === 'prev' ? subMonths(date, 1) : addMonths(date, 1)
         break
       case 'todo':
         newDate = date
@@ -96,16 +107,16 @@ export function CalendarHeader({
       let newDate: Date
       switch (currentView) {
         case 'month':
-          newDate = dir === 'prev' ? addMonths(date, -1) : addMonths(date, 1)
+          newDate = dir === 'prev' ? subMonths(date, 1) : addMonths(date, 1)
           break
         case 'week':
-          newDate = dir === 'prev' ? addWeeks(date, -1) : addWeeks(date, 1)
+          newDate = dir === 'prev' ? subWeeks(date, 1) : addWeeks(date, 1)
           break
         case 'day':
-          newDate = dir === 'prev' ? addDays(date, -1) : addDays(date, 1)
+          newDate = dir === 'prev' ? subDays(date, 1) : addDays(date, 1)
           break
         case 'agenda':
-          newDate = dir === 'prev' ? addMonths(date, -1) : addMonths(date, 1)
+          newDate = dir === 'prev' ? subMonths(date, 1) : addMonths(date, 1)
           break
         case 'todo':
           newDate = date

@@ -190,8 +190,22 @@ export const useCalendarStore = create<CalendarStore>()(
                 monthly: 'MONTHLY',
                 yearly: 'YEARLY',
               }
+              const dayMap: Record<number, string> = {
+                0: 'SU',
+                1: 'MO',
+                2: 'TU',
+                3: 'WE',
+                4: 'TH',
+                5: 'FR',
+                6: 'SA',
+              }
               const freq = freqMap[event.recurrence.frequency] || 'WEEKLY'
-              rruleString = `FREQ=${freq};INTERVAL=${event.recurrence.interval || 1}`
+              let rruleParts = `FREQ=${freq};INTERVAL=${event.recurrence.interval || 1}`
+              if (event.recurrence.byWeekday && event.recurrence.byWeekday.length > 0) {
+                const byday = event.recurrence.byWeekday.map((d) => dayMap[d] || 'MO').join(',')
+                rruleParts += `;BYDAY=${byday}`
+              }
+              rruleString = rruleParts
             }
 
             try {

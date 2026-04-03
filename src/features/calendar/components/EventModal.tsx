@@ -204,6 +204,7 @@ export function EventModal(): JSX.Element | null {
   const [recurrence, setRecurrence] = useState<RecurrenceRule['frequency'] | 'none'>(
     initialState.recurrence
   )
+  const [excludedWeekdays, setExcludedWeekdays] = useState<number[]>([])
   const [travelDuration, setTravelDuration] = useState<number | undefined>(
     initialState.travelDuration
   )
@@ -276,7 +277,6 @@ export function EventModal(): JSX.Element | null {
 
   const isEditing = selectedEventId !== null
   const isRecurringEvent = initialState.recurrence !== 'none'
-  const isRecurringInstance = initialState.isRecurringInstance
   const originalEventId = initialState.originalEventId
   const existingEventForMode = selectedEventId
     ? events.find((e) => e.id === selectedEventId)
@@ -344,7 +344,7 @@ export function EventModal(): JSX.Element | null {
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
 
-    if (isEditing && isRecurringInstance && isRecurringEvent && hasChanges) {
+    if (isEditing && isRecurringEvent && hasChanges) {
       setShowRecurrenceDialog(true)
       return
     }
@@ -364,7 +364,13 @@ export function EventModal(): JSX.Element | null {
     const endDateTime = new Date(localEnd).toISOString()
 
     const recurrenceRule: RecurrenceRule | undefined =
-      recurrence !== 'none' ? { frequency: recurrence, interval: 1 } : undefined
+      recurrence !== 'none'
+        ? {
+            frequency: recurrence,
+            interval: 1,
+            byWeekday: excludedWeekdays.length > 0 ? excludedWeekdays : undefined,
+          }
+        : undefined
 
     if (isEditing && selectedEventId) {
       if (mode === 'this' && originalEventId) {
@@ -484,7 +490,7 @@ export function EventModal(): JSX.Element | null {
   }
 
   const handleDelete = (): void => {
-    if (isRecurringInstance && isRecurringEvent) {
+    if (isRecurringEvent) {
       setShowDeleteDialog(true)
       return
     }
@@ -592,6 +598,8 @@ export function EventModal(): JSX.Element | null {
               onEndTimeChange={setEndTime}
               recurrence={recurrence}
               onRecurrenceChange={setRecurrence}
+              excludedWeekdays={excludedWeekdays}
+              onExcludeWeekdaysChange={setExcludedWeekdays}
               travelDuration={travelDuration}
               onTravelDurationChange={setTravelDuration}
               reminders={reminders}

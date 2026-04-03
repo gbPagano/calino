@@ -16,6 +16,8 @@ interface EventFormFieldsProps {
   onEndTimeChange: (time: string) => void
   recurrence: RecurrenceRule['frequency'] | 'none'
   onRecurrenceChange: (recurrence: RecurrenceRule['frequency'] | 'none') => void
+  excludedWeekdays?: number[]
+  onExcludeWeekdaysChange?: (days: number[]) => void
   travelDuration: number | undefined
   onTravelDurationChange: (duration: number | undefined) => void
   reminders: Reminder[]
@@ -56,6 +58,8 @@ const REMINDER_OPTIONS: { value: number; label: string }[] = [
   { value: 1440, label: '1 day before' },
 ]
 
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
 export function EventFormFields({
   isAllDay,
   onIsAllDayChange,
@@ -69,6 +73,8 @@ export function EventFormFields({
   onEndTimeChange,
   recurrence,
   onRecurrenceChange,
+  excludedWeekdays = [],
+  onExcludeWeekdaysChange,
   travelDuration,
   onTravelDurationChange,
   reminders,
@@ -77,6 +83,14 @@ export function EventFormFields({
   onTransparencyChange,
 }: EventFormFieldsProps): JSX.Element {
   const [showMoreOptions, setShowMoreOptions] = useState(false)
+
+  const handleWeekdayToggle = (dayIndex: number): void => {
+    if (!onExcludeWeekdaysChange) return
+    const newExcluded = excludedWeekdays.includes(dayIndex)
+      ? excludedWeekdays.filter((d) => d !== dayIndex)
+      : [...excludedWeekdays, dayIndex].sort()
+    onExcludeWeekdaysChange(newExcluded)
+  }
 
   return (
     <>
@@ -200,6 +214,26 @@ export function EventFormFields({
                 ))}
               </select>
             </div>
+
+            {recurrence === 'daily' && onExcludeWeekdaysChange && (
+              <div className={styles.field} style={{ flexWrap: 'wrap', gap: '4px' }}>
+                <label className={styles.label} style={{ width: '100%', marginBottom: '4px' }}>
+                  Except days
+                </label>
+                <div className={styles.weekdayRow}>
+                  {WEEKDAY_LABELS.map((label, index) => (
+                    <label key={label} className={styles.weekdayCheckbox}>
+                      <input
+                        type="checkbox"
+                        checked={excludedWeekdays.includes(index)}
+                        onChange={() => handleWeekdayToggle(index)}
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className={styles.field}>
               <label className={styles.label} htmlFor="travel-duration-select">

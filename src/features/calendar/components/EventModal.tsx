@@ -388,8 +388,10 @@ export function EventModal(): JSX.Element | null {
           reminders,
           transparency,
         }
+        deleteEvent(originalEventId)
         addEvent(newEvent)
         try {
+          await deleteCalDAVEvent(calendarId, originalEventId)
           await createCalDAVEvent(calendarId, newEvent)
         } catch {
           // error already handled by useCalDAV

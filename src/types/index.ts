@@ -41,6 +41,7 @@ export interface CalendarEvent {
   transparency?: 'opaque' | 'transparent'
   sequence?: number
   etag?: string
+  excludedDates?: string[]
 }
 
 export interface Calendar {

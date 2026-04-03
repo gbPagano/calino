@@ -172,6 +172,7 @@ export const useCalendarStore = create<CalendarStore>()(
         const startDate = startOfDay(parseISO(start))
         const endDate = endOfDay(parseISO(end))
         const expandedEvents: CalendarEvent[] = []
+        const seenIds = new Set<string>()
 
         for (const event of state.events) {
           if (!visibleCalendarIds.includes(event.calendarId)) {
@@ -223,6 +224,7 @@ export const useCalendarStore = create<CalendarStore>()(
               })
 
               const occurrences = rule.between(startDate, endDate, true)
+              const excludedDates = event.excludedDates || []
 
               for (const occ of occurrences) {
                 const duration = parseISO(event.end).getTime() - eventStartUtc.getTime()
@@ -231,12 +233,21 @@ export const useCalendarStore = create<CalendarStore>()(
                 const occEnd = new Date(occ.getTime() + duration)
                 const occEndUtc = new Date(occEnd.getTime() + occOffset)
 
-                expandedEvents.push({
-                  ...event,
-                  id: `${event.id}-${occUtc.toISOString()}`,
-                  start: occUtc.toISOString(),
-                  end: occEndUtc.toISOString(),
-                })
+                const occDateStr = occUtc.toISOString().split('T')[0]
+                if (excludedDates.includes(occDateStr)) {
+                  continue
+                }
+
+                const occId = `${event.id}-${occUtc.toISOString()}`
+                if (!seenIds.has(occId)) {
+                  seenIds.add(occId)
+                  expandedEvents.push({
+                    ...event,
+                    id: occId,
+                    start: occUtc.toISOString(),
+                    end: occEndUtc.toISOString(),
+                  })
+                }
               }
             } catch {
               const eventStart = parseISO(event.start)
@@ -246,7 +257,10 @@ export const useCalendarStore = create<CalendarStore>()(
                 isWithinInterval(eventEnd, { start: startDate, end: endDate }) ||
                 (eventStart <= startDate && eventEnd >= endDate)
               ) {
-                expandedEvents.push(event)
+                if (!seenIds.has(event.id)) {
+                  seenIds.add(event.id)
+                  expandedEvents.push(event)
+                }
               }
             }
           } else {
@@ -258,7 +272,10 @@ export const useCalendarStore = create<CalendarStore>()(
               isWithinInterval(eventEnd, { start: startDate, end: endDate }) ||
               (eventStart <= startDate && eventEnd >= endDate)
             ) {
-              expandedEvents.push(event)
+              if (!seenIds.has(event.id)) {
+                seenIds.add(event.id)
+                expandedEvents.push(event)
+              }
             }
           }
         }

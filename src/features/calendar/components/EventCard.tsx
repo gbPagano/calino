@@ -45,6 +45,7 @@ export function EventCard({
   transparent = false,
 }: EventCardProps): JSX.Element {
   const calendars = useCalendarStore((state) => state.calendars)
+  const events = useCalendarStore((state) => state.events)
   const openModal = useCalendarStore((state) => state.openModal)
   const openPreview = useCalendarStore((state) => state.openPreview)
   const closePreview = useCalendarStore((state) => state.closePreview)
@@ -293,59 +294,73 @@ export function EventCard({
       </div>
       {contextMenu &&
         createPortal(
-          <>
-            <ContextMenu
-              x={contextMenu.x}
-              y={contextMenu.y}
-              menuId={menuId}
-              onClose={() => {
-                closeMenu()
-                setContextMenu(null)
-              }}
-              items={[
-                {
-                  label: 'Edit',
-                  onClick: () => {
-                    openModal(undefined, undefined, event.id)
-                  },
-                  icon: <EditIcon />,
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            menuId={menuId}
+            onClose={() => {
+              closeMenu()
+              setContextMenu(null)
+            }}
+            items={[
+              {
+                label: 'Edit',
+                onClick: () => {
+                  openModal(undefined, undefined, event.id)
                 },
-                {
-                  label: 'Duplicate',
-                  onClick: () => duplicateEvent(event.id),
-                  icon: <DuplicateIcon />,
+                icon: <EditIcon />,
+              },
+              {
+                label: 'Duplicate',
+                onClick: () => duplicateEvent(event.id),
+                icon: <DuplicateIcon />,
+              },
+              {
+                label: 'Delete',
+                onClick: () => {
+                  const isRecurring = !!event.recurrence || !!event.rruleString || !!originalEventId
+                  if (isRecurring) {
+                    setShowDeleteDialog(true)
+                  } else {
+                    deleteEvent(event.id)
+                    deleteCalDAVEvent(event.calendarId, event.id).catch(() => {})
+                  }
                 },
-                {
-                  label: 'Delete',
-                  onClick: () => {
-                    const isRecurring =
-                      !!event.recurrence || !!event.rruleString || !!originalEventId
-                    if (isRecurring) {
-                      setShowDeleteDialog(true)
-                    } else {
-                      deleteEvent(event.id)
-                      deleteCalDAVEvent(event.calendarId, event.id).catch(() => {})
+                icon: <DeleteIcon />,
+                danger: true,
+              },
+            ]}
+          />,
+          document.body
+        )}
+      {showDeleteDialog &&
+        createPortal(
+          <DeleteDialog
+            isOpen={showDeleteDialog}
+            onClose={() => setShowDeleteDialog(false)}
+            onConfirm={(mode) => {
+              if (mode === 'this' && originalEventId) {
+                const masterEvent = events.find((e) => e.id === originalEventId)
+                if (masterEvent) {
+                  const dateMatch = event.id.match(/(\d{4}-\d{2}-\d{2})/)
+                  const dateStr = dateMatch ? dateMatch[1] : null
+                  if (dateStr) {
+                    const excludedDates = masterEvent.excludedDates || []
+                    if (!excludedDates.includes(dateStr)) {
+                      updateEvent(originalEventId, {
+                        excludedDates: [...excludedDates, dateStr],
+                      })
                     }
-                  },
-                  icon: <DeleteIcon />,
-                  danger: true,
-                },
-              ]}
-            />
-            <DeleteDialog
-              isOpen={showDeleteDialog}
-              onClose={() => setShowDeleteDialog(false)}
-              onConfirm={(mode) => {
-                const idToDelete = originalEventId || event.id
-                if (mode === 'this' && originalEventId) {
-                  deleteEvent(originalEventId)
-                } else {
-                  deleteEvent(idToDelete)
+                  }
                 }
-                setShowDeleteDialog(false)
-              }}
-            />
-          </>,
+              } else if (originalEventId) {
+                deleteEvent(originalEventId)
+              } else {
+                deleteEvent(event.id)
+              }
+              setShowDeleteDialog(false)
+            }}
+          />,
           document.body
         )}
     </>

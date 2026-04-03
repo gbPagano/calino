@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import styles from './EventModal.module.css'
+import styles from './DeleteDialog.module.css'
 
 type RecurrenceEditMode = 'all' | 'future' | 'this'
 
@@ -22,7 +22,7 @@ export function DeleteDialog({
         <div className={styles.header}>
           <h2 className={styles.title}>Delete recurring event</h2>
           <button className={styles.closeButton} onClick={onClose}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path
                 d="M18 6L6 18M6 6L18 18"
                 stroke="currentColor"
@@ -32,31 +32,16 @@ export function DeleteDialog({
             </svg>
           </button>
         </div>
-        <div className={styles.form}>
-          <p style={{ padding: '16px', color: '#666' }}>How would you like to delete this event?</p>
-          <div className={styles.field} style={{ padding: '0 16px 16px' }}>
-            <button
-              type="button"
-              className={styles.deleteButton}
-              style={{ width: '100%', marginBottom: '8px' }}
-              onClick={() => onConfirm('all')}
-            >
+        <div className={styles.content}>
+          <p className={styles.message}>How would you like to delete this event?</p>
+          <div className={styles.buttons}>
+            <button type="button" className={styles.deleteButton} onClick={() => onConfirm('all')}>
               All events
             </button>
-            <button
-              type="button"
-              className={styles.deleteButton}
-              style={{ width: '100%', marginBottom: '8px' }}
-              onClick={() => onConfirm('this')}
-            >
+            <button type="button" className={styles.deleteButton} onClick={() => onConfirm('this')}>
               This event only
             </button>
-            <button
-              type="button"
-              className={styles.cancelButton}
-              style={{ width: '100%' }}
-              onClick={onClose}
-            >
+            <button type="button" className={styles.cancelButton} onClick={onClose}>
               Cancel
             </button>
           </div>

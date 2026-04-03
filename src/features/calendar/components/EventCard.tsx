@@ -7,12 +7,21 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { ContextMenu } from '@/components/common/ContextMenu'
+import { DeleteDialog } from './DeleteDialog'
 import type { CalendarEvent } from '@/types'
 import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { hapticIfEnabled } from '@/lib/haptics'
 import styles from './EventCard.module.css'
+
+function extractOriginalEventId(eventId: string): string | null {
+  const isoDateMatch = eventId.match(/(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/)
+  if (isoDateMatch) {
+    return isoDateMatch[1]
+  }
+  return null
+}
 
 interface EventCardProps {
   event: CalendarEvent
@@ -51,6 +60,8 @@ export function EventCard({
 
   const menuId = `event-${event.id}`
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const originalEventId = extractOriginalEventId(event.id)
 
   const [isResizing, setIsResizing] = useState(false)
   const [didInteract, setDidInteract] = useState(false)
@@ -282,42 +293,59 @@ export function EventCard({
       </div>
       {contextMenu &&
         createPortal(
-          <ContextMenu
-            x={contextMenu.x}
-            y={contextMenu.y}
-            menuId={menuId}
-            onClose={() => {
-              closeMenu()
-              setContextMenu(null)
-            }}
-            items={[
-              {
-                label: 'Edit',
-                onClick: () => {
-                  openModal(undefined, undefined, event.id)
+          <>
+            <ContextMenu
+              x={contextMenu.x}
+              y={contextMenu.y}
+              menuId={menuId}
+              onClose={() => {
+                closeMenu()
+                setContextMenu(null)
+              }}
+              items={[
+                {
+                  label: 'Edit',
+                  onClick: () => {
+                    openModal(undefined, undefined, event.id)
+                  },
+                  icon: <EditIcon />,
                 },
-                icon: <EditIcon />,
-              },
-              {
-                label: 'Duplicate',
-                onClick: () => duplicateEvent(event.id),
-                icon: <DuplicateIcon />,
-              },
-              {
-                label: 'Delete',
-                onClick: async () => {
-                  deleteEvent(event.id)
-                  try {
-                    await deleteCalDAVEvent(event.calendarId, event.id)
-                  } catch {
-                    // error handled by useCalDAV
-                  }
+                {
+                  label: 'Duplicate',
+                  onClick: () => duplicateEvent(event.id),
+                  icon: <DuplicateIcon />,
                 },
-                icon: <DeleteIcon />,
-                danger: true,
-              },
-            ]}
-          />,
+                {
+                  label: 'Delete',
+                  onClick: () => {
+                    const isRecurring =
+                      !!event.recurrence || !!event.rruleString || !!originalEventId
+                    if (isRecurring) {
+                      setShowDeleteDialog(true)
+                    } else {
+                      deleteEvent(event.id)
+                      deleteCalDAVEvent(event.calendarId, event.id).catch(() => {})
+                    }
+                  },
+                  icon: <DeleteIcon />,
+                  danger: true,
+                },
+              ]}
+            />
+            <DeleteDialog
+              isOpen={showDeleteDialog}
+              onClose={() => setShowDeleteDialog(false)}
+              onConfirm={(mode) => {
+                const idToDelete = originalEventId || event.id
+                if (mode === 'this' && originalEventId) {
+                  deleteEvent(originalEventId)
+                } else {
+                  deleteEvent(idToDelete)
+                }
+                setShowDeleteDialog(false)
+              }}
+            />
+          </>,
           document.body
         )}
     </>

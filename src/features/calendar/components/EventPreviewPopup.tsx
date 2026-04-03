@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
+import { DeleteDialog } from './DeleteDialog'
 import type { CalendarEvent } from '@/types'
 import styles from './EventPreviewPopup.module.css'
 
@@ -66,6 +67,7 @@ export function EventPreviewPopup({
   const [editLocation, setEditLocation] = useState(event.location || '')
   const [editDescription, setEditDescription] = useState(event.description || '')
   const [hasChanges, setHasChanges] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const getEventDate = (): string => {
     if (isTask && event.dueDate) {
@@ -191,10 +193,23 @@ export function EventPreviewPopup({
     }
   }
 
+  const isRecurring = !!event.recurrence || !!event.rruleString
+
   const handleDelete = (): void => {
+    if (isRecurring) {
+      setShowDeleteDialog(true)
+      return
+    }
     const idToDelete = originalEventId || event.id
     deleteEvent(idToDelete)
     closePreview()
+  }
+
+  const performDelete = (_mode: 'all' | 'this' | 'future'): void => {
+    const idToDelete = originalEventId || event.id
+    deleteEvent(idToDelete)
+    closePreview()
+    setShowDeleteDialog(false)
   }
 
   const adjustedPosition = (() => {
@@ -597,6 +612,12 @@ export function EventPreviewPopup({
             </svg>
           </button>
         </div>
+
+        <DeleteDialog
+          isOpen={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          onConfirm={performDelete}
+        />
       </motion.div>
     </AnimatePresence>,
     document.body

@@ -193,7 +193,7 @@ export function EventPreviewPopup({
     }
   }
 
-  const isRecurring = !!event.recurrence || !!event.rruleString
+  const isRecurring = !!event.recurrence || !!event.rruleString || !!originalEventId
 
   const handleDelete = (): void => {
     if (isRecurring) {
@@ -205,9 +205,13 @@ export function EventPreviewPopup({
     closePreview()
   }
 
-  const performDelete = (_mode: 'all' | 'this' | 'future'): void => {
+  const performDelete = (mode: 'all' | 'this' | 'future'): void => {
     const idToDelete = originalEventId || event.id
-    deleteEvent(idToDelete)
+    if (mode === 'this' && originalEventId) {
+      deleteEvent(originalEventId)
+    } else {
+      deleteEvent(idToDelete)
+    }
     closePreview()
     setShowDeleteDialog(false)
   }

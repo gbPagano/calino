@@ -42,6 +42,7 @@ export interface CalendarEvent {
   sequence?: number
   etag?: string
   excludedDates?: string[]
+  recurrenceId?: string
 }
 
 export interface Calendar {

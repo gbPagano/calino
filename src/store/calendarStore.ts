@@ -203,7 +203,7 @@ export const useCalendarStore = create<CalendarStore>()(
               const freq = freqMap[event.recurrence.frequency] || 'WEEKLY'
               let rruleParts = `FREQ=${freq};INTERVAL=${event.recurrence.interval || 1}`
               if (event.recurrence.byWeekday && event.recurrence.byWeekday.length > 0) {
-                const byday = event.recurrence.byWeekday.map((d) => dayMap[d] || 'MO').join(',')
+                const byday = event.recurrence.byWeekday.map((d) => dayMap[d]).join(',')
                 rruleParts += `;BYDAY=${byday}`
               }
               rruleString = rruleParts

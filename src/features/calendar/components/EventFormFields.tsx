@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { useState } from 'react'
 import type { RecurrenceRule, Reminder } from '@/types'
+import { useSettingsStore } from '@/store/settingsStore'
 import styles from './EventModal.module.css'
 
 interface EventFormFieldsProps {
@@ -16,8 +17,8 @@ interface EventFormFieldsProps {
   onEndTimeChange: (time: string) => void
   recurrence: RecurrenceRule['frequency'] | 'none'
   onRecurrenceChange: (recurrence: RecurrenceRule['frequency'] | 'none') => void
-  excludedWeekdays?: number[]
-  onExcludeWeekdaysChange?: (days: number[]) => void
+  byWeekday?: number[]
+  onByWeekdayChange?: (days: number[]) => void
   travelDuration: number | undefined
   onTravelDurationChange: (duration: number | undefined) => void
   reminders: Reminder[]
@@ -58,7 +59,15 @@ const REMINDER_OPTIONS: { value: number; label: string }[] = [
   { value: 1440, label: '1 day before' },
 ]
 
-const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const BASE_WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+function getWeekdayLabels(firstDayOfWeek: number): string[] {
+  const labels: string[] = []
+  for (let i = 0; i < 7; i++) {
+    labels.push(BASE_WEEKDAY_LABELS[(i + firstDayOfWeek) % 7])
+  }
+  return labels
+}
 
 export function EventFormFields({
   isAllDay,
@@ -73,8 +82,8 @@ export function EventFormFields({
   onEndTimeChange,
   recurrence,
   onRecurrenceChange,
-  excludedWeekdays = [],
-  onExcludeWeekdaysChange,
+  byWeekday = [],
+  onByWeekdayChange,
   travelDuration,
   onTravelDurationChange,
   reminders,
@@ -83,13 +92,16 @@ export function EventFormFields({
   onTransparencyChange,
 }: EventFormFieldsProps): JSX.Element {
   const [showMoreOptions, setShowMoreOptions] = useState(false)
+  const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
+  const weekdayLabels = getWeekdayLabels(firstDayOfWeek)
 
-  const handleWeekdayToggle = (dayIndex: number): void => {
-    if (!onExcludeWeekdaysChange) return
-    const newExcluded = excludedWeekdays.includes(dayIndex)
-      ? excludedWeekdays.filter((d) => d !== dayIndex)
-      : [...excludedWeekdays, dayIndex].sort()
-    onExcludeWeekdaysChange(newExcluded)
+  const handleWeekdayToggle = (displayIndex: number): void => {
+    if (!onByWeekdayChange) return
+    const actualWeekday = (displayIndex + firstDayOfWeek) % 7
+    const newByWeekday = byWeekday.includes(actualWeekday)
+      ? byWeekday.filter((d: number) => d !== actualWeekday)
+      : [...byWeekday, actualWeekday].sort()
+    onByWeekdayChange(newByWeekday)
   }
 
   return (
@@ -214,27 +226,39 @@ export function EventFormFields({
                 ))}
               </select>
             </div>
+          </div>
 
-            {recurrence === 'daily' && onExcludeWeekdaysChange && (
-              <div className={styles.field} style={{ flexWrap: 'wrap', gap: '4px' }}>
-                <label className={styles.label} style={{ width: '100%', marginBottom: '4px' }}>
-                  Except days
-                </label>
-                <div className={styles.weekdayRow}>
-                  {WEEKDAY_LABELS.map((label, index) => (
-                    <label key={label} className={styles.weekdayCheckbox}>
+          {recurrence === 'daily' && onByWeekdayChange && (
+            <div className={styles.weekdayField}>
+              <label className={styles.label} style={{ fontWeight: 600 }}>
+                On days:
+              </label>
+              <div className={styles.weekdayRow}>
+                {weekdayLabels.map((label, displayIndex) => {
+                  const actualWeekday = (displayIndex + firstDayOfWeek) % 7
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      className={`${styles.weekdayBtn} ${byWeekday.includes(actualWeekday) ? styles.excluded : ''}`}
+                      onClick={() => handleWeekdayToggle(displayIndex)}
+                      aria-pressed={byWeekday.includes(actualWeekday)}
+                    >
+                      {label}
                       <input
                         type="checkbox"
-                        checked={excludedWeekdays.includes(index)}
-                        onChange={() => handleWeekdayToggle(index)}
+                        checked={byWeekday.includes(actualWeekday)}
+                        onChange={() => handleWeekdayToggle(displayIndex)}
+                        aria-label={`Include ${label}`}
                       />
-                      <span>{label}</span>
-                    </label>
-                  ))}
-                </div>
+                    </button>
+                  )
+                })}
               </div>
-            )}
+            </div>
+          )}
 
+          <div className={styles.row}>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="travel-duration-select">
                 Travel time

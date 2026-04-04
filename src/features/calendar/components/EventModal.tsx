@@ -204,7 +204,7 @@ export function EventModal(): JSX.Element | null {
   const [recurrence, setRecurrence] = useState<RecurrenceRule['frequency'] | 'none'>(
     initialState.recurrence
   )
-  const [excludedWeekdays, setExcludedWeekdays] = useState<number[]>([])
+  const [byWeekday, setByWeekday] = useState<number[]>([])
   const [travelDuration, setTravelDuration] = useState<number | undefined>(
     initialState.travelDuration
   )
@@ -344,6 +344,13 @@ export function EventModal(): JSX.Element | null {
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
 
+    if (!title.trim()) {
+      window.dispatchEvent(
+        new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
+      )
+      return
+    }
+
     if (isEditing && isRecurringEvent && hasChanges) {
       setShowRecurrenceDialog(true)
       return
@@ -358,6 +365,14 @@ export function EventModal(): JSX.Element | null {
       return
     }
 
+    if (!title.trim()) {
+      alert('Title is required')
+      window.dispatchEvent(
+        new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
+      )
+      return
+    }
+
     const localStart = isAllDay ? `${startDate}T00:00:00` : `${startDate}T${startTime}:00`
     const localEnd = isAllDay ? `${endDate}T23:59:59` : `${endDate}T${endTime}:00`
     const startDateTime = new Date(localStart).toISOString()
@@ -368,7 +383,7 @@ export function EventModal(): JSX.Element | null {
         ? {
             frequency: recurrence,
             interval: 1,
-            byWeekday: excludedWeekdays.length > 0 ? excludedWeekdays : undefined,
+            byWeekday: byWeekday.length > 0 ? byWeekday : undefined,
           }
         : undefined
 
@@ -488,6 +503,12 @@ export function EventModal(): JSX.Element | null {
   }
 
   const handleRecurrenceDialogConfirm = async (mode: RecurrenceEditMode): Promise<void> => {
+    if (!title.trim()) {
+      window.dispatchEvent(
+        new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
+      )
+      return
+    }
     await saveEvent(mode)
   }
 
@@ -553,6 +574,12 @@ export function EventModal(): JSX.Element | null {
               onChange={(e) => setTitle(e.target.value)}
               className={styles.titleInput}
               required
+              onInvalid={(e) => {
+                e.preventDefault()
+                window.dispatchEvent(
+                  new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
+                )
+              }}
             />
             <button className={styles.closeButton} onClick={closeModal}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -600,8 +627,8 @@ export function EventModal(): JSX.Element | null {
               onEndTimeChange={setEndTime}
               recurrence={recurrence}
               onRecurrenceChange={setRecurrence}
-              excludedWeekdays={excludedWeekdays}
-              onExcludeWeekdaysChange={setExcludedWeekdays}
+              byWeekday={byWeekday}
+              onByWeekdayChange={setByWeekday}
               travelDuration={travelDuration}
               onTravelDurationChange={setTravelDuration}
               reminders={reminders}
@@ -700,7 +727,7 @@ export function EventModal(): JSX.Element | null {
               <button type="button" className={styles.cancelButton} onClick={closeModal}>
                 Cancel
               </button>
-              <button type="submit" className={styles.saveButton}>
+              <button type="submit" className={styles.saveButton} disabled={!title.trim()}>
                 {isEditing ? 'Save' : 'Create'}
               </button>
             </div>

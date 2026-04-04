@@ -19,6 +19,7 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
         id: uuidv4(),
         calendarId,
         isAllDay: false,
+        excludedDates: [],
       }
       inEvent = true
       currentAlarms = []
@@ -40,6 +41,7 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
           recurrence: currentEvent.recurrence,
           reminders: currentAlarms.length > 0 ? currentAlarms : undefined,
           rruleString: currentEvent.rruleString,
+          excludedDates: currentEvent.excludedDates,
           travelDuration: currentEvent.travelDuration,
           transparency: currentEvent.transparency,
           sequence: currentEvent.sequence,
@@ -94,6 +96,16 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
       } else if (line.startsWith('RRULE:')) {
         currentEvent.rruleString = line.substring(6)
         currentEvent.recurrence = parseRRule(line.substring(6))
+      } else if (line.startsWith('EXDATE')) {
+        const colonIndex = line.indexOf(':')
+        const value = colonIndex !== -1 ? line.substring(colonIndex + 1) : ''
+        const parsed = parseICalDateTime(value)
+        if (parsed.date) {
+          if (!currentEvent.excludedDates) {
+            currentEvent.excludedDates = []
+          }
+          currentEvent.excludedDates.push(parsed.date)
+        }
       } else if (line.startsWith('X-APPLE-TRAVEL-DURATION:')) {
         const duration = line.substring(24)
         const minutes = parseTravelDuration(duration)
@@ -308,6 +320,17 @@ export function eventToICAL(event: CalendarEvent): string {
 
   if (event.rruleString) {
     lines.push(`RRULE:${event.rruleString}`)
+  }
+
+  if (event.excludedDates && event.excludedDates.length > 0) {
+    for (const exDate of event.excludedDates) {
+      const formatted = formatICalDateTime(exDate, event.isAllDay)
+      if (event.isAllDay) {
+        lines.push(`EXDATE;VALUE=DATE:${formatted}`)
+      } else {
+        lines.push(`EXDATE:${formatted}`)
+      }
+    }
   }
 
   if (event.transparency === 'transparent') {

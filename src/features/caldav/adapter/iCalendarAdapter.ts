@@ -45,6 +45,7 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
           travelDuration: currentEvent.travelDuration,
           transparency: currentEvent.transparency,
           sequence: currentEvent.sequence,
+          recurrenceId: currentEvent.recurrenceId,
         }
 
         if (existingIndex !== undefined) {
@@ -119,6 +120,13 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
         const seq = parseInt(line.substring(9), 10)
         if (!isNaN(seq)) {
           currentEvent.sequence = seq
+        }
+      } else if (line.startsWith('RECURRENCE-ID')) {
+        const colonIndex = line.indexOf(':')
+        const value = colonIndex !== -1 ? line.substring(colonIndex + 1) : ''
+        const parsed = parseICalDateTime(value)
+        if (parsed.date) {
+          currentEvent.recurrenceId = parsed.date
         }
       } else if (inAlarm && line.startsWith('TRIGGER:')) {
         const trigger = line.substring(8)
@@ -320,6 +328,14 @@ export function eventToICAL(event: CalendarEvent): string {
 
   if (event.rruleString) {
     lines.push(`RRULE:${event.rruleString}`)
+  }
+
+  if (event.recurrenceId) {
+    if (event.isAllDay) {
+      lines.push(`RECURRENCE-ID;VALUE=DATE:${formatICalDateTime(event.recurrenceId, true)}`)
+    } else {
+      lines.push(`RECURRENCE-ID:${formatICalDateTime(event.recurrenceId, false)}`)
+    }
   }
 
   if (event.excludedDates && event.excludedDates.length > 0) {

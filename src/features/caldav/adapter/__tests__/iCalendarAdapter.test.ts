@@ -208,6 +208,55 @@ describe('iCalendarAdapter', () => {
       expect(iCal).toContain('EXDATE;VALUE=DATE:20240308')
       expect(iCal).toContain('EXDATE;VALUE=DATE:20240315')
     })
+
+    it('exports RECURRENCE-ID with VALUE=DATE for all-day events', () => {
+      const event: CalendarEvent = {
+        id: 'test-recurrence-id-allday',
+        title: 'Exception All-Day Event',
+        start: '2024-03-20T00:00:00.000Z',
+        end: '2024-03-20T23:59:59.000Z',
+        isAllDay: true,
+        calendarId: 'cal-1',
+        recurrenceId: '2024-03-15T00:00:00.000Z',
+      }
+
+      const iCal = eventToICAL(event)
+
+      expect(iCal).toContain('RECURRENCE-ID;VALUE=DATE:20240315')
+    })
+
+    it('exports RECURRENCE-ID with DATE-TIME for non-all-day events', () => {
+      const event: CalendarEvent = {
+        id: 'test-recurrence-id-datetime',
+        title: 'Exception Date-Time Event',
+        start: '2024-03-20T14:00:00.000Z',
+        end: '2024-03-20T15:00:00.000Z',
+        isAllDay: false,
+        calendarId: 'cal-1',
+        recurrenceId: '2024-03-15T14:00:00.000Z',
+      }
+
+      const iCal = eventToICAL(event)
+
+      expect(iCal).toContain('RECURRENCE-ID:20240315T140000Z')
+    })
+
+    it('exception event with recurrenceId does NOT have RRULE', () => {
+      const event: CalendarEvent = {
+        id: 'test-exception',
+        title: 'Exception Event',
+        start: '2024-03-20T14:00:00.000Z',
+        end: '2024-03-20T15:00:00.000Z',
+        isAllDay: false,
+        calendarId: 'cal-1',
+        recurrenceId: '2024-03-15T14:00:00.000Z',
+      }
+
+      const iCal = eventToICAL(event)
+
+      expect(iCal).toContain('RECURRENCE-ID:')
+      expect(iCal).not.toContain('RRULE:')
+    })
   })
 
   describe('parseICALEvent', () => {
@@ -315,6 +364,44 @@ END:VCALENDAR`
       const events = parseICALEvent(iCal, 'cal-1')
 
       expect(events[0].sequence).toBeUndefined()
+    })
+
+    it('parses RECURRENCE-ID with VALUE=DATE for all-day events', () => {
+      const iCal = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:event-123
+DTSTART;VALUE=DATE:20240315
+DTEND;VALUE=DATE:20240316
+SUMMARY:Exception Event
+RECURRENCE-ID;VALUE=DATE:20240315
+END:VEVENT
+END:VCALENDAR`
+
+      const events = parseICALEvent(iCal, 'cal-1')
+
+      expect(events).toHaveLength(1)
+      expect(events[0].recurrenceId).toBeDefined()
+      expect(events[0].recurrenceId).toContain('2024-03-15')
+    })
+
+    it('parses RECURRENCE-ID with DATE-TIME for non-all-day events', () => {
+      const iCal = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:event-123
+DTSTART:20240315T140000Z
+DTEND:20240315T150000Z
+SUMMARY:Exception Event
+RECURRENCE-ID:20240315T140000Z
+END:VEVENT
+END:VCALENDAR`
+
+      const events = parseICALEvent(iCal, 'cal-1')
+
+      expect(events).toHaveLength(1)
+      expect(events[0].recurrenceId).toBeDefined()
+      expect(events[0].recurrenceId).toContain('T14:00:00')
     })
 
     it('handles multiple events in one iCal', () => {

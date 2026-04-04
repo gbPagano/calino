@@ -389,25 +389,40 @@ export function EventModal(): JSX.Element | null {
 
     if (isEditing && selectedEventId) {
       if (mode === 'this' && originalEventId) {
-        const newEvent: CalendarEvent = {
-          id: uuidv4(),
+        const masterEvent = events.find((e) => e.id === originalEventId)
+        if (!masterEvent) {
+          throw new Error('Master event not found')
+        }
+
+        const isoDateMatch = selectedEventId.match(
+          /(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/
+        )
+        const originalOccurrenceDate = isoDateMatch ? isoDateMatch[2] : null
+        if (!originalOccurrenceDate) {
+          throw new Error('Invalid selectedEventId format')
+        }
+
+        const exceptionEvent: CalendarEvent = {
+          id: `${originalEventId}-${originalOccurrenceDate}`,
+          calendarId: masterEvent.calendarId,
           title,
           description: description || undefined,
           location: location || undefined,
           start: startDateTime,
           end: endDateTime,
           isAllDay,
-          calendarId,
           recurrence: undefined,
+          rruleString: undefined,
+          recurrenceId: originalOccurrenceDate,
           travelDuration,
           reminders,
           transparency,
+          sequence: 0,
         }
-        deleteEvent(originalEventId)
-        addEvent(newEvent)
+
+        addEvent(exceptionEvent)
         try {
-          await deleteCalDAVEvent(calendarId, originalEventId)
-          await createCalDAVEvent(calendarId, newEvent)
+          await createCalDAVEvent(masterEvent.calendarId, exceptionEvent)
         } catch {
           // error already handled by useCalDAV
         }

@@ -142,4 +142,30 @@ describe('EventModal', () => {
     expect(screen.getByPlaceholderText('Add title')).toHaveValue('Weekly Meeting')
     expect(screen.getByPlaceholderText('Add description...')).toHaveValue('Original description')
   })
+
+  it('does not create event with empty title', () => {
+    const store = useCalendarStore.getState()
+    store.openModal()
+
+    render(<EventModal />)
+
+    const titleInput = screen.getByPlaceholderText('Add title')
+    fireEvent.change(titleInput, { target: { value: '' } })
+
+    const createButton = screen.getByRole('button', { name: /create/i })
+    expect(createButton).toBeDisabled()
+  })
+
+  it('does not create event with whitespace-only title', () => {
+    const store = useCalendarStore.getState()
+    store.openModal()
+
+    render(<EventModal />)
+
+    const titleInput = screen.getByPlaceholderText('Add title')
+    fireEvent.change(titleInput, { target: { value: '   ' } })
+
+    const createButton = screen.getByRole('button', { name: /create/i })
+    expect(createButton).toBeDisabled()
+  })
 })

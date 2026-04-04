@@ -108,7 +108,7 @@ function useViewManager(): void {
         setCurrentView(viewFromUrl)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [location.pathname, setCurrentView, isCalendarRoute, isRootRoute, isRedirecting, navigate])
 
   // Handle keyboard shortcuts - navigate and update state

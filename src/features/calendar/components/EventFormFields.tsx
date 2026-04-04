@@ -100,7 +100,7 @@ export function EventFormFields({
     const actualWeekday = (displayIndex + firstDayOfWeek) % 7
     const newByWeekday = byWeekday.includes(actualWeekday)
       ? byWeekday.filter((d: number) => d !== actualWeekday)
-      : [...byWeekday, actualWeekday].sort()
+      : [...byWeekday, actualWeekday].sort((a, b) => a - b)
     onByWeekdayChange(newByWeekday)
   }
 
@@ -243,14 +243,9 @@ export function EventFormFields({
                       className={`${styles.weekdayBtn} ${byWeekday.includes(actualWeekday) ? styles.excluded : ''}`}
                       onClick={() => handleWeekdayToggle(displayIndex)}
                       aria-pressed={byWeekday.includes(actualWeekday)}
+                      aria-label={`Include ${label}`}
                     >
                       {label}
-                      <input
-                        type="checkbox"
-                        checked={byWeekday.includes(actualWeekday)}
-                        onChange={() => handleWeekdayToggle(displayIndex)}
-                        aria-label={`Include ${label}`}
-                      />
                     </button>
                   )
                 })}

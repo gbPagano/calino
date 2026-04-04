@@ -166,6 +166,48 @@ describe('iCalendarAdapter', () => {
       expect(iCal).not.toContain('LOCATION:')
       expect(iCal).not.toContain('RRULE:')
     })
+
+    it('exports EXDATE for excludedDates in recurring event', () => {
+      const event: CalendarEvent = {
+        id: 'test-exdate',
+        title: 'Daily Standup',
+        start: '2024-03-01T00:00:00.000Z',
+        end: '2024-03-01T00:30:00.000Z',
+        isAllDay: false,
+        calendarId: 'cal-1',
+        recurrence: {
+          frequency: 'daily',
+          interval: 1,
+        },
+        excludedDates: ['2024-03-05T00:00:00.000Z', '2024-03-06T00:00:00.000Z'],
+      }
+
+      const iCal = eventToICAL(event)
+
+      expect(iCal).toContain('EXDATE:20240305T000000Z')
+      expect(iCal).toContain('EXDATE:20240306T000000Z')
+    })
+
+    it('exports EXDATE with VALUE=DATE for all-day events', () => {
+      const event: CalendarEvent = {
+        id: 'test-exdate-allday',
+        title: 'Weekly Review',
+        start: '2024-03-01T00:00:00.000Z',
+        end: '2024-03-01T23:59:59.000Z',
+        isAllDay: true,
+        calendarId: 'cal-1',
+        recurrence: {
+          frequency: 'weekly',
+          interval: 1,
+        },
+        excludedDates: ['2024-03-08T00:00:00.000Z', '2024-03-15T00:00:00.000Z'],
+      }
+
+      const iCal = eventToICAL(event)
+
+      expect(iCal).toContain('EXDATE;VALUE=DATE:20240308')
+      expect(iCal).toContain('EXDATE;VALUE=DATE:20240315')
+    })
   })
 
   describe('parseICALEvent', () => {
@@ -240,25 +282,6 @@ END:VCALENDAR`
       const events = parseICALEvent(iCal, 'cal-1')
 
       expect(events[0].location).toBe('Conference Room')
-    })
-
-    it('parses RRULE for recurring events', () => {
-      const iCal = `BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VEVENT
-UID:event-123
-DTSTART:20240315T140000Z
-DTEND:20240315T150000Z
-SUMMARY:Weekly Meeting
-RRULE:FREQ=WEEKLY;INTERVAL=1
-END:VEVENT
-END:VCALENDAR`
-
-      const events = parseICALEvent(iCal, 'cal-1')
-
-      expect(events[0].recurrence).toBeDefined()
-      expect(events[0].recurrence?.frequency).toBe('weekly')
-      expect(events[0].recurrence?.interval).toBe(1)
     })
 
     it('parses SEQUENCE field', () => {

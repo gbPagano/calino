@@ -174,6 +174,15 @@ export const useCalendarStore = create<CalendarStore>()(
         const expandedEvents: CalendarEvent[] = []
         const seenIds = new Set<string>()
 
+        const exceptionMap = new Map<string, CalendarEvent>()
+        for (const event of state.events) {
+          if (event.recurrenceId && visibleCalendarIds.includes(event.calendarId)) {
+            const dateKey = event.recurrenceId.split('T')[0]
+            const key = `${event.calendarId}-${dateKey}`
+            exceptionMap.set(key, event)
+          }
+        }
+
         for (const event of state.events) {
           if (!visibleCalendarIds.includes(event.calendarId)) {
             continue
@@ -238,6 +247,22 @@ export const useCalendarStore = create<CalendarStore>()(
                   continue
                 }
 
+                const exceptionKey = `${event.calendarId}-${occDateStr}`
+                const exception = exceptionMap.get(exceptionKey)
+                if (exception) {
+                  const occId = `${event.id}-${occUtc.toISOString()}`
+                  if (!seenIds.has(occId)) {
+                    seenIds.add(occId)
+                    expandedEvents.push({
+                      ...exception,
+                      id: occId,
+                      start: exception.start,
+                      end: exception.end,
+                    })
+                  }
+                  continue
+                }
+
                 const occId = `${event.id}-${occUtc.toISOString()}`
                 if (!seenIds.has(occId)) {
                   seenIds.add(occId)
@@ -264,6 +289,9 @@ export const useCalendarStore = create<CalendarStore>()(
               }
             }
           } else {
+            if (event.recurrenceId) {
+              continue
+            }
             const eventStart = parseISO(event.start)
             const eventEnd = parseISO(event.end)
 

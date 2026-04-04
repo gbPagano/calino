@@ -316,4 +316,128 @@ describe('calendarStore', () => {
       expect(octHour).toBe(8)
     })
   })
+
+  describe('recurring event exception override', () => {
+    it('uses exception event data instead of expanded instance', () => {
+      const store = useCalendarStore.getState()
+
+      store.addEvent({
+        id: 'master-event',
+        calendarId: 'default',
+        title: 'Weekly Meeting',
+        start: '2024-03-18T09:00:00.000Z',
+        end: '2024-03-18T10:00:00.000Z',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+        rruleString: 'FREQ=WEEKLY;INTERVAL=1',
+      })
+
+      store.addEvent({
+        id: 'exception-event',
+        calendarId: 'default',
+        title: 'Exception Meeting',
+        start: '2024-03-18T14:00:00.000Z',
+        end: '2024-03-18T15:00:00.000Z',
+        isAllDay: false,
+        recurrenceId: '2024-03-18T09:00:00.000Z',
+      })
+
+      const events = store.getEventsForDateRange('2024-03-18', '2024-03-18')
+
+      expect(events.length).toBe(1)
+      expect(events[0].title).toBe('Exception Meeting')
+      expect(events[0].start).toBe('2024-03-18T14:00:00.000Z')
+      expect(events[0].end).toBe('2024-03-18T15:00:00.000Z')
+    })
+
+    it('preserves exception event start/end times', () => {
+      const store = useCalendarStore.getState()
+
+      store.addEvent({
+        id: 'master-2',
+        calendarId: 'default',
+        title: 'Daily Standup',
+        start: '2024-03-20T08:00:00.000Z',
+        end: '2024-03-20T08:30:00.000Z',
+        isAllDay: false,
+        recurrence: { frequency: 'daily', interval: 1 },
+        rruleString: 'FREQ=DAILY;INTERVAL=1',
+      })
+
+      store.addEvent({
+        id: 'exception-2',
+        calendarId: 'default',
+        title: 'Special Standup',
+        start: '2024-03-20T10:00:00.000Z',
+        end: '2024-03-20T11:00:00.000Z',
+        isAllDay: false,
+        recurrenceId: '2024-03-20T08:00:00.000Z',
+      })
+
+      const events = store.getEventsForDateRange('2024-03-20', '2024-03-20')
+
+      expect(events.length).toBe(1)
+      expect(events[0].start).toBe('2024-03-20T10:00:00.000Z')
+      expect(events[0].end).toBe('2024-03-20T11:00:00.000Z')
+    })
+
+    it('expands master events without exceptions normally', () => {
+      const store = useCalendarStore.getState()
+
+      store.addEvent({
+        id: 'master-only',
+        calendarId: 'default',
+        title: 'Regular Meeting',
+        start: '2024-03-21T09:00:00.000Z',
+        end: '2024-03-21T10:00:00.000Z',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+        rruleString: 'FREQ=WEEKLY;INTERVAL=1',
+      })
+
+      const events = store.getEventsForDateRange('2024-03-21', '2024-03-28')
+
+      expect(events.length).toBeGreaterThan(0)
+      events.forEach((e) => {
+        expect(e.title).toBe('Regular Meeting')
+        expect(e.start).toContain('T09:00:00')
+      })
+    })
+
+    it('exception only affects specific date, other occurrences expand normally', () => {
+      const store = useCalendarStore.getState()
+
+      store.addEvent({
+        id: 'multi-master',
+        calendarId: 'default',
+        title: 'Weekly Sync',
+        start: '2024-03-18T10:00:00.000Z',
+        end: '2024-03-18T11:00:00.000Z',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+        rruleString: 'FREQ=WEEKLY;INTERVAL=1',
+      })
+
+      store.addEvent({
+        id: 'single-exception',
+        calendarId: 'default',
+        title: 'Modified Sync',
+        start: '2024-03-18T15:00:00.000Z',
+        end: '2024-03-18T16:00:00.000Z',
+        isAllDay: false,
+        recurrenceId: '2024-03-18T10:00:00.000Z',
+      })
+
+      const events = store.getEventsForDateRange('2024-03-18', '2024-04-01')
+
+      expect(events.length).toBe(3)
+
+      const march18Modified = events.filter((e) => e.title === 'Modified Sync')
+      expect(march18Modified.length).toBe(1)
+      expect(march18Modified[0].start).toBe('2024-03-18T15:00:00.000Z')
+
+      const weeklySyncEvents = events.filter((e) => e.title === 'Weekly Sync')
+      expect(weeklySyncEvents.length).toBe(2)
+    })
+  })
 })

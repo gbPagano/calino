@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import { useCallback, useEffect, useState, useRef } from 'react'
+import { useIsMobile } from './hooks/useIsMobile'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useCalendarStore } from './store/calendarStore'
 import {
@@ -67,6 +68,7 @@ function useViewManager(): void {
   const location = useLocation()
   const currentView = useCalendarStore((state) => state.currentView)
   const setCurrentView = useCalendarStore((state) => state.setCurrentView)
+  const isMobile = useIsMobile()
 
   const isMounted = useRef(false)
   const lastUrlView = useRef<ViewType | null>(null)
@@ -95,7 +97,7 @@ function useViewManager(): void {
 
     // Handle root route - redirect to default view
     if (isRootRoute) {
-      navigate('/month', { replace: true })
+      navigate(isMobile ? '/agenda' : '/month', { replace: true })
       return
     }
 
@@ -108,8 +110,15 @@ function useViewManager(): void {
         setCurrentView(viewFromUrl)
       }
     }
-     
-  }, [location.pathname, setCurrentView, isCalendarRoute, isRootRoute, isRedirecting, navigate])
+  }, [
+    location.pathname,
+    setCurrentView,
+    isCalendarRoute,
+    isRootRoute,
+    isRedirecting,
+    navigate,
+    isMobile,
+  ])
 
   // Handle keyboard shortcuts - navigate and update state
   useEffect(() => {

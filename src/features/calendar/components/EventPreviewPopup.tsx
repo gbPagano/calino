@@ -6,6 +6,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { DeleteDialog } from './DeleteDialog'
+import { RecurrenceDialog } from './RecurrenceDialog'
 import type { CalendarEvent } from '@/types'
 import styles from './EventPreviewPopup.module.css'
 
@@ -68,6 +69,8 @@ export function EventPreviewPopup({
   const [editDescription, setEditDescription] = useState(event.description || '')
   const [hasChanges, setHasChanges] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showRecurrenceDialog, setShowRecurrenceDialog] = useState(false)
+  const [pendingUpdates, setPendingUpdates] = useState<Partial<CalendarEvent> | null>(null)
 
   const getEventDate = (): string => {
     if (isTask && event.dueDate) {
@@ -153,6 +156,13 @@ export function EventPreviewPopup({
       updates.end = `${dateToUse}T${endTime}:00`
     }
 
+    const recurring = !!event.recurrence || !!event.rruleString || !!originalEventId
+    if (recurring) {
+      setPendingUpdates(updates)
+      setShowRecurrenceDialog(true)
+      return
+    }
+
     updateEvent(eventIdToUse, updates)
     setHasChanges(false)
     setEditingField(null)
@@ -162,6 +172,56 @@ export function EventPreviewPopup({
     } catch {
       // error handled by useCalDAV
     }
+  }
+
+  const handleRecurrenceDialogConfirm = async (mode: 'all' | 'future' | 'this'): Promise<void> => {
+    if (!pendingUpdates) return
+
+    if (mode === 'this') {
+      const existingException = useCalendarStore
+        .getState()
+        .events.find((e) => e.id === clickedEventId && !e.rruleString && !e.recurrence)
+
+      if (existingException) {
+        updateEvent(clickedEventId, pendingUpdates)
+        try {
+          await updateCalDAVEvent(event.calendarId, { ...existingException, ...pendingUpdates })
+        } catch {
+          // error handled by useCalDAV
+        }
+      } else {
+        const newEvent: CalendarEvent = {
+          id: clickedEventId,
+          title: pendingUpdates.title ?? event.title,
+          description: pendingUpdates.description ?? event.description,
+          location: pendingUpdates.location ?? event.location,
+          start: event.start,
+          end: event.end,
+          isAllDay: event.isAllDay,
+          calendarId: event.calendarId,
+          recurrence: undefined,
+          rruleString: undefined,
+        }
+        useCalendarStore.getState().addEvent(newEvent)
+        try {
+          await updateCalDAVEvent(event.calendarId, newEvent)
+        } catch {
+          // error handled by useCalDAV
+        }
+      }
+    } else {
+      updateEvent(eventIdToUse, pendingUpdates)
+      try {
+        await updateCalDAVEvent(event.calendarId, { ...event, ...pendingUpdates })
+      } catch {
+        // error handled by useCalDAV
+      }
+    }
+
+    setPendingUpdates(null)
+    setShowRecurrenceDialog(false)
+    setHasChanges(false)
+    setEditingField(null)
   }
 
   const cancelEditing = useCallback(() => {
@@ -639,6 +699,15 @@ export function EventPreviewPopup({
           isOpen={showDeleteDialog}
           onClose={() => setShowDeleteDialog(false)}
           onConfirm={performDelete}
+        />
+
+        <RecurrenceDialog
+          isOpen={showRecurrenceDialog}
+          onClose={() => {
+            setShowRecurrenceDialog(false)
+            setPendingUpdates(null)
+          }}
+          onConfirm={handleRecurrenceDialogConfirm}
         />
       </motion.div>
     </AnimatePresence>,

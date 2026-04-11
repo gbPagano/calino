@@ -1,4 +1,4 @@
-import { type JSX, useRef, useEffect, useState } from 'react'
+import { type JSX, useRef, useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { format, parseISO } from 'date-fns'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -144,11 +144,13 @@ export function EventPreviewPopup({
         updates.start = `${editDate}T00:00:00`
         updates.isAllDay = true
       }
-    } else if (!isTask && editDate) {
-      const startTime = editTime || '09:00'
+    } else if (!isTask) {
+      const originalDate = format(parseISO(event.start), 'yyyy-MM-dd')
+      const dateToUse = editDate || originalDate
+      const startTime = editTime || format(parseISO(event.start), 'HH:mm')
       const endTime = editEndTime || format(parseISO(event.end), 'HH:mm')
-      updates.start = `${editDate}T${startTime}:00`
-      updates.end = `${editDate}T${endTime}:00`
+      updates.start = `${dateToUse}T${startTime}:00`
+      updates.end = `${dateToUse}T${endTime}:00`
     }
 
     updateEvent(eventIdToUse, updates)
@@ -162,10 +164,16 @@ export function EventPreviewPopup({
     }
   }
 
-  const cancelEditing = (): void => {
+  const cancelEditing = useCallback(() => {
+    setEditTitle(event.title)
+    setEditDate('')
+    setEditTime('')
+    setEditEndTime('')
+    setEditLocation(event.location || '')
+    setEditDescription(event.description || '')
     setEditingField(null)
     setHasChanges(false)
-  }
+  }, [event.title, event.location, event.description])
 
   const handleFieldChange = (field: string, value: string): void => {
     setHasChanges(true)
@@ -244,7 +252,7 @@ export function EventPreviewPopup({
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [closePreview, editingField])
+  }, [closePreview, editingField, cancelEditing])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent): void => {
@@ -258,7 +266,7 @@ export function EventPreviewPopup({
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [closePreview, editingField])
+  }, [closePreview, editingField, cancelEditing])
 
   useEffect(() => {
     const handleContextMenu = (): void => {
@@ -275,7 +283,7 @@ export function EventPreviewPopup({
           type="text"
           value={editTitle}
           onChange={(e) => handleFieldChange('title', e.target.value)}
-          onBlur={cancelEditing}
+          onBlur={saveChanges}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               saveChanges()
@@ -300,7 +308,7 @@ export function EventPreviewPopup({
           type="date"
           value={editDate}
           onChange={(e) => handleFieldChange('date', e.target.value)}
-          onBlur={() => setEditingField(null)}
+          onBlur={saveChanges}
           className={styles.inlineInput}
           autoFocus
         />
@@ -317,6 +325,11 @@ export function EventPreviewPopup({
             type="time"
             value={editTime}
             onChange={(e) => handleFieldChange('time', e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                saveChanges()
+              }
+            }}
             className={styles.inlineInput}
             autoFocus
           />
@@ -327,6 +340,11 @@ export function EventPreviewPopup({
                 type="time"
                 value={editEndTime}
                 onChange={(e) => handleFieldChange('endTime', e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    saveChanges()
+                  }
+                }}
                 className={styles.inlineInput}
               />
             </>
@@ -371,7 +389,7 @@ export function EventPreviewPopup({
         <textarea
           value={editDescription}
           onChange={(e) => handleFieldChange('description', e.target.value)}
-          onBlur={() => setEditingField(null)}
+          onBlur={saveChanges}
           className={styles.descriptionInput}
           rows={3}
           autoFocus

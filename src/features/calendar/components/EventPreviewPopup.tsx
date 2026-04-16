@@ -235,6 +235,7 @@ export function EventPreviewPopup({
     setShowRecurrenceDialog(false)
     setHasChanges(false)
     setEditingField(null)
+    closePreview()
   }
 
   const cancelEditing = useCallback(() => {

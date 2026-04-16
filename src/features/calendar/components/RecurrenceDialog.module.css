@@ -1,0 +1,71 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.dialog {
+  background: var(--color-bg, #fff);
+  border-radius: 12px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  width: 260px;
+  overflow: hidden;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #5f6368);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 14px 16px 10px;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  padding: 0 8px 10px;
+  gap: 4px;
+}
+
+.option {
+  width: 100%;
+  text-align: left;
+  padding: 11px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text, #202124);
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+.option:hover {
+  background: var(--color-border-subtle, #e8eaed);
+}
+
+.optionPrimary {
+  color: var(--color-primary, #4285f4);
+}
+
+.optionPrimary:hover {
+  background: rgba(66, 133, 244, 0.08);
+}
+
+.divider {
+  height: 1px;
+  background: var(--color-border-subtle, #e8eaed);
+  margin: 6px 0;
+}
+
+.cancel {
+  color: var(--color-text-secondary, #5f6368);
+}

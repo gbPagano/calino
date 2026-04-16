@@ -195,8 +195,8 @@ export function EventPreviewPopup({
           title: pendingUpdates.title ?? event.title,
           description: pendingUpdates.description ?? event.description,
           location: pendingUpdates.location ?? event.location,
-          start: event.start,
-          end: event.end,
+          start: pendingUpdates.start ?? event.start,
+          end: pendingUpdates.end ?? event.end,
           isAllDay: event.isAllDay,
           calendarId: event.calendarId,
           recurrence: undefined,
@@ -380,7 +380,15 @@ export function EventPreviewPopup({
   const renderTime = (): JSX.Element => {
     if (editingField === 'time') {
       return (
-        <div className={styles.inlineTimeInputs}>
+        <div
+          className={styles.inlineTimeInputs}
+          onClick={(e) => e.stopPropagation()}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              saveChanges()
+            }
+          }}
+        >
           <input
             type="time"
             value={editTime}

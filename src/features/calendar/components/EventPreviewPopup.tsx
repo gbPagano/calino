@@ -51,6 +51,19 @@ export function EventPreviewPopup({
   const originalEventId = extractOriginalEventId(clickedEventId)
   const eventIdToUse = originalEventId || event.id
 
+  // For recurring event occurrences, the event prop is the parent series.
+  // The actual occurrence start is encoded in clickedEventId after the parent id.
+  const occurrenceStartISO = originalEventId
+    ? clickedEventId.slice(originalEventId.length + 1)
+    : null
+  const effectiveStart = occurrenceStartISO ?? event.start
+  const effectiveEnd = occurrenceStartISO
+    ? new Date(
+        parseISO(occurrenceStartISO).getTime() +
+          (parseISO(event.end).getTime() - parseISO(event.start).getTime())
+      ).toISOString()
+    : event.end
+
   const isTask = event.type === 'task'
   const timeFormatPattern = timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
   const dateFormatPattern =
@@ -76,7 +89,7 @@ export function EventPreviewPopup({
     if (isTask && event.dueDate) {
       return format(parseISO(event.dueDate), dateFormatPattern)
     }
-    return format(parseISO(event.start), dateFormatPattern)
+    return format(parseISO(effectiveStart), dateFormatPattern)
   }
 
   const hasDueTime = (): boolean => {
@@ -105,7 +118,7 @@ export function EventPreviewPopup({
     if (event.isAllDay) {
       return 'All day'
     }
-    return `${format(parseISO(event.start), timeFormatPattern)} - ${format(parseISO(event.end), timeFormatPattern)}`
+    return `${format(parseISO(effectiveStart), timeFormatPattern)} - ${format(parseISO(effectiveEnd), timeFormatPattern)}`
   }
 
   const startEditing = (field: string): void => {
@@ -116,14 +129,14 @@ export function EventPreviewPopup({
       if (isTask && event.dueDate) {
         setEditDate(event.dueDate)
       } else {
-        setEditDate(format(parseISO(event.start), 'yyyy-MM-dd'))
+        setEditDate(format(parseISO(effectiveStart), 'yyyy-MM-dd'))
       }
     } else if (field === 'time') {
       if (isTask && event.dueDate) {
         setEditTime(format(parseISO(event.dueDate), 'HH:mm'))
       } else {
-        setEditTime(format(parseISO(event.start), 'HH:mm'))
-        setEditEndTime(format(parseISO(event.end), 'HH:mm'))
+        setEditTime(format(parseISO(effectiveStart), 'HH:mm'))
+        setEditEndTime(format(parseISO(effectiveEnd), 'HH:mm'))
       }
     } else if (field === 'location') {
       setEditLocation(event.location || '')
@@ -148,10 +161,10 @@ export function EventPreviewPopup({
         updates.isAllDay = true
       }
     } else if (!isTask) {
-      const originalDate = format(parseISO(event.start), 'yyyy-MM-dd')
+      const originalDate = format(parseISO(effectiveStart), 'yyyy-MM-dd')
       const dateToUse = editDate || originalDate
-      const startTime = editTime || format(parseISO(event.start), 'HH:mm')
-      const endTime = editEndTime || format(parseISO(event.end), 'HH:mm')
+      const startTime = editTime || format(parseISO(effectiveStart), 'HH:mm')
+      const endTime = editEndTime || format(parseISO(effectiveEnd), 'HH:mm')
       updates.start = `${dateToUse}T${startTime}:00`
       updates.end = `${dateToUse}T${endTime}:00`
     }

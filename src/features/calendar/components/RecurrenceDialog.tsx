@@ -18,19 +18,33 @@ export function RecurrenceDialog({
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.title}>Edit recurring event</div>
-        <div className={styles.options}>
-          <button className={styles.option} onClick={() => onConfirm('all')}>
-            All events
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.header}>
+          <h2 className={styles.title}>Edit recurring event</h2>
+          <button className={styles.closeButton} onClick={onClose}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M18 6L6 18M6 6L18 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
-          <button className={`${styles.option} ${styles.optionPrimary}`} onClick={() => onConfirm('this')}>
-            This event only
-          </button>
-          <div className={styles.divider} />
-          <button className={`${styles.option} ${styles.cancel}`} onClick={onClose}>
-            Cancel
-          </button>
+        </div>
+        <div className={styles.content}>
+          <p className={styles.message}>How would you like to apply these changes?</p>
+          <div className={styles.buttons}>
+            <button type="button" className={styles.actionButton} onClick={() => onConfirm('all')}>
+              All events
+            </button>
+            <button type="button" className={styles.actionButton} onClick={() => onConfirm('this')}>
+              This event only
+            </button>
+            <button type="button" className={styles.cancelButton} onClick={onClose}>
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>

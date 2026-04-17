@@ -338,7 +338,6 @@ export function EventModal(): JSX.Element | null {
     recurrence,
     travelDuration,
     calendarId,
-    events,
   ])
 
   const handleSubmit = (e: React.FormEvent): void => {

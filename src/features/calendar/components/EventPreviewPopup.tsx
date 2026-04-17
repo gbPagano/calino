@@ -450,7 +450,7 @@ export function EventPreviewPopup({
           type="text"
           value={editLocation}
           onChange={(e) => handleFieldChange('location', e.target.value)}
-          onBlur={() => setEditingField(null)}
+          onBlur={saveChanges}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               saveChanges()

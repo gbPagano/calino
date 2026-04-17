@@ -222,7 +222,7 @@ export function WeekView(): JSX.Element {
     return eachDayOfInterval({ start: weekStart, end: weekEnd })
   }, [date, firstDayOfWeek])
 
-  const allDayEventsMap = useMemo(() => {
+  const { allDayEventsMap, eventsMap } = useMemo(() => {
     const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
     const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
     const weekEvents = getEventsForDateRange(
@@ -230,38 +230,19 @@ export function WeekView(): JSX.Element {
       format(weekEnd, 'yyyy-MM-dd')
     )
 
-    const map = new Map<string, CalendarEvent[]>()
-    weekEvents
-      .filter((event) => event.type !== 'task' && event.isAllDay)
-      .forEach((event: CalendarEvent) => {
-        const dateKey = format(parseISO(event.start), 'yyyy-MM-dd')
-        const existing = map.get(dateKey) || []
-        map.set(dateKey, [...existing, event])
-      })
-    return map
-  }, [date, firstDayOfWeek, getEventsForDateRange, events])
+    const allDay = new Map<string, CalendarEvent[]>()
+    const timed = new Map<string, CalendarEvent[]>()
 
-  const eventsMap = useMemo(() => {
-    const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
-    const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
-    const weekEvents = getEventsForDateRange(
-      format(weekStart, 'yyyy-MM-dd'),
-      format(weekEnd, 'yyyy-MM-dd')
-    )
+    for (const event of weekEvents) {
+      const dateKey = format(parseISO(event.start), 'yyyy-MM-dd')
+      if (event.type !== 'task' && event.isAllDay) {
+        allDay.set(dateKey, [...(allDay.get(dateKey) || []), event])
+      } else if (event.type !== 'task' ? !event.isAllDay : !event.isAllDay && event.start && event.dueDate) {
+        timed.set(dateKey, [...(timed.get(dateKey) || []), event])
+      }
+    }
 
-    const map = new Map<string, CalendarEvent[]>()
-    weekEvents
-      .filter((event) => {
-        if (event.type !== 'task') return !event.isAllDay
-        if (event.isAllDay) return false
-        return event.start && event.dueDate
-      })
-      .forEach((event: CalendarEvent) => {
-        const dateKey = format(parseISO(event.start), 'yyyy-MM-dd')
-        const existing = map.get(dateKey) || []
-        map.set(dateKey, [...existing, event])
-      })
-    return map
+    return { allDayEventsMap: allDay, eventsMap: timed }
   }, [date, firstDayOfWeek, getEventsForDateRange, events])
 
   const tasksMap = useMemo(() => {

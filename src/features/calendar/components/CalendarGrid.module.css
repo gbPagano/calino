@@ -173,6 +173,9 @@
 .events {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  align-self: flex-start;
+  width: 100%;
   gap: var(--event-gap, 2px);
   margin-top: var(--space-2, 8px);
   overflow: hidden;

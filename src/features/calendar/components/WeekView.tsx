@@ -30,6 +30,7 @@ import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { EventCard } from './EventCard'
 import { ContextMenu } from '@/components/common/ContextMenu'
 import { useGestures } from '@/hooks/useGestures'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { hapticIfEnabled } from '@/lib/haptics'
 import type { CalendarEvent, Calendar } from '@/types'
@@ -117,16 +118,7 @@ export function WeekView(): JSX.Element {
     }
   }, [openMenuId])
 
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false
-  )
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
+  const isMobile = useIsMobile()
 
   const handleSwipe = useCallback(
     (direction: 'left' | 'right' | 'up' | 'down') => {

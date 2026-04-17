@@ -2,7 +2,7 @@
 
 **Version:** 0.3.0 (follows semver: 0.x.y = breaking changes allowed, bump minor for features, patch for fixes)
 
-React 18 + TypeScript + Vite calendar app with CalDAV sync, NLP event creation, and PWA support.
+React 19 + TypeScript + Vite calendar app with CalDAV sync, NLP event creation, and PWA support.
 
 ## Commands
 
@@ -31,8 +31,8 @@ pnpm format           # Prettier format
 src/
 ├── components/     # Common UI (ThemeProvider, common/)
 ├── features/      # calendar, events, caldav, nlp, search, commandPalette, settings, onboarding
-├── hooks/         # Custom hooks (useNotifications, useSwipeNavigation)
-├── lib/           # db/ (Dexie), themes/, notifications.ts
+├── hooks/         # Custom hooks (useNotifications, useGestures, useIsMobile)
+├── lib/           # events/, recurrence.ts, themes/, notifications.ts
 ├── store/         # Zustand stores (calendarStore, settingsStore)
 ├── themes/        # CSS themes (built-in.css)
 ├── types/         # TypeScript interfaces
@@ -46,7 +46,7 @@ src/
 - **Sync**: Optimistic UI, queue CalDAV changes
 - **Animations**: Framer Motion for complex, CSS for simple (200-300ms)
 - **Errors**: Custom error classes, user-friendly messages, try/catch async
-- **Mobile**: Touch gestures via `useSwipeNavigation`, native event listeners for pinch-to-zoom
+- **Mobile**: Touch gestures via `useGestures`, native event listeners for pinch-to-zoom
 - **PWA**: Notifications via `lib/notifications.ts`, service worker for offline
 
 ## Routes
@@ -62,7 +62,7 @@ src/
 ## Key Files
 
 - **Store**: `src/store/calendarStore.ts`, `src/store/settingsStore.ts`
-- **Database**: `src/lib/db/` (Dexie tables: events, calendars, accounts, syncQueue)
+- **Events lib**: `src/lib/events.ts`, `src/lib/recurrence.ts`
 - **Notifications**: `src/lib/notifications.ts`, `src/hooks/useNotifications.ts`
 - **Config**: `src/config.ts` (appName, colors, default themes)
 
@@ -172,10 +172,4 @@ export default {
     }
   },
 }
-```
-
-**Usage:** Set CalDAV URL to:
-
-```
-https://your-proxy-url?server=https://your-caldav-server.com
 ```

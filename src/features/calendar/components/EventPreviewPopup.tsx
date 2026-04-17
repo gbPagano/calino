@@ -288,10 +288,16 @@ export function EventPreviewPopup({
   }
 
   const performDelete = (mode: 'all' | 'this' | 'future'): void => {
-    const idToDelete = originalEventId || event.id
     if (mode === 'this' && originalEventId) {
-      deleteEvent(originalEventId)
+      // Add the clicked occurrence's date to excludedDates on the master — do not delete the series
+      const occurrenceStartISO = clickedEventId.slice(originalEventId.length + 1)
+      const occurrenceDate = occurrenceStartISO.split('T')[0]
+      const excludedDates = event.excludedDates || []
+      if (!excludedDates.includes(occurrenceDate)) {
+        updateEvent(originalEventId, { excludedDates: [...excludedDates, occurrenceDate] })
+      }
     } else {
+      const idToDelete = originalEventId || event.id
       deleteEvent(idToDelete)
     }
     closePreview()

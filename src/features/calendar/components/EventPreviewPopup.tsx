@@ -7,6 +7,8 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { DeleteDialog } from './DeleteDialog'
 import { RecurrenceDialog } from './RecurrenceDialog'
+import { RecurringIcon } from '@/components/common/icons'
+import { describeRecurrence } from '@/lib/recurrence'
 import type { CalendarEvent } from '@/types'
 import styles from './EventPreviewPopup.module.css'
 
@@ -559,6 +561,14 @@ export function EventPreviewPopup({
               />
             </svg>
             {renderDate()}
+            {(event.recurrence || event.rruleString) && (
+              <span
+                className={styles.recurringIcon}
+                data-tooltip={describeRecurrence(event)}
+              >
+                <RecurringIcon />
+              </span>
+            )}
           </div>
 
           <div className={styles.field} onClick={() => startEditing('time')}>
@@ -584,28 +594,6 @@ export function EventPreviewPopup({
                 />
               </svg>
               {renderLocation()}
-            </div>
-          )}
-
-          {(event.recurrence || event.rruleString) && (
-            <div className={styles.field}>
-              <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path
-                  d="M11 5.5C11 7.433 9.433 9 7.5 9C5.567 9 4 7.433 4 5.5C4 3.567 5.567 2 7.5 2"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M7.5 2V4.5L9.5 5.5"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <rect x="1" y="10" width="12" height="2" rx="1" fill="currentColor" />
-              </svg>
-              <span>Recurring event</span>
             </div>
           )}
 

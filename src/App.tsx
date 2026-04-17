@@ -20,6 +20,7 @@ import { CookieConsent, ErrorBoundary } from './components/common'
 import { OnboardingModal } from './features/onboarding/OnboardingModal'
 import { ThemeProvider } from './components/ThemeProvider'
 import type { ViewType } from './types'
+import { extractOriginalEventId } from './lib/events'
 import './App.css'
 
 const VIEW_ROUTES: Record<ViewType, string> = {
@@ -130,12 +131,12 @@ function useViewManager(): void {
       let newView: ViewType | null = null
       if (e.key === '<' || e.key === ',') {
         e.preventDefault()
-        const currentIndex = VIEW_ORDER.indexOf(currentView)
+        const currentIndex = VIEW_ORDER.indexOf(currentViewRef.current)
         const prevIndex = (currentIndex - 1 + VIEW_ORDER.length) % VIEW_ORDER.length
         newView = VIEW_ORDER[prevIndex]
       } else if (e.key === '>' || e.key === '.') {
         e.preventDefault()
-        const currentIndex = VIEW_ORDER.indexOf(currentView)
+        const currentIndex = VIEW_ORDER.indexOf(currentViewRef.current)
         const nextIndex = (currentIndex + 1) % VIEW_ORDER.length
         newView = VIEW_ORDER[nextIndex]
       }
@@ -149,10 +150,8 @@ function useViewManager(): void {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [currentView, setCurrentView, navigate])
+  }, [setCurrentView, navigate])
 }
-
-import { extractOriginalEventId } from './lib/events'
 
 function PreviewPopupWrapper(): JSX.Element | null {
   const previewEventId = useCalendarStore((state) => state.previewEventId)

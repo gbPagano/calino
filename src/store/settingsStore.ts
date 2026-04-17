@@ -207,7 +207,15 @@ export const CONFLICT_OPTIONS: { value: 'server-wins' | 'local-wins' | 'ask'; la
   { value: 'ask', label: 'Ask me' },
 ]
 
-export const TIMEZONE_OPTIONS = generateTimezoneOptions()
+let _timezoneOptions: ReturnType<typeof generateTimezoneOptions> | null = null
+export function getTimezoneOptions(): ReturnType<typeof generateTimezoneOptions> {
+  if (!_timezoneOptions) {
+    _timezoneOptions = generateTimezoneOptions()
+  }
+  return _timezoneOptions
+}
+
+export const TIMEZONE_OPTIONS = getTimezoneOptions()
 
 export const EVENT_COLORS = [...CALENDAR_COLORS, '#9334E6', '#00796B']
 

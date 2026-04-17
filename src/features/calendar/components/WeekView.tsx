@@ -33,6 +33,7 @@ import { useGestures } from '@/hooks/useGestures'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { hapticIfEnabled } from '@/lib/haptics'
+import { formatTravelDuration } from '@/lib/events'
 import type { CalendarEvent, Calendar } from '@/types'
 import styles from './WeekView.module.css'
 
@@ -43,18 +44,6 @@ const HOURS = eachHourOfInterval({
 
 const BASE_HOUR_HEIGHT = 60
 const MINUTE_SNAP_INTERVAL = 15
-
-function formatTravelDuration(minutes: number): string {
-  if (minutes >= 60) {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (mins > 0) {
-      return `${hours}h ${mins}m`
-    }
-    return `${hours}h`
-  }
-  return `${minutes} min`
-}
 
 interface DroppableCellProps {
   day: Date

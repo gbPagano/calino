@@ -158,17 +158,21 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
           {Object.entries(groupedResults).map(([category, items]) => (
             <div key={category}>
               <div className={styles.categoryLabel}>{getCategoryLabel(category)}</div>
-              {items.map((result) => (
-                <CommandItem
-                  key={result.index}
-                  data-index={result.index}
-                  item={result.item as Parameters<typeof CommandItem>[0]['item']}
-                  type={result.type as 'command' | 'event' | 'calendar' | 'quick-add'}
-                  isSelected={selectedIndex === result.index}
-                  onClick={() => handleItemClick(result.index)}
-                  timeFormat={timeFormat}
-                />
-              ))}
+              {items.map((result) => {
+                const item = result.item as { id?: string; title?: string }
+                const stableKey = item.id ?? `${category}-${item.title ?? result.index}`
+                return (
+                  <CommandItem
+                    key={stableKey}
+                    data-index={result.index}
+                    item={result.item as Parameters<typeof CommandItem>[0]['item']}
+                    type={result.type as 'command' | 'event' | 'calendar' | 'quick-add'}
+                    isSelected={selectedIndex === result.index}
+                    onClick={() => handleItemClick(result.index)}
+                    timeFormat={timeFormat}
+                  />
+                )
+              })}
             </div>
           ))}
         </div>

@@ -33,6 +33,7 @@ import {
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { EventCard } from './EventCard'
 import { DayEventsPopup } from './DayEventsPopup'
 import { ContextMenu } from '@/components/common/ContextMenu'
@@ -86,7 +87,7 @@ export function CalendarGrid(): JSX.Element {
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null)
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null)
   const [scale, setScale] = useState(0.7)
-  const [isMobile, setIsMobile] = useState(false)
+  const isMobile = useIsMobile()
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollCooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentDateRef = useRef(currentDate)
@@ -172,15 +173,6 @@ export function CalendarGrid(): JSX.Element {
         container.removeEventListener('wheel', handleWheelZoom)
       }
     }
-  }, [])
-
-  useEffect(() => {
-    const checkMobile = (): void => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
   useEffect(() => {

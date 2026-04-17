@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { addDays } from 'date-fns'
-import type { CalendarEvent, CalendarStore } from '@/types'
+import type { CalendarEvent } from '@/types'
 import type { CalDAVAccount, CalDAVCalendar, SyncState } from '../types'
 import { createCalDAVClient } from '../client/CalDAVClient'
 import { testConnection, discoverServerUrl } from '../client/discovery'
@@ -10,15 +10,17 @@ import * as storage from '../sync/accountStorage'
 import { SyncEngine } from '../sync/syncEngine'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import {
+  selectAddEvent,
+  selectUpdateEvent,
+  selectDeleteEvent,
+  selectAddCalendar,
+  selectDeleteCalendar,
+  selectUpdateCalendar,
+  selectCalendars,
+  selectEvents,
+} from '@/store/calendarStore'
 
-const selectAddEvent = (state: CalendarStore) => state.addEvent
-const selectUpdateEvent = (state: CalendarStore) => state.updateEvent
-const selectDeleteEvent = (state: CalendarStore) => state.deleteEvent
-const selectAddCalendar = (state: CalendarStore) => state.addCalendar
-const selectDeleteCalendar = (state: CalendarStore) => state.deleteCalendar
-const selectUpdateCalendar = (state: CalendarStore) => state.updateCalendar
-const selectCalendars = (state: CalendarStore) => state.calendars
-const selectEvents = (state: CalendarStore) => state.events
 const selectCalDavDebugMode = (state: { caldavDebugMode: boolean }) => state.caldavDebugMode
 const selectConflictResolution = (state: { conflictResolution: string }) => state.conflictResolution
 

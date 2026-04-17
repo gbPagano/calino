@@ -1,7 +1,7 @@
 import type { CalendarEvent, RecurrenceRule } from '@/types'
 
 // byWeekday numbers stored in RecurrenceRule → BYDAY codes
-const DAY_NUM_TO_CODE: Record<number, string> = {
+export const DAY_NUM_TO_CODE: Record<number, string> = {
   0: 'SU',
   1: 'MO',
   2: 'TU',
@@ -9,6 +9,13 @@ const DAY_NUM_TO_CODE: Record<number, string> = {
   4: 'TH',
   5: 'FR',
   6: 'SA',
+}
+
+export const FREQ_MAP: Record<string, string> = {
+  daily: 'DAILY',
+  weekly: 'WEEKLY',
+  monthly: 'MONTHLY',
+  yearly: 'YEARLY',
 }
 
 // BYDAY codes → readable names

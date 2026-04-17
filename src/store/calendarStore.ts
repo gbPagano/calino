@@ -4,16 +4,15 @@ import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-f
 import { RRule } from 'rrule'
 import type { CalendarStore, CalendarEvent, Calendar, ViewType, EventType } from '@/types'
 import { config, DEFAULT_CALENDAR_COLOR } from '@/config'
+import { DAY_NUM_TO_CODE, FREQ_MAP } from '@/lib/recurrence'
 
-export const selectCurrentView = (state: CalendarStore) => state.currentView
-export const selectCurrentDate = (state: CalendarStore) => state.currentDate
 export const selectOpenModal = (state: CalendarStore) => state.openModal
-export const selectCloseModal = (state: CalendarStore) => state.closeModal
 export const selectAddEvent = (state: CalendarStore) => state.addEvent
 export const selectUpdateEvent = (state: CalendarStore) => state.updateEvent
 export const selectDeleteEvent = (state: CalendarStore) => state.deleteEvent
 export const selectAddCalendar = (state: CalendarStore) => state.addCalendar
 export const selectDeleteCalendar = (state: CalendarStore) => state.deleteCalendar
+export const selectUpdateCalendar = (state: CalendarStore) => state.updateCalendar
 export const selectCalendars = (state: CalendarStore) => state.calendars
 export const selectEvents = (state: CalendarStore) => state.events
 export const selectSetCurrentView = (state: CalendarStore) => state.setCurrentView
@@ -194,25 +193,10 @@ export const useCalendarStore = create<CalendarStore>()(
             let rruleString = event.rruleString
 
             if (!rruleString && event.recurrence) {
-              const freqMap: Record<string, string> = {
-                daily: 'DAILY',
-                weekly: 'WEEKLY',
-                monthly: 'MONTHLY',
-                yearly: 'YEARLY',
-              }
-              const dayMap: Record<number, string> = {
-                0: 'SU',
-                1: 'MO',
-                2: 'TU',
-                3: 'WE',
-                4: 'TH',
-                5: 'FR',
-                6: 'SA',
-              }
-              const freq = freqMap[event.recurrence.frequency] || 'WEEKLY'
+              const freq = FREQ_MAP[event.recurrence.frequency] || 'WEEKLY'
               let rruleParts = `FREQ=${freq};INTERVAL=${event.recurrence.interval || 1}`
               if (event.recurrence.byWeekday && event.recurrence.byWeekday.length > 0) {
-                const byday = event.recurrence.byWeekday.map((d) => dayMap[d]).join(',')
+                const byday = event.recurrence.byWeekday.map((d) => DAY_NUM_TO_CODE[d]).filter(Boolean).join(',')
                 rruleParts += `;BYDAY=${byday}`
               }
               rruleString = rruleParts

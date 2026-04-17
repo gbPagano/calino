@@ -9,6 +9,7 @@ import { DeleteDialog } from './DeleteDialog'
 import { RecurrenceDialog } from './RecurrenceDialog'
 import { RecurringIcon } from '@/components/common/icons'
 import { describeRecurrence } from '@/lib/recurrence'
+import { hasDueTime, extractOriginalEventId } from '@/lib/events'
 import type { CalendarEvent } from '@/types'
 import styles from './EventPreviewPopup.module.css'
 
@@ -16,14 +17,6 @@ interface EventPreviewPopupProps {
   event: CalendarEvent
   position: { x: number; y: number }
   clickedEventId: string
-}
-
-function extractOriginalEventId(eventId: string): string | null {
-  const isoDateMatch = eventId.match(/(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/)
-  if (isoDateMatch) {
-    return isoDateMatch[1]
-  }
-  return null
 }
 
 const REMINDER_LABELS: Record<number, string> = {
@@ -95,24 +88,13 @@ export function EventPreviewPopup({
     return format(parseISO(effectiveStart), dateFormatPattern)
   }
 
-  const hasDueTime = (): boolean => {
-    if (!event.dueDate) return false
-    if (event.isAllDay) return false
-    if (!event.dueDate.includes('T')) return false
-    const timePart = event.dueDate.split('T')[1]
-    if (!timePart) return false
-    // Check if time is midnight (00:00:00 or 00:00)
-    const normalizedTime = timePart.split('.')[0] // Remove milliseconds if present
-    return normalizedTime !== '00:00:00' && normalizedTime !== '00:00'
-  }
-
   const getEventTime = (): string => {
     if (isTask) {
       if (!event.dueDate) {
         return 'No due date'
       }
       // For tasks with an actual time (not midnight), show the time
-      if (hasDueTime()) {
+      if (hasDueTime(event)) {
         return format(parseISO(event.dueDate), timeFormatPattern)
       }
       // For all-day tasks or tasks with no specific time

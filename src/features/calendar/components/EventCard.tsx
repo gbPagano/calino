@@ -14,6 +14,7 @@ import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { hapticIfEnabled } from '@/lib/haptics'
+import { hasDueTime, formatTravelDuration } from '@/lib/events'
 import styles from './EventCard.module.css'
 
 function extractOriginalEventId(eventId: string): string | null {
@@ -70,6 +71,8 @@ export function EventCard({
   const resizeStartY = useRef<number | null>(null)
   const pointerStartPos = useRef<{ x: number; y: number } | null>(null)
   const resizeStartEnd = useRef<Date | null>(null)
+  const handleResizeMoveRef = useRef<((e: PointerEvent) => void) | null>(null)
+  const handleResizeEndRef = useRef<(() => void) | null>(null)
 
   const { bind } = useGestures({
     onLongPress: ({ x, y }) => {
@@ -104,17 +107,6 @@ export function EventCard({
   const eventColor = event.color || calendar?.color || DEFAULT_CALENDAR_COLOR
   const isTask = event.type === 'task'
   const isRecurring = !!event.recurrence || !!event.rruleString
-
-  const hasDueTime = (): boolean => {
-    if (!event.dueDate) return false
-    if (event.isAllDay) return false
-    if (!event.dueDate.includes('T')) return false
-    const timePart = event.dueDate.split('T')[1]
-    if (!timePart) return false
-    // Check if time is midnight (00:00:00 or 00:00)
-    const normalizedTime = timePart.split('.')[0] // Remove milliseconds if present
-    return normalizedTime !== '00:00:00' && normalizedTime !== '00:00'
-  }
 
   const handleClick = (e: React.MouseEvent): void => {
     let moved = false
@@ -174,9 +166,23 @@ export function EventCard({
       document.removeEventListener('pointerup', handleResizeEnd)
     }
 
+    handleResizeMoveRef.current = handleResizeMove
+    handleResizeEndRef.current = handleResizeEnd
     document.addEventListener('pointermove', handleResizeMove)
     document.addEventListener('pointerup', handleResizeEnd)
   }
+
+  // Cleanup resize listeners on unmount
+  useEffect(() => {
+    return () => {
+      if (handleResizeMoveRef.current) {
+        document.removeEventListener('pointermove', handleResizeMoveRef.current)
+      }
+      if (handleResizeEndRef.current) {
+        document.removeEventListener('pointerup', handleResizeEndRef.current)
+      }
+    }
+  }, [])
 
   const formatTime = (dateString: string): string => {
     const pattern = timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
@@ -248,7 +254,7 @@ export function EventCard({
             </div>
             <div className={styles.taskInfo}>
               <div className={styles.title}>{event.title}</div>
-              {hasDueTime() && event.dueDate && (
+              {hasDueTime(event) && event.dueDate && (
                 <div className={styles.dueDate}>{format(parseISO(event.dueDate), 'h:mm a')}</div>
               )}
             </div>
@@ -433,18 +439,6 @@ function TravelIcon(): JSX.Element {
       <path d="M8 12h8" />
     </svg>
   )
-}
-
-function formatTravelDuration(minutes: number): string {
-  if (minutes >= 60) {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (mins > 0) {
-      return `${hours}h ${mins}m`
-    }
-    return `${hours}h`
-  }
-  return `${minutes} min`
 }
 
 function CheckedIcon(): JSX.Element {

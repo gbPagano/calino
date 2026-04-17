@@ -28,6 +28,7 @@ import { ContextMenu } from '@/components/common/ContextMenu'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { hapticIfEnabled } from '@/lib/haptics'
+import { formatTravelDuration } from '@/lib/events'
 import type { CalendarEvent, Calendar } from '@/types'
 import styles from './DayView.module.css'
 
@@ -65,18 +66,6 @@ function HourCell({ hour, dateStr, timeFormat, onCellClick, onDragStart }: HourC
       />
     </div>
   )
-}
-
-function formatTravelDuration(minutes: number): string {
-  if (minutes >= 60) {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (mins > 0) {
-      return `${hours}h ${mins}m`
-    }
-    return `${hours}h`
-  }
-  return `${minutes} min`
 }
 
 export function DayView(): JSX.Element {

@@ -604,7 +604,7 @@ export function EventModal(): JSX.Element | null {
           </div>
         </div>
         <form
-          key={`${selectedEventId}-${selectedDate}`}
+          key={`${selectedEventId}-${selectedDate}-${selectedEventType}`}
           onSubmit={handleSubmit}
           className={styles.form}
         >

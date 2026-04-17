@@ -338,7 +338,6 @@ export function EventModal(): JSX.Element | null {
     recurrence,
     travelDuration,
     calendarId,
-    events,
   ])
 
   const handleSubmit = (e: React.FormEvent): void => {
@@ -538,25 +537,21 @@ export function EventModal(): JSX.Element | null {
 
   const performDelete = async (mode: RecurrenceEditMode): Promise<void> => {
     if (mode === 'this' && originalEventId) {
-      const newEvent: CalendarEvent = {
-        id: uuidv4(),
-        title: `${title} (exception)`,
-        description: description || undefined,
-        location: location || undefined,
-        start: startDate && startTime ? `${startDate}T${startTime}:00` : `${startDate}T00:00:00`,
-        end: endDate && endTime ? `${endDate}T${endTime}:00` : `${endDate}T23:59:59`,
-        isAllDay,
-        calendarId,
-        recurrence: undefined,
-        travelDuration,
-      }
-      deleteEvent(originalEventId)
-      addEvent(newEvent)
-      try {
-        await deleteCalDAVEvent(calendarId, originalEventId)
-        await createCalDAVEvent(calendarId, newEvent)
-      } catch {
-        // error already handled by useCalDAV
+      // Add the occurrence's date to excludedDates on the master — do not delete the series
+      const occurrenceStartISO = selectedEventId!.slice(originalEventId.length + 1)
+      const occurrenceDate = occurrenceStartISO.split('T')[0]
+      const masterEvent = events.find((e) => e.id === originalEventId)
+      if (masterEvent) {
+        const excludedDates = masterEvent.excludedDates || []
+        if (!excludedDates.includes(occurrenceDate)) {
+          const updatedExcludedDates = [...excludedDates, occurrenceDate]
+          updateEvent(originalEventId, { excludedDates: updatedExcludedDates })
+          try {
+            await updateCalDAVEvent(calendarId, { ...masterEvent, excludedDates: updatedExcludedDates })
+          } catch {
+            // error already handled by useCalDAV
+          }
+        }
       }
     } else {
       const eventIdToDelete = originalEventId || selectedEventId

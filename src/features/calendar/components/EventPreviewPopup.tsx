@@ -1,4 +1,4 @@
-import { type JSX, useRef, useEffect, useState } from 'react'
+import { type JSX, useRef, useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { format, parseISO } from 'date-fns'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -6,6 +6,9 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { DeleteDialog } from './DeleteDialog'
+import { RecurrenceDialog } from './RecurrenceDialog'
+import { RecurringIcon } from '@/components/common/icons'
+import { describeRecurrence } from '@/lib/recurrence'
 import type { CalendarEvent } from '@/types'
 import styles from './EventPreviewPopup.module.css'
 
@@ -50,6 +53,19 @@ export function EventPreviewPopup({
   const originalEventId = extractOriginalEventId(clickedEventId)
   const eventIdToUse = originalEventId || event.id
 
+  // For recurring event occurrences, the event prop is the parent series.
+  // The actual occurrence start is encoded in clickedEventId after the parent id.
+  const occurrenceStartISO = originalEventId
+    ? clickedEventId.slice(originalEventId.length + 1)
+    : null
+  const effectiveStart = occurrenceStartISO ?? event.start
+  const effectiveEnd = occurrenceStartISO
+    ? new Date(
+        parseISO(occurrenceStartISO).getTime() +
+          (parseISO(event.end).getTime() - parseISO(event.start).getTime())
+      ).toISOString()
+    : event.end
+
   const isTask = event.type === 'task'
   const timeFormatPattern = timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
   const dateFormatPattern =
@@ -68,12 +84,15 @@ export function EventPreviewPopup({
   const [editDescription, setEditDescription] = useState(event.description || '')
   const [hasChanges, setHasChanges] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showRecurrenceDialog, setShowRecurrenceDialog] = useState(false)
+  const [pendingUpdates, setPendingUpdates] = useState<Partial<CalendarEvent> | null>(null)
 
   const getEventDate = (): string => {
+    if (editDate) return format(parseISO(editDate), dateFormatPattern)
     if (isTask && event.dueDate) {
       return format(parseISO(event.dueDate), dateFormatPattern)
     }
-    return format(parseISO(event.start), dateFormatPattern)
+    return format(parseISO(effectiveStart), dateFormatPattern)
   }
 
   const hasDueTime = (): boolean => {
@@ -102,30 +121,30 @@ export function EventPreviewPopup({
     if (event.isAllDay) {
       return 'All day'
     }
-    return `${format(parseISO(event.start), timeFormatPattern)} - ${format(parseISO(event.end), timeFormatPattern)}`
+    if (editTime) {
+      const fmt = (t: string) => format(parseISO(`2000-01-01T${t}:00`), timeFormatPattern)
+      return `${fmt(editTime)} - ${fmt(editEndTime || editTime)}`
+    }
+    return `${format(parseISO(effectiveStart), timeFormatPattern)} - ${format(parseISO(effectiveEnd), timeFormatPattern)}`
   }
 
   const startEditing = (field: string): void => {
     setEditingField(field)
-    if (field === 'title') {
-      setEditTitle(event.title)
-    } else if (field === 'date') {
+    // Only initialise date/time if not already set (empty = not yet opened or cancelled).
+    // title/location/description are pre-seeded from useState and kept across field switches.
+    if (field === 'date' && !editDate) {
       if (isTask && event.dueDate) {
         setEditDate(event.dueDate)
       } else {
-        setEditDate(format(parseISO(event.start), 'yyyy-MM-dd'))
+        setEditDate(format(parseISO(effectiveStart), 'yyyy-MM-dd'))
       }
-    } else if (field === 'time') {
+    } else if (field === 'time' && !editTime) {
       if (isTask && event.dueDate) {
         setEditTime(format(parseISO(event.dueDate), 'HH:mm'))
       } else {
-        setEditTime(format(parseISO(event.start), 'HH:mm'))
-        setEditEndTime(format(parseISO(event.end), 'HH:mm'))
+        setEditTime(format(parseISO(effectiveStart), 'HH:mm'))
+        setEditEndTime(format(parseISO(effectiveEnd), 'HH:mm'))
       }
-    } else if (field === 'location') {
-      setEditLocation(event.location || '')
-    } else if (field === 'description') {
-      setEditDescription(event.description || '')
     }
   }
 
@@ -144,11 +163,20 @@ export function EventPreviewPopup({
         updates.start = `${editDate}T00:00:00`
         updates.isAllDay = true
       }
-    } else if (!isTask && editDate) {
-      const startTime = editTime || '09:00'
-      const endTime = editEndTime || format(parseISO(event.end), 'HH:mm')
-      updates.start = `${editDate}T${startTime}:00`
-      updates.end = `${editDate}T${endTime}:00`
+    } else if (!isTask) {
+      const originalDate = format(parseISO(effectiveStart), 'yyyy-MM-dd')
+      const dateToUse = editDate || originalDate
+      const startTime = editTime || format(parseISO(effectiveStart), 'HH:mm')
+      const endTime = editEndTime || format(parseISO(effectiveEnd), 'HH:mm')
+      updates.start = `${dateToUse}T${startTime}:00`
+      updates.end = `${dateToUse}T${endTime}:00`
+    }
+
+    const recurring = !!event.recurrence || !!event.rruleString || !!originalEventId
+    if (recurring) {
+      setPendingUpdates(updates)
+      setShowRecurrenceDialog(true)
+      return
     }
 
     updateEvent(eventIdToUse, updates)
@@ -162,10 +190,67 @@ export function EventPreviewPopup({
     }
   }
 
-  const cancelEditing = (): void => {
+  const handleRecurrenceDialogConfirm = async (mode: 'all' | 'future' | 'this'): Promise<void> => {
+    if (!pendingUpdates) return
+
+    if (mode === 'this') {
+      const existingException = useCalendarStore
+        .getState()
+        .events.find((e) => e.id === clickedEventId && !e.rruleString && !e.recurrence)
+
+      if (existingException) {
+        updateEvent(clickedEventId, pendingUpdates)
+        try {
+          await updateCalDAVEvent(event.calendarId, { ...existingException, ...pendingUpdates })
+        } catch {
+          // error handled by useCalDAV
+        }
+      } else {
+        const newEvent: CalendarEvent = {
+          id: clickedEventId,
+          title: pendingUpdates.title ?? event.title,
+          description: pendingUpdates.description ?? event.description,
+          location: pendingUpdates.location ?? event.location,
+          start: pendingUpdates.start ?? event.start,
+          end: pendingUpdates.end ?? event.end,
+          isAllDay: event.isAllDay,
+          calendarId: event.calendarId,
+          recurrence: undefined,
+          rruleString: undefined,
+        }
+        useCalendarStore.getState().addEvent(newEvent)
+        try {
+          await updateCalDAVEvent(event.calendarId, newEvent)
+        } catch {
+          // error handled by useCalDAV
+        }
+      }
+    } else {
+      updateEvent(eventIdToUse, pendingUpdates)
+      try {
+        await updateCalDAVEvent(event.calendarId, { ...event, ...pendingUpdates })
+      } catch {
+        // error handled by useCalDAV
+      }
+    }
+
+    setPendingUpdates(null)
+    setShowRecurrenceDialog(false)
+    setHasChanges(false)
+    setEditingField(null)
+    closePreview()
+  }
+
+  const cancelEditing = useCallback(() => {
+    setEditTitle(event.title)
+    setEditDate('')
+    setEditTime('')
+    setEditEndTime('')
+    setEditLocation(event.location || '')
+    setEditDescription(event.description || '')
     setEditingField(null)
     setHasChanges(false)
-  }
+  }, [event.title, event.location, event.description])
 
   const handleFieldChange = (field: string, value: string): void => {
     setHasChanges(true)
@@ -206,10 +291,16 @@ export function EventPreviewPopup({
   }
 
   const performDelete = (mode: 'all' | 'this' | 'future'): void => {
-    const idToDelete = originalEventId || event.id
     if (mode === 'this' && originalEventId) {
-      deleteEvent(originalEventId)
+      // Add the clicked occurrence's date to excludedDates on the master — do not delete the series
+      const occurrenceStartISO = clickedEventId.slice(originalEventId.length + 1)
+      const occurrenceDate = occurrenceStartISO.split('T')[0]
+      const excludedDates = event.excludedDates || []
+      if (!excludedDates.includes(occurrenceDate)) {
+        updateEvent(originalEventId, { excludedDates: [...excludedDates, occurrenceDate] })
+      }
     } else {
+      const idToDelete = originalEventId || event.id
       deleteEvent(idToDelete)
     }
     closePreview()
@@ -244,7 +335,7 @@ export function EventPreviewPopup({
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [closePreview, editingField])
+  }, [closePreview, editingField, cancelEditing])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent): void => {
@@ -258,7 +349,7 @@ export function EventPreviewPopup({
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [closePreview, editingField])
+  }, [closePreview, editingField, cancelEditing])
 
   useEffect(() => {
     const handleContextMenu = (): void => {
@@ -275,7 +366,7 @@ export function EventPreviewPopup({
           type="text"
           value={editTitle}
           onChange={(e) => handleFieldChange('title', e.target.value)}
-          onBlur={cancelEditing}
+          onBlur={() => setEditingField(null)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               saveChanges()
@@ -288,7 +379,7 @@ export function EventPreviewPopup({
     }
     return (
       <span className={styles.title} onClick={() => startEditing('title')}>
-        {event.title}
+        {editTitle}
       </span>
     )
   }
@@ -312,11 +403,24 @@ export function EventPreviewPopup({
   const renderTime = (): JSX.Element => {
     if (editingField === 'time') {
       return (
-        <div className={styles.inlineTimeInputs}>
+        <div
+          className={styles.inlineTimeInputs}
+          onClick={(e) => e.stopPropagation()}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              setEditingField(null)
+            }
+          }}
+        >
           <input
             type="time"
             value={editTime}
             onChange={(e) => handleFieldChange('time', e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                saveChanges()
+              }
+            }}
             className={styles.inlineInput}
             autoFocus
           />
@@ -327,6 +431,11 @@ export function EventPreviewPopup({
                 type="time"
                 value={editEndTime}
                 onChange={(e) => handleFieldChange('endTime', e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    saveChanges()
+                  }
+                }}
                 className={styles.inlineInput}
               />
             </>
@@ -355,10 +464,10 @@ export function EventPreviewPopup({
         />
       )
     }
-    if (event.location) {
+    if (editLocation) {
       return (
         <span className={styles.location} onClick={() => startEditing('location')}>
-          {event.location}
+          {editLocation}
         </span>
       )
     }
@@ -378,10 +487,10 @@ export function EventPreviewPopup({
         />
       )
     }
-    if (event.description) {
+    if (editDescription) {
       return (
         <div className={styles.descriptionText} onClick={() => startEditing('description')}>
-          {event.description}
+          {editDescription}
         </div>
       )
     }
@@ -453,6 +562,14 @@ export function EventPreviewPopup({
               />
             </svg>
             {renderDate()}
+            {(event.recurrence || event.rruleString) && (
+              <span
+                className={styles.recurringIcon}
+                data-tooltip={describeRecurrence(event)}
+              >
+                <RecurringIcon />
+              </span>
+            )}
           </div>
 
           <div className={styles.field} onClick={() => startEditing('time')}>
@@ -463,7 +580,7 @@ export function EventPreviewPopup({
             {renderTime()}
           </div>
 
-          {event.location && (
+          {(editLocation || event.location) && (
             <div className={styles.field} onClick={() => startEditing('location')}>
               <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path
@@ -478,28 +595,6 @@ export function EventPreviewPopup({
                 />
               </svg>
               {renderLocation()}
-            </div>
-          )}
-
-          {(event.recurrence || event.rruleString) && (
-            <div className={styles.field}>
-              <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path
-                  d="M11 5.5C11 7.433 9.433 9 7.5 9C5.567 9 4 7.433 4 5.5C4 3.567 5.567 2 7.5 2"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M7.5 2V4.5L9.5 5.5"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <rect x="1" y="10" width="12" height="2" rx="1" fill="currentColor" />
-              </svg>
-              <span>Recurring event</span>
             </div>
           )}
 
@@ -621,6 +716,15 @@ export function EventPreviewPopup({
           isOpen={showDeleteDialog}
           onClose={() => setShowDeleteDialog(false)}
           onConfirm={performDelete}
+        />
+
+        <RecurrenceDialog
+          isOpen={showRecurrenceDialog}
+          onClose={() => {
+            setShowRecurrenceDialog(false)
+            setPendingUpdates(null)
+          }}
+          onConfirm={handleRecurrenceDialogConfirm}
         />
       </motion.div>
     </AnimatePresence>,

@@ -153,7 +153,9 @@ function PreviewPopupWrapper(): JSX.Element | null {
   if (!previewEventId || !previewPosition) return null
 
   const originalId = extractOriginalEventId(previewEventId)
-  const event = events.find((e) => e.id === previewEventId || e.id === originalId)
+  const event =
+    events.find((e) => e.id === previewEventId) ??
+    events.find((e) => originalId !== null && e.id === originalId)
   if (!event) return null
 
   return (

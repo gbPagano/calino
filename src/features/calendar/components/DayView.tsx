@@ -40,6 +40,33 @@ const BASE_hourHeight = 60
 const DRAG_ACTIVATION_CONSTRAINT = 8
 const MINUTE_SNAP_INTERVAL = 15
 
+interface HourCellProps {
+  hour: Date
+  dateStr: string
+  timeFormat: string
+  onCellClick: (hour: Date) => void
+  onDragStart: (hour: Date, e: React.MouseEvent) => void
+}
+
+function HourCell({ hour, dateStr, timeFormat, onCellClick, onDragStart }: HourCellProps): JSX.Element {
+  const droppableId = `${dateStr}-${format(hour, 'HH:mm')}`
+  const { setNodeRef, isOver } = useDroppable({ id: droppableId })
+
+  return (
+    <div className={styles.hourRow}>
+      <div className={styles.timeLabel}>
+        {format(hour, timeFormat === '24h' ? 'HH:mm' : 'h a')}
+      </div>
+      <div
+        ref={setNodeRef}
+        className={`${styles.cell} ${isOver ? styles.dropTarget : ''}`}
+        onClick={() => onCellClick(hour)}
+        onMouseDown={(e) => onDragStart(hour, e)}
+      />
+    </div>
+  )
+}
+
 function formatTravelDuration(minutes: number): string {
   if (minutes >= 60) {
     const hours = Math.floor(minutes / 60)
@@ -212,10 +239,13 @@ export function DayView(): JSX.Element {
     setIsScrolled(e.currentTarget.scrollTop > 0)
   }
 
-  const handleCellClick = (hour: Date): void => {
-    const hourStr = format(hour, 'HH:mm')
-    openModal(`${format(date, 'yyyy-MM-dd')}T${hourStr}`)
-  }
+  const handleCellClick = useCallback(
+    (hour: Date): void => {
+      const hourStr = format(hour, 'HH:mm')
+      openModal(`${format(date, 'yyyy-MM-dd')}T${hourStr}`)
+    },
+    [date, openModal]
+  )
 
   const handleDragStartFromCell = useCallback(
     (hour: Date, e: React.MouseEvent): void => {
@@ -486,25 +516,7 @@ export function DayView(): JSX.Element {
   }
 
   const isCurrentDay = isToday(date)
-
-  const HourCell = ({ hour }: { hour: Date }): JSX.Element => {
-    const droppableId = `${format(date, 'yyyy-MM-dd')}-${format(hour, 'HH:mm')}`
-    const { setNodeRef, isOver } = useDroppable({ id: droppableId })
-
-    return (
-      <div key={hour.toISOString()} className={styles.hourRow}>
-        <div className={styles.timeLabel}>
-          {format(hour, timeFormat === '24h' ? 'HH:mm' : 'h a')}
-        </div>
-        <div
-          ref={setNodeRef}
-          className={`${styles.cell} ${isOver ? styles.dropTarget : ''}`}
-          onClick={() => handleCellClick(hour)}
-          onMouseDown={(e) => handleDragStartFromCell(hour, e)}
-        />
-      </div>
-    )
-  }
+  const dateStr = format(date, 'yyyy-MM-dd')
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -564,7 +576,14 @@ export function DayView(): JSX.Element {
           onScroll={handleScroll}
         >
           {HOURS.map((hour) => (
-            <HourCell key={hour.toISOString()} hour={hour} />
+            <HourCell
+              key={hour.toISOString()}
+              hour={hour}
+              dateStr={dateStr}
+              timeFormat={timeFormat}
+              onCellClick={handleCellClick}
+              onDragStart={handleDragStartFromCell}
+            />
           ))}
           <div className={styles.eventsOverlay}>
             {selectionOverlay}

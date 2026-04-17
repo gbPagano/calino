@@ -265,13 +265,25 @@ export const useCalendarStore = create<CalendarStore>()(
 
                 const occId = `${event.id}-${occUtc.toISOString()}`
                 if (!seenIds.has(occId)) {
-                  seenIds.add(occId)
-                  expandedEvents.push({
-                    ...event,
-                    id: occId,
-                    start: occUtc.toISOString(),
-                    end: occEndUtc.toISOString(),
-                  })
+                  const exceptionId = `${event.id}-${occDateStr}T${occUtc.toISOString().split('T')[1]}`
+                  const exceptionEvent = state.events.find(
+                    (e) => e.id === exceptionId && !e.rruleString && !e.recurrence
+                  )
+                  if (exceptionEvent) {
+                    seenIds.add(occId)
+                    expandedEvents.push({
+                      ...exceptionEvent,
+                      id: occId,
+                    })
+                  } else {
+                    seenIds.add(occId)
+                    expandedEvents.push({
+                      ...event,
+                      id: occId,
+                      start: occUtc.toISOString(),
+                      end: occEndUtc.toISOString(),
+                    })
+                  }
                 }
               }
             } catch {

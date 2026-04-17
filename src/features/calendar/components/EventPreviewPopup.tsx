@@ -88,6 +88,7 @@ export function EventPreviewPopup({
   const [pendingUpdates, setPendingUpdates] = useState<Partial<CalendarEvent> | null>(null)
 
   const getEventDate = (): string => {
+    if (editDate) return format(parseISO(editDate), dateFormatPattern)
     if (isTask && event.dueDate) {
       return format(parseISO(event.dueDate), dateFormatPattern)
     }
@@ -120,30 +121,30 @@ export function EventPreviewPopup({
     if (event.isAllDay) {
       return 'All day'
     }
+    if (editTime) {
+      const fmt = (t: string) => format(parseISO(`2000-01-01T${t}:00`), timeFormatPattern)
+      return `${fmt(editTime)} - ${fmt(editEndTime || editTime)}`
+    }
     return `${format(parseISO(effectiveStart), timeFormatPattern)} - ${format(parseISO(effectiveEnd), timeFormatPattern)}`
   }
 
   const startEditing = (field: string): void => {
     setEditingField(field)
-    if (field === 'title') {
-      setEditTitle(event.title)
-    } else if (field === 'date') {
+    // Only initialise date/time if not already set (empty = not yet opened or cancelled).
+    // title/location/description are pre-seeded from useState and kept across field switches.
+    if (field === 'date' && !editDate) {
       if (isTask && event.dueDate) {
         setEditDate(event.dueDate)
       } else {
         setEditDate(format(parseISO(effectiveStart), 'yyyy-MM-dd'))
       }
-    } else if (field === 'time') {
+    } else if (field === 'time' && !editTime) {
       if (isTask && event.dueDate) {
         setEditTime(format(parseISO(event.dueDate), 'HH:mm'))
       } else {
         setEditTime(format(parseISO(effectiveStart), 'HH:mm'))
         setEditEndTime(format(parseISO(effectiveEnd), 'HH:mm'))
       }
-    } else if (field === 'location') {
-      setEditLocation(event.location || '')
-    } else if (field === 'description') {
-      setEditDescription(event.description || '')
     }
   }
 
@@ -365,7 +366,7 @@ export function EventPreviewPopup({
           type="text"
           value={editTitle}
           onChange={(e) => handleFieldChange('title', e.target.value)}
-          onBlur={saveChanges}
+          onBlur={() => setEditingField(null)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               saveChanges()
@@ -378,7 +379,7 @@ export function EventPreviewPopup({
     }
     return (
       <span className={styles.title} onClick={() => startEditing('title')}>
-        {event.title}
+        {editTitle}
       </span>
     )
   }
@@ -390,7 +391,7 @@ export function EventPreviewPopup({
           type="date"
           value={editDate}
           onChange={(e) => handleFieldChange('date', e.target.value)}
-          onBlur={saveChanges}
+          onBlur={() => setEditingField(null)}
           className={styles.inlineInput}
           autoFocus
         />
@@ -407,7 +408,7 @@ export function EventPreviewPopup({
           onClick={(e) => e.stopPropagation()}
           onBlur={(e) => {
             if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-              saveChanges()
+              setEditingField(null)
             }
           }}
         >
@@ -452,7 +453,7 @@ export function EventPreviewPopup({
           type="text"
           value={editLocation}
           onChange={(e) => handleFieldChange('location', e.target.value)}
-          onBlur={saveChanges}
+          onBlur={() => setEditingField(null)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               saveChanges()
@@ -463,10 +464,10 @@ export function EventPreviewPopup({
         />
       )
     }
-    if (event.location) {
+    if (editLocation) {
       return (
         <span className={styles.location} onClick={() => startEditing('location')}>
-          {event.location}
+          {editLocation}
         </span>
       )
     }
@@ -479,17 +480,17 @@ export function EventPreviewPopup({
         <textarea
           value={editDescription}
           onChange={(e) => handleFieldChange('description', e.target.value)}
-          onBlur={saveChanges}
+          onBlur={() => setEditingField(null)}
           className={styles.descriptionInput}
           rows={3}
           autoFocus
         />
       )
     }
-    if (event.description) {
+    if (editDescription) {
       return (
         <div className={styles.descriptionText} onClick={() => startEditing('description')}>
-          {event.description}
+          {editDescription}
         </div>
       )
     }
@@ -579,7 +580,7 @@ export function EventPreviewPopup({
             {renderTime()}
           </div>
 
-          {event.location && (
+          {(editLocation || event.location) && (
             <div className={styles.field} onClick={() => startEditing('location')}>
               <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path

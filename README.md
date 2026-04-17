@@ -153,7 +153,7 @@ React 19 + TypeScript + Vite, Zustand, date-fns, chrono-node, @dnd-kit, framer-m
 
 ---
 
-**Disclaimer:** This project is entirely vibe coded by [MiniMax-M2.5](https://minimax.io), but thoroughly tested. Issues may arise. Bug reports welcome.
+**Disclaimer:** This project is entirely vibe coded by [Minimax M2.7](https://minimax.io), but thoroughly tested. Issues may arise. Bug reports welcome.
 
 ## License
 

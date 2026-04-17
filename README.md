@@ -6,7 +6,7 @@ Check out the hosted version at [Calino.io](https://calino.io).
 
 Despite Calino being a web app, it acts as a desktop client, in the sense that it only sends data between your computer and the CalDAV servers; there is no central Calino server to store your information, as it is a static web app.
 
-> **⚠️ New Project Alert:** Calino is a new project and under very active development. Expect breaking changes, evolving UI, and frequent updates. Use at your own risk — but report bugs, we'd love the feedback!
+> **⚠️ Active Project:** Calino is under active development. Expect breaking changes, evolving UI, and frequent updates. Use at your own risk — but report bugs, we'd love the feedback!
 
 ### CalDAV Proxy
 
@@ -149,7 +149,7 @@ yourcaldav.server.com {
 
 ## Tech Stack
 
-React 18 + TypeScript + Vite, Zustand, Dexie.js, date-fns, chrono-node, @dnd-kit, framer-motion, Fuse.js, tsdav, Vitest
+React 19 + TypeScript + Vite, Zustand, date-fns, chrono-node, @dnd-kit, framer-motion, Fuse.js, tsdav, Vitest
 
 ---
 

@@ -569,15 +569,7 @@ function DroppableDay({
         <div className={styles.tasks}>
           <AnimatePresence mode="popLayout">
             {dayTasks.slice(0, monthViewEventLimit).map((task) => (
-              <motion.div
-                key={task.id}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.2 }}
-              >
-                <EventCard event={task} compact isMobileMonth={isMobile} />
-              </motion.div>
+              <EventCard key={task.id} event={task} compact isMobileMonth={isMobile} />
             ))}
           </AnimatePresence>
           {dayTasks.length > monthViewEventLimit && (

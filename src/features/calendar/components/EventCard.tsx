@@ -192,7 +192,7 @@ export function EventCard({
   const style = transform
     ? {
         backgroundColor: `${eventColor}20`,
-        borderLeftColor: eventColor,
+        borderLeftColor: `${eventColor}80`,
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
         cursor: 'grabbing',
         zIndex: 1000,
@@ -200,7 +200,7 @@ export function EventCard({
       }
     : {
         backgroundColor: `${eventColor}20`,
-        borderLeftColor: eventColor,
+        borderLeftColor: `${eventColor}80`,
         cursor: 'grab',
       }
 

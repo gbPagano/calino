@@ -69,8 +69,13 @@ vi.mock('@/store/calendarStore', () => ({
   selectSetCurrentDate: (state: CalendarStore) => state.setCurrentDate,
   selectOpenModal: (state: CalendarStore) => state.openModal,
   selectAddEvent: (state: CalendarStore) => state.addEvent,
-  selectEvents: (state: CalendarStore) => state.events,
+  selectUpdateEvent: (state: CalendarStore) => state.updateEvent,
+  selectDeleteEvent: (state: CalendarStore) => state.deleteEvent,
+  selectAddCalendar: (state: CalendarStore) => state.addCalendar,
+  selectUpdateCalendar: (state: CalendarStore) => state.updateCalendar,
+  selectDeleteCalendar: (state: CalendarStore) => state.deleteCalendar,
   selectCalendars: (state: CalendarStore) => state.calendars,
+  selectEvents: (state: CalendarStore) => state.events,
 }))
 
 vi.mock('@/store/settingsStore', () => ({

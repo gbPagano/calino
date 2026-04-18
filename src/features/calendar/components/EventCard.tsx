@@ -238,9 +238,14 @@ export function EventCard({
             <RecurringIcon />
           </div>
         )}
+        {isTask && (
+          <div className={styles.checkbox} onClick={handleCheckboxClick}>
+            {event.completed ? <CheckedIcon /> : <UncheckedIcon />}
+          </div>
+        )}
         {isTask ? (
           <div
-            className={styles.taskContent}
+            className={styles.dragContent}
             onClick={handleClick}
             onPointerDown={(e) => {
               e.stopPropagation()
@@ -249,15 +254,10 @@ export function EventCard({
             {...listeners}
             {...attributes}
           >
-            <div className={styles.checkbox} onClick={handleCheckboxClick}>
-              {event.completed ? <CheckedIcon /> : <UncheckedIcon />}
-            </div>
-            <div className={styles.taskInfo}>
-              <div className={styles.title}>{event.title}</div>
-              {hasDueTime(event) && event.dueDate && (
-                <div className={styles.dueDate}>{format(parseISO(event.dueDate), 'h:mm a')}</div>
-              )}
-            </div>
+            <div className={styles.title}>{event.title}</div>
+            {hasDueTime(event) && event.dueDate && (
+              <div className={styles.dueDate}>{format(parseISO(event.dueDate), 'h:mm a')}</div>
+            )}
           </div>
         ) : (
           <>

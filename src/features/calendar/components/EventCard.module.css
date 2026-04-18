@@ -34,10 +34,29 @@
   color: var(--color-text-secondary);
 }
 
-.compact .recurringIcon {
+.compact .recurringIcon,
+.compact .checkbox {
   top: 50%;
   transform: translateY(-50%);
   margin-top: -1px;
+}
+
+.checkbox {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  margin-top: -1px;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.checkbox:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .card:hover {
@@ -57,7 +76,7 @@
 }
 
 .compact {
-  padding: 1px 4px 1px 6px;
+  padding: 3px 4px 1px 8px;
   min-height: 18px;
   height: auto;
   flex-shrink: 0;
@@ -153,13 +172,17 @@
 
 .task {
   border-left: 3px solid var(--color-warning);
-  padding: 2px 4px;
-  min-height: 24px;
+  padding: 3px 4px 1px 8px;
+  min-height: 18px;
   height: auto;
 }
 
 .task .title {
   font-size: 11px;
+}
+
+.task .resizeHandle {
+  display: none;
 }
 
 .completed .title {
@@ -169,32 +192,6 @@
 
 .completed {
   opacity: 0.7;
-}
-
-.taskContent {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  cursor: pointer;
-}
-
-.checkbox {
-  flex-shrink: 0;
-  cursor: pointer;
-  padding: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.checkbox:hover {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-}
-
-.taskInfo {
-  flex: 1;
-  min-width: 0;
 }
 
 .dueDate {

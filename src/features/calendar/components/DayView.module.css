@@ -39,6 +39,8 @@
   transition: filter 0.15s ease;
   display: flex;
   align-items: center;
+  min-width: 80px;
+  max-width: 200px;
 }
 
 .allDayEvent:hover {

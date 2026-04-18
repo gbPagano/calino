@@ -173,6 +173,7 @@
 
 .dayColumn {
   position: relative;
+  height: calc(24 * var(--hour-height, 60px));
   border-right: 1px solid var(--color-border);
 }
 
@@ -183,6 +184,7 @@
 .hourCells {
   display: flex;
   flex-direction: column;
+  height: calc(24 * var(--hour-height, 60px));
 }
 
 .cell {
@@ -208,7 +210,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 1440px;
+  height: calc(24 * var(--hour-height, 60px));
   pointer-events: none;
 }
 
@@ -422,6 +424,7 @@
   .dayColumn {
     width: 28vw;
     min-width: 28vw;
+    height: calc(24 * var(--hour-height, 60px));
     position: relative;
     border-right: 1px solid var(--color-border);
   }

@@ -5,6 +5,7 @@
   cursor: pointer;
   transition: all var(--duration-event-hover, 200ms)
     var(--easing-event-hover, cubic-bezier(0.25, 0.1, 0.25, 1)));
+  overflow: hidden;
   user-select: none;
   position: relative;
   box-sizing: border-box;

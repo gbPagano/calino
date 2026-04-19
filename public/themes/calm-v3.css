@@ -1,5 +1,7 @@
 /* Theme: Calm V3 | Based on Calendar.html reference design */
 
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:wght@300;400&display=swap');
+
 :root,
 [data-theme='light'] {
   /* ========================================

@@ -13,6 +13,11 @@ import type { CalendarEvent } from '@/types'
 import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
+
+function isUUID(value: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(value)
+}
 import { hapticIfEnabled } from '@/lib/haptics'
 import { hasDueTime, formatTravelDuration } from '@/lib/events'
 import styles from './EventCard.module.css'
@@ -106,7 +111,14 @@ export function EventCard({
 
   const calendar = calendars.find((c) => c.id === event.calendarId)
   const firstCategory = event.categories && event.categories.length > 0
-    ? categories.find((cat) => cat.id === event.categories![0])
+    ? categories.find((cat) => {
+        const catValue = event.categories![0]
+        // Check if it's a UUID (ID) or a name
+        if (isUUID(catValue)) {
+          return cat.id === catValue
+        }
+        return cat.name === catValue
+      })
     : undefined
   const eventColor = event.color || firstCategory?.color || calendar?.color || DEFAULT_CALENDAR_COLOR
   const isTask = event.type === 'task'

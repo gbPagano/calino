@@ -14,6 +14,11 @@ import styles from './EventModal.module.css'
 
 const DEFAULT_DURATION_HOURS = 1
 
+function isUUID(value: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(value)
+}
+
 type RecurrenceEditMode = 'all' | 'future' | 'this'
 
 interface InitialFormState {
@@ -39,7 +44,8 @@ function getInitialFormState(
   selectedDate: string | null,
   selectedEndDate: string | null,
   events: CalendarEvent[],
-  calendars: { id: string; isDefault: boolean }[]
+  calendars: { id: string; isDefault: boolean }[],
+  allCategories: { id: string; name: string }[]
 ): InitialFormState & { isRecurringInstance: boolean; originalEventId: string | null } {
   const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
 
@@ -66,6 +72,22 @@ function getInitialFormState(
 
   if (isModalOpen) {
     if (existingEvent) {
+        // Convert category IDs to names
+        const categoryNames: string[] = []
+        if (existingEvent.categories) {
+          for (const catIdOrName of existingEvent.categories) {
+            // Check if it's a UUID (ID) or a name
+            if (isUUID(catIdOrName)) {
+              const cat = allCategories.find((c) => c.id === catIdOrName)
+              if (cat) {
+                categoryNames.push(cat.name)
+              }
+            } else {
+              // It's already a name
+              categoryNames.push(catIdOrName)
+            }
+          }
+        }
         return {
           title: existingEvent.title,
           description: existingEvent.description || '',
@@ -80,7 +102,7 @@ function getInitialFormState(
           travelDuration: existingEvent.travelDuration,
           reminders: existingEvent.reminders || [],
           transparency: existingEvent.transparency || 'opaque',
-          categories: existingEvent.categories || [],
+          categories: categoryNames,
           isRecurringInstance,
           originalEventId,
         }
@@ -193,9 +215,10 @@ export function EventModal(): JSX.Element | null {
         selectedDate,
         selectedEndDate,
         events,
-        calendars
+        calendars,
+        categories
       ),
-    [isModalOpen, selectedEventId, selectedDate, selectedEndDate, events, calendars]
+    [isModalOpen, selectedEventId, selectedDate, selectedEndDate, events, calendars, categories]
   )
 
   const [title, setTitle] = useState(initialState.title)

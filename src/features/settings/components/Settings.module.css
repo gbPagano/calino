@@ -250,7 +250,7 @@
   height: 20px;
   background: var(--color-bg-secondary);
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-event);
   transition: transform 0.2s ease;
 }
 

@@ -183,6 +183,11 @@
   background: var(--color-bg-hover);
 }
 
+.taskCompleting .taskTitle {
+  text-decoration: line-through;
+  transition: text-decoration 0.15s ease;
+}
+
 .taskCheckbox {
   flex-shrink: 0;
   width: 16px;

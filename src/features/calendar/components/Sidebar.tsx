@@ -70,6 +70,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const toggleCalendarVisibility = useCalendarStore((state) => state.toggleCalendarVisibility)
   const updateCalendar = useCalendarStore((state) => state.updateCalendar)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
+  const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
+  const updateSettings = useSettingsStore((state) => state.updateSettings)
   const showAddCalendar = useCalendarStore((state) => state.showAddCalendar)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)
   const { syncAccount } = useCalDAV()
@@ -463,6 +465,15 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
                         showTasksInViews: !calendar.showTasksInViews,
                       })
                     }
+                    closeContextMenu()
+                  },
+                },
+                {
+                  label: hideCompletedTasksInMonthView
+                    ? 'Show Completed Tasks'
+                    : 'Hide Completed Tasks',
+                  onClick: () => {
+                    updateSettings({ hideCompletedTasksInMonthView: !hideCompletedTasksInMonthView })
                     closeContextMenu()
                   },
                 },

@@ -3,7 +3,7 @@
   min-width: var(--sidebar-width, 260px);
   background: linear-gradient(180deg, var(--color-bg-tertiary) 0%, var(--color-bg-secondary) 100%);
   border-right: 1px solid var(--color-border-visible);
-  box-shadow: var(--shadow-sidebar);
+  box-shadow: 4px 0 30px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
   padding: var(--space-4, 16px);

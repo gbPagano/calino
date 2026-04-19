@@ -35,6 +35,7 @@ export const useCalendarStore = create<CalendarStore>()(
       calendars: [DEFAULT_CALENDAR],
       categories: [],
       autoCategoryRules: [],
+      selectedCategoryId: null,
       currentDate: format(new Date(), 'yyyy-MM-dd'),
       currentView: config.defaultView,
       selectedEventId: null,
@@ -175,6 +176,12 @@ export const useCalendarStore = create<CalendarStore>()(
         set((state) => ({
           autoCategoryRules: state.autoCategoryRules.filter((r) => r.id !== id),
         }))
+      },
+
+      toggleCategoryFilter: (categoryId: string | null): void => {
+        const current = get().selectedCategoryId
+        const newValue = current === categoryId ? null : categoryId
+        set({ selectedCategoryId: newValue })
       },
 
       setCurrentDate: (date: string): void => {

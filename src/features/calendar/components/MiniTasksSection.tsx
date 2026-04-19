@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format, parseISO, isToday, isBefore, startOfDay, addDays, isWithinInterval } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -17,6 +17,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const openModal = useCalendarStore((state) => state.openModal)
   const { updateEvent: updateCalDAVEvent } = useCalDAV()
+  const [hoveredTask, setHoveredTask] = useState<string | null>(null)
 
   const upcomingTasks = useMemo(() => {
     const today = startOfDay(new Date())
@@ -53,10 +54,9 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
 
   const activeCount = events.filter((e) => e.type === 'task' && !e.completed).length
 
-  const handleToggleComplete = async (taskId: string, task: CalendarEvent): Promise<void> => {
-    e.stopPropagation()
+  const handleToggleComplete = async (task: CalendarEvent): Promise<void> => {
     const newCompleted = !task.completed
-    updateEvent(taskId, { completed: newCompleted })
+    updateEvent(task.id, { completed: newCompleted })
     if (!task.calendarId) return
     try {
       await updateCalDAVEvent(task.calendarId, { ...task, completed: newCompleted })
@@ -68,6 +68,8 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
   const handleTaskClick = (task: CalendarEvent): void => {
     openModal(undefined, undefined, task.id, 'task')
   }
+
+  const hoveredTaskData = hoveredTask ? upcomingTasks.find((t) => t.id === hoveredTask) : null
 
   return (
     <div className={styles.tasksSection}>
@@ -100,12 +102,17 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
           ) : (
             <>
               {upcomingTasks.map((task) => (
-                <div key={task.id} className={styles.taskRow}>
+                <div
+                  key={task.id}
+                  className={styles.taskRow}
+                  onMouseEnter={() => setHoveredTask(task.id)}
+                  onMouseLeave={() => setHoveredTask(null)}
+                >
                   <button
                     className={styles.taskCheckbox}
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleToggleComplete(task.id, task)
+                      handleToggleComplete(task)
                     }}
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -128,6 +135,9 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                   </div>
                 </div>
               ))}
+              {hoveredTaskData && hoveredTaskData.description && (
+                <div className={styles.taskTooltip}>{hoveredTaskData.description}</div>
+              )}
               <Link to="/tasks" className={styles.tasksViewAll}>
                 View all →
               </Link>

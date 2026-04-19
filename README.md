@@ -54,6 +54,13 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 - Filter by calendar, date range, event type
 - Fuzzy matching with Fuse.js
 
+### Categories
+
+- Organize events with color-coded categories
+- Auto-apply categories based on keywords in event titles
+- Filter events by category in sidebar
+- Categories sync via iCalendar CATEGORIES property (RFC 5545)
+
 ### Desktop Integration
 
 - **PWA** — install as a native app (works offline)

@@ -97,6 +97,7 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: var(--mini-cal-radius, 12px);
+  box-shadow: var(--shadow-card);
   padding: 12px;
   width: 100%;
   box-sizing: border-box;

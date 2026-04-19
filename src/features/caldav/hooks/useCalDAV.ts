@@ -293,10 +293,12 @@ export function useCalDAV(): UseCalDAVReturn {
                   }
 
                   if (shouldUpdate) {
-                    storeUpdateEvent(parsedEvent.id, parsedEvent)
+                    const cleanedCategories = parsedEvent.categories?.filter((c) => !isUUID(c))
+                    storeUpdateEvent(parsedEvent.id, { ...parsedEvent, categories: cleanedCategories })
                   }
                 } else {
-                  storeAddEvent(parsedEvent)
+                  const cleanedCategories = parsedEvent.categories?.filter((c) => !isUUID(c))
+                  storeAddEvent({ ...parsedEvent, categories: cleanedCategories })
                 }
               }
             }

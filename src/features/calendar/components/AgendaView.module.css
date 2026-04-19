@@ -9,113 +9,194 @@
   box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.dayGroup {
-  margin-bottom: 24px;
-}
-
-.dayHeader {
+/* Day header */
+.agendaDayHeader {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: 12px;
+  padding: 14px 20px 6px;
 }
 
-.dayHeader.today .dayDate {
-  color: var(--color-accent);
-}
-
-.dayInfo {
-  display: flex;
-  flex-direction: column;
-}
-
-.dayName {
+.agendaDow {
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text-primary);
 }
 
-.dayDate {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.addButton {
-  padding: 6px 12px;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.addButton:hover {
-  background: var(--color-bg-hover);
-  border-color: var(--color-border);
-}
-
-.events {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.empty {
-  padding: 24px;
-  text-align: center;
+.agendaDayHeader.isEmpty .agendaDow,
+.agendaDayHeader.isEmpty .agendaDate {
   color: var(--color-text-muted);
-  font-size: 14px;
 }
 
-.eventItem {
-  display: flex;
-  gap: 16px;
-  padding: 12px;
-  border-radius: 8px;
-  background: var(--color-bg-tertiary);
+.agendaDate {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-left: 8px;
+}
+
+.agendaAdd {
+  background: none;
+  border: none;
   cursor: pointer;
-  transition: background 0.15s ease;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding: 0;
+  font-family: var(--font-sans);
 }
 
-.eventItem:hover {
-  background: var(--color-bg-hover);
-}
-
-.eventTime {
-  min-width: 80px;
-  font-size: 13px;
-  font-weight: 500;
+.agendaAdd:hover {
   color: var(--color-text-secondary);
 }
 
-.eventDetails {
+/* Divider */
+.agendaDivider {
+  height: 1px;
+  background: var(--color-border-subtle);
+  margin: 8px 12px 0;
+}
+
+/* Event row */
+.agendaEvent {
+  display: flex;
+  align-items: stretch;
+  margin: 0 12px 4px;
+  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-event);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 150ms, transform 150ms;
+}
+
+.agendaEvent:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.agendaEventBar {
+  width: 3px;
+  flex-shrink: 0;
+  background: var(--color-border-visible);
+}
+
+.agendaEventBody {
+  padding: 10px 14px;
   flex: 1;
 }
 
-.eventTitle {
-  font-size: 14px;
+.agendaEventMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agendaEventTime {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+.agendaEventTitle {
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-primary);
 }
 
-.eventLocation {
+.agendaEventSub {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  padding-left: 52px;
+}
+
+/* Skip row for 2+ consecutive empty days */
+.agendaSkip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+}
+
+.agendaSkipLine {
+  flex: 1;
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-border-visible) 0,
+    var(--color-border-visible) 4px,
+    transparent 4px,
+    transparent 10px
+  );
+}
+
+.agendaSkipLabel {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* Task row */
+.agendaTask {
+  display: flex;
+  align-items: stretch;
+  margin: 0 12px 4px;
+  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-event);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 150ms, transform 150ms;
+}
+
+.agendaTask:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.agendaTaskBar {
+  width: 3px;
+  flex-shrink: 0;
+  background: var(--color-border-visible);
+}
+
+.agendaTaskBody {
+  padding: 10px 14px;
+  flex: 1;
+}
+
+.agendaTaskMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agendaTaskTime {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+.agendaTaskTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.agendaTaskCompleted .agendaTaskTitle {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+
+.agendaTaskIcon {
   font-size: 12px;
   color: var(--color-text-secondary);
-  margin-top: 4px;
-}
-
-.taskItem {
-  background: var(--color-bg-secondary);
-}
-
-.taskIcon {
-  display: inline-block;
   margin-right: 8px;
-  color: var(--color-text-secondary);
-  font-size: 12px;
 }

@@ -1,18 +1,20 @@
 import type { JSX } from 'react'
 import { useMemo, useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   format,
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
   parseISO,
-  isToday,
   startOfDay,
 } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import { useContextMenuStore } from '@/store/contextMenuStore'
 import type { CalendarEvent } from '@/types'
 import { ContextMenu } from '@/components/common/ContextMenu'
+import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import styles from './AgendaView.module.css'
 
 interface EventWithDate {
@@ -20,21 +22,45 @@ interface EventWithDate {
   date: Date
 }
 
+interface DayGroup {
+  type: 'day' | 'skip'
+  days: Date[]
+  hasEvents: boolean
+}
+
 export function AgendaView(): JSX.Element {
   const currentDate = useCalendarStore((state) => state.currentDate)
-  const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
+  const categories = useCalendarStore((state) => state.categories)
   const getEventsForDateRange = useCalendarStore((state) => state.getEventsForDateRange)
   const openModal = useCalendarStore((state) => state.openModal)
   const openPreview = useCalendarStore((state) => state.openPreview)
   const previewEventId = useCalendarStore((state) => state.previewEventId)
   const closePreview = useCalendarStore((state) => state.closePreview)
+  const events = useCalendarStore((state) => state.events)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
+  const deleteEvent = useCalendarStore((state) => state.deleteEvent)
+  const closeMenu = useContextMenuStore((state) => state.closeMenu)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; day: Date } | null>(null)
+  const [eventContextMenu, setEventContextMenu] = useState<{ x: number; y: number; event: CalendarEvent } | null>(null)
+
+  const calendarColorMap = useMemo(() => {
+    const map = new Map<string, string>()
+    calendars.forEach((cal) => map.set(cal.id, cal.color))
+    return map
+  }, [calendars])
+
+  const getEventBarColor = (event: CalendarEvent): string => {
+    const firstCategory = event.categories && event.categories.length > 0
+      ? categories.find((cat) => cat.id === event.categories![0])
+      : undefined
+    return event.color || firstCategory?.color || calendarColorMap.get(event.calendarId) || DEFAULT_CALENDAR_COLOR
+  }
 
   const date = parseISO(currentDate)
 
   const handleEventClick = (e: React.MouseEvent, event: CalendarEvent): void => {
+    if (e.button === 2) return
     e.stopPropagation()
     if (previewEventId === event.id) {
       closePreview()
@@ -49,7 +75,13 @@ export function AgendaView(): JSX.Element {
     setContextMenu({ x: e.clientX, y: e.clientY, day })
   }
 
-  const { eventsByDate, days } = useMemo(() => {
+  const handleEventContextMenu = (e: React.MouseEvent, event: CalendarEvent): void => {
+    e.preventDefault()
+    e.stopPropagation()
+    setEventContextMenu({ x: e.clientX, y: e.clientY, event })
+  }
+
+  const { eventsByDate, dayGroups } = useMemo(() => {
     const monthStart = startOfMonth(date)
     const monthEnd = endOfMonth(date)
     const daysList = eachDayOfInterval({ start: monthStart, end: monthEnd })
@@ -73,8 +105,38 @@ export function AgendaView(): JSX.Element {
       }
     })
 
-    return { eventsByDate: eventMap, days: daysList }
-  }, [date, events, calendars, getEventsForDateRange])
+    const groups: DayGroup[] = []
+    let i = 0
+    while (i < daysList.length) {
+      const day = daysList[i]
+      const dateKey = format(day, 'yyyy-MM-dd')
+      const dayEvents = eventMap.get(dateKey) || []
+      const hasEvents = dayEvents.length > 0
+
+      if (hasEvents) {
+        groups.push({ type: 'day', days: [day], hasEvents: true })
+        i++
+      } else {
+        const run: Date[] = [day]
+        let j = i + 1
+        while (j < daysList.length) {
+          const nextDay = daysList[j]
+          const nextKey = format(nextDay, 'yyyy-MM-dd')
+          if (eventMap.get(nextKey)?.length ?? 0 > 0) break
+          run.push(nextDay)
+          j++
+        }
+        if (run.length === 1) {
+          groups.push({ type: 'day', days: run, hasEvents: false })
+        } else {
+          groups.push({ type: 'skip', days: run, hasEvents: false })
+        }
+        i = j
+      }
+    }
+
+    return { eventsByDate: eventMap, dayGroups: groups }
+  }, [date, events, getEventsForDateRange])
 
   const handleCreateEvent = (day: Date): void => {
     openModal(format(day, 'yyyy-MM-dd'))
@@ -111,7 +173,22 @@ export function AgendaView(): JSX.Element {
         }
       }
     }
-  }, [currentDate, days])
+  }, [currentDate, dayGroups])
+
+  const renderSkipRow = (group: DayGroup): JSX.Element => {
+    const first = group.days[0]
+    const last = group.days[group.days.length - 1]
+    const freeDays = group.days.length - 1
+    const label = `${format(first, 'EEE MMM d')} – ${format(last, 'EEE MMM d')} · ${freeDays} day${freeDays === 1 ? '' : 's'} free`
+
+    return (
+      <div className={styles.agendaSkip} key={`skip-${format(first, 'yyyy-MM-dd')}`}>
+        <div className={styles.agendaSkipLine} />
+        <span className={styles.agendaSkipLabel}>{label}</span>
+        <div className={styles.agendaSkipLine} />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -119,10 +196,15 @@ export function AgendaView(): JSX.Element {
       className={`${styles.container} ${isScrolled ? styles.containerShadow : ''}`}
       onScroll={handleScroll}
     >
-      {days.map((day) => {
+      {dayGroups.map((group) => {
+        if (group.type === 'skip') {
+          return renderSkipRow(group)
+        }
+
+        const day = group.days[0]
         const dateKey = format(day, 'yyyy-MM-dd')
         const dayEvents = eventsByDate.get(dateKey) || []
-        const isCurrentDay = isToday(day)
+        const isEmpty = !group.hasEvents
 
         const sortedEvents = [...dayEvents].sort((a, b) => {
           if (a.event.isAllDay && !b.event.isAllDay) return -1
@@ -131,58 +213,83 @@ export function AgendaView(): JSX.Element {
         })
 
         return (
-          <div
-            key={dateKey}
-            className={styles.dayGroup}
-            data-date={dateKey}
-            onContextMenu={(e) => handleContextMenu(e, day)}
-          >
-            <div className={`${styles.dayHeader} ${isCurrentDay ? styles.today : ''}`}>
-              <div className={styles.dayInfo}>
-                <span className={styles.dayName}>{format(day, 'EEEE')}</span>
-                <span className={styles.dayDate}>{format(day, 'MMMM d, yyyy')}</span>
+          <div key={dateKey} data-date={dateKey} onContextMenu={(e) => handleContextMenu(e, day)}>
+            <div className={`${styles.agendaDayHeader} ${isEmpty ? styles.isEmpty : ''}`}>
+              <div className={styles.agendaDayLabel}>
+                <span className={styles.agendaDow}>{format(day, 'EEEE')}</span>
+                <span className={styles.agendaDate}>{format(day, 'MMM d, yyyy')}</span>
               </div>
-              <button className={styles.addButton} onClick={() => handleCreateEvent(day)}>
-                + Add
-              </button>
-            </div>
-            <div className={styles.events}>
-              {sortedEvents.length === 0 ? (
-                <div className={styles.empty}>No events</div>
-              ) : (
-                sortedEvents.map(({ event }) => (
-                  <div
-                    key={event.id}
-                    className={`${styles.eventItem} ${event.type === 'task' ? styles.taskItem : ''}`}
-                    onMouseDown={(e) => handleEventClick(e, event)}
-                  >
-                    <div className={styles.eventTime}>
-                      {event.type === 'task'
-                        ? event.start.includes('T00:00')
-                          ? 'Due'
-                          : format(parseISO(event.start), timeFormat === '24h' ? 'HH:mm' : 'h:mm a')
-                        : event.isAllDay
-                          ? 'All day'
-                          : format(
-                              parseISO(event.start),
-                              timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
-                            )}
-                    </div>
-                    <div className={styles.eventDetails}>
-                      <div className={styles.eventTitle}>
-                        {event.type === 'task' && (
-                          <span className={styles.taskIcon}>{event.completed ? '✓' : '○'}</span>
-                        )}
-                        {event.title}
-                      </div>
-                      {event.location && (
-                        <div className={styles.eventLocation}>{event.location}</div>
-                      )}
-                    </div>
-                  </div>
-                ))
+              {!isEmpty && (
+                <button className={styles.agendaAdd} onClick={() => handleCreateEvent(day)}>
+                  + Add
+                </button>
               )}
             </div>
+
+            {!isEmpty && (
+              <>
+                {sortedEvents.map(({ event }) => {
+                  if (event.type === 'task') {
+                    return (
+                      <div
+                        key={event.id}
+                        className={`${styles.agendaTask} ${
+                          event.completed ? styles.agendaTaskCompleted : ''
+                        }`}
+                        onMouseDown={(e) => handleEventClick(e, event)}
+                        onContextMenu={(e) => handleEventContextMenu(e, event)}
+                      >
+                        <div className={styles.agendaTaskBar} />
+                        <div className={styles.agendaTaskBody}>
+                          <div className={styles.agendaTaskMain}>
+                            <span className={styles.agendaTaskTime}>
+                              {event.start.includes('T00:00') ? 'Due' : format(parseISO(event.start), timeFormat === '24h' ? 'HH:mm' : 'h:mm a')}
+                            </span>
+                            <span className={styles.agendaTaskIcon}>
+                              {event.completed ? '✓' : '○'}
+                            </span>
+                            <span className={styles.agendaTaskTitle}>{event.title}</span>
+                          </div>
+                          {event.location && (
+                            <div className={styles.agendaEventSub}>{event.location}</div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div
+                      key={event.id}
+                      className={styles.agendaEvent}
+                      onMouseDown={(e) => handleEventClick(e, event)}
+                      onContextMenu={(e) => handleEventContextMenu(e, event)}
+                    >
+                      <div className={styles.agendaEventBar} style={{ background: getEventBarColor(event) }} />
+                      <div className={styles.agendaEventBody}>
+                        <div className={styles.agendaEventMain}>
+                          <span className={styles.agendaEventTime}>
+                            {event.isAllDay
+                              ? 'All day'
+                              : format(
+                                  parseISO(event.start),
+                                  timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
+                                )}
+                          </span>
+                          <span className={styles.agendaEventTitle}>{event.title}</span>
+                        </div>
+                        {event.location && (
+                          <div className={styles.agendaEventSub}>{event.location}</div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+                <div className={styles.agendaDivider} />
+              </>
+            )}
+
+            {isEmpty && <div className={styles.agendaDivider} />}
           </div>
         )
       })}
@@ -210,6 +317,36 @@ export function AgendaView(): JSX.Element {
           ]}
         />
       )}
+      {eventContextMenu &&
+        createPortal(
+          <ContextMenu
+            x={eventContextMenu.x}
+            y={eventContextMenu.y}
+            menuId={`agenda-event-${eventContextMenu.event.id}`}
+            onClose={() => {
+              closeMenu()
+              setEventContextMenu(null)
+            }}
+            items={[
+              {
+                label: 'Edit',
+                onClick: () => {
+                  openModal(undefined, undefined, eventContextMenu.event.id, eventContextMenu.event.type === 'task' ? 'task' : 'event')
+                  setEventContextMenu(null)
+                },
+              },
+              {
+                label: 'Delete',
+                onClick: () => {
+                  deleteEvent(eventContextMenu.event.id)
+                  setEventContextMenu(null)
+                },
+                danger: true,
+              },
+            ]}
+          />,
+          document.body
+        )}
     </div>
   )
 }

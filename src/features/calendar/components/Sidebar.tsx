@@ -340,11 +340,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
           </button>
         </div>
 
-        <MiniTasksSection
-          isExpanded={isTasksExpanded}
-          onToggle={() => setIsTasksExpanded(!isTasksExpanded)}
-        />
-
         <div className={styles.calendars}>
           <div className={styles.sectionTitleRow}>
             <span className={styles.sectionTitle}>Calendars</span>
@@ -439,6 +434,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
             </label>
           ))}
         </div>
+
+        <MiniTasksSection
+          isExpanded={isTasksExpanded}
+          onToggle={() => setIsTasksExpanded(!isTasksExpanded)}
+        />
 
         <div className={styles.footer}>
           <Link to="/privacy" className={styles.footerLink}>

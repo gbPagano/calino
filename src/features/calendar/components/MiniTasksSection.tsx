@@ -33,7 +33,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
         if (!a.dueDate || !b.dueDate) return 0
         return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime()
       })
-      .slice(0, 5)
+      .slice(0, 8)
 
     const overdue = events
       .filter((e) => e.type === 'task' && !e.completed)
@@ -46,9 +46,9 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
         if (!a.dueDate || !b.dueDate) return 0
         return parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime()
       })
-      .slice(0, 3)
+      .slice(0, 5)
 
-    return [...overdue, ...tasks].slice(0, 5)
+    return [...overdue, ...tasks].slice(0, 10)
   }, [events])
 
   const activeCount = events.filter((e) => e.type === 'task' && !e.completed).length

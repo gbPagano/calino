@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { format, parseISO, isToday, isBefore, startOfDay, addDays, isWithinInterval } from 'date-fns'
@@ -20,7 +20,61 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
   const { updateEvent: updateCalDAVEvent } = useCalDAV()
   const [hoveredTask, setHoveredTask] = useState<string | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
-  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null)
+  const completingTaskRef = useRef<string | null>(null)
+  const [, forceUpdate] = useState({})
+
+  const upcomingTasks = useMemo(() => {
+    const today = startOfDay(new Date())
+    const weekFromNow = addDays(today, 7)
+
+    let tasks = events
+      .filter((e) => e.type === 'task' && !e.completed)
+      .filter((task) => {
+        if (!task.dueDate) return false
+        const dueDate = startOfDay(parseISO(task.dueDate))
+        return !isBefore(dueDate, today) && isWithinInterval(dueDate, { start: today, end: weekFromNow })
+      })
+      .sort((a, b) => {
+        if (!a.dueDate || !b.dueDate) return 0
+        return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime()
+      })
+      .slice(0, 8)
+
+    const overdue = events
+      .filter((e) => e.type === 'task' && !e.completed)
+      .filter((task) => {
+        if (!task.dueDate) return false
+        const dueDate = startOfDay(parseISO(task.dueDate))
+        return isBefore(dueDate, today)
+      })
+      .sort((a, b) => {
+        if (!a.dueDate || !b.dueDate) return 0
+        return parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime()
+      })
+      .slice(0, 5)
+
+    return [...overdue, ...tasks].slice(0, 10)
+  }, [events])
+
+  const activeCount = events.filter((e) => e.type === 'task' && !e.completed).length
+
+  const handleToggleComplete = async (task: CalendarEvent): Promise<void> => {
+    completingTaskRef.current = task.id
+    forceUpdate({})
+
+    setTimeout(async () => {
+      const newCompleted = !task.completed
+      updateEvent(task.id, { completed: newCompleted })
+      completingTaskRef.current = null
+      forceUpdate({})
+      if (!task.calendarId) return
+      try {
+        await updateCalDAVEvent(task.calendarId, { ...task, completed: newCompleted })
+      } catch {
+        // error handled by useCalDAV
+      }
+    }, 300)
+  }
 
   const upcomingTasks = useMemo(() => {
     const today = startOfDay(new Date())
@@ -109,7 +163,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
               {upcomingTasks.map((task) => (
                 <div
                   key={task.id}
-                  className={`${styles.taskRow} ${completingTaskId === task.id ? styles.taskCompleting : ''}`}
+                  className={`${styles.taskRow} ${completingTaskRef.current === task.id ? styles.taskCompleting : ''}`}
                   onMouseEnter={(e) => {
                     setHoveredTask(task.id)
                     setTooltipPosition({ x: e.clientX, y: e.clientY })

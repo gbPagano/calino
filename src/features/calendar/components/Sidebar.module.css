@@ -180,6 +180,10 @@
   background: var(--color-bg-hover);
 }
 
+.taskRow {
+  transition: all 0.3s ease;
+}
+
 .taskCompleting {
   animation: taskComplete 300ms ease-out forwards;
 }

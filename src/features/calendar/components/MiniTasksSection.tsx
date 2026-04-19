@@ -69,8 +69,6 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
     openModal(undefined, undefined, task.id, 'task')
   }
 
-  const hoveredTaskData = hoveredTask ? upcomingTasks.find((t) => t.id === hoveredTask) : null
-
   return (
     <div className={styles.tasksSection}>
       <button className={styles.tasksHeader} onClick={onToggle}>
@@ -133,11 +131,11 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                       </span>
                     )}
                   </div>
+                  {hoveredTask === task.id && task.description && (
+                    <div className={styles.taskTooltip}>{task.description}</div>
+                  )}
                 </div>
               ))}
-              {hoveredTaskData && hoveredTaskData.description && (
-                <div className={styles.taskTooltip}>{hoveredTaskData.description}</div>
-              )}
               <Link to="/tasks" className={styles.tasksViewAll}>
                 View all →
               </Link>

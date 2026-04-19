@@ -52,11 +52,11 @@ export const useCalendarStore = create<CalendarStore>()(
 
       addEvent: (event: CalendarEvent): void => {
         const state = get()
-        const autoCategoryIds = applyAutoCategories(event.title, state.autoCategoryRules)
+        const autoCategoryNames = applyAutoCategories(event.title, state.autoCategoryRules, state.categories)
         const existingCategories = event.categories || []
         const finalEvent = {
           ...event,
-          categories: [...new Set([...existingCategories, ...autoCategoryIds])],
+          categories: [...new Set([...existingCategories, ...autoCategoryNames])],
         }
         set((state) => ({
           events: [...state.events, finalEvent],
@@ -68,9 +68,9 @@ export const useCalendarStore = create<CalendarStore>()(
         if (updates.title) {
           const existingEvent = state.events.find((e) => e.id === id)
           if (existingEvent) {
-            const autoCategoryIds = applyAutoCategories(updates.title, state.autoCategoryRules)
+            const autoCategoryNames = applyAutoCategories(updates.title, state.autoCategoryRules, state.categories)
             const existingCategories = updates.categories || existingEvent.categories || []
-            updates.categories = [...new Set([...existingCategories, ...autoCategoryIds])]
+            updates.categories = [...new Set([...existingCategories, ...autoCategoryNames])]
           }
         }
         set((state) => ({
@@ -151,13 +151,19 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       deleteCategory: (id: string): void => {
-        set((state) => ({
-          categories: state.categories.filter((c) => c.id !== id),
-          events: state.events.map((e) => ({
-            ...e,
-            categories: e.categories?.filter((catId) => catId !== id),
-          })),
-        }))
+        set((state) => {
+          const category = state.categories.find((c) => c.id === id)
+          const categoryName = category?.name
+          return {
+            categories: state.categories.filter((c) => c.id !== id),
+            events: state.events.map((e) => ({
+              ...e,
+              categories: categoryName
+                ? e.categories?.filter((cat) => cat !== categoryName)
+                : e.categories,
+            })),
+          }
+        })
       },
 
       addAutoCategoryRule: (rule: AutoCategoryRule): void => {
@@ -407,18 +413,25 @@ export const useCalendarStore = create<CalendarStore>()(
   )
 )
 
-function applyAutoCategories(title: string, rules: AutoCategoryRule[]): string[] {
+function applyAutoCategories(
+  title: string,
+  rules: AutoCategoryRule[],
+  categories: Category[]
+): string[] {
   const lowerTitle = title.toLowerCase()
-  const matchingCategoryIds: string[] = []
+  const matchingCategoryNames: string[] = []
 
   for (const rule of rules) {
     for (const keyword of rule.keywords) {
       if (lowerTitle.includes(keyword.toLowerCase())) {
-        matchingCategoryIds.push(rule.categoryId)
+        const category = categories.find((c) => c.id === rule.categoryId)
+        if (category && !matchingCategoryNames.includes(category.name)) {
+          matchingCategoryNames.push(category.name)
+        }
         break
       }
     }
   }
 
-  return matchingCategoryIds
+  return matchingCategoryNames
 }

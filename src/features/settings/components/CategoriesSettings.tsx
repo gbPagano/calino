@@ -65,15 +65,18 @@ export function CategoriesSettings(): JSX.Element {
   }
 
   const applyRuleToExistingEvents = (rule: { keywords: string[]; categoryId: string }): void => {
+    const category = categories.find((c) => c.id === rule.categoryId)
+    if (!category) return
+    const categoryName = category.name
     const lowerKeywords = rule.keywords.map((k) => k.toLowerCase())
     events.forEach((event) => {
       const lowerTitle = event.title.toLowerCase()
       const matches = lowerKeywords.some((kw) => lowerTitle.includes(kw))
       if (matches) {
         const currentCategories = event.categories || []
-        if (!currentCategories.includes(rule.categoryId)) {
+        if (!currentCategories.includes(categoryName)) {
           updateEvent(event.id, {
-            categories: [...currentCategories, rule.categoryId],
+            categories: [...currentCategories, categoryName],
           })
         }
       }

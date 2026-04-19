@@ -13,6 +13,11 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import type { CalendarEvent } from '@/types'
+
+function isUUID(value: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(value)
+}
 import { ContextMenu } from '@/components/common/ContextMenu'
 import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import styles from './AgendaView.module.css'
@@ -52,7 +57,13 @@ export function AgendaView(): JSX.Element {
 
   const getEventBarColor = (event: CalendarEvent): string => {
     const firstCategory = event.categories && event.categories.length > 0
-      ? categories.find((cat) => cat.id === event.categories![0])
+      ? categories.find((cat) => {
+          const catValue = event.categories![0]
+          if (isUUID(catValue)) {
+            return cat.id === catValue
+          }
+          return cat.name === catValue
+        })
       : undefined
     return event.color || firstCategory?.color || calendarColorMap.get(event.calendarId) || DEFAULT_CALENDAR_COLOR
   }

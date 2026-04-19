@@ -56,6 +56,11 @@ export function CalendarGrid(): JSX.Element {
   const currentDate = useCalendarStore((state) => state.currentDate)
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
+  const categories = useCalendarStore((state) => state.categories)
+  const selectedCategoryId = useCalendarStore((state) => state.selectedCategoryId)
+  const selectedCategoryName = selectedCategoryId
+    ? categories.find((c) => c.id === selectedCategoryId)?.name
+    : null
   const getEventsForDateRange = useCalendarStore((state) => state.getEventsForDateRange)
   const openModal = useCalendarStore((state) => state.openModal)
   const storeUpdateEvent = useCalendarStore((state) => state.updateEvent)
@@ -343,7 +348,7 @@ export function CalendarGrid(): JSX.Element {
     })
 
     return map
-  }, [date, events, calendars, getEventsForDateRange])
+  }, [date, events, calendars, selectedCategoryName, getEventsForDateRange])
 
   const tasksMap = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()
@@ -357,7 +362,8 @@ export function CalendarGrid(): JSX.Element {
           event.type === 'task' &&
           visibleCalendarIds.includes(event.calendarId) &&
           taskCalendarsWithTasks.includes(event.calendarId) &&
-          !(hideCompletedTasksInMonthView && event.completed)
+          !(hideCompletedTasksInMonthView && event.completed) &&
+          (!selectedCategoryName || event.categories?.includes(selectedCategoryName))
       )
       .forEach((task) => {
         const taskDate = task.dueDate
@@ -367,7 +373,7 @@ export function CalendarGrid(): JSX.Element {
         map.set(taskDate, [...existing, task])
       })
     return map
-  }, [events, calendars, hideCompletedTasksInMonthView])
+  }, [events, calendars, hideCompletedTasksInMonthView, selectedCategoryName])
 
   const handleDayClick = (day: Date): void => {
     openModal(format(day, 'yyyy-MM-dd'))

@@ -237,6 +237,11 @@ export const useCalendarStore = create<CalendarStore>()(
       getEventsForDateRange: (start: string, end: string): CalendarEvent[] => {
         const state = get()
         const visibleCalendarIds = state.calendars.filter((c) => c.isVisible).map((c) => c.id)
+        const selectedCategoryId = state.selectedCategoryId
+        const selectedCategory = selectedCategoryId
+          ? state.categories.find((c) => c.id === selectedCategoryId)
+          : null
+        const selectedCategoryName = selectedCategory?.name || null
 
         const startDate = startOfDay(parseISO(start))
         const endDate = endOfDay(parseISO(end))
@@ -246,6 +251,9 @@ export const useCalendarStore = create<CalendarStore>()(
         const exceptionMap = new Map<string, CalendarEvent>()
         for (const event of state.events) {
           if (event.recurrenceId && visibleCalendarIds.includes(event.calendarId)) {
+            if (selectedCategoryName && !event.categories?.includes(selectedCategoryName)) {
+              continue
+            }
             const dateKey = event.recurrenceId.split('T')[0]
             const key = `${event.calendarId}-${dateKey}`
             exceptionMap.set(key, event)
@@ -254,6 +262,9 @@ export const useCalendarStore = create<CalendarStore>()(
 
         for (const event of state.events) {
           if (!visibleCalendarIds.includes(event.calendarId)) {
+            continue
+          }
+          if (selectedCategoryName && !event.categories?.includes(selectedCategoryName)) {
             continue
           }
 

@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import { useState, useMemo, useEffect, useRef } from 'react'
+import type { RefObject } from 'react'
 import { format, parseISO, addHours } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -30,6 +31,7 @@ interface InitialFormState {
   travelDuration: number | undefined
   reminders: Reminder[]
   transparency: 'opaque' | 'transparent'
+  categories: string[]
 }
 
 function getInitialFormState(
@@ -65,23 +67,24 @@ function getInitialFormState(
 
   if (isModalOpen) {
     if (existingEvent) {
-      return {
-        title: existingEvent.title,
-        description: existingEvent.description || '',
-        location: existingEvent.location || '',
-        startDate: format(parseISO(existingEvent.start), 'yyyy-MM-dd'),
-        startTime: format(parseISO(existingEvent.start), 'HH:mm'),
-        endDate: format(parseISO(existingEvent.end), 'yyyy-MM-dd'),
-        endTime: format(parseISO(existingEvent.end), 'HH:mm'),
-        isAllDay: existingEvent.isAllDay,
-        calendarId: existingEvent.calendarId,
-        recurrence: existingEvent.recurrence?.frequency || 'none',
-        travelDuration: existingEvent.travelDuration,
-        reminders: existingEvent.reminders || [],
-        transparency: existingEvent.transparency || 'opaque',
-        isRecurringInstance,
-        originalEventId,
-      }
+        return {
+          title: existingEvent.title,
+          description: existingEvent.description || '',
+          location: existingEvent.location || '',
+          startDate: format(parseISO(existingEvent.start), 'yyyy-MM-dd'),
+          startTime: format(parseISO(existingEvent.start), 'HH:mm'),
+          endDate: format(parseISO(existingEvent.end), 'yyyy-MM-dd'),
+          endTime: format(parseISO(existingEvent.end), 'HH:mm'),
+          isAllDay: existingEvent.isAllDay,
+          calendarId: existingEvent.calendarId,
+          recurrence: existingEvent.recurrence?.frequency || 'none',
+          travelDuration: existingEvent.travelDuration,
+          reminders: existingEvent.reminders || [],
+          transparency: existingEvent.transparency || 'opaque',
+          categories: existingEvent.categories || [],
+          isRecurringInstance,
+          originalEventId,
+        }
     }
 
     if (selectedDate) {
@@ -115,6 +118,7 @@ function getInitialFormState(
             travelDuration: undefined,
             reminders: [],
             transparency: 'opaque',
+            categories: [],
             isRecurringInstance: false,
             originalEventId: null,
           }
@@ -135,6 +139,7 @@ function getInitialFormState(
         travelDuration: undefined,
         reminders: [],
         transparency: 'opaque',
+        categories: [],
         isRecurringInstance: false,
         originalEventId: null,
       }
@@ -156,6 +161,7 @@ function getInitialFormState(
     travelDuration: undefined,
     reminders: [],
     transparency: 'opaque',
+    categories: [],
     isRecurringInstance: false,
     originalEventId: null,
   }
@@ -169,6 +175,7 @@ export function EventModal(): JSX.Element | null {
   const selectedEventType = useCalendarStore((state) => state.selectedEventType)
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
+  const categories = useCalendarStore((state) => state.categories)
   const addEvent = useCalendarStore((state) => state.addEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
@@ -220,9 +227,11 @@ export function EventModal(): JSX.Element | null {
   const [dueAllDay, setDueAllDay] = useState(true)
   const [completed, setCompleted] = useState(false)
   const [priority, setPriority] = useState<TaskPriority | undefined>(undefined)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialState.categories)
 
   const lastSelectedEventId = useRef<string | null>(null)
   const lastSelectedDate = useRef<string | null>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (
@@ -245,6 +254,7 @@ export function EventModal(): JSX.Element | null {
       setTransparency(initialState.transparency)
       setReminders(initialState.reminders)
       setShowDescription(!!initialState.description)
+      setSelectedCategories(initialState.categories)
 
       const existingEvent = selectedEventId
         ? events.find((e) => e.id === selectedEventId)
@@ -299,7 +309,8 @@ export function EventModal(): JSX.Element | null {
         dueAllDay !== (existingEventForMode.isAllDay ?? true) ||
         completed !== (existingEventForMode.completed || false) ||
         priority !== existingEventForMode.priority ||
-        calendarId !== existingEventForMode.calendarId
+        calendarId !== existingEventForMode.calendarId ||
+        JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || [])
       )
     }
 
@@ -317,7 +328,8 @@ export function EventModal(): JSX.Element | null {
       isAllDay !== existingEventForMode.isAllDay ||
       recurrence !== (existingEventForMode.recurrence?.frequency || 'none') ||
       travelDuration !== existingEventForMode.travelDuration ||
-      calendarId !== existingEventForMode.calendarId
+      calendarId !== existingEventForMode.calendarId ||
+      JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || [])
     )
   }, [
     existingEventForMode,
@@ -338,6 +350,7 @@ export function EventModal(): JSX.Element | null {
     recurrence,
     travelDuration,
     calendarId,
+    selectedCategories,
   ])
 
   const handleSubmit = (e: React.FormEvent): void => {
@@ -450,6 +463,7 @@ export function EventModal(): JSX.Element | null {
           priority: isTaskMode ? priority : undefined,
           reminders: isTaskMode ? undefined : reminders,
           transparency: isTaskMode ? undefined : transparency,
+          categories: selectedCategories,
         })
         const existingEvent = events.find((e) => e.id === eventId)
         if (existingEvent) {
@@ -471,6 +485,7 @@ export function EventModal(): JSX.Element | null {
               priority: isTaskMode ? priority : undefined,
               reminders: isTaskMode ? undefined : reminders,
               transparency: isTaskMode ? undefined : transparency,
+              categories: selectedCategories,
             })
           } catch {
             // error already handled by useCalDAV
@@ -503,6 +518,7 @@ export function EventModal(): JSX.Element | null {
         priority: isTaskMode ? priority : undefined,
         reminders: isTaskMode ? undefined : reminders,
         transparency: isTaskMode ? undefined : transparency,
+        categories: selectedCategories,
       }
       addEvent(newEvent)
       try {
@@ -573,40 +589,53 @@ export function EventModal(): JSX.Element | null {
   }
 
   return (
-    <div className={styles.overlay} onClick={closeModal}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.header}>
-          <div className={styles.headerContent}>
-            <input
-              type="text"
-              placeholder="Add title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className={styles.titleInput}
-              required
-              onInvalid={(e) => {
-                e.preventDefault()
-                window.dispatchEvent(
-                  new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
-                )
-              }}
-            />
-            <button className={styles.closeButton} onClick={closeModal}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M18 6L6 18M6 6l12 12"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
-          </div>
+    <div className={styles.modalBackdrop} onClick={closeModal}>
+      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalBand} />
+        <div className={styles.modalHeader}>
+          <button
+            type="button"
+            className={styles.titleEditIcon}
+            onClick={() => titleInputRef.current?.focus()}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </button>
+          <input
+            ref={titleInputRef}
+            type="text"
+            placeholder="Event title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className={styles.modalTitle}
+            required
+            onInvalid={(e) => {
+              e.preventDefault()
+              window.dispatchEvent(
+                new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
+              )
+            }}
+          />
+          <button className={styles.modalClose} onClick={closeModal}>
+            ×
+          </button>
         </div>
+        <hr className={styles.modalDivider} />
         <form
           key={`${selectedEventId}-${selectedDate}-${selectedEventType}`}
           onSubmit={handleSubmit}
-          className={styles.form}
+          className={styles.modalBody}
         >
           {isTaskMode && (
             <TaskFormFields
@@ -648,53 +677,71 @@ export function EventModal(): JSX.Element | null {
             />
           )}
 
-          <div className={styles.row}>
-            <div className={styles.field}>
-              <input
-                type="text"
-                placeholder="Location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className={styles.input}
-              />
-            </div>
+          <div className={styles.modalRow2}>
+            <input
+              type="text"
+              placeholder="Location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className={styles.modalInput}
+            />
 
-            <div className={styles.field}>
-              <select
-                id="calendar-select"
-                value={calendarId}
-                onChange={(e) => setCalendarId(e.target.value)}
-                className={styles.select}
-              >
-                {calendars.map((cal) => (
-                  <option key={cal.id} value={cal.id}>
-                    {cal.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              id="calendar-select"
+              value={calendarId}
+              onChange={(e) => setCalendarId(e.target.value)}
+              className={styles.modalSelect}
+            >
+              {calendars.map((cal) => (
+                <option key={cal.id} value={cal.id}>
+                  {cal.name}
+                </option>
+              ))}
+            </select>
           </div>
+
+          {categories.length > 0 && (
+            <div className={styles.modalRow2}>
+              <div className={styles.categoriesContainer}>
+                <div className={styles.categoriesLabel}>Categories</div>
+                <div className={styles.categoriesList}>
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      className={`${styles.categoryChip} ${
+                        selectedCategories.includes(cat.id) ? styles.categoryChipSelected : ''
+                      }`}
+                      onClick={() => {
+                        if (selectedCategories.includes(cat.id)) {
+                          setSelectedCategories(selectedCategories.filter((id) => id !== cat.id))
+                        } else {
+                          setSelectedCategories([...selectedCategories, cat.id])
+                        }
+                      }}
+                    >
+                      <span
+                        className={styles.categoryChipDot}
+                        style={{ backgroundColor: cat.color }}
+                      />
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {!showDescription ? (
             <button
               type="button"
-              className={styles.addButton}
+              className={styles.modalAddDesc}
               onClick={() => setShowDescription(true)}
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              Add description
+              + Add description
             </button>
           ) : (
-            <div className={styles.field}>
+            <div className={styles.modalField}>
               <div className={styles.fieldHeader}>
                 <label className={styles.label}>Description</label>
                 <button
@@ -705,39 +752,31 @@ export function EventModal(): JSX.Element | null {
                     setDescription('')
                   }}
                 >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
+                  ×
                 </button>
               </div>
               <textarea
                 placeholder="Add description..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className={styles.textarea}
+                className={`${styles.modalInput} ${styles.modalTextarea}`}
                 rows={3}
               />
             </div>
           )}
 
-          <div className={styles.footer}>
+          <hr className={styles.modalDivider} />
+          <div className={styles.modalFooter}>
             {isEditing && (
-              <button type="button" className={styles.deleteButton} onClick={handleDelete}>
+              <button type="button" className={styles.modalDelete} onClick={handleDelete}>
                 Delete
               </button>
             )}
-            <div className={styles.actions}>
-              <button type="button" className={styles.cancelButton} onClick={closeModal}>
+            <div className={styles.modalActions}>
+              <button type="button" className={styles.modalCancel} onClick={closeModal}>
                 Cancel
               </button>
-              <button type="submit" className={styles.saveButton} disabled={!title.trim()}>
+              <button type="submit" className={styles.modalSave} disabled={!title.trim()}>
                 {isEditing ? 'Save' : 'Create'}
               </button>
             </div>

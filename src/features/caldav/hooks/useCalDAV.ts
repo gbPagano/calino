@@ -172,6 +172,7 @@ export function useCalDAV(): UseCalDAVReturn {
 
         const start = '1970-01-01T00:00:00.000Z'
         const end = addDays(new Date(), 365).toISOString()
+        const newCategoryNames: string[] = []
 
         for (const cal of serverCalendars) {
           const fetchedEvents = await client.fetchEvents(cal.url, start, end)
@@ -181,6 +182,16 @@ export function useCalDAV(): UseCalDAVReturn {
               const parsedEvents = parseICALData(eventData.data, cal.id)
 
               for (const parsedEvent of parsedEvents) {
+                if (parsedEvent.categories) {
+                  for (const catName of parsedEvent.categories) {
+                    if (isUUID(catName)) continue
+                    const existingCat = storeCategories.find((c) => c.name === catName)
+                    if (!existingCat && !newCategoryNames.includes(catName)) {
+                      newCategoryNames.push(catName)
+                    }
+                  }
+                }
+
                 const existingIndex = existingEvents.findIndex((e) => e.id === parsedEvent.id)
 
                 if (existingIndex >= 0) {
@@ -191,6 +202,14 @@ export function useCalDAV(): UseCalDAVReturn {
               }
             }
           }
+        }
+
+        for (const catName of newCategoryNames) {
+          storeAddCategory({
+            id: crypto.randomUUID(),
+            name: catName,
+            color: EVENT_COLORS[Math.floor(Math.random() * EVENT_COLORS.length)],
+          })
         }
 
         storage.updateAccountLastSync(newAccount.id)

@@ -163,18 +163,47 @@ export function DayView(): JSX.Element {
   }, [])
 
   const date = parseISO(currentDate)
+  const dateKey = format(date, 'yyyy-MM-dd')
 
   const allDayEvents = useMemo(() => {
-    return getEventsForDateRange(format(date, 'yyyy-MM-dd'), format(date, 'yyyy-MM-dd')).filter(
-      (e) => e.type !== 'task' && e.isAllDay
-    )
-  }, [date, getEventsForDateRange, events])
+    return getEventsForDateRange(dateKey, dateKey).filter((e) => e.type !== 'task' && e.isAllDay)
+  }, [dateKey, getEventsForDateRange, events])
 
   const dayEvents = useMemo(() => {
-    return getEventsForDateRange(format(date, 'yyyy-MM-dd'), format(date, 'yyyy-MM-dd')).filter(
+    const eventsForDay = getEventsForDateRange(dateKey, dateKey).filter(
       (e) => e.type !== 'task' && !e.isAllDay
     )
-  }, [date, getEventsForDateRange, events])
+
+    const fragmentedEvents: CalendarEvent[] = []
+
+    for (const event of eventsForDay) {
+      const eventStart = parseISO(event.start)
+      const eventEnd = parseISO(event.end)
+      const eventStartKey = format(eventStart, 'yyyy-MM-dd')
+      const eventEndKey = format(eventEnd, 'yyyy-MM-dd')
+
+      if (eventStartKey === eventEndKey) {
+        fragmentedEvents.push(event)
+      } else {
+        const isFirst = eventStartKey === dateKey
+        const isLast = eventEndKey === dateKey
+
+        const fragment: CalendarEvent = {
+          ...event,
+          start: isFirst ? event.start : format(startOfDay(date), "yyyy-MM-dd'T'HH:mm:ss"),
+          end: isLast ? event.end : format(endOfDay(date), "yyyy-MM-dd'T'HH:mm:ss"),
+          isFragment: true,
+          isFirstFragment: isFirst,
+          isLastFragment: isLast,
+          originalStart: event.start,
+          originalEnd: event.end,
+        }
+        fragmentedEvents.push(fragment)
+      }
+    }
+
+    return fragmentedEvents
+  }, [dateKey, date, getEventsForDateRange, events])
 
   const dayTasks = useMemo(() => {
     const dateKey = format(date, 'yyyy-MM-dd')
@@ -494,6 +523,7 @@ export function DayView(): JSX.Element {
             height: `${height}px`,
             left: `${leftPercent}%`,
             width: `${widthPercent}%`,
+            zIndex: event.isFragment ? 1 : 2,
           }}
         >
           <EventCard event={event} hideTopRadius={!!event.travelDuration} />

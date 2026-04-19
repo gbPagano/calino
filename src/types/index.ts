@@ -1,5 +1,7 @@
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly'
 
+import type { Category, AutoCategoryRule } from './categories'
+
 export interface RecurrenceRule {
   frequency: RecurrenceFrequency
   interval: number
@@ -29,6 +31,7 @@ export interface CalendarEvent {
   end: string
   isAllDay: boolean
   color?: string
+  categories?: string[]
   recurrence?: RecurrenceRule
   reminders?: Reminder[]
   rruleString?: string
@@ -65,6 +68,8 @@ export type ViewType = 'month' | 'week' | 'day' | 'agenda' | 'todo'
 export interface CalendarState {
   events: CalendarEvent[]
   calendars: Calendar[]
+  categories: Category[]
+  autoCategoryRules: AutoCategoryRule[]
   currentDate: string
   currentView: ViewType
   selectedEventId: string | null
@@ -88,6 +93,12 @@ export interface CalendarActions {
   deleteCalendar: (id: string) => void
   toggleCalendarVisibility: (id: string) => void
   setDefaultCalendar: (id: string) => void
+  addCategory: (category: Category) => void
+  updateCategory: (id: string, updates: Partial<Category>) => void
+  deleteCategory: (id: string) => void
+  addAutoCategoryRule: (rule: AutoCategoryRule) => void
+  updateAutoCategoryRule: (id: string, updates: Partial<AutoCategoryRule>) => void
+  deleteAutoCategoryRule: (id: string) => void
   setCurrentDate: (date: string) => void
   setCurrentView: (view: ViewType) => void
   setSelectedEventId: (id: string | null) => void

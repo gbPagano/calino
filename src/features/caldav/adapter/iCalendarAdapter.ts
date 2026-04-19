@@ -38,6 +38,7 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
           end: currentEvent.end,
           isAllDay: currentEvent.isAllDay ?? false,
           color: currentEvent.color,
+          categories: currentEvent.categories,
           recurrence: currentEvent.recurrence,
           reminders: currentAlarms.length > 0 ? currentAlarms : undefined,
           rruleString: currentEvent.rruleString,
@@ -127,6 +128,11 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
         const parsed = parseICalDateTime(value)
         if (parsed.date) {
           currentEvent.recurrenceId = parsed.date
+        }
+      } else if (line.startsWith('CATEGORIES:')) {
+        const value = line.substring(11)
+        if (value) {
+          currentEvent.categories = value.split(',').map((c) => c.trim())
         }
       } else if (inAlarm && line.startsWith('TRIGGER:')) {
         const trigger = line.substring(8)
@@ -326,6 +332,10 @@ export function eventToICAL(event: CalendarEvent): string {
     lines.push(`LOCATION:${event.location}`)
   }
 
+  if (event.categories && event.categories.length > 0) {
+    lines.push(`CATEGORIES:${event.categories.join(',')}`)
+  }
+
   if (event.rruleString) {
     lines.push(`RRULE:${event.rruleString}`)
   }
@@ -453,6 +463,7 @@ export function parseICALTask(iCalData: string, calendarId: string): CalendarEve
           end: currentTask.dueDate ?? new Date().toISOString(),
           isAllDay: true,
           color: currentTask.color,
+          categories: currentTask.categories,
           type: 'task',
           dueDate: currentTask.dueDate,
           completed: currentTask.completed,
@@ -511,6 +522,11 @@ export function parseICALTask(iCalData: string, calendarId: string): CalendarEve
         if (!isNaN(seq)) {
           currentTask.sequence = seq
         }
+      } else if (line.startsWith('CATEGORIES:')) {
+        const value = line.substring(11)
+        if (value) {
+          currentTask.categories = value.split(',').map((c) => c.trim())
+        }
       }
     }
   }
@@ -538,6 +554,10 @@ export function taskToICAL(task: CalendarEvent): string {
 
   if (task.description) {
     lines.push(`DESCRIPTION:${task.description}`)
+  }
+
+  if (task.categories && task.categories.length > 0) {
+    lines.push(`CATEGORIES:${task.categories.join(',')}`)
   }
 
   if (task.priority) {

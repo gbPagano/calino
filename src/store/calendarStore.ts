@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
 import { RRule } from 'rrule'
 import type { CalendarStore, CalendarEvent, Calendar, ViewType, EventType } from '@/types'
+import type { Category, AutoCategoryRule } from '@/types/categories'
 import { config, DEFAULT_CALENDAR_COLOR } from '@/config'
 import { DAY_NUM_TO_CODE, FREQ_MAP } from '@/lib/recurrence'
 
@@ -32,6 +33,8 @@ export const useCalendarStore = create<CalendarStore>()(
     (set, get) => ({
       events: [],
       calendars: [DEFAULT_CALENDAR],
+      categories: [],
+      autoCategoryRules: [],
       currentDate: format(new Date(), 'yyyy-MM-dd'),
       currentView: config.defaultView,
       selectedEventId: null,
@@ -45,12 +48,28 @@ export const useCalendarStore = create<CalendarStore>()(
       previewPosition: null,
 
       addEvent: (event: CalendarEvent): void => {
+        const state = get()
+        const autoCategoryIds = applyAutoCategories(event.title, state.autoCategoryRules)
+        const existingCategories = event.categories || []
+        const finalEvent = {
+          ...event,
+          categories: [...new Set([...existingCategories, ...autoCategoryIds])],
+        }
         set((state) => ({
-          events: [...state.events, event],
+          events: [...state.events, finalEvent],
         }))
       },
 
       updateEvent: (id: string, updates: Partial<CalendarEvent>): void => {
+        const state = get()
+        if (updates.title) {
+          const existingEvent = state.events.find((e) => e.id === id)
+          if (existingEvent) {
+            const autoCategoryIds = applyAutoCategories(updates.title, state.autoCategoryRules)
+            const existingCategories = updates.categories || existingEvent.categories || []
+            updates.categories = [...new Set([...existingCategories, ...autoCategoryIds])]
+          }
+        }
         set((state) => ({
           events: state.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
         }))
@@ -113,6 +132,48 @@ export const useCalendarStore = create<CalendarStore>()(
             ...c,
             isDefault: c.id === id,
           })),
+        }))
+      },
+
+      addCategory: (category: Category): void => {
+        set((state) => ({
+          categories: [...state.categories, category],
+        }))
+      },
+
+      updateCategory: (id: string, updates: Partial<Category>): void => {
+        set((state) => ({
+          categories: state.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+        }))
+      },
+
+      deleteCategory: (id: string): void => {
+        set((state) => ({
+          categories: state.categories.filter((c) => c.id !== id),
+          events: state.events.map((e) => ({
+            ...e,
+            categories: e.categories?.filter((catId) => catId !== id),
+          })),
+        }))
+      },
+
+      addAutoCategoryRule: (rule: AutoCategoryRule): void => {
+        set((state) => ({
+          autoCategoryRules: [...state.autoCategoryRules, rule],
+        }))
+      },
+
+      updateAutoCategoryRule: (id: string, updates: Partial<AutoCategoryRule>): void => {
+        set((state) => ({
+          autoCategoryRules: state.autoCategoryRules.map((r) =>
+            r.id === id ? { ...r, ...updates } : r
+          ),
+        }))
+      },
+
+      deleteAutoCategoryRule: (id: string): void => {
+        set((state) => ({
+          autoCategoryRules: state.autoCategoryRules.filter((r) => r.id !== id),
         }))
       },
 
@@ -319,7 +380,25 @@ export const useCalendarStore = create<CalendarStore>()(
       partialize: (state) => ({
         events: state.events,
         calendars: state.calendars,
+        categories: state.categories,
+        autoCategoryRules: state.autoCategoryRules,
       }),
     }
   )
 )
+
+function applyAutoCategories(title: string, rules: AutoCategoryRule[]): string[] {
+  const lowerTitle = title.toLowerCase()
+  const matchingCategoryIds: string[] = []
+
+  for (const rule of rules) {
+    for (const keyword of rule.keywords) {
+      if (lowerTitle.includes(keyword.toLowerCase())) {
+        matchingCategoryIds.push(rule.categoryId)
+        break
+      }
+    }
+  }
+
+  return matchingCategoryIds
+}

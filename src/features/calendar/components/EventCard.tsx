@@ -47,6 +47,7 @@ export function EventCard({
   transparent = false,
 }: EventCardProps): JSX.Element {
   const calendars = useCalendarStore((state) => state.calendars)
+  const categories = useCalendarStore((state) => state.categories)
   const events = useCalendarStore((state) => state.events)
   const openModal = useCalendarStore((state) => state.openModal)
   const openPreview = useCalendarStore((state) => state.openPreview)
@@ -104,7 +105,10 @@ export function EventCard({
   })
 
   const calendar = calendars.find((c) => c.id === event.calendarId)
-  const eventColor = event.color || calendar?.color || DEFAULT_CALENDAR_COLOR
+  const firstCategory = event.categories && event.categories.length > 0
+    ? categories.find((cat) => cat.id === event.categories![0])
+    : undefined
+  const eventColor = event.color || firstCategory?.color || calendar?.color || DEFAULT_CALENDAR_COLOR
   const isTask = event.type === 'task'
   const isRecurring = !!event.recurrence || !!event.rruleString
   const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
@@ -274,9 +278,9 @@ export function EventCard({
               }}
               {...listeners}
               {...attributes}
-            >
-              <div className={styles.title}>{event.title}</div>
-              {!compact && !event.isAllDay && (
+          >
+            <div className={styles.title}>{event.title}</div>
+            {!compact && !event.isAllDay && (
                 <div className={styles.time}>
                   {isFragmentFirst
                     ? `${formatTime(event.start)} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`

@@ -176,36 +176,10 @@
   padding: 6px 4px;
   border-radius: 6px;
   position: relative;
-  overflow: hidden;
 }
 
 .taskRow:hover {
   background: var(--color-bg-hover);
-}
-
-.taskCompleting {
-  animation: taskCompleting 0.35s ease-out forwards;
-}
-
-.taskCompleting .taskTitle {
-  text-decoration: line-through;
-  opacity: 1;
-}
-
-.taskCompleting .taskDue {
-  opacity: 0.5;
-}
-
-@keyframes taskCompleting {
-  0% {
-    opacity: 1;
-  }
-  30% {
-    text-decoration: line-through;
-  }
-  100% {
-    opacity: 0;
-  }
 }
 
 .taskCheckbox {

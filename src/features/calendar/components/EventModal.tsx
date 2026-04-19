@@ -1,6 +1,5 @@
 import type { JSX } from 'react'
 import { useState, useMemo, useEffect, useRef } from 'react'
-import type { RefObject } from 'react'
 import { format, parseISO, addHours } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
 import { useCalendarStore } from '@/store/calendarStore'

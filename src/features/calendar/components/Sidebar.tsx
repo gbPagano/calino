@@ -22,6 +22,7 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { AddCalendarModal } from './AddCalendarModal'
+import { MiniTasksSection } from './MiniTasksSection'
 import styles from './Sidebar.module.css'
 
 const CALENDAR_COLORS = [
@@ -55,6 +56,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const [editName, setEditName] = useState('')
   const [showYearDropdown, setShowYearDropdown] = useState(false)
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
+  const [isTasksExpanded, setIsTasksExpanded] = useState(true)
   const [syncingCalendarId, setSyncingCalendarId] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<Record<string, 'success' | 'error'>>({})
   const [contextMenu, setContextMenu] = useState<{
@@ -337,6 +339,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
             Today
           </button>
         </div>
+
+        <MiniTasksSection
+          isExpanded={isTasksExpanded}
+          onToggle={() => setIsTasksExpanded(!isTasksExpanded)}
+        />
 
         <div className={styles.calendars}>
           <div className={styles.sectionTitleRow}>

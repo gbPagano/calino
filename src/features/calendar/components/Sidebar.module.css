@@ -103,6 +103,143 @@
   box-sizing: border-box;
 }
 
+.tasksSection {
+  background: var(--color-bg-secondary);
+  border-radius: var(--mini-cal-radius, 12px);
+  border: 1px solid var(--color-border-visible);
+  overflow: hidden;
+}
+
+.tasksHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-primary);
+}
+
+.tasksHeader:hover {
+  background: var(--color-bg-hover);
+}
+
+.tasksHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tasksTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.tasksCount {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.tasksChevron {
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.tasksChevronExpanded {
+  transform: rotate(180deg);
+}
+
+.tasksList {
+  padding: 0 8px 8px;
+}
+
+.tasksEmpty {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 12px 0;
+}
+
+.taskRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 6px;
+}
+
+.taskRow:hover {
+  background: var(--color-bg-hover);
+}
+
+.taskCheckbox {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.taskCheckbox:hover {
+  color: var(--color-accent);
+}
+
+.taskContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.taskTitle {
+  font-size: 12px;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.taskDue {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.taskOverdue {
+  color: var(--color-error);
+}
+
+.tasksViewAll {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-accent);
+  text-decoration: none;
+  padding: 8px 4px;
+  margin-top: 4px;
+  border-radius: 6px;
+}
+
+.tasksViewAll:hover {
+  background: var(--color-bg-hover);
+}
+
 .miniHeader {
   display: flex;
   align-items: center;

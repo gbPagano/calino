@@ -157,7 +157,17 @@
 }
 
 .tasksList {
-  padding: 0 8px 8px;
+  padding: 0 8px;
+  max-height: calc(66vh - 120px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tasksWrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .tasksEmpty {
@@ -178,6 +188,10 @@
 
 .taskRow:hover {
   background: var(--color-bg-hover);
+}
+
+.taskRowWrapper {
+  overflow: hidden;
 }
 
 .taskCheckbox {
@@ -233,8 +247,11 @@
   color: var(--color-accent);
   text-decoration: none;
   padding: 8px 4px;
-  margin-top: 4px;
+  margin-top: auto;
   border-radius: 6px;
+  position: sticky;
+  bottom: 0;
+  background: var(--color-bg-secondary);
 }
 
 .tasksViewAll:hover {
@@ -246,7 +263,9 @@
   z-index: 10000;
   font-size: 11px;
   color: var(--color-text-secondary);
-  background: var(--color-bg-secondary);
+  background: rgba(250, 249, 247, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--color-border-visible);
   border-radius: 6px;
   padding: 6px 8px;

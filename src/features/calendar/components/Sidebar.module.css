@@ -180,30 +180,6 @@
   background: var(--color-bg-hover);
 }
 
-.taskRow {
-  transition: all 0.3s ease;
-}
-
-.taskCompleting {
-  animation: taskComplete 300ms ease-out forwards;
-}
-
-.taskCompleting .taskTitle {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
-@keyframes taskComplete {
-  0% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-}
-
 .taskCheckbox {
   flex-shrink: 0;
   width: 16px;

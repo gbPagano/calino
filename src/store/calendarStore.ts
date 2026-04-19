@@ -145,9 +145,25 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       updateCategory: (id: string, updates: Partial<Category>): void => {
-        set((state) => ({
-          categories: state.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-        }))
+        set((state) => {
+          const existingCategory = state.categories.find((c) => c.id === id)
+          const oldName = existingCategory?.name
+          const newName = updates.name
+
+          if (!oldName || !newName || oldName === newName) {
+            return {
+              categories: state.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+            }
+          }
+
+          return {
+            categories: state.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+            events: state.events.map((e) => ({
+              ...e,
+              categories: e.categories?.map((cat) => (cat === oldName ? newName : cat)),
+            })),
+          }
+        })
       },
 
       deleteCategory: (id: string): void => {

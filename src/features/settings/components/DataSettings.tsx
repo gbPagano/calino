@@ -219,6 +219,18 @@ export function DataSettings(): JSX.Element {
     }
   }
 
+  const handleClearEventCategories = (): void => {
+    if (!confirm('Remove all categories from all events? This cannot be undone.')) {
+      return
+    }
+    const events = useCalendarStore.getState().events
+    events.forEach((event) => {
+      if (event.categories && event.categories.length > 0) {
+        useCalendarStore.getState().updateEvent(event.id, { categories: [] })
+      }
+    })
+  }
+
   return (
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>Data & Storage</h2>
@@ -322,6 +334,21 @@ export function DataSettings(): JSX.Element {
           onChange={handleFileChange}
           style={{ display: 'none' }}
         />
+      </div>
+
+      <div className={styles.settingRow}>
+        <div className={styles.settingLabel}>
+          <span className={styles.settingLabelText}>Clear All Categories from Events</span>
+          <span className={styles.settingLabelHint}>
+            Remove all category assignments from events
+          </span>
+        </div>
+        <button
+          className={`${styles.button} ${styles.buttonSecondary}`}
+          onClick={handleClearEventCategories}
+        >
+          Clear Categories
+        </button>
       </div>
 
       <div className={styles.settingRow}>

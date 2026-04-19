@@ -242,10 +242,8 @@
 }
 
 .taskTooltip {
-  position: absolute;
-  left: calc(100% + 8px);
-  top: 0;
-  z-index: 1000;
+  position: fixed;
+  z-index: 10000;
   font-size: 11px;
   color: var(--color-text-secondary);
   background: var(--color-bg-secondary);
@@ -256,6 +254,7 @@
   max-width: 250px;
   box-shadow: var(--shadow-card);
   white-space: normal;
+  pointer-events: none;
 }
 
 .miniHeader {

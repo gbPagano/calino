@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import { useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { format, parseISO, isToday, isBefore, startOfDay, addDays, isWithinInterval } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -18,6 +19,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
   const openModal = useCalendarStore((state) => state.openModal)
   const { updateEvent: updateCalDAVEvent } = useCalDAV()
   const [hoveredTask, setHoveredTask] = useState<string | null>(null)
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
 
   const upcomingTasks = useMemo(() => {
     const today = startOfDay(new Date())
@@ -103,8 +105,14 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                 <div
                   key={task.id}
                   className={styles.taskRow}
-                  onMouseEnter={() => setHoveredTask(task.id)}
-                  onMouseLeave={() => setHoveredTask(null)}
+                  onMouseEnter={(e) => {
+                    setHoveredTask(task.id)
+                    setTooltipPosition({ x: e.clientX, y: e.clientY })
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredTask(null)
+                    setTooltipPosition(null)
+                  }}
                 >
                   <button
                     className={styles.taskCheckbox}
@@ -131,11 +139,23 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                       </span>
                     )}
                   </div>
-                  {hoveredTask === task.id && task.description && (
-                    <div className={styles.taskTooltip}>{task.description}</div>
-                  )}
                 </div>
               ))}
+              {createPortal(
+                hoveredTask && tooltipPosition && upcomingTasks.find((t) => t.id === hoveredTask)?.description ? (
+                  <div
+                    className={styles.taskTooltip}
+                    style={{
+                      position: 'fixed',
+                      left: tooltipPosition.x + 12,
+                      top: tooltipPosition.y + 12,
+                    }}
+                  >
+                    {upcomingTasks.find((t) => t.id === hoveredTask)?.description}
+                  </div>
+                ) : null,
+                document.body
+              )}
               <Link to="/tasks" className={styles.tasksViewAll}>
                 View all →
               </Link>

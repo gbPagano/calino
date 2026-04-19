@@ -76,56 +76,6 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
     }, 300)
   }
 
-  const upcomingTasks = useMemo(() => {
-    const today = startOfDay(new Date())
-    const weekFromNow = addDays(today, 7)
-
-    const tasks = events
-      .filter((e) => e.type === 'task' && !e.completed)
-      .filter((task) => {
-        if (!task.dueDate) return false
-        const dueDate = startOfDay(parseISO(task.dueDate))
-        return !isBefore(dueDate, today) && isWithinInterval(dueDate, { start: today, end: weekFromNow })
-      })
-      .sort((a, b) => {
-        if (!a.dueDate || !b.dueDate) return 0
-        return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime()
-      })
-      .slice(0, 8)
-
-    const overdue = events
-      .filter((e) => e.type === 'task' && !e.completed)
-      .filter((task) => {
-        if (!task.dueDate) return false
-        const dueDate = startOfDay(parseISO(task.dueDate))
-        return isBefore(dueDate, today)
-      })
-      .sort((a, b) => {
-        if (!a.dueDate || !b.dueDate) return 0
-        return parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime()
-      })
-      .slice(0, 5)
-
-    return [...overdue, ...tasks].slice(0, 10)
-  }, [events])
-
-  const activeCount = events.filter((e) => e.type === 'task' && !e.completed).length
-
-  const handleToggleComplete = async (task: CalendarEvent): Promise<void> => {
-    setCompletingTaskId(task.id)
-    setTimeout(async () => {
-      const newCompleted = !task.completed
-      updateEvent(task.id, { completed: newCompleted })
-      setCompletingTaskId(null)
-      if (!task.calendarId) return
-      try {
-        await updateCalDAVEvent(task.calendarId, { ...task, completed: newCompleted })
-      } catch {
-        // error handled by useCalDAV
-      }
-    }, 300)
-  }
-
   const handleTaskClick = (task: CalendarEvent): void => {
     openModal(undefined, undefined, task.id, 'task')
   }

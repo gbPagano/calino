@@ -173,6 +173,7 @@
   gap: 8px;
   padding: 6px 4px;
   border-radius: 6px;
+  position: relative;
 }
 
 .taskRow:hover {
@@ -241,14 +242,20 @@
 }
 
 .taskTooltip {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 0;
+  z-index: 100;
   font-size: 11px;
   color: var(--color-text-secondary);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border-visible);
   border-radius: 6px;
   padding: 6px 8px;
-  margin: 4px 0;
+  min-width: 150px;
+  max-width: 250px;
   box-shadow: var(--shadow-card);
+  white-space: normal;
 }
 
 .miniHeader {

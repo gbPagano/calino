@@ -459,9 +459,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
               <AnimatePresence>
                 {isCategoriesExpanded && (
                   <motion.div
-                    initial={{ opacity: 0, y: -5 }}
+                    initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
+                    exit={{ opacity: 0, y: 5 }}
                     transition={{ duration: 0.15 }}
                     className={styles.categoryCard}
                     onMouseEnter={() => setIsCategoriesExpanded(true)}

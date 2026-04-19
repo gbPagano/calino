@@ -392,32 +392,34 @@ export function EventPreviewPopup({
         />
       )
     }
+    if (editingField === 'endDate') {
+      return (
+        <>
+          <span onClick={(e) => { e.stopPropagation(); startEditing('date') }}>{format(parseISO(event.originalStart || event.start), dateFormatPattern)}</span>
+          <span> - </span>
+          <input
+            type="date"
+            value={editEndDate}
+            onChange={(e) => handleFieldChange('endDate', e.target.value)}
+            onBlur={() => setEditingField(null)}
+            className={styles.inlineInput}
+            autoFocus
+          />
+        </>
+      )
+    }
     if (isMultiDay) {
       const startDisplay = format(parseISO(event.originalStart || event.start), dateFormatPattern)
       const endDisplay = format(parseISO(event.originalEnd || event.end), dateFormatPattern)
-      return <span onClick={() => startEditing('date')}>{startDisplay} - {endDisplay}</span>
-    }
-    return <span onClick={() => startEditing('date')}>{getEventDate()}</span>
-  }
-
-  const renderEndDate = (): JSX.Element => {
-    if (editingField === 'endDate') {
       return (
-        <input
-          type="date"
-          value={editEndDate}
-          onChange={(e) => handleFieldChange('endDate', e.target.value)}
-          onBlur={() => setEditingField(null)}
-          className={styles.inlineInput}
-          autoFocus
-        />
+        <>
+          <span onClick={(e) => { e.stopPropagation(); startEditing('date') }}>{startDisplay}</span>
+          <span> - </span>
+          <span onClick={(e) => { e.stopPropagation(); startEditing('endDate') }}>{endDisplay}</span>
+        </>
       )
     }
-    if (!isMultiDay) {
-      return <></>
-    }
-    const endDateValue = editEndDate || format(parseISO(event.originalEnd || event.end), 'yyyy-MM-dd')
-    return <span onClick={() => startEditing('endDate')}>{format(parseISO(endDateValue), dateFormatPattern)}</span>
+    return <span onClick={() => startEditing('date')}>{getEventDate()}</span>
   }
 
   const renderTime = (): JSX.Element => {
@@ -562,7 +564,7 @@ export function EventPreviewPopup({
         </div>
 
         <div className={styles.content}>
-          <div className={styles.field} onClick={() => startEditing('date')}>
+          <div className={styles.field}>
             <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
               <rect
                 x="2"
@@ -592,29 +594,7 @@ export function EventPreviewPopup({
             )}
           </div>
 
-          {isMultiDay && (
-            <div className={styles.field} onClick={() => startEditing('endDate')}>
-              <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <rect
-                  x="2"
-                  y="3"
-                  width="10"
-                  height="9"
-                  rx="1"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                />
-                <path d="M2 6H12" stroke="currentColor" strokeWidth="1.2" />
-                <path
-                  d="M5 1V3M9 1V3"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              {renderEndDate()}
-            </div>
-          )}
+          
 
           <div className={styles.field} onClick={() => startEditing('time')}>
             <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">

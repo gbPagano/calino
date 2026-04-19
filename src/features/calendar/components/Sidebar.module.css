@@ -173,8 +173,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 4px;
-  margin-bottom: 8px;
+  padding: 4px 4px;
+  margin-bottom: 4px;
   border-radius: 6px;
   position: relative;
 }

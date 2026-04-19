@@ -20,6 +20,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
   const { updateEvent: updateCalDAVEvent } = useCalDAV()
   const [hoveredTask, setHoveredTask] = useState<string | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null)
 
   const upcomingTasks = useMemo(() => {
     const today = startOfDay(new Date())
@@ -57,14 +58,18 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
   const activeCount = events.filter((e) => e.type === 'task' && !e.completed).length
 
   const handleToggleComplete = async (task: CalendarEvent): Promise<void> => {
-    const newCompleted = !task.completed
-    updateEvent(task.id, { completed: newCompleted })
-    if (!task.calendarId) return
-    try {
-      await updateCalDAVEvent(task.calendarId, { ...task, completed: newCompleted })
-    } catch {
-      // error handled by useCalDAV
-    }
+    setCompletingTaskId(task.id)
+    setTimeout(async () => {
+      const newCompleted = !task.completed
+      updateEvent(task.id, { completed: newCompleted })
+      setCompletingTaskId(null)
+      if (!task.calendarId) return
+      try {
+        await updateCalDAVEvent(task.calendarId, { ...task, completed: newCompleted })
+      } catch {
+        // error handled by useCalDAV
+      }
+    }, 300)
   }
 
   const handleTaskClick = (task: CalendarEvent): void => {
@@ -104,7 +109,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
               {upcomingTasks.map((task) => (
                 <div
                   key={task.id}
-                  className={styles.taskRow}
+                  className={`${styles.taskRow} ${completingTaskId === task.id ? styles.taskCompleting : ''}`}
                   onMouseEnter={(e) => {
                     setHoveredTask(task.id)
                     setTooltipPosition({ x: e.clientX, y: e.clientY })

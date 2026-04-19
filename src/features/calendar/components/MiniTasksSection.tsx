@@ -158,7 +158,6 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                   </motion.div>
                 ))}
               </AnimatePresence>
-            </>
               {createPortal(
                 hoveredTaskData && hoveredTaskData.description ? (
                   <div

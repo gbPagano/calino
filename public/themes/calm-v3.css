@@ -213,13 +213,9 @@
    CSS Override Rules - calm-v3 specific
    ======================================== */
 
-/* Mini calendar - white raised surface */
+/* calm-v3: distinct surface colors for visual differentiation */
 [data-theme='light'] {
   --mini-cal-bg: var(--color-surface-raised);
-}
-
-/* Sidebar - gradient background (matches element without CSS Module hashing) */
-[data-theme='light'] aside,
-[data-theme='light'] .sidebar {
-  background: linear-gradient(180deg, var(--color-bg-tertiary) 0%, var(--color-bg-secondary) 100%);
+  --color-bg-secondary: #f5f3f0;
+  --color-bg-tertiary: #ebe8e4;
 }

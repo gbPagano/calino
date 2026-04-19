@@ -335,6 +335,8 @@ export function CalendarGrid(): JSX.Element {
 
     map.forEach((events, dateKey) => {
       const sorted = [...events].sort((a, b) => {
+        if (a.isFragment && !b.isFragment) return -1
+        if (!a.isFragment && b.isFragment) return 1
         return new Date(a.start).getTime() - new Date(b.start).getTime()
       })
       map.set(dateKey, sorted)

@@ -160,14 +160,6 @@
   padding: 0 8px;
   max-height: calc(66vh - 120px);
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.tasksWrapper {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
 }
 
 .tasksEmpty {
@@ -188,10 +180,6 @@
 
 .taskRow:hover {
   background: var(--color-bg-hover);
-}
-
-.taskRowWrapper {
-  overflow: hidden;
 }
 
 .taskCheckbox {

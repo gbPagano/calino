@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { createPortal } from 'react-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ContextMenu } from '@/components/common/ContextMenu'
 import {
   format,
@@ -57,6 +58,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const [showYearDropdown, setShowYearDropdown] = useState(false)
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
   const [isTasksExpanded, setIsTasksExpanded] = useState(true)
+  const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false)
   const [syncingCalendarId, setSyncingCalendarId] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<Record<string, 'success' | 'error'>>({})
   const [contextMenu, setContextMenu] = useState<{
@@ -69,6 +71,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const currentDate = useCalendarStore((state) => state.currentDate)
   const setCurrentDate = useCalendarStore((state) => state.setCurrentDate)
   const calendars = useCalendarStore((state) => state.calendars)
+  const categories = useCalendarStore((state) => state.categories)
+  const selectedCategoryId = useCalendarStore((state) => state.selectedCategoryId)
+  const toggleCategoryFilter = useCalendarStore((state) => state.toggleCategoryFilter)
   const toggleCalendarVisibility = useCalendarStore((state) => state.toggleCalendarVisibility)
   const updateCalendar = useCalendarStore((state) => state.updateCalendar)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
@@ -440,18 +445,62 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
           onToggle={() => setIsTasksExpanded(!isTasksExpanded)}
         />
 
-        <div className={styles.footer}>
-          <Link to="/privacy" className={styles.footerLink}>
-            Privacy
-          </Link>
-          <a
-            href={`https://github.com/${config.githubRepo}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.footerLink}
-          >
-            GitHub
-          </a>
+        <div className={styles.stickyBottom}>
+          {categories.length > 0 && (
+            <div className={styles.categoriesWrapper}>
+              <button
+                className={styles.sectionHeader}
+                onMouseEnter={() => setIsCategoriesExpanded(true)}
+                onMouseLeave={() => setIsCategoriesExpanded(false)}
+              >
+                <span className={styles.sectionTitle}>Categories</span>
+                <ChevronDown className={`${styles.chevron} ${isCategoriesExpanded ? styles.chevronExpanded : ''}`} />
+              </button>
+              <AnimatePresence>
+                {isCategoriesExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    transition={{ duration: 0.15 }}
+                    className={styles.categoryCard}
+                    onMouseEnter={() => setIsCategoriesExpanded(true)}
+                    onMouseLeave={() => setIsCategoriesExpanded(false)}
+                  >
+                    <div className={styles.categoryCardList}>
+                      {categories.map((category) => (
+                        <button
+                          key={category.id}
+                          className={`${styles.categoryItem} ${selectedCategoryId === category.id ? styles.categoryItemSelected : ''}`}
+                          onClick={() => toggleCategoryFilter(category.id)}
+                        >
+                          <span
+                            className={styles.categoryDot}
+                            style={{ backgroundColor: category.color }}
+                          />
+                          <span className={styles.categoryName}>{category.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          <div className={styles.footer}>
+            <Link to="/privacy" className={styles.footerLink}>
+              Privacy
+            </Link>
+            <a
+              href={`https://github.com/${config.githubRepo}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.footerLink}
+            >
+              GitHub
+            </a>
+          </div>
         </div>
 
         <AddCalendarModal isOpen={showAddCalendar} onClose={() => setShowAddCalendar(false)} />
@@ -514,6 +563,20 @@ function ChevronRight(): JSX.Element {
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <path
         d="M6 4L10 8L6 12"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function ChevronDown({ className }: { className?: string }): JSX.Element {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={className}>
+      <path
+        d="M4 6L8 10L12 6"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"

@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import { useMemo, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { format, parseISO, isToday, isBefore, startOfDay, addDays, isWithinInterval } from 'date-fns'
@@ -108,10 +109,14 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
           {upcomingTasks.length === 0 ? (
             <div className={styles.tasksEmpty}>No upcoming tasks</div>
           ) : (
-            <>
+            <AnimatePresence mode="popLayout">
               {upcomingTasks.map((task) => (
-                <div
+                <motion.div
                   key={task.id}
+                  layout
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
                   className={`${styles.taskRow} ${completingTaskId === task.id ? styles.taskCompleting : ''}`}
                   onMouseEnter={(e) => {
                     setHoveredTask(task.id)
@@ -149,9 +154,11 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                       </span>
                     )}
                   </div>
-                </div>
+                </motion.div>
               ))}
-              {createPortal(
+            </AnimatePresence>
+          )}
+          {createPortal(
                 hoveredTaskData && hoveredTaskData.description ? (
                   <div
                     className={styles.taskTooltip}

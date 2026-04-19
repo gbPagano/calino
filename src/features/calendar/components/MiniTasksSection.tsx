@@ -118,7 +118,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
-                    className={`${styles.taskRow} ${completingTaskId === task.id ? styles.taskCompleting : ''}`}
+                    className={styles.taskRow}
                     onMouseEnter={(e) => {
                       setHoveredTask(task.id)
                       setTooltipPosition({ x: e.clientX, y: e.clientY })
@@ -142,7 +142,16 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                       </svg>
                     </button>
                     <div className={styles.taskContent} onClick={() => handleTaskClick(task)}>
-                      <span className={styles.taskTitle}>{task.title}</span>
+                      <span
+                        className={styles.taskTitle}
+                        style={{
+                          textDecoration: completingTaskId === task.id ? 'line-through' : 'none',
+                          opacity: completingTaskId === task.id ? 0.6 : 1,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {task.title}
+                      </span>
                       {task.dueDate && (
                         <span
                           className={`${styles.taskDue} ${

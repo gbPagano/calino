@@ -183,31 +183,6 @@
   background: var(--color-bg-hover);
 }
 
-.taskCompleting {
-  animation: taskCompleting 0.3s ease-out forwards;
-}
-
-.taskCompleting .taskTitle {
-  text-decoration: line-through;
-  opacity: 1;
-}
-
-.taskCompleting .taskDue {
-  opacity: 0.5;
-}
-
-@keyframes taskCompleting {
-  0% {
-    opacity: 1;
-  }
-  30% {
-    text-decoration: line-through;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
 .taskCheckbox {
   flex-shrink: 0;
   width: 16px;

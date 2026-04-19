@@ -1,6 +1,6 @@
 import { type JSX, useRef, useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, isSameDay } from 'date-fns'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -59,6 +59,7 @@ export function EventPreviewPopup({
       ).toISOString()
     : event.end
 
+  const isMultiDay = !isSameDay(parseISO(event.originalStart || event.start), parseISO(event.originalEnd || event.end))
   const isTask = event.type === 'task'
   const timeFormatPattern = timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
   const dateFormatPattern =
@@ -71,6 +72,7 @@ export function EventPreviewPopup({
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState(event.title)
   const [editDate, setEditDate] = useState('')
+  const [editEndDate, setEditEndDate] = useState('')
   const [editTime, setEditTime] = useState('')
   const [editEndTime, setEditEndTime] = useState('')
   const [editLocation, setEditLocation] = useState(event.location || '')
@@ -107,6 +109,9 @@ export function EventPreviewPopup({
       const fmt = (t: string) => format(parseISO(`2000-01-01T${t}:00`), timeFormatPattern)
       return `${fmt(editTime)} - ${fmt(editEndTime || editTime)}`
     }
+    if (isMultiDay) {
+      return `${format(parseISO(event.originalStart || event.start), timeFormatPattern)} - ${format(parseISO(event.originalEnd || event.end), timeFormatPattern)}`
+    }
     return `${format(parseISO(effectiveStart), timeFormatPattern)} - ${format(parseISO(effectiveEnd), timeFormatPattern)}`
   }
 
@@ -120,6 +125,8 @@ export function EventPreviewPopup({
       } else {
         setEditDate(format(parseISO(effectiveStart), 'yyyy-MM-dd'))
       }
+    } else if (field === 'endDate' && !editEndDate) {
+      setEditEndDate(format(parseISO(effectiveEnd), 'yyyy-MM-dd'))
     } else if (field === 'time' && !editTime) {
       if (isTask && event.dueDate) {
         setEditTime(format(parseISO(event.dueDate), 'HH:mm'))
@@ -151,7 +158,10 @@ export function EventPreviewPopup({
       const startTime = editTime || format(parseISO(effectiveStart), 'HH:mm')
       const endTime = editEndTime || format(parseISO(effectiveEnd), 'HH:mm')
       updates.start = `${dateToUse}T${startTime}:00`
-      updates.end = `${dateToUse}T${endTime}:00`
+
+      const originalEndDate = format(parseISO(effectiveEnd), 'yyyy-MM-dd')
+      const endDateToUse = editEndDate || originalEndDate
+      updates.end = `${endDateToUse}T${endTime}:00`
     }
 
     const recurring = !!event.recurrence || !!event.rruleString || !!originalEventId
@@ -226,6 +236,7 @@ export function EventPreviewPopup({
   const cancelEditing = useCallback(() => {
     setEditTitle(event.title)
     setEditDate('')
+    setEditEndDate('')
     setEditTime('')
     setEditEndTime('')
     setEditLocation(event.location || '')
@@ -240,6 +251,8 @@ export function EventPreviewPopup({
       setEditTitle(value)
     } else if (field === 'date') {
       setEditDate(value)
+    } else if (field === 'endDate') {
+      setEditEndDate(value)
     } else if (field === 'time') {
       setEditTime(value)
     } else if (field === 'endTime') {
@@ -379,7 +392,32 @@ export function EventPreviewPopup({
         />
       )
     }
+    if (isMultiDay) {
+      const startDisplay = format(parseISO(event.originalStart || event.start), dateFormatPattern)
+      const endDisplay = format(parseISO(event.originalEnd || event.end), dateFormatPattern)
+      return <span onClick={() => startEditing('date')}>{startDisplay} - {endDisplay}</span>
+    }
     return <span onClick={() => startEditing('date')}>{getEventDate()}</span>
+  }
+
+  const renderEndDate = (): JSX.Element => {
+    if (editingField === 'endDate') {
+      return (
+        <input
+          type="date"
+          value={editEndDate}
+          onChange={(e) => handleFieldChange('endDate', e.target.value)}
+          onBlur={() => setEditingField(null)}
+          className={styles.inlineInput}
+          autoFocus
+        />
+      )
+    }
+    if (!isMultiDay) {
+      return <></>
+    }
+    const endDateValue = editEndDate || format(parseISO(event.originalEnd || event.end), 'yyyy-MM-dd')
+    return <span onClick={() => startEditing('endDate')}>{format(parseISO(endDateValue), dateFormatPattern)}</span>
   }
 
   const renderTime = (): JSX.Element => {
@@ -553,6 +591,30 @@ export function EventPreviewPopup({
               </span>
             )}
           </div>
+
+          {isMultiDay && (
+            <div className={styles.field} onClick={() => startEditing('endDate')}>
+              <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <rect
+                  x="2"
+                  y="3"
+                  width="10"
+                  height="9"
+                  rx="1"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                />
+                <path d="M2 6H12" stroke="currentColor" strokeWidth="1.2" />
+                <path
+                  d="M5 1V3M9 1V3"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              {renderEndDate()}
+            </div>
+          )}
 
           <div className={styles.field} onClick={() => startEditing('time')}>
             <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">

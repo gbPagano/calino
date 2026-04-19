@@ -5,7 +5,7 @@ import type { CalDAVAccount, CalDAVCalendar, SyncState } from '../types'
 import { createCalDAVClient } from '../client/CalDAVClient'
 import { testConnection, discoverServerUrl } from '../client/discovery'
 import { saveCredentials, getCredentialById, deleteCredential } from '../client/credentials'
-import { parseICALData } from '../adapter/iCalendarAdapter'
+import { parseICALData, isUUID } from '../adapter/iCalendarAdapter'
 import * as storage from '../sync/accountStorage'
 import { SyncEngine } from '../sync/syncEngine'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -267,6 +267,7 @@ export function useCalDAV(): UseCalDAVReturn {
                 // Collect category names for auto-creation
                 if (parsedEvent.categories) {
                   for (const catName of parsedEvent.categories) {
+                    if (isUUID(catName)) continue
                     const existingCat = storeCategories.find((c) => c.name === catName)
                     if (!existingCat && !newCategoryNames.includes(catName)) {
                       newCategoryNames.push(catName)

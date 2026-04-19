@@ -29,6 +29,8 @@ import {
   isSameDay,
   isBefore,
   startOfDay,
+  endOfDay,
+  addDays,
 } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
@@ -299,9 +301,36 @@ export function CalendarGrid(): JSX.Element {
     monthEvents
       .filter((event) => event.type !== 'task')
       .forEach((event) => {
-        const eventDate = format(parseISO(event.start), 'yyyy-MM-dd')
-        const existing = map.get(eventDate) || []
-        map.set(eventDate, [...existing, event])
+        const eventStart = parseISO(event.start)
+        const eventEnd = parseISO(event.end)
+        const startKey = format(eventStart, 'yyyy-MM-dd')
+        const endKey = format(eventEnd, 'yyyy-MM-dd')
+
+        if (startKey === endKey) {
+          const eventDate = format(eventStart, 'yyyy-MM-dd')
+          const existing = map.get(eventDate) || []
+          map.set(eventDate, [...existing, event])
+        } else {
+          let currentDay = eventStart
+          while (currentDay <= eventEnd) {
+            const dayKey = format(currentDay, 'yyyy-MM-dd')
+            const isFirst = dayKey === startKey
+            const isLast = dayKey === endKey
+            const fragment: CalendarEvent = {
+              ...event,
+              start: isFirst ? event.start : format(startOfDay(currentDay), "yyyy-MM-dd'T'HH:mm:ss"),
+              end: isLast ? event.end : format(endOfDay(currentDay), "yyyy-MM-dd'T'HH:mm:ss"),
+              isFragment: true,
+              isFirstFragment: isFirst,
+              isLastFragment: isLast,
+              originalStart: event.start,
+              originalEnd: event.end,
+            }
+            const dayEvents = map.get(dayKey) || []
+            map.set(dayKey, [...dayEvents, fragment])
+            currentDay = addDays(currentDay, 1)
+          }
+        }
       })
 
     map.forEach((events, dateKey) => {
@@ -548,7 +577,8 @@ function DroppableDay({
             const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
             const shouldCompact =
               isPastWeek ||
-              (compactRecurringEvents && (!!event.rruleString || event.isAllDay || isMultiDay))
+              (compactRecurringEvents && (!!event.rruleString || event.isAllDay || isMultiDay)) ||
+              event.isFragment
             return (
               <EventCard
                 key={event.id}

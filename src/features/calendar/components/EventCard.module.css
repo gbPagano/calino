@@ -78,7 +78,27 @@
 }
 
 .fragmentMiddle {
-  border-left: 2px dashed var(--color-text-secondary);
+  border-left: 1px dashed rgba(0, 0, 0, 0.2) !important;
+  border-radius: 0 !important;
+  padding-left: 4px !important;
+  padding-right: 0 !important;
+  margin-left: -5px;
+  margin-right: -4px;
+  width: calc(100% + 9px);
+}
+
+.fragmentFirst {
+  border-radius: 8px 0 0 8px !important;
+  padding: 3px 0 1px 8px !important;
+  margin-right: -4px !important;
+  border-left: none !important;
+}
+
+.fragmentLast {
+  border-radius: 0 8px 8px 0 !important;
+  padding-left: 8px !important;
+  margin-left: -5px !important;
+  border-left: 1px dashed rgba(0, 0, 0, 0.2) !important;
 }
 
 .dragContent {

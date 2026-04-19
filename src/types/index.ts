@@ -43,6 +43,9 @@ export interface CalendarEvent {
   etag?: string
   excludedDates?: string[]
   recurrenceId?: string
+  isFragment?: boolean
+  isFirstFragment?: boolean
+  isLastFragment?: boolean
 }
 
 export interface Calendar {

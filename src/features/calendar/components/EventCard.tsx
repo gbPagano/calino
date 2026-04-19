@@ -108,6 +108,7 @@ export function EventCard({
   const isTask = event.type === 'task'
   const isRecurring = !!event.recurrence || !!event.rruleString
   const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
+  const isFragmentMiddle = event.isFragment && !event.isFirstFragment
 
   const handleClick = (e: React.MouseEvent): void => {
     let moved = false
@@ -230,7 +231,7 @@ export function EventCard({
         ref={setNodeRef}
         style={style}
         data-event-card
-        className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''}`}
+        className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''}`}
         onContextMenu={handleContextMenu}
         {...bind}
       >

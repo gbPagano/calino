@@ -77,6 +77,10 @@
   padding-right: 12px;
 }
 
+.fragmentMiddle {
+  border-left: 2px dashed var(--color-text-secondary);
+}
+
 .dragContent {
   flex: 1;
   min-height: 0;

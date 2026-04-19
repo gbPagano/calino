@@ -21,8 +21,10 @@ import {
   isToday,
   parseISO,
   getISOWeek,
+  addWeeks,
+  addDays,
 } from 'date-fns'
-import { addWeeks, addDays } from 'date-fns'
+import type { CalendarEvent, Calendar } from '@/types'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
@@ -34,7 +36,6 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { formatTravelDuration } from '@/lib/events'
-import type { CalendarEvent, Calendar } from '@/types'
 import styles from './WeekView.module.css'
 
 const HOURS = eachHourOfInterval({
@@ -203,7 +204,7 @@ export function WeekView(): JSX.Element {
     return eachDayOfInterval({ start: weekStart, end: weekEnd })
   }, [date, firstDayOfWeek])
 
-  const { allDayEventsMap, eventsMap } = useMemo(() => {
+  const { allDayEventsMap, eventsMap, timedFragmentsMap } = useMemo(() => {
     const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
     const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
     const weekEvents = getEventsForDateRange(
@@ -213,17 +214,41 @@ export function WeekView(): JSX.Element {
 
     const allDay = new Map<string, CalendarEvent[]>()
     const timed = new Map<string, CalendarEvent[]>()
+    const timedFragments = new Map<string, CalendarEvent[]>()
 
     for (const event of weekEvents) {
-      const dateKey = format(parseISO(event.start), 'yyyy-MM-dd')
+      const eventStart = parseISO(event.start)
+      const eventEnd = parseISO(event.end)
+      const startKey = format(eventStart, 'yyyy-MM-dd')
+      const endKey = format(eventEnd, 'yyyy-MM-dd')
+
       if (event.type !== 'task' && event.isAllDay) {
-        allDay.set(dateKey, [...(allDay.get(dateKey) || []), event])
+        allDay.set(startKey, [...(allDay.get(startKey) || []), event])
       } else if (event.type !== 'task' ? !event.isAllDay : !event.isAllDay && event.start && event.dueDate) {
-        timed.set(dateKey, [...(timed.get(dateKey) || []), event])
+        if (startKey === endKey) {
+          timed.set(startKey, [...(timed.get(startKey) || []), event])
+        } else {
+          let currentDay = eventStart
+          while (currentDay <= eventEnd) {
+            const dayKey = format(currentDay, 'yyyy-MM-dd')
+            const isFirst = dayKey === startKey
+            const isLast = dayKey === endKey
+            const fragment: CalendarEvent = {
+              ...event,
+              start: isFirst ? event.start : format(startOfDay(currentDay), "yyyy-MM-dd'T'HH:mm:ss"),
+              end: isLast ? event.end : format(endOfDay(currentDay), "yyyy-MM-dd'T'HH:mm:ss"),
+              isFragment: true,
+              isFirstFragment: isFirst,
+              isLastFragment: isLast,
+            }
+            timedFragments.set(dayKey, [...(timedFragments.get(dayKey) || []), fragment])
+            currentDay = addDays(currentDay, 1)
+          }
+        }
       }
     }
 
-    return { allDayEventsMap: allDay, eventsMap: timed }
+    return { allDayEventsMap: allDay, eventsMap: timed, timedFragmentsMap: timedFragments }
   }, [date, firstDayOfWeek, getEventsForDateRange, events])
 
   const tasksMap = useMemo(() => {
@@ -398,8 +423,10 @@ export function WeekView(): JSX.Element {
   const renderDayEvents = (day: Date): JSX.Element[] => {
     const dateKey = format(day, 'yyyy-MM-dd')
     const dayEvents = eventsMap.get(dateKey) || []
+    const dayFragments = timedFragmentsMap.get(dateKey) || []
+    const allDayEvents = [...dayEvents, ...dayFragments]
 
-    const sortedEvents = [...dayEvents].sort(
+    const sortedEvents = [...allDayEvents].sort(
       (a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime()
     )
 

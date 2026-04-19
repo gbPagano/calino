@@ -332,6 +332,19 @@ export function EventCard({
                 icon: <EditIcon />,
               },
               {
+                label: isTask ? 'Convert to event' : 'Convert to task',
+                onClick: async () => {
+                  const newType = isTask ? 'event' : 'task'
+                  updateEvent(event.id, { type: newType })
+                  try {
+                    await updateCalDAVEvent(event.calendarId, { ...event, type: newType })
+                  } catch {
+                    // error handled by useCalDAV
+                  }
+                },
+                icon: <EditIcon />,
+              },
+              {
                 label: 'Duplicate',
                 onClick: () => duplicateEvent(event.id),
                 icon: <DuplicateIcon />,

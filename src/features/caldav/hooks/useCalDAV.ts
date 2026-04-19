@@ -10,6 +10,7 @@ import * as storage from '../sync/accountStorage'
 import { SyncEngine } from '../sync/syncEngine'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import { EVENT_COLORS } from '@/store/settingsStore'
 import {
   selectAddEvent,
   selectUpdateEvent,
@@ -19,6 +20,8 @@ import {
   selectUpdateCalendar,
   selectCalendars,
   selectEvents,
+  selectAddCategory,
+  selectCategories,
 } from '@/store/calendarStore'
 
 const selectCalDavDebugMode = (state: { caldavDebugMode: boolean }) => state.caldavDebugMode
@@ -61,6 +64,8 @@ export function useCalDAV(): UseCalDAVReturn {
   const storeUpdateCalendar = useCalendarStore(selectUpdateCalendar)
   const storeCalendars = useCalendarStore(selectCalendars)
   const existingEvents = useCalendarStore(selectEvents)
+  const storeAddCategory = useCalendarStore(selectAddCategory)
+  const storeCategories = useCalendarStore(selectCategories)
   const caldavDebugMode = useSettingsStore(selectCalDavDebugMode)
   const conflictResolution = useSettingsStore(selectConflictResolution)
 
@@ -250,6 +255,7 @@ export function useCalDAV(): UseCalDAVReturn {
           // Get events that belong to this calendar
           const calendarEvents = existingEvents.filter((e) => e.calendarId === cal.id)
           const serverEventIds = new Set<string>()
+          const newCategoryNames: string[] = []
 
           for (const eventData of fetchedEvents) {
             if (eventData.data) {
@@ -257,6 +263,17 @@ export function useCalDAV(): UseCalDAVReturn {
 
               for (const parsedEvent of parsedEvents) {
                 serverEventIds.add(parsedEvent.id)
+
+                // Collect category names for auto-creation
+                if (parsedEvent.categories) {
+                  for (const catName of parsedEvent.categories) {
+                    const existingCat = storeCategories.find((c) => c.name === catName)
+                    if (!existingCat && !newCategoryNames.includes(catName)) {
+                      newCategoryNames.push(catName)
+                    }
+                  }
+                }
+
                 const existingIndex = calendarEvents.findIndex((e) => e.id === parsedEvent.id)
                 const existingEvent = existingIndex >= 0 ? calendarEvents[existingIndex] : null
 
@@ -282,6 +299,15 @@ export function useCalDAV(): UseCalDAVReturn {
                 }
               }
             }
+          }
+
+          // Auto-create categories from server
+          for (const catName of newCategoryNames) {
+            storeAddCategory({
+              id: crypto.randomUUID(),
+              name: catName,
+              color: EVENT_COLORS[Math.floor(Math.random() * EVENT_COLORS.length)],
+            })
           }
 
           // Delete events that exist locally but not on server

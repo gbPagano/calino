@@ -1,7 +1,7 @@
 import type { CalendarEvent } from '@/types'
 import type { SyncResult, ConflictResolution } from '../types'
 import { CalDAVClient } from '../client/CalDAVClient'
-import { eventToICAL, parseICALData, taskToICAL } from '../adapter/iCalendarAdapter'
+import { eventToICAL, parseICALData, taskToICAL, isUUID } from '../adapter/iCalendarAdapter'
 import * as storage from './accountStorage'
 
 export class SyncEngine {
@@ -17,7 +17,7 @@ export class SyncEngine {
     start: string,
     end: string,
     existingEvents: CalendarEvent[]
-  ): Promise<{ events: CalendarEvent[]; result: SyncResult }> {
+  ): Promise<{ events: CalendarEvent[]; result: SyncResult; categoryNames: string[] }> {
     const calendar = storage.getAllCalendars().find((c) => c.id === this.calendarId)
 
     if (!calendar) {
@@ -27,6 +27,7 @@ export class SyncEngine {
     const serverEventsRaw = await this.client.fetchEvents(calendar.url, start, end)
 
     const parsedEvents: CalendarEvent[] = []
+    const allCategoryNames = new Set<string>()
     for (const serverEvent of serverEventsRaw) {
       const events = parseICALData(serverEvent.data, this.calendarId)
       for (const event of events) {
@@ -34,6 +35,13 @@ export class SyncEngine {
           ...event,
           etag: serverEvent.etag,
         })
+        if (event.categories) {
+          for (const cat of event.categories) {
+            if (!isUUID(cat)) {
+              allCategoryNames.add(cat)
+            }
+          }
+        }
       }
     }
 
@@ -75,6 +83,7 @@ export class SyncEngine {
     return {
       events: parsedEvents,
       result,
+      categoryNames: Array.from(allCategoryNames),
     }
   }
 

@@ -16,6 +16,8 @@ export const selectDeleteCalendar = (state: CalendarStore) => state.deleteCalend
 export const selectUpdateCalendar = (state: CalendarStore) => state.updateCalendar
 export const selectCalendars = (state: CalendarStore) => state.calendars
 export const selectEvents = (state: CalendarStore) => state.events
+export const selectAddCategory = (state: CalendarStore) => state.addCategory
+export const selectCategories = (state: CalendarStore) => state.categories
 export const selectSetCurrentView = (state: CalendarStore) => state.setCurrentView
 export const selectSetCurrentDate = (state: CalendarStore) => state.setCurrentDate
 

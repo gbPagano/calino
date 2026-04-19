@@ -108,7 +108,9 @@ export function EventCard({
   const isTask = event.type === 'task'
   const isRecurring = !!event.recurrence || !!event.rruleString
   const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
-  const isFragmentMiddle = event.isFragment && !event.isFirstFragment
+  const isFragmentMiddle = event.isFragment && !event.isFirstFragment && !event.isLastFragment
+  const isFragmentFirst = event.isFragment && event.isFirstFragment
+  const isFragmentLast = event.isFragment && event.isLastFragment
 
   const handleClick = (e: React.MouseEvent): void => {
     let moved = false
@@ -276,7 +278,13 @@ export function EventCard({
               <div className={styles.title}>{event.title}</div>
               {!compact && !event.isAllDay && (
                 <div className={styles.time}>
-                  {formatTime(event.start)} - {formatTime(event.end)}
+                  {isFragmentFirst
+                    ? `${formatTime(event.start)} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`
+                    : isFragmentMiddle
+                    ? `${format(parseISO(event.originalStart || event.start), 'MMM d')} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`
+                    : isFragmentLast
+                    ? `${format(parseISO(event.originalStart || event.start), 'MMM d')} - ${formatTime(event.end)}`
+                    : `${formatTime(event.start)} - ${formatTime(event.end)}`}
                 </div>
               )}
               {event.isAllDay && <div className={styles.time}>All day</div>}

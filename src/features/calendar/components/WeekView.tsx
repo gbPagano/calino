@@ -240,6 +240,8 @@ export function WeekView(): JSX.Element {
               isFragment: true,
               isFirstFragment: isFirst,
               isLastFragment: isLast,
+              originalStart: event.start,
+              originalEnd: event.end,
             }
             timedFragments.set(dayKey, [...(timedFragments.get(dayKey) || []), fragment])
             currentDay = addDays(currentDay, 1)

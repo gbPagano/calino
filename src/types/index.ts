@@ -46,6 +46,8 @@ export interface CalendarEvent {
   isFragment?: boolean
   isFirstFragment?: boolean
   isLastFragment?: boolean
+  originalStart?: string
+  originalEnd?: string
 }
 
 export interface Calendar {

@@ -109,72 +109,74 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
           {upcomingTasks.length === 0 ? (
             <div className={styles.tasksEmpty}>No upcoming tasks</div>
           ) : (
-            <AnimatePresence mode="popLayout">
-              {upcomingTasks.map((task) => (
-                <motion.div
-                  key={task.id}
-                  layout
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
-                  className={`${styles.taskRow} ${completingTaskId === task.id ? styles.taskCompleting : ''}`}
-                  onMouseEnter={(e) => {
-                    setHoveredTask(task.id)
-                    setTooltipPosition({ x: e.clientX, y: e.clientY })
-                  }}
-                  onMouseLeave={() => {
-                    setHoveredTask(null)
-                    setTooltipPosition(null)
-                  }}
-                >
-                  <button
-                    className={styles.taskCheckbox}
-                    onClick={(e) => {
-                      e.stopPropagation()
+            <>
+              <AnimatePresence mode="popLayout">
+                {upcomingTasks.map((task) => (
+                  <motion.div
+                    key={task.id}
+                    layout
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
+                    className={`${styles.taskRow} ${completingTaskId === task.id ? styles.taskCompleting : ''}`}
+                    onMouseEnter={(e) => {
+                      setHoveredTask(task.id)
+                      setTooltipPosition({ x: e.clientX, y: e.clientY })
+                    }}
+                    onMouseLeave={() => {
                       setHoveredTask(null)
                       setTooltipPosition(null)
-                      handleToggleComplete(task)
                     }}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="9" />
-                    </svg>
-                  </button>
-                  <div className={styles.taskContent} onClick={() => handleTaskClick(task)}>
-                    <span className={styles.taskTitle}>{task.title}</span>
-                    {task.dueDate && (
-                      <span
-                        className={`${styles.taskDue} ${
-                          isBefore(startOfDay(parseISO(task.dueDate)), startOfDay(new Date()))
-                            ? styles.taskOverdue
-                            : ''
-                        }`}
-                      >
-                        {isToday(parseISO(task.dueDate)) ? 'Today' : format(parseISO(task.dueDate), 'MMM d')}
-                      </span>
-                    )}
+                    <button
+                      className={styles.taskCheckbox}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setHoveredTask(null)
+                        setTooltipPosition(null)
+                        handleToggleComplete(task)
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="9" />
+                      </svg>
+                    </button>
+                    <div className={styles.taskContent} onClick={() => handleTaskClick(task)}>
+                      <span className={styles.taskTitle}>{task.title}</span>
+                      {task.dueDate && (
+                        <span
+                          className={`${styles.taskDue} ${
+                            isBefore(startOfDay(parseISO(task.dueDate)), startOfDay(new Date()))
+                              ? styles.taskOverdue
+                              : ''
+                          }`}
+                        >
+                          {isToday(parseISO(task.dueDate)) ? 'Today' : format(parseISO(task.dueDate), 'MMM d')}
+                        </span>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              {createPortal(
+                hoveredTaskData ? (
+                  <div
+                    className={styles.taskTooltip}
+                    style={{
+                      position: 'fixed',
+                      left: tooltipPosition!.x + 12,
+                      top: tooltipPosition!.y + 12,
+                    }}
+                  >
+                    {hoveredTaskData.description}
                   </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            {createPortal(
-              hoveredTaskData && hoveredTaskData.description ? (
-                <div
-                  className={styles.taskTooltip}
-                  style={{
-                    position: 'fixed',
-                    left: tooltipPosition!.x + 12,
-                    top: tooltipPosition!.y + 12,
-                  }}
-                >
-                  {hoveredTaskData.description}
-                </div>
-              ) : null,
-              document.body
-            )}
-            <Link to="/tasks" className={styles.tasksViewAll}>
-              View all →
-            </Link>
+                ) : null,
+                document.body
+              )}
+              <Link to="/tasks" className={styles.tasksViewAll}>
+                View all →
+              </Link>
+            </>
           )}
         </div>
       )}

@@ -111,7 +111,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
           {upcomingTasks.length === 0 ? (
             <div className={styles.tasksEmpty}>No upcoming tasks</div>
           ) : (
-            <>
+            <motion.div layout>
               <AnimatePresence>
                 {upcomingTasks.map((task) => (
                   <motion.div
@@ -177,7 +177,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
               <Link to="/tasks" className={styles.tasksViewAll}>
                 View all →
               </Link>
-            </>
+            </motion.div>
           )}
         </div>
       )}

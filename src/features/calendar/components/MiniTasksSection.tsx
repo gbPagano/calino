@@ -123,6 +123,8 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                     className={styles.taskCheckbox}
                     onClick={(e) => {
                       e.stopPropagation()
+                      setHoveredTask(null)
+                      setTooltipPosition(null)
                       handleToggleComplete(task)
                     }}
                   >

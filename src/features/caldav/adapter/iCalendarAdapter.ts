@@ -1,6 +1,11 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { CalendarEvent, RecurrenceRule, Reminder, TaskPriority } from '@/types'
 
+function isUUID(value: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(value)
+}
+
 export function parseICALEvent(iCalData: string, calendarId: string): CalendarEvent[] {
   const events: CalendarEvent[] = []
   const lines = iCalData.split(/\r\n|\n|\r/)
@@ -333,7 +338,10 @@ export function eventToICAL(event: CalendarEvent): string {
   }
 
   if (event.categories && event.categories.length > 0) {
-    lines.push(`CATEGORIES:${event.categories.join(',')}`)
+    const categoryNames = event.categories.filter((c) => !isUUID(c))
+    if (categoryNames.length > 0) {
+      lines.push(`CATEGORIES:${categoryNames.join(',')}`)
+    }
   }
 
   if (event.rruleString) {
@@ -557,7 +565,10 @@ export function taskToICAL(task: CalendarEvent): string {
   }
 
   if (task.categories && task.categories.length > 0) {
-    lines.push(`CATEGORIES:${task.categories.join(',')}`)
+    const categoryNames = task.categories.filter((c) => !isUUID(c))
+    if (categoryNames.length > 0) {
+      lines.push(`CATEGORIES:${categoryNames.join(',')}`)
+    }
   }
 
   if (task.priority) {

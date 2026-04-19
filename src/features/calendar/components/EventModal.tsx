@@ -709,13 +709,13 @@ export function EventModal(): JSX.Element | null {
                       key={cat.id}
                       type="button"
                       className={`${styles.categoryChip} ${
-                        selectedCategories.includes(cat.id) ? styles.categoryChipSelected : ''
+                        selectedCategories.includes(cat.name) ? styles.categoryChipSelected : ''
                       }`}
                       onClick={() => {
-                        if (selectedCategories.includes(cat.id)) {
-                          setSelectedCategories(selectedCategories.filter((id) => id !== cat.id))
+                        if (selectedCategories.includes(cat.name)) {
+                          setSelectedCategories(selectedCategories.filter((name) => name !== cat.name))
                         } else {
-                          setSelectedCategories([...selectedCategories, cat.id])
+                          setSelectedCategories([...selectedCategories, cat.name])
                         }
                       }}
                     >

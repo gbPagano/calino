@@ -259,6 +259,10 @@ export function icalEventToCalendarEvent(
 
   const isAllDay = dtstart ? dtstart.isDate : false
 
+  // DEBUG
+  if (isAllDay) {
+  }
+
   let start = ''
   let end = ''
 
@@ -268,7 +272,13 @@ export function icalEventToCalendarEvent(
 
   if (dtend) {
     if (isAllDay) {
-      end = dtend.toString()
+      const endDateStr = dtend.toString()
+      const endDate = new Date(endDateStr + 'T00:00:00Z')
+      endDate.setUTCDate(endDate.getUTCDate() - 1)
+      const year = endDate.getUTCFullYear()
+      const month = String(endDate.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(endDate.getUTCDate()).padStart(2, '0')
+      end = `${year}-${month}-${day}`
     } else {
       end = icalTimeToISO(dtend)
     }

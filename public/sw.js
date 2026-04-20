@@ -1,5 +1,12 @@
-const CACHE_NAME = 'calino-v4'
-const STATIC_ASSETS = ['/', '/index.html', '/manifest.json', '/appicon.png', '/favicon.ico']
+const CACHE_NAME = 'calino-v5'
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/apple-touch-icon.png',
+  '/favicon-96x96.png',
+  '/vite.svg',
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

@@ -299,8 +299,30 @@ export const useCalendarStore = create<CalendarStore>()(
               const freq = FREQ_MAP[event.recurrence.frequency] || 'WEEKLY'
               let rruleParts = `FREQ=${freq};INTERVAL=${event.recurrence.interval || 1}`
               if (event.recurrence.byWeekday && event.recurrence.byWeekday.length > 0) {
-                const byday = event.recurrence.byWeekday.map((d) => DAY_NUM_TO_CODE[d]).filter(Boolean).join(',')
-                rruleParts += `;BYDAY=${byday}`
+                const bydayParts: string[] = []
+                for (let i = 0; i < event.recurrence.byWeekday.length; i++) {
+                  const dayNum = event.recurrence.byWeekday[i]
+                  const dayCode = DAY_NUM_TO_CODE[dayNum]
+                  if (dayCode) {
+                    const pos = event.recurrence.bySetPos?.[i]
+                    if (pos !== undefined && pos !== 0) {
+                      bydayParts.push(`${pos}${dayCode}`)
+                    } else {
+                      bydayParts.push(dayCode)
+                    }
+                  }
+                }
+                if (bydayParts.length > 0) {
+                  rruleParts += `;BYDAY=${bydayParts.join(',')}`
+                }
+              }
+              if (event.recurrence.endDate) {
+                const endDate = parseISO(event.recurrence.endDate)
+                const untilStr = endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+                rruleParts += `;UNTIL=${untilStr}`
+              }
+              if (event.recurrence.count) {
+                rruleParts += `;COUNT=${event.recurrence.count}`
               }
               rruleString = rruleParts
             }
@@ -330,7 +352,7 @@ export const useCalendarStore = create<CalendarStore>()(
                 const occEndUtc = new Date(occEnd.getTime() + occOffset)
 
                 const occDateStr = occUtc.toISOString().split('T')[0]
-                if (excludedDates.includes(occDateStr)) {
+                if (excludedDates.some(d => d.startsWith(occDateStr))) {
                   continue
                 }
 

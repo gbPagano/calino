@@ -1,4 +1,4 @@
-export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly'
+export type RecurrenceFrequency = 'secondly' | 'minutely' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly'
 
 import type { Category, AutoCategoryRule } from './categories'
 
@@ -10,6 +10,7 @@ export interface RecurrenceRule {
   byWeekday?: number[]
   byMonthDay?: number[]
   byMonth?: number[]
+  bySetPos?: number[]
 }
 
 export interface Reminder {

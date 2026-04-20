@@ -12,6 +12,9 @@ export const DAY_NUM_TO_CODE: Record<number, string> = {
 }
 
 export const FREQ_MAP: Record<string, string> = {
+  secondly: 'SECONDLY',
+  minutely: 'MINUTELY',
+  hourly: 'HOURLY',
   daily: 'DAILY',
   weekly: 'WEEKLY',
   monthly: 'MONTHLY',

@@ -7,7 +7,7 @@ export function parseAppleTravelDuration(vevent: ICAL.Component): number | undef
   const prop = vevent.getFirstProperty('x-apple-travel-duration')
   if (prop) {
     const value = prop.getFirstValue() as string
-    return parseTravelDuration(value)
+    return parseTravelDuration(value) ?? undefined
   }
   return undefined
 }
@@ -319,7 +319,12 @@ export function icalEventToCalendarEvent(
 
   const travelDuration = parseAppleTravelDuration(vevent)
 
-  const transparency = event.transparency === 'transparent' ? 'transparent' : 'opaque'
+  const transpProp = vevent.getFirstProperty('transp')
+  let transparency: 'transparent' | 'opaque' = 'opaque'
+  if (transpProp) {
+    const transpValue = transpProp.getFirstValue() as string
+    transparency = transpValue === 'TRANSPARENT' ? 'transparent' : 'opaque'
+  }
 
   let recurrenceId: string | undefined
   const recIdProp = vevent.getFirstProperty('recurrence-id')
@@ -419,7 +424,7 @@ function createAllDayDate(year: number, month: number, day: number): ICAL.Time {
     second: 0,
     isDate: true,
     timezone: 'UTC'
-  })
+  }, ICAL.Timezone.utcTimezone)
   return time
 }
 

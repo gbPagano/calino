@@ -17,7 +17,14 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
     return []
   }
 
-  const jCal = ICAL.parse(iCalData)
+  let jCal: string | any[]
+  try {
+    jCal = ICAL.parse(iCalData)
+  } catch (e) {
+    console.error('ICAL.parse failed:', e)
+    return []
+  }
+
   const comp = new ICAL.Component(jCal)
 
   const vtimezones = comp.getAllSubcomponents('vtimezone')
@@ -35,22 +42,27 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
   const events: CalendarEvent[] = []
 
   for (const vevent of vevents) {
-    const event = icalEventToCalendarEvent(vevent, calendarId)
-    const uid = event.id
+    try {
+      const event = icalEventToCalendarEvent(vevent, calendarId)
+      const uid = event.id
 
-    if (uid) {
-      const existingIndex = uidToIndex.get(uid)
-      if (existingIndex !== undefined) {
-        const existing = events[existingIndex]
-        if (!existing.rruleString && event.rruleString) {
-          events[existingIndex] = event
+      if (uid) {
+        const existingIndex = uidToIndex.get(uid)
+        if (existingIndex !== undefined) {
+          const existing = events[existingIndex]
+          if (!existing.rruleString && event.rruleString) {
+            events[existingIndex] = event
+          }
+        } else {
+          uidToIndex.set(uid, events.length)
+          events.push(event)
         }
       } else {
-        uidToIndex.set(uid, events.length)
         events.push(event)
       }
-    } else {
-      events.push(event)
+    } catch (e) {
+      console.error('Failed to parse vevent:', e)
+      continue
     }
   }
 
@@ -62,11 +74,27 @@ export function parseICALTask(iCalData: string, calendarId: string): CalendarEve
     return []
   }
 
-  const jCal = ICAL.parse(iCalData)
+  let jCal: string | any[]
+  try {
+    jCal = ICAL.parse(iCalData)
+  } catch (e) {
+    console.error('ICAL.parse failed for tasks:', e)
+    return []
+  }
+
   const comp = new ICAL.Component(jCal)
 
   const vtodos = comp.getAllSubcomponents('vtodo')
-  return vtodos.map(vtodo => icalVtodoToCalendarEvent(vtodo, calendarId))
+  const tasks: CalendarEvent[] = []
+  for (const vtodo of vtodos) {
+    try {
+      tasks.push(icalVtodoToCalendarEvent(vtodo, calendarId))
+    } catch (e) {
+      console.error('Failed to parse vtodo:', e)
+      continue
+    }
+  }
+  return tasks
 }
 
 export function parseICALData(iCalData: string, calendarId: string): CalendarEvent[] {

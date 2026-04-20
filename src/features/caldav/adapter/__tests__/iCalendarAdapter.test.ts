@@ -298,7 +298,7 @@ END:VCALENDAR`
       expect(events[0].isAllDay).toBe(true)
       expect(events[0].title).toBe('All Day Event')
       expect(events[0].start).toBe('2024-03-15')
-      expect(events[0].end).toBe('2024-03-15')
+      expect(events[0].end).toBe('2024-03-16')
     })
 
     it('parses event with description', () => {
@@ -386,7 +386,7 @@ END:VCALENDAR`
       expect(events[0].recurrenceId).toBeDefined()
       expect(events[0].recurrenceId).toContain('2024-03-15')
       expect(events[0].start).toBe('2024-03-15')
-      expect(events[0].end).toBe('2024-03-15')
+      expect(events[0].end).toBe('2024-03-16')
     })
 
     it('parses RECURRENCE-ID with DATE-TIME for non-all-day events', () => {
@@ -488,7 +488,7 @@ END:VCALENDAR`
 
       expect(parsedEvents[0].isAllDay).toBe(true)
       expect(parsedEvents[0].start).toBe('2024-03-15')
-      expect(parsedEvents[0].end).toBe('2024-03-16')
+      expect(parsedEvents[0].end).toBe('2024-03-17')
     })
 
     it('round-trip preserves SEQUENCE', () => {

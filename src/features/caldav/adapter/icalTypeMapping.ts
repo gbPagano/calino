@@ -268,13 +268,7 @@ export function icalEventToCalendarEvent(
 
   if (dtend) {
     if (isAllDay) {
-      const endDateStr = dtend.toString()
-      const endDate = new Date(endDateStr + 'T00:00:00Z')
-      endDate.setUTCDate(endDate.getUTCDate() - 1)
-      const year = endDate.getUTCFullYear()
-      const month = String(endDate.getUTCMonth() + 1).padStart(2, '0')
-      const day = String(endDate.getUTCDate()).padStart(2, '0')
-      end = `${year}-${month}-${day}`
+      end = dtend.toString()
     } else {
       end = icalTimeToISO(dtend)
     }

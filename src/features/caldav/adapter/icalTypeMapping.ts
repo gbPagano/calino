@@ -305,9 +305,23 @@ export function icalEventToCalendarEvent(
   for (const valarm of valarms) {
     const triggerProp = valarm.getFirstProperty('trigger')
     if (triggerProp) {
-      const triggerValue = triggerProp.getFirstValue() as string
-      const minutes = parseTriggerDuration(triggerValue)
-      if (minutes !== null) {
+      const triggerValue = triggerProp.getFirstValue()
+      let minutes: number | null = null
+
+      if (typeof triggerValue === 'string') {
+        minutes = parseTriggerDuration(triggerValue)
+      } else if (triggerValue instanceof ICAL.Time) {
+        const isoStr = icalTimeToISO(triggerValue)
+        if (isoStr) {
+          const triggerDate = new Date(isoStr)
+          const now = new Date()
+          const diffMs = now.getTime() - triggerDate.getTime()
+          minutes = Math.round(diffMs / 60000)
+          if (minutes < 0) minutes = Math.abs(minutes)
+        }
+      }
+
+      if (minutes !== null && minutes > 0) {
         reminders.push({
           id: uuidv4(),
           minutesBefore: minutes,

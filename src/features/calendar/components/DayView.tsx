@@ -93,7 +93,7 @@ export function DayView(): JSX.Element {
   )
   const bodyRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(0.7)
+  const [scale, setScale] = useState(1)
   const hourHeight = BASE_hourHeight * scale
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export function DayView(): JSX.Element {
     onSwipe: handleSwipe,
     onPinch: handlePinch,
     swipeThreshold: 50,
-    pinchScaleRange: { min: 0.7, max: 1.5 },
+    pinchScaleRange: { min: 1, max: 1.5 },
   })
 
   const sensors = useSensors(
@@ -146,7 +146,7 @@ export function DayView(): JSX.Element {
       if (e.ctrlKey) {
         e.preventDefault()
         const delta = e.deltaY > 0 ? -0.1 : 0.1
-        setScale((s) => Math.min(Math.max(s + delta, 0.7), 1.5))
+        setScale((s) => Math.min(Math.max(s + delta, 1), 1.5))
       }
     }
 
@@ -244,7 +244,8 @@ export function DayView(): JSX.Element {
       const eventStart = parseISO(firstEvent.start)
       const hours = eventStart.getHours()
       const minutes = eventStart.getMinutes()
-      const scrollTop = (hours * 60 + minutes) * (hourHeight / 60) - 60
+      const fraction = (hours * 60 + minutes) / (24 * 60)
+      const scrollTop = fraction * bodyRef.current.scrollHeight - 60
 
       bodyRef.current.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' })
       hasScrolledForDate.current = true
@@ -285,7 +286,7 @@ export function DayView(): JSX.Element {
       const target = e.currentTarget as HTMLDivElement
       const rect = target.getBoundingClientRect()
       const y = e.clientY - rect.top
-      const totalMinutes = (y / hourHeight) * 60
+      const totalMinutes = (y / rect.height) * 24 * 60
       const snappedMinutes = Math.round(totalMinutes / MINUTE_SNAP_INTERVAL) * MINUTE_SNAP_INTERVAL
       const hours = Math.floor(snappedMinutes / 60)
       const mins = snappedMinutes % 60
@@ -330,13 +331,13 @@ export function DayView(): JSX.Element {
     const end = parseISO(dragEnd)
     const startMinutes = start.getHours() * 60 + start.getMinutes()
     const endMinutes = end.getHours() * 60 + end.getMinutes()
-    const top = startMinutes * (hourHeight / 60)
-    const height = (endMinutes - startMinutes) * (hourHeight / 60)
+    const topPct = (startMinutes / (24 * 60)) * 100
+    const heightPct = ((endMinutes - startMinutes) / (24 * 60)) * 100
 
     return (
       <div
         className={styles.selectionOverlay}
-        style={{ top: `${top}px`, height: `${Math.max(height, 20)}px` }}
+        style={{ top: `${topPct}%`, height: `${Math.max(heightPct, 0.5)}%` }}
       />
     )
   }, [isDraggingToCreate, dragStart, dragEnd])
@@ -403,7 +404,7 @@ export function DayView(): JSX.Element {
       const startHour = start.getHours()
       const startMinutes = start.getMinutes()
       const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
-      const height = Math.max((durationMinutes / 60) * hourHeight, 20)
+      const heightPct = Math.max((durationMinutes / (24 * 60)) * 100, 1.4)
 
       const calendar = calendars.find((c: Calendar) => c.id === event.calendarId)
       const eventColor = event.color || calendar?.color || DEFAULT_CALENDAR_COLOR
@@ -417,8 +418,8 @@ export function DayView(): JSX.Element {
           key={event.id}
           className={`${styles.eventPositioned} ${styles.eventTransparent}`}
           style={{
-            top: `${(startHour * 60 + startMinutes) * (hourHeight / 60)}px`,
-            height: `${height}px`,
+            top: `${((startHour * 60 + startMinutes) / (24 * 60)) * 100}%`,
+            height: `${heightPct}%`,
             left: `${leftPercent}%`,
             width: `${widthPercent}%`,
             backgroundColor: `${eventColor}20`,
@@ -478,7 +479,7 @@ export function DayView(): JSX.Element {
       const startMinutes = start.getMinutes()
 
       const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
-      const height = Math.max((durationMinutes / 60) * hourHeight, 20)
+      const heightPct = Math.max((durationMinutes / (24 * 60)) * 100, 1.4)
 
       const gap = 4
       const leftPercent = (column / totalColumns) * 100 + gap / 2
@@ -492,15 +493,15 @@ export function DayView(): JSX.Element {
         const travelStartHour = travelStart.getHours()
         const travelStartMinutes = travelStart.getMinutes()
         const travelDurationMinutes = event.travelDuration
-        const travelHeight = Math.max((travelDurationMinutes / 60) * hourHeight, 16)
+        const travelHeightPct = Math.max((travelDurationMinutes / (24 * 60)) * 100, 1.1)
 
         elements.push(
           <div
             key={`${event.id}-travel`}
             className={styles.travelBar}
             style={{
-              top: `${(travelStartHour * 60 + travelStartMinutes) * (hourHeight / 60)}px`,
-              height: `${travelHeight}px`,
+              top: `${((travelStartHour * 60 + travelStartMinutes) / (24 * 60)) * 100}%`,
+              height: `${travelHeightPct}%`,
               left: `${leftPercent}%`,
               width: `${widthPercent}%`,
               backgroundColor: `${eventColor}15`,
@@ -519,8 +520,8 @@ export function DayView(): JSX.Element {
           key={event.id}
           className={styles.eventPositioned}
           style={{
-            top: `${(startHour * 60 + startMinutes) * (hourHeight / 60)}px`,
-            height: `${height}px`,
+            top: `${((startHour * 60 + startMinutes) / (24 * 60)) * 100}%`,
+            height: `${heightPct}%`,
             left: `${leftPercent}%`,
             width: `${widthPercent}%`,
             zIndex: event.isFragment ? 1 : 2,
@@ -546,9 +547,11 @@ export function DayView(): JSX.Element {
         onContextMenu={(e) => {
           e.preventDefault()
           openMenu('dayview')
-          const rect = e.currentTarget.getBoundingClientRect()
-          const y = e.clientY - rect.top
-          const hourClicked = Math.max(0, Math.min(23, Math.floor(y / (60 * scale))))
+          const bodyRect = bodyRef.current?.getBoundingClientRect()
+          const bodyTop = bodyRect?.top ?? e.currentTarget.getBoundingClientRect().top
+          const bodyHeight = bodyRect?.height ?? 24 * 60 * scale
+          const y = e.clientY - bodyTop
+          const hourClicked = Math.max(0, Math.min(23, Math.floor((y / bodyHeight) * 24)))
           setContextMenu({ x: e.clientX, y: e.clientY, hour: hourClicked })
         }}
         {...bind}

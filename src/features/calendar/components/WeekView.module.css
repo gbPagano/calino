@@ -15,6 +15,7 @@
   z-index: 10;
   transition: box-shadow 0.2s ease;
   flex-shrink: 0;
+  padding-right: var(--scrollbar-width, 0px);
 }
 
 .headerDays {
@@ -72,7 +73,6 @@
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--color-border-subtle, var(--color-border));
-  background: var(--color-bg-tertiary);
   min-width: 45px;
   max-width: 45px;
 }
@@ -164,7 +164,7 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background: var(--color-bg-primary);
+  background: linear-gradient(to right, var(--color-bg-tertiary) 45px, var(--color-bg-primary) 45px);
 }
 
 .daysContainer {
@@ -175,7 +175,8 @@
 
 .dayColumn {
   position: relative;
-  height: calc(24 * var(--hour-height, 60px));
+  min-height: calc(24 * var(--hour-height, 60px));
+  height: 100%;
   border-right: 1px solid var(--color-border);
 }
 
@@ -186,12 +187,12 @@
 .hourCells {
   display: flex;
   flex-direction: column;
-  height: calc(24 * var(--hour-height, 60px));
+  min-height: 100%;
 }
 
 .cell {
   min-height: var(--hour-height, 60px);
-  height: var(--hour-height, 60px);
+  flex: 1;
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   transition: background 0.15s ease;
@@ -212,7 +213,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: calc(24 * var(--hour-height, 60px));
+  bottom: 0;
   pointer-events: none;
 }
 
@@ -426,7 +427,8 @@
   .dayColumn {
     width: 28vw;
     min-width: 28vw;
-    height: calc(24 * var(--hour-height, 60px));
+    min-height: calc(24 * var(--hour-height, 60px));
+    height: 100%;
     position: relative;
     border-right: 1px solid var(--color-border);
   }

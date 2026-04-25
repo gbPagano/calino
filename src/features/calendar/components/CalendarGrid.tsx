@@ -88,12 +88,12 @@ export function CalendarGrid(): JSX.Element {
       setScale(scaleValue)
     },
     swipeThreshold: 50,
-    pinchScaleRange: { min: 0.7, max: 1.5 },
+    pinchScaleRange: { min: 1, max: 1.5 },
   })
 
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null)
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null)
-  const [scale, setScale] = useState(0.7)
+  const [scale, setScale] = useState(1)
   const isMobile = useIsMobile()
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollCooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -166,7 +166,7 @@ export function CalendarGrid(): JSX.Element {
       if (e.ctrlKey) {
         e.preventDefault()
         const delta = e.deltaY > 0 ? -0.1 : 0.1
-        setScale((s) => Math.min(Math.max(s + delta, 0.7), 1.5))
+        setScale((s) => Math.min(Math.max(s + delta, 1), 1.5))
       }
     }
 

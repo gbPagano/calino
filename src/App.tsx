@@ -37,7 +37,7 @@ function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: Vie
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.15 }}
-        style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+        style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
       >
         <Suspense fallback={<div className="viewLoading" />}>
           {children}

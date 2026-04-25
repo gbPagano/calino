@@ -94,7 +94,7 @@ export function WeekView(): JSX.Element {
   const [dragStart, setDragStart] = useState<string | null>(null)
   const [dragEnd, setDragEnd] = useState<string | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [scale, setScale] = useState(0.7)
+  const [scale, setScale] = useState(1)
   const containerRef = useRef<HTMLDivElement>(null)
   const headerScrollRef = useRef<HTMLDivElement>(null)
   const bodyScrollRef = useRef<HTMLDivElement>(null)
@@ -134,7 +134,7 @@ export function WeekView(): JSX.Element {
     onSwipe: handleSwipe,
     onPinch: handlePinch,
     swipeThreshold: 50,
-    pinchScaleRange: { min: 0.7, max: 1.5 },
+    pinchScaleRange: { min: 1, max: 1.5 },
   })
 
   const sensors = useSensors(
@@ -150,7 +150,7 @@ export function WeekView(): JSX.Element {
       if (e.ctrlKey) {
         e.preventDefault()
         const delta = e.deltaY > 0 ? -0.1 : 0.1
-        setScale((s) => Math.min(Math.max(s + delta, 0.7), 1.5))
+        setScale((s) => Math.min(Math.max(s + delta, 1), 1.5))
       }
     }
 
@@ -302,7 +302,8 @@ export function WeekView(): JSX.Element {
       const eventStart = parseISO(firstEvent.start)
       const hours = eventStart.getHours()
       const minutes = eventStart.getMinutes()
-      const scrollTop = (hours * 60 + minutes) * (hourHeight / 60) - 60
+      const fraction = (hours * 60 + minutes) / (24 * 60)
+      const scrollTop = fraction * bodyRef.current.scrollHeight - 60
 
       bodyRef.current.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' })
       hasScrolledForDate.current = true
@@ -310,6 +311,23 @@ export function WeekView(): JSX.Element {
 
     return () => cancelAnimationFrame(rafId)
   }, [eventsMap, date, isMobile, hourHeight])
+
+  useLayoutEffect(() => {
+    if (isMobile) return
+
+    const measure = () => {
+      const body = bodyRef.current
+      const container = containerRef.current
+      if (!body || !container) return
+      const scrollbarWidth = body.offsetWidth - body.clientWidth
+      container.style.setProperty('--scrollbar-width', `${scrollbarWidth}px`)
+    }
+
+    measure()
+
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [isMobile])
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>): void => {
     setIsScrolled(e.currentTarget.scrollTop > 0)
@@ -349,7 +367,7 @@ export function WeekView(): JSX.Element {
       const day = weekDays[Math.min(Math.max(dayIndex, 0), 6)]
       if (!day) return
 
-      const totalMinutes = (y / hourHeight) * 60
+      const totalMinutes = (y / rect.height) * 24 * 60
       const snappedMinutes = Math.round(totalMinutes / MINUTE_SNAP_INTERVAL) * MINUTE_SNAP_INTERVAL
       const hours = Math.floor(snappedMinutes / 60)
       const mins = snappedMinutes % 60
@@ -357,7 +375,7 @@ export function WeekView(): JSX.Element {
       const endTime = `${format(day, 'yyyy-MM-dd')}T${timeStr}`
       setDragEnd(endTime)
     },
-    [isDraggingToCreate, dragStart, weekDays, hourHeight, daysContainerRef]
+    [isDraggingToCreate, dragStart, weekDays, daysContainerRef]
   )
 
   const handleMouseUp = useCallback((): void => {
@@ -402,8 +420,8 @@ export function WeekView(): JSX.Element {
 
     const startMinutes = start.getHours() * 60 + start.getMinutes()
     const endMinutes = end.getHours() * 60 + end.getMinutes()
-    const top = startMinutes * (hourHeight / 60)
-    const height = (endMinutes - startMinutes) * (hourHeight / 60)
+    const topPct = (startMinutes / (24 * 60)) * 100
+    const heightPct = ((endMinutes - startMinutes) / (24 * 60)) * 100
 
     const dayWidth = 100 / 7
     const left = startDayIndex * dayWidth
@@ -413,8 +431,8 @@ export function WeekView(): JSX.Element {
       <div
         className={styles.selectionOverlay}
         style={{
-          top: `${top}px`,
-          height: `${Math.max(height, 20)}px`,
+          top: `${topPct}%`,
+          height: `${Math.max(heightPct, 0.5)}%`,
           left: `${left}%`,
           width: `${width}%`,
         }}
@@ -443,7 +461,7 @@ export function WeekView(): JSX.Element {
       const startHour = start.getHours()
       const startMinutes = start.getMinutes()
       const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
-      const height = Math.max((durationMinutes / 60) * hourHeight, 20)
+      const heightPct = Math.max((durationMinutes / (24 * 60)) * 100, 1.4)
 
       const calendar = calendars.find((c: Calendar) => c.id === event.calendarId)
       const eventColor = event.color || calendar?.color || DEFAULT_CALENDAR_COLOR
@@ -457,8 +475,8 @@ export function WeekView(): JSX.Element {
           key={event.id}
           className={`${styles.eventPositioned} ${styles.eventTransparent}`}
           style={{
-            top: `${(startHour * 60 + startMinutes) * (hourHeight / 60)}px`,
-            height: `${height}px`,
+            top: `${((startHour * 60 + startMinutes) / (24 * 60)) * 100}%`,
+            height: `${heightPct}%`,
             left: `${leftPercent}%`,
             width: `${widthPercent}%`,
             backgroundColor: `${eventColor}20`,
@@ -517,7 +535,7 @@ export function WeekView(): JSX.Element {
       const startHour = start.getHours()
       const startMinutes = start.getMinutes()
       const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
-      const height = Math.max((durationMinutes / 60) * hourHeight, 20)
+      const heightPct = Math.max((durationMinutes / (24 * 60)) * 100, 1.4)
 
       const gap = 4
       const leftPercent = (column / totalColumns) * 100 + gap / 2
@@ -531,15 +549,15 @@ export function WeekView(): JSX.Element {
         const travelStartHour = travelStart.getHours()
         const travelStartMinutes = travelStart.getMinutes()
         const travelDurationMinutes = event.travelDuration
-        const travelHeight = Math.max((travelDurationMinutes / 60) * hourHeight, 16)
+        const travelHeightPct = Math.max((travelDurationMinutes / (24 * 60)) * 100, 1.1)
 
         elements.push(
           <div
             key={`${event.id}-travel`}
             className={styles.travelBar}
             style={{
-              top: `${(travelStartHour * 60 + travelStartMinutes) * (hourHeight / 60)}px`,
-              height: `${travelHeight}px`,
+              top: `${((travelStartHour * 60 + travelStartMinutes) / (24 * 60)) * 100}%`,
+              height: `${travelHeightPct}%`,
               left: `${leftPercent}%`,
               width: `${widthPercent}%`,
               backgroundColor: `${eventColor}15`,
@@ -558,8 +576,8 @@ export function WeekView(): JSX.Element {
           key={event.id}
           className={styles.eventPositioned}
           style={{
-            top: `${(startHour * 60 + startMinutes) * (hourHeight / 60)}px`,
-            height: `${height}px`,
+            top: `${((startHour * 60 + startMinutes) / (24 * 60)) * 100}%`,
+            height: `${heightPct}%`,
             left: `${leftPercent}%`,
             width: `${widthPercent}%`,
           }}
@@ -660,7 +678,7 @@ export function WeekView(): JSX.Element {
                   openMenu('weekview')
                   const rect = e.currentTarget.getBoundingClientRect()
                   const y = e.clientY - rect.top
-                  const hourClicked = Math.max(0, Math.min(23, Math.floor(y / hourHeight)))
+                  const hourClicked = Math.max(0, Math.min(23, Math.floor((y / rect.height) * 24)))
                   setContextMenu({ x: e.clientX, y: e.clientY, day, hour: hourClicked })
                 }}
               >
@@ -761,7 +779,7 @@ export function WeekView(): JSX.Element {
                     openMenu('weekview')
                     const rect = e.currentTarget.getBoundingClientRect()
                     const y = e.clientY - rect.top
-                    const hourClicked = Math.max(0, Math.min(23, Math.floor(y / hourHeight)))
+                    const hourClicked = Math.max(0, Math.min(23, Math.floor((y / rect.height) * 24)))
                     setContextMenu({ x: e.clientX, y: e.clientY, day, hour: hourClicked })
                   }}
                 >

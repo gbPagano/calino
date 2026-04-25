@@ -43,7 +43,7 @@ export function DataSettings(): JSX.Element {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `goodcal-export-${new Date().toISOString().split('T')[0]}.json`
+      a.download = `calino-export-${new Date().toISOString().split('T')[0]}.json`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -84,7 +84,7 @@ export function DataSettings(): JSX.Element {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `goodcal-export-${new Date().toISOString().split('T')[0]}.ics`
+      a.download = `calino-export-${new Date().toISOString().split('T')[0]}.ics`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -101,7 +101,7 @@ export function DataSettings(): JSX.Element {
     const exportData = {
       version: 1,
       exportedAt: new Date().toISOString(),
-      type: 'goodcal-settings',
+      type: 'calino-settings',
       settings: {
         timezone: settings.timezone,
         dateFormat: settings.dateFormat,
@@ -144,7 +144,7 @@ export function DataSettings(): JSX.Element {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `goodcal-settings-${new Date().toISOString().split('T')[0]}.json`
+      a.download = `calino-settings-${new Date().toISOString().split('T')[0]}.json`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

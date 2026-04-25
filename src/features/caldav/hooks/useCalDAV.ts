@@ -19,9 +19,7 @@ import {
   selectDeleteCalendar,
   selectUpdateCalendar,
   selectCalendars,
-  selectEvents,
   selectAddCategory,
-  selectCategories,
 } from '@/store/calendarStore'
 
 const selectCalDavDebugMode = (state: { caldavDebugMode: boolean }) => state.caldavDebugMode
@@ -63,9 +61,7 @@ export function useCalDAV(): UseCalDAVReturn {
   const storeDeleteCalendar = useCalendarStore(selectDeleteCalendar)
   const storeUpdateCalendar = useCalendarStore(selectUpdateCalendar)
   const storeCalendars = useCalendarStore(selectCalendars)
-  const existingEvents = useCalendarStore(selectEvents)
   const storeAddCategory = useCalendarStore(selectAddCategory)
-  const storeCategories = useCalendarStore(selectCategories)
   const caldavDebugMode = useSettingsStore(selectCalDavDebugMode)
   const conflictResolution = useSettingsStore(selectConflictResolution)
 
@@ -170,6 +166,11 @@ export function useCalDAV(): UseCalDAVReturn {
         setAccounts(storage.getAllAccounts())
         setCalendars(storage.getAllCalendars())
 
+        // Read fresh state at call time to avoid stale closures
+        const accountState = useCalendarStore.getState()
+        const accountExistingEvents = accountState.events
+        const accountStoreCategories = accountState.categories
+
         const start = '1970-01-01T00:00:00.000Z'
         const end = addDays(new Date(), 365).toISOString()
         const newCategoryNames: string[] = []
@@ -185,14 +186,14 @@ export function useCalDAV(): UseCalDAVReturn {
                 if (parsedEvent.categories) {
                   for (const catName of parsedEvent.categories) {
                     if (isUUID(catName)) continue
-                    const existingCat = storeCategories.find((c) => c.name === catName)
+                    const existingCat = accountStoreCategories.find((c) => c.name === catName)
                     if (!existingCat && !newCategoryNames.includes(catName)) {
                       newCategoryNames.push(catName)
                     }
                   }
                 }
 
-                const existingIndex = existingEvents.findIndex((e) => e.id === parsedEvent.id)
+                const existingIndex = accountExistingEvents.findIndex((e) => e.id === parsedEvent.id)
 
                 if (existingIndex >= 0) {
                   storeUpdateEvent(parsedEvent.id, parsedEvent)
@@ -228,7 +229,7 @@ export function useCalDAV(): UseCalDAVReturn {
         throw error
       }
     },
-    [existingEvents, storeAddEvent, storeUpdateEvent]
+    [storeAddEvent, storeUpdateEvent]
   )
 
   const removeAccount = useCallback(async (accountId: string): Promise<void> => {
@@ -268,11 +269,16 @@ export function useCalDAV(): UseCalDAVReturn {
         const start = '1970-01-01T00:00:00.000Z'
         const end = addDays(new Date(), 365).toISOString()
 
+        // Read fresh state at call time to avoid stale closures
+        const state = useCalendarStore.getState()
+        const currentEvents = state.events
+        const currentCategories = state.categories
+
         for (const cal of accountCalendars) {
           const fetchedEvents = await client.fetchEvents(cal.url, start, end)
 
           // Get events that belong to this calendar
-          const calendarEvents = existingEvents.filter((e) => e.calendarId === cal.id)
+          const calendarEvents = currentEvents.filter((e) => e.calendarId === cal.id)
           const serverEventIds = new Set<string>()
           const newCategoryNames: string[] = []
 
@@ -287,7 +293,7 @@ export function useCalDAV(): UseCalDAVReturn {
                 if (parsedEvent.categories) {
                   for (const catName of parsedEvent.categories) {
                     if (isUUID(catName)) continue
-                    const existingCat = storeCategories.find((c) => c.name === catName)
+                    const existingCat = currentCategories.find((c) => c.name === catName)
                     if (!existingCat && !newCategoryNames.includes(catName)) {
                       newCategoryNames.push(catName)
                     }
@@ -356,7 +362,7 @@ export function useCalDAV(): UseCalDAVReturn {
         throw error
       }
     },
-    [existingEvents, conflictResolution]
+    [conflictResolution]
   )
 
   const syncAll = useCallback(async (): Promise<void> => {

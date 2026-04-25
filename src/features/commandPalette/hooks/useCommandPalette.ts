@@ -33,9 +33,13 @@ export interface ExecuteResult {
 
 export function useCommandPalette({ isOpen }: UseCommandPaletteProps) {
   const navigate = useNavigate()
-  const [query, setQuery] = useState('')
+  const [query, setQueryState] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
 
+  const setQuery = useCallback((q: string) => {
+    setQueryState(q)
+    setSelectedIndex(0)
+  }, [])
   const setCurrentView = useCalendarStore(selectSetCurrentView)
   const setCurrentDate = useCalendarStore(selectSetCurrentDate)
   const openModal = useCalendarStore(selectOpenModal)
@@ -189,8 +193,6 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps) {
     [commands]
   )
 
-  // React Compiler cannot optimize this due to function dependencies
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const results = useMemo((): CommandResult[] => {
     if (!query.trim()) {
       const defaultCommands = filterCommands('')
@@ -358,17 +360,12 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps) {
     },
     [results.length, executeSelected]
   )
-
   useEffect(() => {
     if (!isOpen) {
-      setQuery('')
+      setQueryState('')
       setSelectedIndex(0)
     }
   }, [isOpen])
-
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [query])
 
   return {
     query,

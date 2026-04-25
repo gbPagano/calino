@@ -8,10 +8,11 @@
 .appContent {
   display: flex;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px) { /* sync with config.ts MOBILE_BREAKPOINT */
   .appContent {
     flex-direction: column;
   }
@@ -28,6 +29,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   overflow: hidden;
 }
 

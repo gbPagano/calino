@@ -1,25 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { JSX } from 'react'
 import { useSettingsStore, THEME_MODE_OPTIONS } from '@/store/settingsStore'
 import { useTheme } from '@/components/ThemeContext'
 import type { ThemeMode } from '@/types'
-import type { ThemeInfo } from '@/lib/themes'
+
 import styles from './Settings.module.css'
 
 export function ThemeSettings(): JSX.Element {
   const { themeMode, lightTheme, darkTheme, updateSettings } = useSettingsStore()
   const { loadedThemes, refetchThemes } = useTheme()
-  const [lightThemes, setLightThemes] = useState<ThemeInfo[]>([])
-  const [darkThemes, setDarkThemes] = useState<ThemeInfo[]>([])
+  const lightThemes = useMemo(() => loadedThemes.filter((t) => !t.isDark), [loadedThemes])
+  const darkThemes = useMemo(() => loadedThemes.filter((t) => t.isDark), [loadedThemes])
 
   useEffect(() => {
     refetchThemes()
   }, [refetchThemes])
-
-  useEffect(() => {
-    setLightThemes(loadedThemes.filter((t) => !t.isDark))
-    setDarkThemes(loadedThemes.filter((t) => t.isDark))
-  }, [loadedThemes])
 
   const handleThemeModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     updateSettings({ themeMode: e.target.value as ThemeMode })

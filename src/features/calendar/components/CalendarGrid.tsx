@@ -267,8 +267,8 @@ export function CalendarGrid(): JSX.Element {
         ...originalEvent,
         ...updates,
       })
-    } catch (error) {
-      console.error('Failed to sync dragged event:', error)
+    } catch {
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'Failed to sync dragged event' } }))
     }
   }
 
@@ -407,7 +407,7 @@ export function CalendarGrid(): JSX.Element {
       const diff = touchStartY.current - touchEndY
 
       if (Math.abs(diff) > 50) {
-        changeMonth(diff > 0 ? 'down' : 'up')
+        changeMonth(diff > 0 ? 'up' : 'down')
       }
 
       touchStartY.current = null

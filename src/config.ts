@@ -23,4 +23,7 @@ export const CALENDAR_COLORS = [
   '#C2185B',
 ] as const
 
+export const MOBILE_BREAKPOINT = 768
+export const TOAST_DURATION_MS = 2000
+
 export type AppConfig = typeof config

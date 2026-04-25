@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { CalDAVCredentials } from '../types';
 
-const CREDENTIALS_KEY = 'goodcal_caldav_credentials';
+const CREDENTIALS_KEY = 'calino_caldav_credentials'
 
 export function saveCredentials(credentials: Omit<CalDAVCredentials, 'id'>): CalDAVCredentials {
   const stored = getAllCredentials();

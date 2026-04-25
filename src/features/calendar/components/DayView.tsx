@@ -382,8 +382,8 @@ export function DayView(): JSX.Element {
         ...originalEvent,
         ...updates,
       })
-    } catch (error) {
-      console.error('Failed to sync dragged event:', error)
+    } catch {
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'Failed to sync dragged event' } }))
     }
   }
 

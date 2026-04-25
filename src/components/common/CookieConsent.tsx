@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import styles from './CookieConsent.module.css'
 
-const COOKIE_KEY = 'goodcal_cookie_notice'
+const COOKIE_KEY = 'calino_cookie_notice'
 
 export function CookieConsent(): JSX.Element | null {
   const [isVisible, setIsVisible] = useState(false)

@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { CalDAVAccount, CalDAVCalendar, PendingChange } from '../types'
 
-const ACCOUNTS_KEY = 'goodcal_caldav_accounts'
-const PENDING_CHANGES_KEY = 'goodcal_pending_changes'
+const ACCOUNTS_KEY = 'calino_caldav_accounts'
+const PENDING_CHANGES_KEY = 'calino_pending_changes'
 
 export function saveAccount(
   account: Omit<CalDAVAccount, 'id' | 'createdAt' | 'lastSyncAt' | 'proxyUrl'> & {
@@ -58,7 +58,7 @@ export function updateAccountLastSync(id: string): void {
   updateAccount(id, { lastSyncAt: new Date().toISOString() })
 }
 
-const CALENDARS_KEY = 'goodcal_caldav_calendars'
+const CALENDARS_KEY = 'calino_caldav_calendars'
 
 export function saveCalendar(calendar: CalDAVCalendar): void {
   const calendars = getAllCalendars()

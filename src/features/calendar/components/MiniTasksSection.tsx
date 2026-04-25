@@ -27,7 +27,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
     const today = startOfDay(new Date())
     const weekFromNow = addDays(today, 7)
 
-    let tasks = events
+    const tasks = events
       .filter((e) => e.type === 'task' && !e.completed)
       .filter((task) => {
         if (!task.dueDate) return false

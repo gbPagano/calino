@@ -14,6 +14,7 @@ import {
 } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/store/calendarStore'
+import { MOBILE_BREAKPOINT } from '@/config'
 import { useSettingsStore } from '@/store/settingsStore'
 import { ViewSwitcher } from './ViewSwitcher'
 import { ThemeToggle } from './ThemeToggle'
@@ -36,11 +37,11 @@ export function CalendarHeader({
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
 
   const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+    typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
   )
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)

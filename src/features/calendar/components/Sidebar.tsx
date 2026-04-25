@@ -18,7 +18,7 @@ import {
   subMonths,
   parseISO,
 } from 'date-fns'
-import { config } from '@/config'
+import { config, MOBILE_BREAKPOINT, TOAST_DURATION_MS } from '@/config'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
@@ -98,7 +98,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
           const { [calendarId]: _, ...rest } = prev // eslint-disable-line @typescript-eslint/no-unused-vars
           return rest
         })
-      }, 2000)
+      }, TOAST_DURATION_MS)
     } catch {
       setSyncStatus((prev) => ({ ...prev, [calendarId]: 'error' }))
       setTimeout(() => {
@@ -237,7 +237,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   useEffect(() => {
     if (isOpen && onClose) {
       const handleResize = (): void => {
-        if (window.innerWidth > 768) {
+        if (window.innerWidth > MOBILE_BREAKPOINT) {
           onClose()
         }
       }

@@ -15,6 +15,8 @@ import { CookieConsent, ErrorBoundary } from './components/common'
 import { OnboardingModal } from './features/onboarding/OnboardingModal'
 import { ThemeProvider } from './components/ThemeProvider'
 import type { ViewType } from './types'
+import { TOAST_DURATION_MS } from './config'
+
 import { extractOriginalEventId } from './lib/events'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -28,20 +30,22 @@ const TodoView = lazy(() => import('./features/calendar/components/TodoView').th
 
 function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: ViewType }): JSX.Element {
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={viewKey}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
-        style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-      >
-        <Suspense fallback={<div className="viewLoading" />}>
-          {children}
-        </Suspense>
-      </motion.div>
-    </AnimatePresence>
+    <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={viewKey}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+        >
+          <Suspense fallback={<div className="viewLoading" />}>
+            {children}
+          </Suspense>
+        </motion.div>
+      </AnimatePresence>
+    </div>
   )
 }
 
@@ -69,7 +73,7 @@ function Toast(): JSX.Element | null {
   useEffect(() => {
     const handleShowToast = (e: CustomEvent) => {
       setMessage(e.detail.message)
-      setTimeout(() => setMessage(null), 2000)
+      setTimeout(() => setMessage(null), TOAST_DURATION_MS)
     }
 
     window.addEventListener('show-toast', handleShowToast as EventListener)

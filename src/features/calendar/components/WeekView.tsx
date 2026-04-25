@@ -464,7 +464,7 @@ export function WeekView(): JSX.Element {
             backgroundColor: `${eventColor}20`,
           }}
         >
-          <EventCard event={event} enableResize transparent />
+          <EventCard event={event} enableResize transparent hourHeight={hourHeight} />
         </div>
       )
     }
@@ -564,7 +564,7 @@ export function WeekView(): JSX.Element {
             width: `${widthPercent}%`,
           }}
         >
-          <EventCard event={event} enableResize hideTopRadius={!!event.travelDuration} />
+          <EventCard event={event} enableResize hideTopRadius={!!event.travelDuration} hourHeight={hourHeight} />
         </div>
       )
     }
@@ -615,8 +615,8 @@ export function WeekView(): JSX.Element {
         ...originalEvent,
         ...updates,
       })
-    } catch (error) {
-      console.error('Failed to sync dragged event:', error)
+    } catch {
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'Failed to sync dragged event' } }))
     }
   }
 

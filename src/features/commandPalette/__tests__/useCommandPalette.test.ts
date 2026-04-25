@@ -86,6 +86,8 @@ vi.mock('@/store/calendarStore', () => ({
   selectDeleteCalendar: (state: CalendarStore) => state.deleteCalendar,
   selectCalendars: (state: CalendarStore) => state.calendars,
   selectEvents: (state: CalendarStore) => state.events,
+  selectAddCategory: (state: CalendarStore) => state.addCategory,
+  selectCategories: (state: CalendarStore) => state.categories,
 }))
 
 vi.mock('@/store/settingsStore', () => ({

@@ -6,6 +6,8 @@ import { useCalendarStore } from '@/store/calendarStore'
 import type { ViewType } from '@/types'
 import styles from './ViewSwitcher.module.css'
 
+import { MOBILE_BREAKPOINT } from '@/config'
+
 const VIEWS: { value: ViewType; label: string }[] = [
   { value: 'month', label: 'Month' },
   { value: 'week', label: 'Week' },
@@ -31,13 +33,13 @@ export function ViewSwitcher({ className }: ViewSwitcherProps): JSX.Element {
   const setCurrentView = useCalendarStore((state) => state.setCurrentView)
   const navigate = useNavigate()
   const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+    typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
   )
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)

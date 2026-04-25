@@ -1,4 +1,4 @@
-import { type JSX, useRef, useEffect, useState, useCallback } from 'react'
+import { type JSX, useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { format, parseISO, isSameDay } from 'date-fns'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -46,6 +46,7 @@ export function EventPreviewPopup({
   const originalEventId = extractOriginalEventId(clickedEventId)
   const eventIdToUse = originalEventId || event.id
 
+  const recurrenceDescription = useMemo(() => describeRecurrence(event), [event])
   // For recurring event occurrences, the event prop is the parent series.
   // The actual occurrence start is encoded in clickedEventId after the parent id.
   const occurrenceStartISO = originalEventId
@@ -587,7 +588,7 @@ export function EventPreviewPopup({
             {(event.recurrence || event.rruleString) && (
               <span
                 className={styles.recurringIcon}
-                data-tooltip={describeRecurrence(event)}
+                data-tooltip={recurrenceDescription}
               >
                 <RecurringIcon />
               </span>

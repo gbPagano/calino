@@ -14,21 +14,12 @@ import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 
-function isUUID(value: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-  return uuidRegex.test(value)
-}
+import { isUUID } from '@/features/caldav/adapter/iCalendarAdapter'
+import { extractOriginalEventId, hasDueTime, formatTravelDuration } from '@/lib/events'
 import { hapticIfEnabled } from '@/lib/haptics'
-import { hasDueTime, formatTravelDuration } from '@/lib/events'
 import styles from './EventCard.module.css'
 
-function extractOriginalEventId(eventId: string): string | null {
-  const isoDateMatch = eventId.match(/(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/)
-  if (isoDateMatch) {
-    return isoDateMatch[1]
-  }
-  return null
-}
+
 
 interface EventCardProps {
   event: CalendarEvent
@@ -39,6 +30,7 @@ interface EventCardProps {
   hideTopRadius?: boolean
   isMobileMonth?: boolean
   transparent?: boolean
+  hourHeight?: number
 }
 
 export function EventCard({
@@ -50,6 +42,7 @@ export function EventCard({
   hideTopRadius = false,
   isMobileMonth = false,
   transparent = false,
+  hourHeight = 60,
 }: EventCardProps): JSX.Element {
   const calendars = useCalendarStore((state) => state.calendars)
   const categories = useCalendarStore((state) => state.categories)
@@ -169,7 +162,7 @@ export function EventCard({
       if (resizeStartY.current === null || resizeStartEnd.current === null) return
 
       const deltaY = moveEvent.clientY - resizeStartY.current
-      const rawDeltaMinutes = (deltaY / 60) * 60
+      const rawDeltaMinutes = (deltaY / hourHeight) * 60
       const deltaMinutes = Math.round(rawDeltaMinutes / 15) * 15
       const newEnd = new Date(resizeStartEnd.current.getTime() + deltaMinutes * 60 * 1000)
 

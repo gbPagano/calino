@@ -16,6 +16,13 @@
     flex-direction: column;
   }
 }
+.viewLoading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-primary);
+}
 
 .main {
   flex: 1;

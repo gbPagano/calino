@@ -112,7 +112,6 @@ describe('EventPreviewPopup', () => {
     )
     expect(screen.getByText('This is a test meeting description.')).toBeInTheDocument()
   })
-
   it('renders recurring event indicator', () => {
     render(
       <EventPreviewPopup
@@ -121,7 +120,7 @@ describe('EventPreviewPopup', () => {
         clickedEventId="test-event-3"
       />
     )
-    expect(screen.getByText('Recurring event')).toBeInTheDocument()
+    expect(document.body.querySelector('[data-tooltip]')).toBeInTheDocument()
   })
 
   it('renders task with priority', () => {

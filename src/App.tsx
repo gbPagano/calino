@@ -1,18 +1,13 @@
 import type { JSX } from 'react'
-import { useCallback, useEffect, useState, useRef } from 'react'
-import { useIsMobile } from './hooks/useIsMobile'
+import { useCallback, useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { useIsMobile } from './hooks/useIsMobile'
 import { useCalendarStore } from './store/calendarStore'
 import {
   CalendarHeader,
-  CalendarGrid,
-  WeekView,
-  DayView,
-  AgendaView,
-  TodoView,
+  Sidebar,
   EventModal,
   EventPreviewPopup,
-  Sidebar,
 } from './features/calendar'
 import { SettingsPage, PrivacyPolicy } from './features/settings'
 import { CommandPalette } from './features/commandPalette'
@@ -21,7 +16,34 @@ import { OnboardingModal } from './features/onboarding/OnboardingModal'
 import { ThemeProvider } from './components/ThemeProvider'
 import type { ViewType } from './types'
 import { extractOriginalEventId } from './lib/events'
+import { motion, AnimatePresence } from 'framer-motion'
+
 import './App.css'
+
+const CalendarGrid = lazy(() => import('./features/calendar/components/CalendarGrid').then(m => ({ default: m.CalendarGrid })))
+const WeekView = lazy(() => import('./features/calendar/components/WeekView').then(m => ({ default: m.WeekView })))
+const DayView = lazy(() => import('./features/calendar/components/DayView').then(m => ({ default: m.DayView })))
+const AgendaView = lazy(() => import('./features/calendar/components/AgendaView').then(m => ({ default: m.AgendaView })))
+const TodoView = lazy(() => import('./features/calendar/components/TodoView').then(m => ({ default: m.TodoView })))
+
+function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: ViewType }): JSX.Element {
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={viewKey}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+      >
+        <Suspense fallback={<div className="viewLoading" />}>
+          {children}
+        </Suspense>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
 
 const VIEW_ROUTES: Record<ViewType, string> = {
   month: '/month',
@@ -196,44 +218,23 @@ function CalendarApp(): JSX.Element {
   }, [setOverlayOpen])
 
   const renderView = (): JSX.Element => {
-    switch (currentView) {
-      case 'month':
-        return (
-          <ErrorBoundary>
-            <CalendarGrid />
-          </ErrorBoundary>
-        )
-      case 'week':
-        return (
-          <ErrorBoundary>
-            <WeekView />
-          </ErrorBoundary>
-        )
-      case 'day':
-        return (
-          <ErrorBoundary>
-            <DayView />
-          </ErrorBoundary>
-        )
-      case 'agenda':
-        return (
-          <ErrorBoundary>
-            <AgendaView />
-          </ErrorBoundary>
-        )
-      case 'todo':
-        return (
-          <ErrorBoundary>
-            <TodoView />
-          </ErrorBoundary>
-        )
-      default:
-        return (
-          <ErrorBoundary>
-            <CalendarGrid />
-          </ErrorBoundary>
-        )
-    }
+    const viewElement = (() => {
+      switch (currentView) {
+        case 'month':
+          return <CalendarGrid />
+        case 'week':
+          return <WeekView />
+        case 'day':
+          return <DayView />
+        case 'agenda':
+          return <AgendaView />
+        case 'todo':
+          return <TodoView />
+        default:
+          return <CalendarGrid />
+      }
+    })()
+    return <ErrorBoundary><ViewLoader viewKey={currentView}>{viewElement}</ViewLoader></ErrorBoundary>
   }
 
   const handleToggleSidebar = useCallback(() => {

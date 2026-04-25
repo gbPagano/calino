@@ -21,7 +21,7 @@ describe('EventModal', () => {
 
   it('does not render when modal is closed', () => {
     render(<EventModal />)
-    expect(screen.queryByPlaceholderText('Add title')).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Event title')).not.toBeInTheDocument()
   })
 
   it('renders title input in header when creating new event', () => {
@@ -29,7 +29,7 @@ describe('EventModal', () => {
     store.openModal()
 
     render(<EventModal />)
-    expect(screen.getByPlaceholderText('Add title')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Event title')).toBeInTheDocument()
   })
 
   it('renders title input with event title when editing', () => {
@@ -45,7 +45,7 @@ describe('EventModal', () => {
     store.openModal(undefined, undefined, 'edit-test')
 
     render(<EventModal />)
-    expect(screen.getByPlaceholderText('Add title')).toHaveValue('Existing Event')
+    expect(screen.getByPlaceholderText('Event title')).toHaveValue('Existing Event')
   })
 
   it('shows delete button when editing', () => {
@@ -94,7 +94,7 @@ describe('EventModal', () => {
     store.openModal()
 
     render(<EventModal />)
-    expect(screen.getByPlaceholderText('Add title')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Event title')).toBeInTheDocument()
   })
 
   it('renders location input', () => {
@@ -139,7 +139,7 @@ describe('EventModal', () => {
 
     render(<EventModal />)
 
-    expect(screen.getByPlaceholderText('Add title')).toHaveValue('Weekly Meeting')
+    expect(screen.getByPlaceholderText('Event title')).toHaveValue('Weekly Meeting')
     expect(screen.getByPlaceholderText('Add description...')).toHaveValue('Original description')
   })
 
@@ -149,7 +149,7 @@ describe('EventModal', () => {
 
     render(<EventModal />)
 
-    const titleInput = screen.getByPlaceholderText('Add title')
+    const titleInput = screen.getByPlaceholderText('Event title')
     fireEvent.change(titleInput, { target: { value: '' } })
 
     const createButton = screen.getByRole('button', { name: /create/i })
@@ -162,7 +162,7 @@ describe('EventModal', () => {
 
     render(<EventModal />)
 
-    const titleInput = screen.getByPlaceholderText('Add title')
+    const titleInput = screen.getByPlaceholderText('Event title')
     fireEvent.change(titleInput, { target: { value: '   ' } })
 
     const createButton = screen.getByRole('button', { name: /create/i })

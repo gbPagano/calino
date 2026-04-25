@@ -94,7 +94,7 @@ export function WeekView(): JSX.Element {
   const [dragStart, setDragStart] = useState<string | null>(null)
   const [dragEnd, setDragEnd] = useState<string | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [scale, setScale] = useState(1)
+  const [scale, setScale] = useState(0.7)
   const containerRef = useRef<HTMLDivElement>(null)
   const headerScrollRef = useRef<HTMLDivElement>(null)
   const bodyScrollRef = useRef<HTMLDivElement>(null)
@@ -134,7 +134,7 @@ export function WeekView(): JSX.Element {
     onSwipe: handleSwipe,
     onPinch: handlePinch,
     swipeThreshold: 50,
-    pinchScaleRange: { min: 1, max: 1.5 },
+    pinchScaleRange: { min: 0.7, max: 1.5 },
   })
 
   const sensors = useSensors(
@@ -150,7 +150,7 @@ export function WeekView(): JSX.Element {
       if (e.ctrlKey) {
         e.preventDefault()
         const delta = e.deltaY > 0 ? -0.1 : 0.1
-        setScale((s) => Math.min(Math.max(s + delta, 1), 1.5))
+        setScale((s) => Math.min(Math.max(s + delta, 0.7), 1.5))
       }
     }
 

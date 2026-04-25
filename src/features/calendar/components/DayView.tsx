@@ -93,7 +93,7 @@ export function DayView(): JSX.Element {
   )
   const bodyRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
+  const [scale, setScale] = useState(0.7)
   const hourHeight = BASE_hourHeight * scale
 
   useEffect(() => {
@@ -146,7 +146,7 @@ export function DayView(): JSX.Element {
       if (e.ctrlKey) {
         e.preventDefault()
         const delta = e.deltaY > 0 ? -0.1 : 0.1
-        setScale((s) => Math.min(Math.max(s + delta, 1), 1.5))
+        setScale((s) => Math.min(Math.max(s + delta, 0.7), 1.5))
       }
     }
 

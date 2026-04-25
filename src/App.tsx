@@ -30,22 +30,20 @@ const TodoView = lazy(() => import('./features/calendar/components/TodoView').th
 
 function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: ViewType }): JSX.Element {
   return (
-    <div style={{ flex: 1, display: 'flex' }}>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={viewKey}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-        >
-          <Suspense fallback={<div className="viewLoading" />}>
-            {children}
-          </Suspense>
-        </motion.div>
-      </AnimatePresence>
-    </div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={viewKey}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+      >
+        <Suspense fallback={<div className="viewLoading" />}>
+          {children}
+        </Suspense>
+      </motion.div>
+    </AnimatePresence>
   )
 }
 

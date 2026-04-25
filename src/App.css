@@ -24,7 +24,6 @@
   justify-content: center;
   background: var(--color-bg-primary);
 }
-
 .main {
   flex: 1;
   display: flex;
@@ -32,7 +31,6 @@
   min-height: 0;
   overflow: hidden;
 }
-
 .toast {
   position: fixed;
   top: 20px;

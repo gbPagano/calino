@@ -10,28 +10,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = join(__dirname, '..')
-const icsPath = join(rootDir, 'sample-events.ics')
-
-function getMonthDates(year, month) {
-  // Returns array of { original: 'YYYYMMDD', updated: 'YYYYMMDD' } pairs
-  // where updated dates fall in the current month while preserving day-of-month
-  const now = new Date()
-  const currentYear = now.getFullYear()
-  const currentMonth = now.getMonth() // 0-indexed
-
-  // We want to shift sample events to current month, preserving the day
-  const originalMonth = month - 1 // month is 1-indexed in the file
-  const monthDiff = (currentYear - year) * 12 + (currentMonth - originalMonth)
-
-  return {
-    year,
-    month,
-    day: null, // populated per event
-    shiftedYear: currentYear,
-    shiftedMonth: currentMonth + 1,
-    monthDiff,
-  }
-}
+const icsPath = join(rootDir, 'public', 'sample-events.ics')
 
 function pad(num, len = 2) {
   return String(num).padStart(len, '0')
@@ -95,7 +74,8 @@ function processLine(line, monthDiff) {
 async function main() {
   const icsContent = readFileSync(icsPath, 'utf-8')
 
-  // Calculate month offset from sample file (assuming it's March 2026 based on content)
+  // Dates will be shifted to current month by updateICSDate, so these reference
+  // values are only used for the log message below.
   const sampleYear = 2026
   const sampleMonth = 3 // March
 

@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import { useState } from 'react'
-import { useSettingsStore } from '@/store/settingsStore'
+import { useSettingsStore, EVENT_COLORS } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
 import { parseICALData } from '@/features/caldav/adapter/iCalendarAdapter'
 import styles from './OnboardingModal.module.css'
@@ -16,6 +16,8 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
   const hasCompletedOnboarding = useSettingsStore((state) => state.hasCompletedOnboarding)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
   const addEvent = useCalendarStore((state) => state.addEvent)
+  const addCategory = useCalendarStore((state) => state.addCategory)
+  const categories = useCalendarStore((state) => state.categories)
   const calendars = useCalendarStore((state) => state.calendars)
 
   if (hasCompletedOnboarding) {
@@ -46,6 +48,28 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
       const calendarId = defaultCalendar?.id ?? 'default'
 
       const events = parseICALData(icsData, calendarId)
+
+      // Auto-create missing categories (mirrors useCalDAV.ts auto-creation logic)
+      const newCategoryNames: string[] = []
+      for (const event of events) {
+        if (event.categories) {
+          for (const catName of event.categories) {
+            const existingCat = categories.find((c) => c.name === catName)
+            if (!existingCat && !newCategoryNames.includes(catName)) {
+              newCategoryNames.push(catName)
+            }
+          }
+        }
+      }
+
+      for (const catName of newCategoryNames) {
+        addCategory({
+          id: crypto.randomUUID(),
+          name: catName,
+          color: EVENT_COLORS[Math.floor(Math.random() * EVENT_COLORS.length)],
+        })
+      }
+
       events.forEach((event) => addEvent(event))
 
       updateSettings({ hasCompletedOnboarding: true })

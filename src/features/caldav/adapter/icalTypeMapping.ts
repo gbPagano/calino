@@ -289,7 +289,7 @@ export function icalEventToCalendarEvent(
 
   const rruleProp = vevent.getFirstProperty('rrule')
   if (rruleProp) {
-    rruleString = rruleProp.toString().substring(6)
+    rruleString = rruleProp.toICALString().substring(6)
     recurrence = parseRRule(rruleString)
   }
 

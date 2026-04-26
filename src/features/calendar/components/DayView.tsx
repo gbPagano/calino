@@ -37,7 +37,7 @@ const HOURS = eachHourOfInterval({
   end: endOfDay(new Date()),
 })
 
-const BASE_hourHeight = 60
+
 const DRAG_ACTIVATION_CONSTRAINT = 8
 const MINUTE_SNAP_INTERVAL = 15
 
@@ -94,7 +94,6 @@ export function DayView(): JSX.Element {
   const bodyRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
-  const hourHeight = BASE_hourHeight * scale
 
   useEffect(() => {
     if (openMenuId !== null && openMenuId !== 'dayview' && contextMenu) {

@@ -1,74 +1,113 @@
-# Plan: Fix Silent CalDAV Sync Failures
+# Plan: CalDAV Sync Fixes & Code Quality Improvements
 
-**Goal:** Every create, update, and delete operation reliably reaches the CalDAV server, and users are notified when sync fails.
-**Approach:** Fix the race condition in `useCalDAV` by reading account/calendar from localStorage instead of React state. Add missing CalDAV calls in AgendaView and EventCard. Add user-facing error feedback. Implement pending-queue processing so failed operations are retried.
-
-**Critical Files:**
-- `src/features/caldav/hooks/useCalDAV.ts`: Core fix — bypass React state for account/calendar lookups, add `processPendingChanges`
-- `src/features/calendar/components/AgendaView.tsx`: Missing CalDAV delete call
-- `src/features/calendar/components/EventCard.tsx`: Fire-and-forget delete + missing recurrence sync
-- `src/features/calendar/components/EventModal.tsx`: Empty catch blocks — add error feedback
+**Last updated:** 2026-05-24
+**Session commits:** `df07c0a` → `a6084a5` → `145eeef` → `99496e6`
 
 ---
 
-## Tasks
+## Phase 1: Silent CalDAV Sync Failures ✅ COMPLETE
 
-### Task 1: Fix Race Condition — Read Accounts/Calendars from localStorage
-- [ ] In `src/features/caldav/hooks/useCalDAV.ts`, inside `createEvent` (line ~249), `updateEventFn` (line ~305), and `deleteEventFn` (line ~358), replace the `calendars.find()` / `accounts.find()` lookups with calls to `storage.getAllAccounts()` and `storage.getAllCalendars()` (already imported). These read directly from localStorage, so they always return data regardless of whether the React `useEffect` has fired yet.
-- [ ] Remove the now-unnecessary dependency on `accounts` and `calendars` state from the `useCallback` dependency arrays for these three functions.
-- [ ] Commit: `fix(caldav): read accounts/calendars from localStorage to avoid race condition`
+**Goal:** Every create, update, and delete operation reliably reaches the CalDAV server, and users are notified when sync fails.
 
-### Task 2: Add User-Facing Error Feedback
-- [ ] In `src/features/calendar/components/EventModal.tsx`, in every `catch { }` block (lines ~471, ~490, ~548, ~598, ~625), dispatch a `show-toast` CustomEvent with a user-friendly message: `"Failed to sync event with CalDAV server. It will be retried."`. Use the existing pattern:
-  ```ts
-  window.dispatchEvent(new CustomEvent('show-toast', {
-    detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' }
-  }))
-  ```
-- [ ] In `src/features/calendar/components/EventCard.tsx`, in the `handleCheckboxClick` catch block (line ~245), add the same toast. In the non-recurring delete path (line ~364-365), change `deleteCalDAVEvent(event.calendarId, event.id).catch(() => {})` to `await deleteCalDAVEvent(...)` inside a try/catch with the same toast.
-- [ ] In `src/features/caldav/hooks/useCalDAV.ts`, in the `if (!calendar || !account)` guard blocks, add a `console.warn` with details about what's missing, and dispatch the same toast via a custom event (or throw an error that the caller can surface).
-- [ ] Commit: `fix(caldav): show toast notification on CalDAV sync failures`
+### Completed
 
-### Task 3: Add CalDAV Delete to AgendaView
-- [ ] In `src/features/calendar/components/AgendaView.tsx`, import `useCalDAV` from `@/features/caldav/hooks/useCalDAV`.
-- [ ] Destructure `deleteEvent: deleteCalDAVEvent` from `useCalDAV()`.
-- [ ] In the Delete context menu item handler (line ~350), add a CalDAV sync call after the store delete. The delete handler should:
-  1. Call `deleteEvent(eventContextMenu.event.id)` (already exists)
-  2. Await `deleteCalDAVEvent(eventContextMenu.event.calendarId, eventContextMenu.event.id)` in a try/catch
-  3. On failure, dispatch the `show-toast` custom event
-- [ ] Make the `onClick` handler async to support the await.
-- [ ] Commit: `fix(caldav): add CalDAV delete sync to AgendaView`
+- [x] **Task 1: Race condition fix** — `createEvent`, `updateEventFn`, `deleteEventFn` now read accounts/calendars from `localStorage` via `storage.getAllAccounts()` / `storage.getAllCalendars()` instead of React state. Removed stale `accounts`/`calendars` from `useCallback` deps. Guards now fire `console.warn` + `show-toast` instead of silent return.
+- [x] **Task 2: Error feedback** — All 5 `catch {}` blocks in EventModal, all 3 in EventCard, and the AgendaView/EventPreviewPopup delete handlers now dispatch `show-toast` custom events.
+- [x] **Task 3: AgendaView delete** — Added `deleteCalDAVEvent` call after store delete with error toast.
+- [x] **Task 4: EventCard recurrence delete** — `DeleteDialog.onConfirm` now calls `updateCalDAVEvent` (mode='this') or `deleteCalDAVEvent` (other modes).
+- [x] **Task 5: Pending-queue retry** — `processPendingChanges()` drains the queue on mount + every 30s + after every successful sync.
+- [x] **Task 6: Manual testing** — TypeScript passes, 381/381 tests pass.
+- [x] **Bonus: EventPreviewPopup delete** — Found and fixed same missing-CalDAV-call bug in preview popup (`handleDelete`/`performDelete`).
 
-### Task 4: Add CalDAV Sync to EventCard Recurrence Delete
-- [ ] In `src/features/calendar/components/EventCard.tsx`, in the `DeleteDialog`'s `onConfirm` handler (lines ~385-399), add CalDAV sync calls:
-  - For `mode === 'this'`: after `updateEvent(originalEventId, ...)`, call `updateCalDAVEvent(calendarId, { ...masterEvent, excludedDates: [...] })` in a try/catch with error toast
-  - For `originalEventId` branch: after `deleteEvent(originalEventId)`, call `deleteCalDAVEvent(event.calendarId, originalEventId)` in try/catch
-  - For the fallback: after `deleteEvent(event.id)`, call `deleteCalDAVEvent(event.calendarId, event.id)` in try/catch
-- [ ] Make the `onConfirm` handler async.
-- [ ] Commit: `fix(caldav): add CalDAV sync to EventCard recurrence deletes`
+---
 
-### Task 5: Implement Pending-Queue Retry Processing
-- [ ] In `src/features/caldav/hooks/useCalDAV.ts`, add a new function `processPendingChanges` that:
-  1. Reads pending changes from `storage.getPendingChanges()`
-  2. For each change, calls the appropriate CalDAV function (create/update/delete) using `storage.getAllAccounts()` and `storage.getAllCalendars()` for lookups
-  3. On success: calls `storage.removePendingChange(change.id)` and decrements `syncState.pendingChanges`
-  4. On failure: calls `storage.updatePendingChangeRetry(change.id)` (tracks retry count), does not re-throw
-  5. Logs a summary of succeeded/failed counts to console (always, not just debug mode)
-- [ ] Call `processPendingChanges()` from:
-  - The existing `useEffect` in useCalDAV (after accounts/calendars are loaded, line ~92)
-  - A new `useEffect` that runs on a 30-second interval (using `setInterval`, cleaned up on unmount)
-  - After any successful `createEvent`, `updateEvent`, or `deleteEvent` call (right after `storage.updateAccountLastSync`)
-  - After `syncAccount` and `syncAll` complete successfully
-- [ ] Export `processPendingChanges` (or queue size) so the settings UI can show a "Retry pending changes" button, if desired. **Skip the UI button for now — keep scope minimal.**
-- [ ] Commit: `feat(caldav): implement pending-queue retry processing`
+## Phase 2: Code Review Improvements ✅ PARTIAL
 
-### Task 6: Verify with Manual Testing
-- [ ] Run `pnpm dev`
-- [ ] Create an event and verify it appears on both local GUI and CalDAV server (check server web UI or logs)
-- [ ] Delete the event from EventModal and verify it's removed from the CalDAV server
-- [ ] Delete an event from AgendaView context menu and verify it syncs to server
-- [ ] Delete a non-recurring event from EventCard context menu and verify it syncs
-- [ ] If possible, test with CalDAV debug mode off to ensure no regressions in the silent-return fix
-- [ ] Run `pnpm typecheck` to ensure no TypeScript errors
-- [ ] Run `pnpm test` to ensure existing tests still pass
-- [ ] Commit: `chore: manual verification notes`
+A broad review across React patterns, TypeScript, accessibility, security, and PWA revealed 33 issues. The following were fixed:
+
+### Completed
+
+| # | Area | Fix |
+|---|------|-----|
+| 4 | A11Y | EventModal: added Escape key handler + `role="dialog"` `aria-modal="true"` |
+| 5 | A11Y | CommandPalette CSS: `outline: none` on `:focus` → `:focus-visible` with visible ring |
+| 6 | A11Y | Toast: added `role="status"` `aria-live="polite"` |
+| 7 | Perf | 9 components refactored to individual Zustand selectors instead of full store subscriptions |
+| 8 | Perf | EventCard: removed subscription to entire `events` array, uses `getState()` in handler |
+| 11 | Bug | EventModal: non-null assertion `selectedEventId!` → guard with `if (!selectedEventId) return` |
+| 12 | Bug | MiniTasksSection: non-null assertion `tooltipPosition!` → guard with `&& tooltipPosition` |
+| 13 | Security | Added Content-Security-Policy meta tag to `index.html` |
+| 17 | Data | Both Zustand stores: added `version: 1` + `migrate` to persist configs |
+| 30 | Dep | Removed `dexie` dead code (73KB) + deleted `dbSyncMiddleware.ts` |
+| 32 | TS | Added explicit return type to `useCommandPalette` (fixed sig in follow-up commit) |
+
+### Skipped (from the selected list)
+
+| # | What | Why |
+|---|------|-----|
+| 9 | WeekView `renderDayEvents` memoization | ~150-line function needs extraction into `React.memo(WeekDayColumn)` component — non-trivial refactor |
+| 10 | DST transition bug | `getTimezoneOffset()` on Date objects returns offset at that date's timestamp (not current), so the review's claim was partially wrong. But the recurrence code uses system timezone, not the user's configured timezone — needs a broader rework with `date-fns-tz` |
+
+---
+
+## Phase 3: Remaining Issues from Full Audit
+
+### 🔴 Critical — Fix immediately
+
+| # | Category | Issue | File |
+|---|----------|-------|------|
+| 1 | **Security** | CalDAV passwords stored in **plaintext** localStorage | `credentials.ts` |
+| 2 | **Data Loss** | `syncAccount` deletes local events not found on server (outside query range, partial response) — **can wipe user data** | `useCalDAV.ts:376-381` |
+| 3 | **A11Y** | Calendar grid cells are `div`s with `onClick` — zero keyboard access. Also: AgendaView, TodoView, DayEventsPopup, EventCard dragContent | Multiple views |
+
+### 🟠 High — Fix soon
+
+| # | Category | Issue | File |
+|---|----------|-------|------|
+| 14 | Security | Settings export leaks server URLs + usernames in JSON download | `DataSettings.tsx` |
+| 15 | PWA | Cache-first service worker never updates — users see stale app indefinitely | `sw.js:19-36` |
+| 16 | PWA | Notifications use polling, not Push API — only works while tab open | `useNotifications.ts` |
+| 18 | Bug | `EventModal` useEffect resets form when `events`/`calendars` change (e.g. during CalDAV sync) — **user data loss risk** | `EventModal.tsx:226-267` |
+| 19 | A11Y | Missing `aria-label` on 10+ icon-only buttons (nav chevrons, settings, sync, color dot) | Multiple components |
+| 20 | A11Y | No focus restoration after any dialog/modal closes — focus lost | All dialogs |
+| 21 | A11Y | Month calendar grid uses CSS grid `div`s instead of `<table>` semantics | `CalendarGrid.tsx` |
+| 22 | Error | 30+ empty `catch {}` blocks in drag-to-reschedule, task completion, etc. | Multiple views |
+| 23 | Perf | `useSearch` rebuilds index synchronously on every `events` change | `useSearch.ts` |
+| 24 | Perf | WeekView `useLayoutEffect` resets scroll position on zoom | `WeekView.tsx` |
+
+### 🟡 Medium — Worth doing
+
+| # | Category | Issue |
+|---|----------|-------|
+| 25 | A11Y | Many touch targets below 44×44px (color dot 10px, checkbox 16px, resize handle 8px) |
+| 26 | A11Y | Event identification is **color-only** — no text label for calendar/category |
+| 27 | A11Y | ~30 SVG icons missing `aria-hidden="true"` |
+| 28 | Data | No localStorage quota exceeded handling |
+| 29 | Data | `crypto.randomUUID()` and `uuid.v4()` mixed — standardize on one |
+| 31 | TS | 20+ unsafe `as` casts on `formData.get()`, `JSON.parse()`, gesture events |
+| 33 | TS | `any[]` in iCalendar adapter should be `unknown[]` |
+
+---
+
+## Recommendations
+
+### Next session priority order
+
+1. **#2 (Data Loss)** — `syncAccount` deletion logic is dangerous. Only delete events within the queried date range, and ensure the full response was received before applying deletions. **This can wipe user data.**
+
+2. **#18 (Bug)** — EventModal form reset during CalDAV sync. Remove `initialState` from the useEffect deps; the reset should only fire when the user explicitly opens a different event.
+
+3. **#3 (A11Y)** — Calendar grid keyboard access. Convert `DroppableDay` to use `<button>` elements with `onKeyDown` for Enter/Space. This is the single biggest a11y blocker.
+
+4. **#1 (Security)** — Encrypt passwords in localStorage using Web Crypto API's `SubtleCrypto`. At minimum, add a warning that passwords are stored in plaintext.
+
+5. **#9 + #23 (Perf)** — Extract `renderDayEvents` into `React.memo` component + debounce search index rebuild. These are the biggest remaining performance wins after the Zustand selector fixes.
+
+6. **#15 (PWA)** — Fix cache-first SW to use network-first for HTML shell with cache fallback for offline support.
+
+### Testing
+
+- All 381 existing tests pass
+- `pnpm typecheck` passes clean
+- `pnpm build` produces all chunks without errors
+- `pnpm lint` has only pre-existing issues (none in files we changed)

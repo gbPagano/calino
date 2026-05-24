@@ -36,9 +36,9 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps): {
   setQuery: (q: string) => void
   results: CommandResult[]
   selectedIndex: number
-  setSelectedIndex: (i: number) => void
+  setSelectedIndex: React.Dispatch<React.SetStateAction<number>>
   preview: NLPParseResult | null
-  executeSelected: () => void
+  executeSelected: (index?: number) => Promise<ExecuteResult | undefined>
   handleKeyDown: (e: React.KeyboardEvent) => void
   parseInput: (query: string) => ParsedInput
 } {

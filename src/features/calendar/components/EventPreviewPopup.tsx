@@ -42,7 +42,7 @@ export function EventPreviewPopup({
   const closePreview = useCalendarStore((state) => state.closePreview)
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
-  const { updateEvent: updateCalDAVEvent } = useCalDAV()
+  const { updateEvent: updateCalDAVEvent, deleteEvent: deleteCalDAVEvent } = useCalDAV()
   const originalEventId = extractOriginalEventId(clickedEventId)
   const eventIdToUse = originalEventId || event.id
 
@@ -276,28 +276,56 @@ export function EventPreviewPopup({
 
   const isRecurring = !!event.recurrence || !!event.rruleString || !!originalEventId
 
-  const handleDelete = (): void => {
+  const handleDelete = async (): Promise<void> => {
     if (isRecurring) {
       setShowDeleteDialog(true)
       return
     }
     const idToDelete = originalEventId || event.id
     deleteEvent(idToDelete)
+    try {
+      await deleteCalDAVEvent(event.calendarId, idToDelete)
+    } catch {
+      window.dispatchEvent(
+        new CustomEvent('show-toast', {
+          detail: { message: 'Failed to sync deletion with CalDAV server. It will be retried.' },
+        })
+      )
+    }
     closePreview()
   }
 
-  const performDelete = (mode: 'all' | 'this' | 'future'): void => {
+  const performDelete = async (mode: 'all' | 'this' | 'future'): Promise<void> => {
     if (mode === 'this' && originalEventId) {
       // Add the clicked occurrence's date to excludedDates on the master — do not delete the series
       const occurrenceStartISO = clickedEventId.slice(originalEventId.length + 1)
       const occurrenceDate = occurrenceStartISO.split('T')[0]
       const excludedDates = event.excludedDates || []
       if (!excludedDates.includes(occurrenceDate)) {
-        updateEvent(originalEventId, { excludedDates: [...excludedDates, occurrenceDate] })
+        const updatedExcludedDates = [...excludedDates, occurrenceDate]
+        updateEvent(originalEventId, { excludedDates: updatedExcludedDates })
+        try {
+          await updateCalDAVEvent(event.calendarId, { ...event, excludedDates: updatedExcludedDates })
+        } catch {
+          window.dispatchEvent(
+            new CustomEvent('show-toast', {
+              detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
+            })
+          )
+        }
       }
     } else {
       const idToDelete = originalEventId || event.id
       deleteEvent(idToDelete)
+      try {
+        await deleteCalDAVEvent(event.calendarId, idToDelete)
+      } catch {
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: { message: 'Failed to sync deletion with CalDAV server. It will be retried.' },
+          })
+        )
+      }
     }
     closePreview()
     setShowDeleteDialog(false)

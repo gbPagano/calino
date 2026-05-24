@@ -9,7 +9,11 @@ import {
 import styles from './Settings.module.css'
 
 export function GeneralSettings(): JSX.Element {
-  const { timezone, dateFormat, timeFormat, firstDayOfWeek, updateSettings } = useSettingsStore()
+  const timezone = useSettingsStore((s) => s.timezone)
+  const dateFormat = useSettingsStore((s) => s.dateFormat)
+  const timeFormat = useSettingsStore((s) => s.timeFormat)
+  const firstDayOfWeek = useSettingsStore((s) => s.firstDayOfWeek)
+  const updateSettings = useSettingsStore((s) => s.updateSettings)
 
   return (
     <div className={styles.section}>

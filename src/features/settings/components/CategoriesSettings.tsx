@@ -6,18 +6,15 @@ import type { Category } from '@/types/categories'
 import styles from './Settings.module.css'
 
 export function CategoriesSettings(): JSX.Element {
-  const {
-    categories,
-    autoCategoryRules,
-    events,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-    addAutoCategoryRule,
-    updateAutoCategoryRule,
-    deleteAutoCategoryRule,
-    updateEvent,
-  } = useCalendarStore()
+  const categories = useCalendarStore((s) => s.categories)
+  const autoCategoryRules = useCalendarStore((s) => s.autoCategoryRules)
+  const addCategory = useCalendarStore((s) => s.addCategory)
+  const updateCategory = useCalendarStore((s) => s.updateCategory)
+  const deleteCategory = useCalendarStore((s) => s.deleteCategory)
+  const addAutoCategoryRule = useCalendarStore((s) => s.addAutoCategoryRule)
+  const updateAutoCategoryRule = useCalendarStore((s) => s.updateAutoCategoryRule)
+  const deleteAutoCategoryRule = useCalendarStore((s) => s.deleteAutoCategoryRule)
+  const updateEvent = useCalendarStore((s) => s.updateEvent)
 
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState(EVENT_COLORS[0])
@@ -69,7 +66,7 @@ export function CategoriesSettings(): JSX.Element {
     if (!category) return
     const categoryName = category.name
     const lowerKeywords = rule.keywords.map((k) => k.toLowerCase())
-    events.forEach((event) => {
+    useCalendarStore.getState().events.forEach((event) => {
       const lowerTitle = event.title.toLowerCase()
       const matches = lowerKeywords.some((kw) => lowerTitle.includes(kw))
       if (matches) {

@@ -11,8 +11,11 @@ export function CalDAVSettings(): JSX.Element {
   const [isTesting, setIsTesting] = useState(false)
   const [showProxyField, setShowProxyField] = useState(false)
 
-  const { syncEnabled, syncIntervalMinutes, conflictResolution, caldavDebugMode, updateSettings } =
-    useSettingsStore()
+  const syncEnabled = useSettingsStore((s) => s.syncEnabled)
+  const syncIntervalMinutes = useSettingsStore((s) => s.syncIntervalMinutes)
+  const conflictResolution = useSettingsStore((s) => s.conflictResolution)
+  const caldavDebugMode = useSettingsStore((s) => s.caldavDebugMode)
+  const updateSettings = useSettingsStore((s) => s.updateSettings)
 
   const { accounts, syncAccount, addAccount, removeAccount } = useCalDAV()
 

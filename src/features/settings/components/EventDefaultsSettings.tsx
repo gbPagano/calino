@@ -8,8 +8,10 @@ import {
 import styles from './Settings.module.css'
 
 export function EventDefaultsSettings(): JSX.Element {
-  const { defaultDuration, defaultReminderMinutes, defaultEventColor, updateSettings } =
-    useSettingsStore()
+  const defaultDuration = useSettingsStore((s) => s.defaultDuration)
+  const defaultReminderMinutes = useSettingsStore((s) => s.defaultReminderMinutes)
+  const defaultEventColor = useSettingsStore((s) => s.defaultEventColor)
+  const updateSettings = useSettingsStore((s) => s.updateSettings)
 
   return (
     <div className={styles.section}>

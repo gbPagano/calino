@@ -8,7 +8,8 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className }: ThemeToggleProps): JSX.Element {
-  const { themeMode, updateSettings } = useSettingsStore()
+  const themeMode = useSettingsStore((s) => s.themeMode)
+  const updateSettings = useSettingsStore((s) => s.updateSettings)
 
   const cycleTheme = (): void => {
     const modes: ThemeMode[] = ['light', 'dark', 'auto']

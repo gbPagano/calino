@@ -7,7 +7,10 @@ import type { ThemeMode } from '@/types'
 import styles from './Settings.module.css'
 
 export function ThemeSettings(): JSX.Element {
-  const { themeMode, lightTheme, darkTheme, updateSettings } = useSettingsStore()
+  const themeMode = useSettingsStore((s) => s.themeMode)
+  const lightTheme = useSettingsStore((s) => s.lightTheme)
+  const darkTheme = useSettingsStore((s) => s.darkTheme)
+  const updateSettings = useSettingsStore((s) => s.updateSettings)
   const { loadedThemes, refetchThemes } = useTheme()
   const lightThemes = useMemo(() => loadedThemes.filter((t) => !t.isDark), [loadedThemes])
   const darkThemes = useMemo(() => loadedThemes.filter((t) => t.isDark), [loadedThemes])

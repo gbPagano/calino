@@ -441,6 +441,8 @@ export const useCalendarStore = create<CalendarStore>()(
     }),
     {
       name: 'calino-storage',
+      version: 1,
+      migrate: () => ({ events: [], calendars: [], categories: [], autoCategoryRules: [] }),
       partialize: (state) => ({
         events: state.events,
         calendars: state.calendars,

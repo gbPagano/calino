@@ -159,13 +159,13 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                 ))}
               </AnimatePresence>
               {createPortal(
-                hoveredTaskData && hoveredTaskData.description ? (
+                hoveredTaskData && hoveredTaskData.description && tooltipPosition ? (
                   <div
                     className={styles.taskTooltip}
                     style={{
                       position: 'fixed',
-                      left: tooltipPosition!.x + 12,
-                      top: tooltipPosition!.y + 12,
+                      left: tooltipPosition.x + 12,
+                      top: tooltipPosition.y + 12,
                     }}
                   >
                     {hoveredTaskData.description}

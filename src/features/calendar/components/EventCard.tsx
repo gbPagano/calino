@@ -46,7 +46,6 @@ export function EventCard({
 }: EventCardProps): JSX.Element {
   const calendars = useCalendarStore((state) => state.calendars)
   const categories = useCalendarStore((state) => state.categories)
-  const events = useCalendarStore((state) => state.events)
   const openModal = useCalendarStore((state) => state.openModal)
   const openPreview = useCalendarStore((state) => state.openPreview)
   const closePreview = useCalendarStore((state) => state.closePreview)
@@ -395,7 +394,7 @@ export function EventCard({
             onClose={() => setShowDeleteDialog(false)}
             onConfirm={async (mode) => {
               if (mode === 'this' && originalEventId) {
-                const masterEvent = events.find((e) => e.id === originalEventId)
+                const masterEvent = useCalendarStore.getState().events.find((e) => e.id === originalEventId)
                 if (masterEvent) {
                   const dateMatch = event.id.match(/(\d{4}-\d{2}-\d{2})/)
                   const dateStr = dateMatch ? dateMatch[1] : null

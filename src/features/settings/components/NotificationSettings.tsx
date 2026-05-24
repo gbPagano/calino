@@ -5,7 +5,9 @@ import { showTestNotification, requestNotificationPermission, getNotificationPer
 import styles from './Settings.module.css'
 
 export function NotificationSettings(): JSX.Element {
-  const { enableDesktopNotifications, enableSoundAlerts, updateSettings } = useSettingsStore()
+  const enableDesktopNotifications = useSettingsStore((s) => s.enableDesktopNotifications)
+  const enableSoundAlerts = useSettingsStore((s) => s.enableSoundAlerts)
+  const updateSettings = useSettingsStore((s) => s.updateSettings)
   const [permissionStatus, setPermissionStatus] = useState(getNotificationPermission)
 
   const handleEnableNotifications = async (): Promise<void> => {

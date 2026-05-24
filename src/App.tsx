@@ -81,7 +81,7 @@ function Toast(): JSX.Element | null {
   if (!message) return null
 
   return (
-    <div className="toast">
+    <div className="toast" role="status" aria-live="polite">
       <span className="toastIcon">✓</span>
       {message}
     </div>

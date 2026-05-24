@@ -3,16 +3,14 @@ import { useSettingsStore, VIEW_OPTIONS, DENSITY_OPTIONS } from '@/store/setting
 import styles from './Settings.module.css'
 
 export function CalendarSettings(): JSX.Element {
-  const {
-    defaultView,
-    showWeekNumbers,
-    eventDensity,
-    compactRecurringEvents,
-    compressPastWeeks,
-    monthViewEventLimit,
-    hideCompletedTasksInMonthView,
-    updateSettings,
-  } = useSettingsStore()
+  const defaultView = useSettingsStore((s) => s.defaultView)
+  const showWeekNumbers = useSettingsStore((s) => s.showWeekNumbers)
+  const eventDensity = useSettingsStore((s) => s.eventDensity)
+  const compactRecurringEvents = useSettingsStore((s) => s.compactRecurringEvents)
+  const compressPastWeeks = useSettingsStore((s) => s.compressPastWeeks)
+  const monthViewEventLimit = useSettingsStore((s) => s.monthViewEventLimit)
+  const hideCompletedTasksInMonthView = useSettingsStore((s) => s.hideCompletedTasksInMonthView)
+  const updateSettings = useSettingsStore((s) => s.updateSettings)
 
   return (
     <div className={styles.section}>

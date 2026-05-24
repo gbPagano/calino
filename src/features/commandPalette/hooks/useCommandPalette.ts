@@ -31,7 +31,17 @@ export interface ExecuteResult {
   message: string
 }
 
-export function useCommandPalette({ isOpen }: UseCommandPaletteProps) {
+export function useCommandPalette({ isOpen }: UseCommandPaletteProps): {
+  query: string
+  setQuery: (q: string) => void
+  results: CommandResult[]
+  selectedIndex: number
+  setSelectedIndex: (i: number) => void
+  preview: NLPParseResult | null
+  executeSelected: () => void
+  handleKeyDown: (e: React.KeyboardEvent) => void
+  parseInput: (query: string) => ParsedInput
+} {
   const navigate = useNavigate()
   const [query, setQueryState] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)

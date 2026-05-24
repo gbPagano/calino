@@ -139,6 +139,8 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'calino-settings',
+      version: 1,
+      migrate: () => DEFAULT_SETTINGS as SettingsStore,
     }
   )
 )

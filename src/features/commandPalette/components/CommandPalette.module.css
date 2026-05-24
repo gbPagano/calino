@@ -72,9 +72,9 @@
   color: var(--color-text-primary);
 }
 
-.input:focus {
-  outline: none;
-  box-shadow: none;
+.input:focus-visible {
+  outline: 2px solid var(--color-accent, #4285f4);
+  outline-offset: 2px;
 }
 
 .input::placeholder {

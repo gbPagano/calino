@@ -8,7 +8,9 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const { themeMode, lightTheme, darkTheme } = useSettingsStore()
+  const themeMode = useSettingsStore((s) => s.themeMode)
+  const lightTheme = useSettingsStore((s) => s.lightTheme)
+  const darkTheme = useSettingsStore((s) => s.darkTheme)
   const [loadedThemes, setLoadedThemes] = useState<ThemeInfo[]>([])
   const [, setTick] = useState(0)
 

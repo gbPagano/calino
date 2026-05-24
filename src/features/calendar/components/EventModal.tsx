@@ -244,6 +244,18 @@ export function EventModal(): JSX.Element | null {
   const [showRecurrenceDialog, setShowRecurrenceDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showDescription, setShowDescription] = useState(!!initialState.description)
+
+  // Close on Escape
+  useEffect(() => {
+    if (!isModalOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeModal()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isModalOpen, closeModal])
   const [dueDate, setDueDate] = useState<string>('')
   const [dueTime, setDueTime] = useState<string>('09:00')
   const [dueAllDay, setDueAllDay] = useState(true)
@@ -588,7 +600,8 @@ export function EventModal(): JSX.Element | null {
   const performDelete = async (mode: RecurrenceEditMode): Promise<void> => {
     if (mode === 'this' && originalEventId) {
       // Add the occurrence's date to excludedDates on the master — do not delete the series
-      const occurrenceStartISO = selectedEventId!.slice(originalEventId.length + 1)
+      if (!selectedEventId) return
+      const occurrenceStartISO = selectedEventId.slice(originalEventId.length + 1)
       const occurrenceDate = occurrenceStartISO.split('T')[0]
       const masterEvent = events.find((e) => e.id === originalEventId)
       if (masterEvent) {
@@ -632,7 +645,7 @@ export function EventModal(): JSX.Element | null {
 
   return (
     <div className={styles.modalBackdrop} onClick={closeModal}>
-      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title || 'Event modal'}>
         <div className={styles.modalBand} />
         <div className={styles.modalHeader}>
           <button

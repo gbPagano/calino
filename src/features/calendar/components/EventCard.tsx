@@ -232,7 +232,11 @@ export function EventCard({
     try {
       await updateCalDAVEvent(event.calendarId, { ...event, completed: newCompleted })
     } catch {
-      // error handled by useCalDAV
+      window.dispatchEvent(
+        new CustomEvent('show-toast', {
+          detail: { message: 'Failed to sync task with CalDAV server. It will be retried.' },
+        })
+      )
     }
   }
 
@@ -344,7 +348,11 @@ export function EventCard({
                   try {
                     await updateCalDAVEvent(event.calendarId, { ...event, type: newType })
                   } catch {
-                    // error handled by useCalDAV
+                    window.dispatchEvent(
+                      new CustomEvent('show-toast', {
+                        detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
+                      })
+                    )
                   }
                 },
                 icon: <EditIcon />,
@@ -356,13 +364,21 @@ export function EventCard({
               },
               {
                 label: 'Delete',
-                onClick: () => {
+                onClick: async () => {
                   const isRecurring = !!event.recurrence || !!event.rruleString || !!originalEventId
                   if (isRecurring) {
                     setShowDeleteDialog(true)
                   } else {
                     deleteEvent(event.id)
-                    deleteCalDAVEvent(event.calendarId, event.id).catch(() => {})
+                    try {
+                      await deleteCalDAVEvent(event.calendarId, event.id)
+                    } catch {
+                      window.dispatchEvent(
+                        new CustomEvent('show-toast', {
+                          detail: { message: 'Failed to sync deletion with CalDAV server. It will be retried.' },
+                        })
+                      )
+                    }
                   }
                 },
                 icon: <DeleteIcon />,
@@ -377,7 +393,7 @@ export function EventCard({
           <DeleteDialog
             isOpen={showDeleteDialog}
             onClose={() => setShowDeleteDialog(false)}
-            onConfirm={(mode) => {
+            onConfirm={async (mode) => {
               if (mode === 'this' && originalEventId) {
                 const masterEvent = events.find((e) => e.id === originalEventId)
                 if (masterEvent) {
@@ -386,16 +402,47 @@ export function EventCard({
                   if (dateStr) {
                     const excludedDates = masterEvent.excludedDates || []
                     if (!excludedDates.includes(dateStr)) {
+                      const updatedExcludedDates = [...excludedDates, dateStr]
                       updateEvent(originalEventId, {
-                        excludedDates: [...excludedDates, dateStr],
+                        excludedDates: updatedExcludedDates,
                       })
+                      try {
+                        await updateCalDAVEvent(masterEvent.calendarId, {
+                          ...masterEvent,
+                          excludedDates: updatedExcludedDates,
+                        })
+                      } catch {
+                        window.dispatchEvent(
+                          new CustomEvent('show-toast', {
+                            detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
+                          })
+                        )
+                      }
                     }
                   }
                 }
               } else if (originalEventId) {
                 deleteEvent(originalEventId)
+                try {
+                  await deleteCalDAVEvent(event.calendarId, originalEventId)
+                } catch {
+                  window.dispatchEvent(
+                    new CustomEvent('show-toast', {
+                      detail: { message: 'Failed to sync deletion with CalDAV server. It will be retried.' },
+                    })
+                  )
+                }
               } else {
                 deleteEvent(event.id)
+                try {
+                  await deleteCalDAVEvent(event.calendarId, event.id)
+                } catch {
+                  window.dispatchEvent(
+                    new CustomEvent('show-toast', {
+                      detail: { message: 'Failed to sync deletion with CalDAV server. It will be retried.' },
+                    })
+                  )
+                }
               }
               setShowDeleteDialog(false)
             }}

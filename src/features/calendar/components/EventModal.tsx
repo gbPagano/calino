@@ -458,7 +458,11 @@ export function EventModal(): JSX.Element | null {
         try {
           await createCalDAVEvent(masterEvent.calendarId, exceptionEvent)
         } catch {
-          // error already handled by useCalDAV
+          window.dispatchEvent(
+            new CustomEvent('show-toast', {
+              detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
+            })
+          )
         }
       } else {
         const eventId = originalEventId || selectedEventId
@@ -510,7 +514,11 @@ export function EventModal(): JSX.Element | null {
               categories: selectedCategories,
             })
           } catch {
-            // error already handled by useCalDAV
+            window.dispatchEvent(
+              new CustomEvent('show-toast', {
+                detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
+              })
+            )
           }
         }
       }
@@ -546,7 +554,11 @@ export function EventModal(): JSX.Element | null {
       try {
         await createCalDAVEvent(calendarId, newEvent)
       } catch {
-        // error already handled by useCalDAV
+        window.dispatchEvent(
+          new CustomEvent('show-toast', {
+            detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
+          })
+        )
       }
     }
 
@@ -587,7 +599,11 @@ export function EventModal(): JSX.Element | null {
           try {
             await updateCalDAVEvent(calendarId, { ...masterEvent, excludedDates: updatedExcludedDates })
           } catch {
-            // error already handled by useCalDAV
+            window.dispatchEvent(
+              new CustomEvent('show-toast', {
+                detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
+              })
+            )
           }
         }
       }
@@ -598,7 +614,11 @@ export function EventModal(): JSX.Element | null {
         try {
           await deleteCalDAVEvent(calendarId, eventIdToDelete)
         } catch {
-          // error already handled by useCalDAV
+          window.dispatchEvent(
+            new CustomEvent('show-toast', {
+              detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
+            })
+          )
         }
       }
     }

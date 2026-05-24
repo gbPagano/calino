@@ -12,6 +12,7 @@ import {
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useContextMenuStore } from '@/store/contextMenuStore'
+import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import type { CalendarEvent } from '@/types'
 
 function isUUID(value: string): boolean {
@@ -45,6 +46,7 @@ export function AgendaView(): JSX.Element {
   const events = useCalendarStore((state) => state.events)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
+  const { deleteEvent: deleteCalDAVEvent } = useCalDAV()
   const closeMenu = useContextMenuStore((state) => state.closeMenu)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; day: Date } | null>(null)
   const [eventContextMenu, setEventContextMenu] = useState<{ x: number; y: number; event: CalendarEvent } | null>(null)
@@ -348,8 +350,19 @@ export function AgendaView(): JSX.Element {
               },
               {
                 label: 'Delete',
-                onClick: () => {
-                  deleteEvent(eventContextMenu.event.id)
+                onClick: async () => {
+                  const eventId = eventContextMenu.event.id
+                  const calendarId = eventContextMenu.event.calendarId
+                  deleteEvent(eventId)
+                  try {
+                    await deleteCalDAVEvent(calendarId, eventId)
+                  } catch {
+                    window.dispatchEvent(
+                      new CustomEvent('show-toast', {
+                        detail: { message: 'Failed to sync deletion with CalDAV server. It will be retried.' },
+                      })
+                    )
+                  }
                   setEventContextMenu(null)
                 },
                 danger: true,

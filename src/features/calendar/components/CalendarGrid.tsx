@@ -102,6 +102,7 @@ export function CalendarGrid(): JSX.Element {
   const isWideWindow = useIsWideWindow()
   const [bottomPanelDay, setBottomPanelDay] = useState<string | null>(null)
   const [splitRatio, setSplitRatio] = useState(0.65)
+  const [gridRatio, setGridRatio] = useState(0.6)
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollCooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentDateRef = useRef(currentDate)
@@ -371,6 +372,23 @@ export function CalendarGrid(): JSX.Element {
     return map
   }, [events, calendars, hideCompletedTasksInMonthView, selectedCategoryName])
 
+  const handleGridResizeStart = (e: React.MouseEvent): void => {
+    e.preventDefault()
+    const startY = e.clientY
+    const startRatio = gridRatio
+    const containerHeight = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect().height
+    const onMove = (ev: MouseEvent): void => {
+      const delta = (ev.clientY - startY) / containerHeight
+      setGridRatio(Math.min(0.85, Math.max(0.35, startRatio + delta)))
+    }
+    const onUp = (): void => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
   const handleResizeStart = (e: React.MouseEvent): void => {
     e.preventDefault()
     const startX = e.clientX
@@ -444,7 +462,7 @@ export function CalendarGrid(): JSX.Element {
   if (isTallWindow) {
     return (
       <div className={styles.splitContainer}>
-        <div className={styles.gridTop}>
+        <div className={styles.gridTop} style={{ flex: `0 0 ${gridRatio * 100}%`, maxHeight: 800 * gridRatio / 0.6 }}>
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div
               className={styles.grid}
@@ -528,7 +546,8 @@ export function CalendarGrid(): JSX.Element {
             <DragOverlay>{activeEvent ? <EventCard event={activeEvent} /> : null}</DragOverlay>
           </DndContext>
         </div>
-        <div className={styles.agendaBottom}>
+        <div className={styles.splitHandleH} onMouseDown={handleGridResizeStart} />
+        <div className={styles.agendaBottom} style={{ flex: 1 }}>
           {bottomPanelDay ? (
             isWideWindow ? (
               <>

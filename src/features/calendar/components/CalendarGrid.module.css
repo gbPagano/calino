@@ -363,3 +363,15 @@
 .splitHandle:active {
   background: var(--color-accent, #c4a89a);
 }
+
+.splitHandleH {
+  height: 8px;
+  cursor: row-resize;
+  flex-shrink: 0;
+  background: var(--color-border-subtle, rgba(0, 0, 0, 0.06));
+  transition: background 0.15s;
+}
+.splitHandleH:hover,
+.splitHandleH:active {
+  background: var(--color-accent, #c4a89a);
+}

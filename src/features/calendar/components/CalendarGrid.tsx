@@ -43,6 +43,7 @@ import { useGestures } from '@/hooks/useGestures'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { useIsTallWindow } from '@/hooks/useWindowHeight'
 import { AgendaView } from './AgendaView'
+import { DayView } from './DayView'
 import type { CalendarEvent, ViewType } from '@/types'
 import styles from './CalendarGrid.module.css'
 
@@ -98,6 +99,7 @@ export function CalendarGrid(): JSX.Element {
   const [scale, setScale] = useState(1)
   const isMobile = useIsMobile()
   const isTallWindow = useIsTallWindow()
+  const [bottomPanelDay, setBottomPanelDay] = useState<string | null>(null)
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollCooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentDateRef = useRef(currentDate)
@@ -368,7 +370,12 @@ export function CalendarGrid(): JSX.Element {
   }, [events, calendars, hideCompletedTasksInMonthView, selectedCategoryName])
 
   const handleDayClick = (day: Date): void => {
-    openModal(format(day, 'yyyy-MM-dd'))
+    const dateStr = format(day, 'yyyy-MM-dd')
+    if (isTallWindow) {
+      setBottomPanelDay((prev) => (prev === dateStr ? null : dateStr))
+    } else {
+      openModal(dateStr)
+    }
   }
 
   const handleDayNumberClick = (day: Date): void => {
@@ -496,7 +503,11 @@ export function CalendarGrid(): JSX.Element {
           </DndContext>
         </div>
         <div className={styles.agendaBottom}>
-          <AgendaView embedded />
+          {bottomPanelDay ? (
+            <DayView selectedDate={bottomPanelDay} />
+          ) : (
+            <AgendaView embedded />
+          )}
         </div>
       </div>
     )

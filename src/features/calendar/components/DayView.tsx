@@ -64,8 +64,9 @@ function HourCell({ hour, dateStr, timeFormat, onCellClick, onDragStart }: HourC
   )
 }
 
-export function DayView(): JSX.Element {
-  const currentDate = useCalendarStore((state) => state.currentDate)
+export function DayView({ selectedDate: propDate }: { selectedDate?: string } = {}): JSX.Element {
+  const storeDate = useCalendarStore((state) => state.currentDate)
+  const currentDate = propDate || storeDate
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
   const getEventsForDateRange = useCalendarStore((state) => state.getEventsForDateRange)

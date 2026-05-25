@@ -299,7 +299,7 @@ function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
   return (
     <>
       <button className="mobile-fab" onClick={onClick} aria-label="Quick actions">
-        <svg
+        <svg aria-hidden="true"
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -318,7 +318,7 @@ function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
       {isOpen && (
         <div className="mobile-fab-menu">
           <button className="mobile-fab-option" onClick={() => onAction('event')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none">
               <rect
                 x="3"
                 y="4"
@@ -338,7 +338,7 @@ function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
             Create Event
           </button>
           <button className="mobile-fab-option" onClick={() => onAction('task')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path
                 d="M9 11l3 3L22 4"
                 stroke="currentColor"

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { safeLocalStorage } from '@/lib/storage'
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
 import { RRule } from 'rrule'
 import type { CalendarStore, CalendarEvent, Calendar, ViewType, EventType } from '@/types'
@@ -441,6 +442,7 @@ export const useCalendarStore = create<CalendarStore>()(
     }),
     {
       name: 'calino-storage',
+      storage: createJSONStorage(() => safeLocalStorage),
       version: 1,
       migrate: () => ({ events: [], calendars: [], categories: [], autoCategoryRules: [] }),
       partialize: (state) => ({

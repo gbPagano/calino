@@ -144,13 +144,13 @@ export function CalendarHeader({
         <h1 className={styles.title}>{getTitle()}</h1>
         {!isMobile && (
           <div className={styles.nav}>
-            <button className={styles.navButton} onClick={() => handleNavigate('prev')}>
+            <button className={styles.navButton} onClick={() => handleNavigate('prev')} aria-label="Previous month">
               <ChevronLeft />
             </button>
             <button className={styles.todayButton} onClick={handleToday}>
               Today
             </button>
-            <button className={styles.navButton} onClick={() => handleNavigate('next')}>
+            <button className={styles.navButton} onClick={() => handleNavigate('next')} aria-label='Next month'>
               <ChevronRight />
             </button>
           </div>
@@ -168,7 +168,7 @@ export function CalendarHeader({
         {!isMobile && (
           <>
             <ThemeToggle className={`${styles.createButton} ${styles.themeToggle}`} />
-            <button className={styles.createButton} onClick={() => navigate('/settings')}>
+            <button className={styles.createButton} onClick={() => navigate('/settings')} aria-label="Open settings">
               <SettingsIcon />
             </button>
           </>
@@ -180,7 +180,7 @@ export function CalendarHeader({
 
 function ChevronLeft(): JSX.Element {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M12.5 15L7.5 10L12.5 5"
         stroke="currentColor"
@@ -194,7 +194,7 @@ function ChevronLeft(): JSX.Element {
 
 function ChevronRight(): JSX.Element {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M7.5 5L12.5 10L7.5 15"
         stroke="currentColor"
@@ -208,7 +208,7 @@ function ChevronRight(): JSX.Element {
 
 function MenuIcon(): JSX.Element {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M3 12H21M3 6H21M3 18H21"
         stroke="currentColor"
@@ -222,7 +222,7 @@ function MenuIcon(): JSX.Element {
 
 function SearchIcon(): JSX.Element {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
       <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
@@ -231,7 +231,7 @@ function SearchIcon(): JSX.Element {
 
 function SettingsIcon(): JSX.Element {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M12 15a3 3 0 100-6 3 3 0 000 6z"
         stroke="currentColor"

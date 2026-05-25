@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from 'uuid'
 import type { CalDAVAccount, CalDAVCalendar, PendingChange } from '../types'
+import { v4 as uuidv4 } from 'uuid'
 
 const ACCOUNTS_KEY = 'calino_caldav_accounts'
 const PENDING_CHANGES_KEY = 'calino_pending_changes'

@@ -283,7 +283,7 @@ export function CalDAVSettings(): JSX.Element {
                   className={styles.chevronLabel}
                   onClick={() => setShowProxyField(!showProxyField)}
                 >
-                  <svg
+                  <svg aria-hidden="true"
                     className={styles.chevronIcon}
                     style={{ transform: showProxyField ? 'rotate(0deg)' : 'rotate(-90deg)' }}
                     width="16"

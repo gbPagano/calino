@@ -674,7 +674,7 @@ export function EventModal(): JSX.Element | null {
             className={styles.titleEditIcon}
             onClick={() => titleInputRef.current?.focus()}
           >
-            <svg
+            <svg aria-hidden="true"
               width="14"
               height="14"
               viewBox="0 0 24 24"
@@ -703,7 +703,7 @@ export function EventModal(): JSX.Element | null {
               )
             }}
           />
-          <button className={styles.modalClose} onClick={closeModal}>
+          <button className={styles.modalClose} onClick={closeModal} aria-label="Close">
             ×
           </button>
         </div>

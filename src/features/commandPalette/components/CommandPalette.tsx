@@ -124,7 +124,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
     <div className={styles.container} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.inputWrapper}>
-          <svg
+          <svg aria-hidden="true"
             className={styles.inputIcon}
             viewBox="0 0 24 24"
             fill="none"

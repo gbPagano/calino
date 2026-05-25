@@ -2,7 +2,7 @@ import type { JSX } from 'react'
 
 export function RecurringIcon(): JSX.Element {
   return (
-    <svg
+    <svg aria-hidden="true"
       width="10"
       height="10"
       viewBox="0 0 24 24"

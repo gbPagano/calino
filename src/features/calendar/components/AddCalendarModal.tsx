@@ -163,7 +163,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
               className={styles.chevronLabel}
               onClick={() => setShowProxyField(!showProxyField)}
             >
-              <svg
+              <svg aria-hidden="true"
                 className={styles.chevronIcon}
                 style={{ transform: showProxyField ? 'rotate(0deg)' : 'rotate(-90deg)' }}
                 width="16"

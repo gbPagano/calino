@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from 'uuid';
 import type { CalDAVCredentials } from '../types';
+import { v4 as uuidv4 } from 'uuid'
 
 const CREDENTIALS_KEY = 'calino_caldav_credentials'
 

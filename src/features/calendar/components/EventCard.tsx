@@ -472,7 +472,7 @@ export function EventCard({
 
 function DeleteIcon(): JSX.Element {
   return (
-    <svg
+    <svg aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -487,7 +487,7 @@ function DeleteIcon(): JSX.Element {
 
 function DuplicateIcon(): JSX.Element {
   return (
-    <svg
+    <svg aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -503,7 +503,7 @@ function DuplicateIcon(): JSX.Element {
 
 function EditIcon(): JSX.Element {
   return (
-    <svg
+    <svg aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -519,7 +519,7 @@ function EditIcon(): JSX.Element {
 
 function TravelIcon(): JSX.Element {
   return (
-    <svg
+    <svg aria-hidden="true"
       width="14"
       height="14"
       viewBox="0 0 24 24"
@@ -539,7 +539,7 @@ function TravelIcon(): JSX.Element {
 
 function CheckedIcon(): JSX.Element {
   return (
-    <svg
+    <svg aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"
@@ -556,7 +556,7 @@ function CheckedIcon(): JSX.Element {
 
 function UncheckedIcon(): JSX.Element {
   return (
-    <svg
+    <svg aria-hidden="true"
       width="16"
       height="16"
       viewBox="0 0 24 24"

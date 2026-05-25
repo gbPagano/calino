@@ -581,7 +581,7 @@ export function EventPreviewPopup({
             {renderTitle()}
           </div>
           <button className={styles.closeBtn} onClick={closePreview} aria-label="Close">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path
                 d="M12 4L4 12M4 4L12 12"
                 stroke="currentColor"
@@ -594,7 +594,7 @@ export function EventPreviewPopup({
 
         <div className={styles.content}>
           <div className={styles.field}>
-            <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <svg aria-hidden="true" className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
               <rect
                 x="2"
                 y="3"
@@ -626,7 +626,7 @@ export function EventPreviewPopup({
           
 
           <div className={styles.field} onClick={() => startEditing('time')}>
-            <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <svg aria-hidden="true" className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
               <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
               <path d="M7 4V7L9 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
             </svg>
@@ -635,7 +635,7 @@ export function EventPreviewPopup({
 
           {(editLocation || event.location) && (
             <div className={styles.field} onClick={() => startEditing('location')}>
-              <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <svg aria-hidden="true" className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path
                   d="M7 6.5C8.10457 6.5 9 5.60457 9 4.5C9 3.39543 8.10457 2.5 7 2.5C5.89543 2.5 5 3.39543 5 4.5C5 5.60457 5.89543 6.5 7 6.5Z"
                   stroke="currentColor"
@@ -653,7 +653,7 @@ export function EventPreviewPopup({
 
           {event.travelDuration !== undefined && event.travelDuration > 0 && (
             <div className={styles.field}>
-              <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <svg aria-hidden="true" className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path
                   d="M1 10L4 7L6 9L13 2"
                   stroke="currentColor"
@@ -675,7 +675,7 @@ export function EventPreviewPopup({
 
           {reminderLabel && (
             <div className={styles.field}>
-              <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <svg aria-hidden="true" className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path
                   d="M7 1.5C4.51472 1.5 2.5 3.51472 2.5 6C2.5 8.48528 4.51472 10.5 7 10.5C9.48528 10.5 11.5 8.48528 11.5 6C11.5 3.51472 9.48528 1.5 7 1.5Z"
                   stroke="currentColor"
@@ -695,7 +695,7 @@ export function EventPreviewPopup({
 
           {isTask && event.priority !== undefined && event.priority > 0 && (
             <div className={styles.field}>
-              <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <svg aria-hidden="true" className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path
                   d="M7 1V7M7 7V13"
                   stroke="currentColor"
@@ -715,7 +715,7 @@ export function EventPreviewPopup({
 
           {isTask && event.completed && (
             <div className={styles.field}>
-              <svg className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <svg aria-hidden="true" className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
                 <path
                   d="M4 7L6 9L10 5"
@@ -737,8 +737,8 @@ export function EventPreviewPopup({
 
         <div className={styles.footer}>
           {hasChanges && (
-            <button className={styles.saveBtn} onClick={saveChanges}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <button className={styles.saveBtn} onClick={saveChanges} aria-label="Save changes">
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path
                   d="M2 7L5.5 10.5L12 4"
                   stroke="currentColor"
@@ -753,7 +753,7 @@ export function EventPreviewPopup({
             {isTask ? 'Open task' : 'Open event'}
           </button>
           <button className={styles.deleteBtn} onClick={handleDelete} aria-label="Delete">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path
                 d="M2 4H12M5 4V2H9V4M4 4V12H10V4"
                 stroke="currentColor"

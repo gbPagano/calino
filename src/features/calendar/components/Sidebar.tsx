@@ -268,7 +268,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
       <div className={sidebarClass}>
         <div className={styles.miniCalendar}>
           <div className={styles.miniHeader}>
-            <button onClick={handlePrevMonth} className={styles.miniNavBtn}>
+            <button onClick={handlePrevMonth} className={styles.miniNavBtn} aria-label="Previous month">
               <ChevronLeft />
             </button>
             <div style={{ position: 'relative' }} ref={dropdownRef}>
@@ -311,7 +311,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
                 )}
               </span>
             </div>
-            <button onClick={handleNextMonth} className={styles.miniNavBtn}>
+            <button onClick={handleNextMonth} className={styles.miniNavBtn} aria-label="Next month">
               <ChevronRight />
             </button>
           </div>
@@ -400,7 +400,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
                   disabled={!!syncingCalendarId}
                 >
                   {syncStatus[calendar.id] === 'success' ? (
-                    <svg
+                    <svg aria-hidden="true"
                       width="14"
                       height="14"
                       viewBox="0 0 24 24"
@@ -411,7 +411,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
                       <path d="M20 6L9 17l-5-5" />
                     </svg>
                   ) : syncStatus[calendar.id] === 'error' ? (
-                    <svg
+                    <svg aria-hidden="true"
                       width="14"
                       height="14"
                       viewBox="0 0 24 24"
@@ -422,7 +422,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
                       <path d="M18 6L6 18M6 6l12 12" />
                     </svg>
                   ) : (
-                    <svg
+                    <svg aria-hidden="true"
                       width="14"
                       height="14"
                       viewBox="0 0 24 24"
@@ -546,7 +546,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
 
 function ChevronLeft(): JSX.Element {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
       <path
         d="M10 12L6 8L10 4"
         stroke="currentColor"
@@ -560,7 +560,7 @@ function ChevronLeft(): JSX.Element {
 
 function ChevronRight(): JSX.Element {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
       <path
         d="M6 4L10 8L6 12"
         stroke="currentColor"
@@ -574,7 +574,7 @@ function ChevronRight(): JSX.Element {
 
 function ChevronDown({ className }: { className?: string }): JSX.Element {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={className}>
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" className={className}>
       <path
         d="M4 6L8 10L12 6"
         stroke="currentColor"
@@ -588,7 +588,7 @@ function ChevronDown({ className }: { className?: string }): JSX.Element {
 
 function PlusIcon(): JSX.Element {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none">
       <path
         d="M7 3V11M3 7H11"
         stroke="currentColor"

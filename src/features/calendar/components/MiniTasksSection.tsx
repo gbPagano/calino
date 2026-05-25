@@ -87,7 +87,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
           <span className={styles.tasksTitle}>Tasks</span>
           {activeCount > 0 && <span className={styles.tasksCount}>{activeCount}</span>}
         </div>
-        <svg
+        <svg aria-hidden="true"
           className={`${styles.tasksChevron} ${isExpanded ? styles.tasksChevronExpanded : ''}`}
           width="16"
           height="16"
@@ -137,7 +137,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                         handleToggleComplete(task)
                       }}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <circle cx="12" cy="12" r="9" />
                       </svg>
                     </button>

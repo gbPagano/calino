@@ -21,8 +21,8 @@ export function RecurrenceDialog({
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h2 className={styles.title}>Edit recurring event</h2>
-          <button className={styles.closeButton} onClick={onClose}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <button className={styles.closeButton} onClick={onClose} aria-label="Close">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path
                 d="M18 6L6 18M6 6L18 18"
                 stroke="currentColor"

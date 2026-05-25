@@ -24,7 +24,7 @@ const NAV_ITEMS: NavItem[] = [
     id: 'general',
     label: 'General',
     icon: (
-      <svg
+      <svg aria-hidden="true"
         className={styles.navIcon}
         viewBox="0 0 24 24"
         fill="none"
@@ -40,7 +40,7 @@ const NAV_ITEMS: NavItem[] = [
     id: 'theme',
     label: 'Theme',
     icon: (
-      <svg
+      <svg aria-hidden="true"
         className={styles.navIcon}
         viewBox="0 0 24 24"
         fill="none"
@@ -56,7 +56,7 @@ const NAV_ITEMS: NavItem[] = [
     id: 'calendar',
     label: 'Calendar',
     icon: (
-      <svg
+      <svg aria-hidden="true"
         className={styles.navIcon}
         viewBox="0 0 24 24"
         fill="none"
@@ -74,7 +74,7 @@ const NAV_ITEMS: NavItem[] = [
     id: 'events',
     label: 'Events',
     icon: (
-      <svg
+      <svg aria-hidden="true"
         className={styles.navIcon}
         viewBox="0 0 24 24"
         fill="none"
@@ -89,7 +89,7 @@ const NAV_ITEMS: NavItem[] = [
     id: 'categories',
     label: 'Categories',
     icon: (
-      <svg
+      <svg aria-hidden="true"
         className={styles.navIcon}
         viewBox="0 0 24 24"
         fill="none"
@@ -105,7 +105,7 @@ const NAV_ITEMS: NavItem[] = [
     id: 'notifications',
     label: 'Notifications',
     icon: (
-      <svg
+      <svg aria-hidden="true"
         className={styles.navIcon}
         viewBox="0 0 24 24"
         fill="none"
@@ -121,7 +121,7 @@ const NAV_ITEMS: NavItem[] = [
     id: 'caldav',
     label: 'Sync',
     icon: (
-      <svg
+      <svg aria-hidden="true"
         className={styles.navIcon}
         viewBox="0 0 24 24"
         fill="none"
@@ -136,7 +136,7 @@ const NAV_ITEMS: NavItem[] = [
     id: 'data',
     label: 'Data',
     icon: (
-      <svg
+      <svg aria-hidden="true"
         className={styles.navIcon}
         viewBox="0 0 24 24"
         fill="none"

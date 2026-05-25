@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { safeLocalStorage } from '@/lib/storage'
 import type {
   SettingsStore,
   UserSettings,
@@ -139,6 +140,7 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'calino-settings',
+      storage: createJSONStorage(() => safeLocalStorage),
       version: 1,
       migrate: () => DEFAULT_SETTINGS as SettingsStore,
     }

@@ -61,11 +61,12 @@
   position: relative;
   gap: 10px;
   padding: 16px 22px 14px;
+  overflow: visible;
 }
 
 .titleInputWrapper {
   position: relative;
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
 }
 

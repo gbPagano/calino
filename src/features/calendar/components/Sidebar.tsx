@@ -61,7 +61,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false)
   const [syncingCalendarId, setSyncingCalendarId] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<Record<string, 'success' | 'error'>>({})
-  const [retryingFailedSyncs, setRetryingFailedSyncs] = useState(false)
   const [contextMenu, setContextMenu] = useState<{
     x: number
     y: number
@@ -82,7 +81,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const updateSettings = useSettingsStore((state) => state.updateSettings)
   const showAddCalendar = useCalendarStore((state) => state.showAddCalendar)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)
-  const { syncAccount, retryAllFailedSyncs } = useCalDAV()
+  const { syncAccount } = useCalDAV()
 
   const handleSyncCalendar = async (calendarId: string, accountId?: string): Promise<void> => {
     if (!accountId || syncingCalendarId) return
@@ -441,49 +440,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
           ))}
         </div>
 
-        <button
-          className={styles.retrySyncButton}
-          onClick={async () => {
-            setRetryingFailedSyncs(true)
-            try {
-              const result = await retryAllFailedSyncs()
-              if (result.succeeded > 0) {
-                window.dispatchEvent(
-                  new CustomEvent('show-toast', {
-                    detail: { message: `Retried ${result.succeeded} event(s) successfully` },
-                  })
-                )
-              }
-              if (result.failed > 0) {
-                window.dispatchEvent(
-                  new CustomEvent('show-toast', {
-                    detail: { message: `${result.failed} event(s) still failed. Will retry automatically.` },
-                  })
-                )
-              }
-            } catch {
-              window.dispatchEvent(
-                new CustomEvent('show-toast', {
-                  detail: { message: 'Failed to retry syncs' },
-                })
-              )
-            } finally {
-              setRetryingFailedSyncs(false)
-            }
-          }}
-          disabled={retryingFailedSyncs}
-          title="Retry all failed syncs"
-        >
-          {retryingFailedSyncs ? (
-            <span className={styles.retrySpinning}>
-              <RetrySyncIcon />
-            </span>
-          ) : (
-            <RetrySyncIcon />
-          )}
-          <span>Retry failed syncs</span>
-        </button>
-
         <MiniTasksSection
           isExpanded={isTasksExpanded}
           onToggle={() => setIsTasksExpanded(!isTasksExpanded)}
@@ -640,25 +596,6 @@ function PlusIcon(): JSX.Element {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  )
-}
-
-function RetrySyncIcon(): JSX.Element {
-  return (
-    <svg aria-hidden="true"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="23 4 23 10 17 10" />
-      <polyline points="1 20 1 14 7 14" />
-      <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
     </svg>
   )
 }

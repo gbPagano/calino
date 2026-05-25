@@ -507,11 +507,11 @@ export function CalendarGrid(): JSX.Element {
           {bottomPanelDay ? (
             isWideWindow ? (
               <>
-                <div className={styles.splitDay}><DayView selectedDate={bottomPanelDay} /></div>
+                <div className={styles.splitDay}><DayView key={bottomPanelDay} selectedDate={bottomPanelDay} /></div>
                 <div className={styles.splitAgenda}><AgendaView embedded /></div>
               </>
             ) : (
-              <DayView selectedDate={bottomPanelDay} />
+              <DayView key={bottomPanelDay} selectedDate={bottomPanelDay} />
             )
           ) : (
             <AgendaView embedded />

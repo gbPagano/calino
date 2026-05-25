@@ -315,3 +315,11 @@
   flex: 0 0 35%;
   overflow: auto;
 }
+
+/* Override for embedded views when inside a split — each needs its own scroll context */
+.bottomSplit > * {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}

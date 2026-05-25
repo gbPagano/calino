@@ -52,7 +52,7 @@ const WeekDayColumn = memo(function WeekDayColumn({
         key={event.id}
         className={`${styles.eventPositioned} ${styles.eventTransparent}`}
         style={{
-          top: `${((startHour * 60 + startMinutes) / (24 * 60)) * 100}%`,
+          top: `calc(var(--hour-height, 60px) * ${startHour + startMinutes / 60})`,
           height: `${heightPct}%`,
           left: `${leftPercent}%`,
           width: `${widthPercent}%`,
@@ -94,7 +94,7 @@ const WeekDayColumn = memo(function WeekDayColumn({
           key={`${event.id}-travel`}
           className={styles.travelBar}
           style={{
-            top: `${((travelStartHour * 60 + travelStartMinutes) / (24 * 60)) * 100}%`,
+            top: `calc(var(--hour-height, 60px) * ${travelStartHour + travelStartMinutes / 60})`,
             height: `${travelHeightPct}%`,
             left: `${leftPercent}%`,
             width: `${widthPercent}%`,
@@ -114,7 +114,7 @@ const WeekDayColumn = memo(function WeekDayColumn({
         key={event.id}
         className={styles.eventPositioned}
         style={{
-          top: `${((startHour * 60 + startMinutes) / (24 * 60)) * 100}%`,
+          top: `calc(var(--hour-height, 60px) * ${startHour + startMinutes / 60})`,
           height: `${heightPct}%`,
           left: `${leftPercent}%`,
           width: `${widthPercent}%`,

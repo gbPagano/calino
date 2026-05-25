@@ -34,6 +34,7 @@ import { ContextMenu } from '@/components/common/ContextMenu'
 import { useGestures } from '@/hooks/useGestures'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useContextMenuStore } from '@/store/contextMenuStore'
+import { useWindowHeight } from '@/hooks/useWindowHeight'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { HOURS } from '@/lib/hours'
 import styles from './WeekView.module.css'
@@ -90,12 +91,15 @@ export function WeekView(): JSX.Element {
   const [dragEnd, setDragEnd] = useState<string | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
   const [scale, setScale] = useState(1)
+  const windowHeight = useWindowHeight()
+  const stretchFactor = windowHeight > 1570 ? windowHeight / 1570 : 1
+  const effectiveScale = scale * stretchFactor
   const containerRef = useRef<HTMLDivElement>(null)
   const headerScrollRef = useRef<HTMLDivElement>(null)
   const bodyScrollRef = useRef<HTMLDivElement>(null)
   const mobileScrollRef = useRef<HTMLDivElement>(null)
   const daysContainerRef = useRef<HTMLDivElement>(null)
-  const hourHeight = BASE_HOUR_HEIGHT * scale
+  const hourHeight = BASE_HOUR_HEIGHT * effectiveScale
 
   useEffect(() => {
     if (openMenuId !== null && openMenuId !== 'weekview' && contextMenu) {
@@ -668,7 +672,7 @@ export function WeekView(): JSX.Element {
       <div
         className={styles.container}
         ref={containerRef}
-        style={{ '--hour-height': `${60 * scale}px`, touchAction: 'none' } as React.CSSProperties}
+        style={{ '--hour-height': `${60 * effectiveScale}px`, touchAction: 'none' } as React.CSSProperties}
         {...bind}
       >
         {isMobile ? renderMobileContent() : renderDesktopContent()}

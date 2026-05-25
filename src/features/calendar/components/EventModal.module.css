@@ -63,6 +63,11 @@
   padding: 16px 22px 14px;
 }
 
+.titleInputWrapper {
+  position: relative;
+  flex: 1;
+}
+
 .modalTitle {
   flex: 1;
   border: none;
@@ -608,7 +613,7 @@
 
 .titleSuggestions {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
   z-index: 300;

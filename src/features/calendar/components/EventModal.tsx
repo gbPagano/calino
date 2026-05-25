@@ -309,6 +309,13 @@ export function EventModal(): JSX.Element | null {
     setDescription(ev.description || '')
     setLocation(ev.location || '')
     setSelectedCategories(ev.categories || [])
+    // Fill time only if using default (09:00-10:00)
+    if (startTime === '09:00' && endTime === '10:00') {
+      const evStart = parseISO(ev.start)
+      setStartTime(format(evStart, 'HH:mm'))
+      const evEnd = parseISO(ev.end)
+      setEndTime(format(evEnd, 'HH:mm'))
+    }
     setTitleSuggestions([])
     setHighlightedIndex(-1)
     titleInputRef.current?.focus()
@@ -318,14 +325,18 @@ export function EventModal(): JSX.Element | null {
     if (!showSuggestions) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
+      e.stopPropagation()
       setHighlightedIndex((i) => Math.min(i + 1, titleSuggestions.length - 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
+      e.stopPropagation()
       setHighlightedIndex((i) => Math.max(i - 1, 0))
     } else if (e.key === 'Enter' && highlightedIndex >= 0) {
       e.preventDefault()
       applySuggestion(titleSuggestions[highlightedIndex])
     } else if (e.key === 'Escape') {
+      setTitleSuggestions([])
+    } else if (e.key === 'Tab') {
       setTitleSuggestions([])
     }
   }
@@ -769,46 +780,54 @@ export function EventModal(): JSX.Element | null {
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
           </button>
-          <input
-            ref={titleInputRef}
-            type="text"
-            placeholder="Event title"
-            value={title}
-            onChange={(e) => handleTitleChange(e.target.value)}
-            onKeyDown={handleTitleKeyDown}
-            className={styles.modalTitle}
-            required
-            onInvalid={(e) => {
-              e.preventDefault()
-              window.dispatchEvent(
-                new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
-              )
-            }}
-          />
+          <div className={styles.titleInputWrapper}>
+            <input
+              ref={titleInputRef}
+              type="text"
+              placeholder="Event title"
+              value={title}
+              onChange={(e) => handleTitleChange(e.target.value)}
+              onKeyDown={handleTitleKeyDown}
+              className={styles.modalTitle}
+              required
+              onInvalid={(e) => {
+                e.preventDefault()
+                window.dispatchEvent(
+                  new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
+                )
+              }}
+            />
+            {showSuggestions && (
+              <div className={styles.titleSuggestions}>
+                {titleSuggestions.map((ev, i) => (
+                  <button
+                    key={ev.id}
+                    type="button"
+                    className={`${styles.suggestionItem} ${i === highlightedIndex ? styles.suggestionItemActive : ''}`}
+                    onClick={() => applySuggestion(ev)}
+                  >
+                    <span className={styles.suggestionTitle}>{ev.title}</span>
+                    {ev.description && (
+                      <span className={styles.suggestionDesc}>{ev.description}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button className={styles.modalClose} onClick={closeModal} aria-label="Close">
             ×
           </button>
-          {showSuggestions && (
-            <div className={styles.titleSuggestions}>
-              {titleSuggestions.map((ev, i) => (
-                <button
-                  key={ev.id}
-                  type="button"
-                  className={`${styles.suggestionItem} ${i === highlightedIndex ? styles.suggestionItemActive : ''}`}
-                  onClick={() => applySuggestion(ev)}
-                >
-                  <span className={styles.suggestionTitle}>{ev.title}</span>
-                  {ev.description && (
-                    <span className={styles.suggestionDesc}>{ev.description}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
         <hr className={styles.modalDivider} />
         <form
           key={`${selectedEventId}-${selectedDate}-${selectedEventType}`}
+          onClick={(e) => {
+            // Close suggestions when clicking outside the suggestions dropdown
+            if (!(e.target as HTMLElement).closest(`.${styles.titleSuggestions}`)) {
+              setTitleSuggestions([])
+            }
+          }}
           onSubmit={handleSubmit}
           className={styles.modalBody}
         >

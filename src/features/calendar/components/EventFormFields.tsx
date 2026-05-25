@@ -1,7 +1,8 @@
 import type { JSX } from 'react'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import type { RecurrenceRule, Reminder } from '@/types'
 import { useSettingsStore } from '@/store/settingsStore'
+import { useScrollInput } from '@/hooks/useScrollInput'
 import styles from './EventModal.module.css'
 
 interface EventFormFieldsProps {
@@ -95,6 +96,12 @@ export function EventFormFields({
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
   const weekdayLabels = getWeekdayLabels(firstDayOfWeek)
 
+  const startDateRef = useRef<HTMLInputElement>(null)
+  const startTimeRef = useRef<HTMLInputElement>(null)
+  const endDateRef = useRef<HTMLInputElement>(null)
+  const endTimeRef = useRef<HTMLInputElement>(null)
+  useScrollInput([startDateRef, startTimeRef, endDateRef, endTimeRef])
+
   const handleWeekdayToggle = (displayIndex: number): void => {
     if (!onByWeekdayChange) return
     const actualWeekday = (displayIndex + firstDayOfWeek) % 7
@@ -112,6 +119,7 @@ export function EventFormFields({
           <div className={styles.dateTimeInputs}>
             <input
               type="date"
+              ref={startDateRef}
               value={startDate}
               onChange={(e) => {
                 const newDate = e.target.value
@@ -126,6 +134,7 @@ export function EventFormFields({
             {!isAllDay && (
               <input
                 type="time"
+                ref={startTimeRef}
                 value={startTime}
                 onChange={(e) => {
                   const newStart = e.target.value
@@ -149,6 +158,7 @@ export function EventFormFields({
           <div className={styles.dateTimeInputs}>
             <input
               type="date"
+              ref={endDateRef}
               value={endDate}
               onChange={(e) => onEndDateChange(e.target.value)}
               className={styles.input}
@@ -157,6 +167,7 @@ export function EventFormFields({
             {!isAllDay && (
               <input
                 type="time"
+                ref={endTimeRef}
                 value={endTime}
                 onChange={(e) => onEndTimeChange(e.target.value)}
                 className={styles.input}

@@ -1,5 +1,7 @@
 import type { JSX } from 'react'
+import { useRef } from 'react'
 import type { TaskPriority } from '@/types'
+import { useScrollInput } from '@/hooks/useScrollInput'
 import styles from './EventModal.module.css'
 
 interface TaskFormFieldsProps {
@@ -34,6 +36,10 @@ export function TaskFormFields({
   priority,
   onPriorityChange,
 }: TaskFormFieldsProps): JSX.Element {
+  const dueDateRef = useRef<HTMLInputElement>(null)
+  const dueTimeRef = useRef<HTMLInputElement>(null)
+  useScrollInput([dueDateRef, dueTimeRef])
+
   return (
     <>
       <div className={styles.row}>
@@ -68,6 +74,7 @@ export function TaskFormFields({
           <input
             type="date"
             id="due-date"
+            ref={dueDateRef}
             value={dueDate.split('T')[0]}
             onChange={(e) => onDueDateChange(e.target.value)}
             className={styles.input}
@@ -82,6 +89,7 @@ export function TaskFormFields({
             </label>
             <input
               type="time"
+              ref={dueTimeRef}
               id="due-time"
               value={dueTime}
               onChange={(e) => onDueTimeChange(e.target.value)}

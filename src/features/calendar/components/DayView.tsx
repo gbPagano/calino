@@ -93,7 +93,7 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
   const windowHeight = useWindowHeight()
-  const stretchFactor = windowHeight > 1570 ? Math.min(windowHeight / 1570, 1.3) : 1
+  const stretchFactor = windowHeight > 1570 ? windowHeight / 1570 : 1
   const effectiveScale = scale * stretchFactor
 
   useEffect(() => {

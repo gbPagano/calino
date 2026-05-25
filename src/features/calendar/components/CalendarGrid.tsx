@@ -41,6 +41,8 @@ import { DayEventsPopup } from './DayEventsPopup'
 import { ContextMenu } from '@/components/common/ContextMenu'
 import { useGestures } from '@/hooks/useGestures'
 import { hapticIfEnabled } from '@/lib/haptics'
+import { useIsTallWindow } from '@/hooks/useWindowHeight'
+import { AgendaView } from './AgendaView'
 import type { CalendarEvent, ViewType } from '@/types'
 import styles from './CalendarGrid.module.css'
 
@@ -95,6 +97,7 @@ export function CalendarGrid(): JSX.Element {
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null)
   const [scale, setScale] = useState(1)
   const isMobile = useIsMobile()
+  const isTallWindow = useIsTallWindow()
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollCooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentDateRef = useRef(currentDate)
@@ -405,6 +408,99 @@ export function CalendarGrid(): JSX.Element {
   )
 
   const rowHeight = Math.round(100 * scale)
+
+  if (isTallWindow) {
+    return (
+      <div className={styles.splitContainer}>
+        <div className={styles.gridTop}>
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <div
+              className={styles.grid}
+              ref={containerRef}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              {...bind}
+              style={
+                { '--day-cell-height': `${rowHeight}px`, touchAction: 'none' } as React.CSSProperties
+              }
+            >
+              <div className={styles.header}>
+                <div className={styles.weekNumHeader}>W#</div>
+                {weekdays.map((day) => (
+                  <div key={day} className={styles.weekday}>
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentDate}
+                  className={styles.daysContainer}
+                  initial={{ opacity: 0, y: scrollDirection === 'down' ? -10 : 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: scrollDirection === 'down' ? 10 : -10 }}
+                  transition={{ duration: 0.1 }}
+                >
+                  {weekNumbers.map((weekNum, weekIdx) => {
+                    const weekEnd = days[weekIdx * 7 + 6]
+                    const today = startOfDay(new Date())
+                    const isPastWeek = compressPastWeeks && isBefore(weekEnd, today)
+
+                    return (
+                      <div
+                        key={weekIdx}
+                        className={`${styles.weekRow} ${isPastWeek ? styles.compressedWeek : ''}`}
+                      >
+                        <div
+                          className={styles.weekNumber}
+                          onClick={() => handleWeekClick(days[weekIdx * 7])}
+                        >
+                          {weekNum}
+                        </div>
+                        {days.slice(weekIdx * 7, weekIdx * 7 + 7).map((day) => {
+                          const dateKey = format(day, 'yyyy-MM-dd')
+                          const dayEvents = eventsMap.get(dateKey) || []
+                          const dayTasks = tasksMap.get(dateKey) || []
+                          const isCurrentMonth = isSameMonth(day, date)
+                          const isTodayDate = isToday(day)
+                          const dayOfWeek = getDay(day)
+                          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+
+                          return (
+                            <DroppableDay
+                              key={dateKey}
+                              dateKey={dateKey}
+                              day={day}
+                              dayEvents={dayEvents}
+                              dayTasks={dayTasks}
+                              isCurrentMonth={isCurrentMonth}
+                              isTodayDate={isTodayDate}
+                              isWeekend={isWeekend}
+                              isPastWeek={isPastWeek}
+                              compactRecurringEvents={compactRecurringEvents}
+                              monthViewEventLimit={monthViewEventLimit}
+                              isMobile={isMobile}
+                              onDayClick={handleDayClick}
+                              onDayNumberClick={handleDayNumberClick}
+                              openModal={openModal}
+                            />
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+            <DragOverlay>{activeEvent ? <EventCard event={activeEvent} /> : null}</DragOverlay>
+          </DndContext>
+        </div>
+        <div className={styles.agendaBottom}>
+          <AgendaView embedded />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>

@@ -30,7 +30,8 @@ interface DayGroup {
   hasEvents: boolean
 }
 
-export function AgendaView(): JSX.Element {
+export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): JSX.Element {
+  void embedded // suppress unused warning
   const currentDate = useCalendarStore((state) => state.currentDate)
   const calendars = useCalendarStore((state) => state.calendars)
   const categories = useCalendarStore((state) => state.categories)

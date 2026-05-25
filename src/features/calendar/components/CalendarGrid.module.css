@@ -269,3 +269,24 @@
 .day:nth-child(7n + 1):not(.today) .events {
   opacity: var(--weekend-opacity, 1);
 }
+
+.splitContainer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.gridTop {
+  flex: 0 0 60%;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.agendaBottom {
+  flex: 1 1 40%;
+  overflow: auto;
+  border-top: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
+  padding-top: 8px;
+}

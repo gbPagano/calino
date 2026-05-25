@@ -24,7 +24,7 @@ import {
   addWeeks,
   addDays,
 } from 'date-fns'
-import type { CalendarEvent, Calendar } from '@/types'
+import type { CalendarEvent } from '@/types'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
@@ -441,7 +441,7 @@ export function WeekView(): JSX.Element {
   }, [isDraggingToCreate, dragStart, dragEnd, weekDays])
 
   const dayColumnProps = useMemo(() => {
-    return weekDays.map((day, idx) => {
+    return weekDays.map((day) => {
       const dateKey = format(day, 'yyyy-MM-dd')
       return {
         day,
@@ -509,7 +509,7 @@ export function WeekView(): JSX.Element {
       <div className={styles.mobileHeader}>
         <div className={styles.weekNumberHeader}>W{weekNumber}</div>
         <div className={styles.headerDays}>
-          {weekDays.map((day, idx) => (
+          {weekDays.map((day) => (
             <div
               key={day.toISOString()}
               className={`${styles.dayHeader} ${isToday(day) ? styles.today : ''}`}
@@ -567,7 +567,7 @@ export function WeekView(): JSX.Element {
   )
 
   const renderDesktopContent = () => {
-    const allDayEventsByDay = weekDays.map((day, idx) => {
+    const allDayEventsByDay = weekDays.map((day) => {
       const dateKey = format(day, 'yyyy-MM-dd')
       return allDayEventsMap.get(dateKey) || []
     })

@@ -1,5 +1,6 @@
 import { memo } from 'react'
-import { parseISO, format } from 'date-fns'
+import type { JSX } from 'react'
+import { parseISO } from 'date-fns'
 import type { CalendarEvent, Calendar } from '@/types'
 import { EventCard } from './EventCard'
 import { DEFAULT_CALENDAR_COLOR } from '@/config'
@@ -7,16 +8,14 @@ import { formatTravelDuration } from '@/lib/events'
 import styles from './WeekView.module.css'
 
 interface WeekDayColumnProps {
-  day: Date
   events: CalendarEvent[]
   fragments: CalendarEvent[]
   calendars: Calendar[]
   hourHeight: number
-  openModal: (start?: string, endDate?: string, eventId?: string, type?: string) => void
+  openModal: (start?: string, endDate?: string, eventId?: string, mode?: 'event' | 'task') => void
 }
 
 const WeekDayColumn = memo(function WeekDayColumn({
-  day,
   events,
   fragments,
   calendars,

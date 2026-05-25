@@ -539,7 +539,7 @@ function DroppableDay({
   const [showPopup, setShowPopup] = useState(false)
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
-  const moreEventsRef = useRef<HTMLDivElement>(null)
+  const moreEventsRef = useRef<HTMLButtonElement>(null)
 
   const handleMoreEventsClick = (e: React.MouseEvent): void => {
     e.stopPropagation()

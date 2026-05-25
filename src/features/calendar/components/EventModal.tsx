@@ -81,52 +81,53 @@ function getInitialFormState(
 
   if (isModalOpen) {
     if (existingEvent) {
-        // Convert category IDs to names
-        const categoryNames: string[] = []
-        if (existingEvent.categories) {
-          for (const catIdOrName of existingEvent.categories) {
-            // Check if it's a UUID (ID) or a name
-            if (isUUID(catIdOrName)) {
-              const cat = allCategories.find((c) => c.id === catIdOrName)
-              if (cat) {
-                categoryNames.push(cat.name)
-              }
-            } else {
-              // It's already a name
-              categoryNames.push(catIdOrName)
-            }
+      // Convert category IDs to names
+      const categoryNames: string[] = []
+      if (existingEvent.categories) {
+        for (const catIdOrName of existingEvent.categories) {
+          if (isUUID(catIdOrName)) {
+            const cat = allCategories.find((c) => c.id === catIdOrName)
+            if (cat) categoryNames.push(cat.name)
+          } else {
+            categoryNames.push(catIdOrName)
           }
         }
-        return {
-          title: existingEvent.title,
-          description: existingEvent.description || '',
-          location: existingEvent.location || '',
-          startDate: format(parseISO(existingEvent.start), 'yyyy-MM-dd'),
-          startTime: format(parseISO(existingEvent.start), 'HH:mm'),
-          endDate: format(parseISO(existingEvent.end), 'yyyy-MM-dd'),
-          endTime: format(parseISO(existingEvent.end), 'HH:mm'),
-          isAllDay: existingEvent.isAllDay,
-          calendarId: existingEvent.calendarId,
-          recurrence: existingEvent.recurrence?.frequency || 'none',
-          travelDuration: existingEvent.travelDuration,
-          reminders: existingEvent.reminders || [],
-          transparency: existingEvent.transparency || 'opaque',
-          categories: categoryNames,
-          isRecurringInstance,
-          originalEventId,
-        }
+      }
+      return {
+        title: existingEvent.title,
+        description: existingEvent.description || '',
+        location: existingEvent.location || '',
+        startDate: format(parseISO(existingEvent.start), 'yyyy-MM-dd'),
+        startTime: format(parseISO(existingEvent.start), 'HH:mm'),
+        endDate: format(parseISO(existingEvent.end), 'yyyy-MM-dd'),
+        endTime: format(parseISO(existingEvent.end), 'HH:mm'),
+        isAllDay: existingEvent.isAllDay,
+        calendarId: existingEvent.calendarId,
+        recurrence: existingEvent.recurrence?.frequency || 'none',
+        travelDuration: existingEvent.travelDuration,
+        reminders: existingEvent.reminders || [],
+        transparency: existingEvent.transparency || 'opaque',
+        categories: categoryNames,
+        isRecurringInstance,
+        originalEventId,
+      }
     }
 
     if (selectedDate) {
       const dateStr = selectedDate.includes('T') ? selectedDate.split('T')[0] : selectedDate
-      let startTimeVal = '09:00'
-      let endTimeVal = '10:00'
+      let startTimeVal: string
+      let endTimeVal: string
 
       if (selectedDate.includes('T')) {
         const time = selectedDate.split('T')[1]
         startTimeVal = time
         const parsedTime = parseISO(`2000-01-01T${time}`)
         endTimeVal = format(addHours(parsedTime, DEFAULT_DURATION_HOURS), 'HH:mm')
+      } else {
+        // No specific time — use smart default: now rounded up to nearest 15min + 1 hour
+        const { start: smartStart, end: smartEnd } = getDefaultTimeNowPlusOne()
+        startTimeVal = smartStart
+        endTimeVal = smartEnd
       }
 
       if (selectedEndDate && selectedEndDate.includes('T')) {
@@ -177,15 +178,14 @@ function getInitialFormState(
   }
 
   const today = format(new Date(), 'yyyy-MM-dd')
-  const { start: nowStart, end: nowEnd } = getDefaultTimeNowPlusOne()
   return {
     title: '',
     description: '',
     location: '',
     startDate: today,
-    startTime: nowStart,
+    startTime: '09:00',
     endDate: today,
-    endTime: nowEnd,
+    endTime: '10:00',
     isAllDay: false,
     calendarId: defaultCalendar?.id || '',
     recurrence: 'none',

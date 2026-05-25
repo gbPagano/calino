@@ -10,14 +10,10 @@ import { EventFormFields } from './EventFormFields'
 import { RecurrenceDialog } from './RecurrenceDialog'
 import { DeleteDialog } from './DeleteDialog'
 import { extractOriginalEventId } from '@/lib/events'
+import { isUUID } from '@/lib/uuid'
 import styles from './EventModal.module.css'
 
 const DEFAULT_DURATION_HOURS = 1
-
-function isUUID(value: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-  return uuidRegex.test(value)
-}
 
 type RecurrenceEditMode = 'all' | 'future' | 'this'
 
@@ -250,12 +246,12 @@ export function EventModal(): JSX.Element | null {
     if (!isModalOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        closeModal()
+        closeModalRef.current()
       }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isModalOpen, closeModal])
+  }, [isModalOpen])
   const [dueDate, setDueDate] = useState<string>('')
   const [dueTime, setDueTime] = useState<string>('09:00')
   const [dueAllDay, setDueAllDay] = useState(true)
@@ -266,6 +262,8 @@ export function EventModal(): JSX.Element | null {
   const lastSelectedEventId = useRef<string | null>(null)
   const lastSelectedDate = useRef<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const closeModalRef = useRef(closeModal)
+  closeModalRef.current = closeModal
 
   useEffect(() => {
     if (
@@ -458,7 +456,12 @@ export function EventModal(): JSX.Element | null {
       if (mode === 'this' && originalEventId) {
         const masterEvent = events.find((e) => e.id === originalEventId)
         if (!masterEvent) {
-          throw new Error('Master event not found')
+          window.dispatchEvent(
+            new CustomEvent('show-toast', {
+              detail: { message: 'Master event not found. Cannot edit single occurrence.' },
+            })
+          )
+          return
         }
 
         const isoDateMatch = selectedEventId.match(
@@ -466,7 +469,12 @@ export function EventModal(): JSX.Element | null {
         )
         const originalOccurrenceDate = isoDateMatch ? isoDateMatch[2] : null
         if (!originalOccurrenceDate) {
-          throw new Error('Invalid selectedEventId format')
+          window.dispatchEvent(
+            new CustomEvent('show-toast', {
+              detail: { message: 'Invalid event data. Cannot edit single occurrence.' },
+            })
+          )
+          return
         }
 
         const exceptionEvent: CalendarEvent = {

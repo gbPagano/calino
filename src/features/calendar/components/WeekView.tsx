@@ -15,7 +15,6 @@ import {
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
-  eachHourOfInterval,
   startOfDay,
   endOfDay,
   isToday,
@@ -36,12 +35,8 @@ import { useGestures } from '@/hooks/useGestures'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { hapticIfEnabled } from '@/lib/haptics'
+import { HOURS } from '@/lib/hours'
 import styles from './WeekView.module.css'
-
-const HOURS = eachHourOfInterval({
-  start: startOfDay(new Date()),
-  end: endOfDay(new Date()),
-})
 
 const BASE_HOUR_HEIGHT = 60
 const MINUTE_SNAP_INTERVAL = 15

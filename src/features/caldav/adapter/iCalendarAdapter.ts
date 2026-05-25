@@ -7,10 +7,7 @@ import {
   calendarEventToIcalVtodo,
 } from './icalTypeMapping'
 
-export function isUUID(value: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-  return uuidRegex.test(value)
-}
+export { isUUID } from '@/lib/uuid'
 
 export function parseICALEvent(iCalData: string, calendarId: string): CalendarEvent[] {
   if (!iCalData || !iCalData.trim()) {

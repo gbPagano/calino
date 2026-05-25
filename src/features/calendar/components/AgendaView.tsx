@@ -14,11 +14,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import type { CalendarEvent } from '@/types'
-
-function isUUID(value: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-  return uuidRegex.test(value)
-}
+import { isUUID } from '@/lib/uuid'
 import { ContextMenu } from '@/components/common/ContextMenu'
 import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import styles from './AgendaView.module.css'

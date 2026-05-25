@@ -124,10 +124,20 @@ export function CalendarGrid(): JSX.Element {
   )
 
   useEffect(() => {
-    const handleWheelMonth = (e: WheelEvent): void => {
-      if (e.ctrlKey) return
-      if (isOverlayOpen) return
+    const container = containerRef.current
+    if (!container) return
 
+    const handleWheel = (e: WheelEvent): void => {
+      if (e.ctrlKey) {
+        // Zoom: Ctrl+scroll on the calendar grid
+        e.preventDefault()
+        const delta = e.deltaY > 0 ? -0.1 : 0.1
+        setScale((s) => Math.min(Math.max(s + delta, 1), 1.5))
+        return
+      }
+
+      // Month navigation: scroll on the calendar grid (not window, to avoid blocking page scroll)
+      if (isOverlayOpen) return
       if (scrollCooldownRef.current) return
       if (Math.abs(e.deltaY) < 20) return
 
@@ -148,10 +158,10 @@ export function CalendarGrid(): JSX.Element {
       }, 0)
     }
 
-    window.addEventListener('wheel', handleWheelMonth, { passive: false })
+    container.addEventListener('wheel', handleWheel, { passive: false })
 
     return () => {
-      window.removeEventListener('wheel', handleWheelMonth)
+      container.removeEventListener('wheel', handleWheel)
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current)
       }
@@ -160,27 +170,6 @@ export function CalendarGrid(): JSX.Element {
       }
     }
   }, [changeMonth, isOverlayOpen])
-
-  useEffect(() => {
-    const handleWheelZoom = (e: WheelEvent): void => {
-      if (e.ctrlKey) {
-        e.preventDefault()
-        const delta = e.deltaY > 0 ? -0.1 : 0.1
-        setScale((s) => Math.min(Math.max(s + delta, 1), 1.5))
-      }
-    }
-
-    const container = containerRef.current
-    if (container) {
-      container.addEventListener('wheel', handleWheelZoom, { passive: false })
-    }
-
-    return () => {
-      if (container) {
-        container.removeEventListener('wheel', handleWheelZoom)
-      }
-    }
-  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {

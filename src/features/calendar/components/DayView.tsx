@@ -12,7 +12,6 @@ import {
 } from '@dnd-kit/core'
 import {
   format,
-  eachHourOfInterval,
   startOfDay,
   endOfDay,
   parseISO,
@@ -29,13 +28,10 @@ import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { formatTravelDuration } from '@/lib/events'
+import { positionEvents } from '@/lib/eventPositioning'
+import { HOURS } from '@/lib/hours'
 import type { CalendarEvent, Calendar } from '@/types'
 import styles from './DayView.module.css'
-
-const HOURS = eachHourOfInterval({
-  start: startOfDay(new Date()),
-  end: endOfDay(new Date()),
-})
 
 
 const DRAG_ACTIVATION_CONSTRAINT = 8
@@ -393,7 +389,6 @@ export function DayView(): JSX.Element {
     )
 
     const transparentEvents = sortedEvents.filter((e) => e.transparency === 'transparent')
-    const opaqueEvents = sortedEvents.filter((e) => e.transparency !== 'transparent')
 
     const elements: JSX.Element[] = []
 
@@ -429,48 +424,9 @@ export function DayView(): JSX.Element {
       )
     }
 
-    const positioned: { event: CalendarEvent; column: number }[] = []
+    const positionedEvents = positionEvents(sortedEvents)
 
-    opaqueEvents.forEach((event) => {
-      const eventStart = parseISO(event.start).getTime()
-      const eventEnd = parseISO(event.end).getTime()
-
-      let column = 0
-      while (true) {
-        const hasCollision = positioned.some(
-          (p) =>
-            p.column === column &&
-            parseISO(p.event.start).getTime() < eventEnd &&
-            parseISO(p.event.end).getTime() > eventStart
-        )
-        if (!hasCollision) break
-        column++
-      }
-
-      positioned.push({ event, column })
-    })
-
-    const withTotals = positioned.map(({ event, column }) => {
-      const eventStart = parseISO(event.start).getTime()
-      const eventEnd = parseISO(event.end).getTime()
-
-      let totalColumns = 1
-      const eventStartMinutes = eventStart / 60000
-      const eventEndMinutes = eventEnd / 60000
-
-      for (let t = eventStartMinutes; t < eventEndMinutes; t += 30) {
-        const overlapping = positioned.filter(
-          (p) =>
-            parseISO(p.event.start).getTime() / 60000 < t + 30 &&
-            parseISO(p.event.end).getTime() / 60000 > t
-        ).length
-        totalColumns = Math.max(totalColumns, overlapping)
-      }
-
-      return { event, column, totalColumns }
-    })
-
-    for (const { event, column, totalColumns } of withTotals) {
+    for (const { event, column, totalColumns } of positionedEvents) {
       const start = parseISO(event.start)
       const end = parseISO(event.end)
 

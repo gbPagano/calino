@@ -352,26 +352,26 @@
 
 
 .splitHandle {
-  width: 8px;
+  width: 3px;
   cursor: col-resize;
   flex-shrink: 0;
   align-self: stretch;
-  background: var(--color-border-subtle, rgba(0, 0, 0, 0.06));
-  transition: background 0.15s;
+  background: transparent;
+  transition: background 0.2s;
 }
 .splitHandle:hover,
 .splitHandle:active {
-  background: var(--color-accent, #c4a89a);
+  background: var(--color-border-visible, rgba(0, 0, 0, 0.1));
 }
 
 .splitHandleH {
-  height: 8px;
+  height: 3px;
   cursor: row-resize;
   flex-shrink: 0;
-  background: var(--color-border-subtle, rgba(0, 0, 0, 0.06));
-  transition: background 0.15s;
+  background: transparent;
+  transition: background 0.2s;
 }
 .splitHandleH:hover,
 .splitHandleH:active {
-  background: var(--color-accent, #c4a89a);
+  background: var(--color-border-visible, rgba(0, 0, 0, 0.1));
 }

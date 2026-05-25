@@ -64,7 +64,7 @@ function HourCell({ hour, dateStr, timeFormat, onCellClick, onDragStart }: HourC
   )
 }
 
-export function DayView({ selectedDate: propDate, noAutoScroll = false }: { selectedDate?: string; noAutoScroll?: boolean } = {}): JSX.Element {
+export function DayView({ selectedDate: propDate }: { selectedDate?: string } = {}): JSX.Element {
   const storeDate = useCalendarStore((state) => state.currentDate)
   const currentDate = propDate || storeDate
   const events = useCalendarStore((state) => state.events)
@@ -219,7 +219,6 @@ export function DayView({ selectedDate: propDate, noAutoScroll = false }: { sele
   const hasScrolledForDate = useRef(false)
 
   useLayoutEffect(() => {
-    if (noAutoScroll) return
     if (dayEvents.length === 0 || !bodyRef.current) return
 
     const currentDateStr = date.toISOString()

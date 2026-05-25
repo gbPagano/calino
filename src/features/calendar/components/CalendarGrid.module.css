@@ -324,6 +324,24 @@
 .splitAgenda:hover::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.18);
 }
+/* Agenda-only mode: target AgendaView container inside .agendaBottom */
+.agendaBottom > [class*="container"] {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.agendaBottom:hover > [class*="container"] {
+  scrollbar-color: auto;
+}
+.agendaBottom > [class*="container"]::-webkit-scrollbar {
+  width: 6px;
+}
+.agendaBottom > [class*="container"]::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+.agendaBottom:hover > [class*="container"]::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+}
 .splitAgenda {
   flex: 0 0 35%;
   display: flex;

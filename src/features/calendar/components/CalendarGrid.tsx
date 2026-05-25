@@ -101,6 +101,7 @@ export function CalendarGrid(): JSX.Element {
   const isTallWindow = useIsTallWindow()
   const isWideWindow = useIsWideWindow()
   const [bottomPanelDay, setBottomPanelDay] = useState<string | null>(null)
+  const [splitRatio, setSplitRatio] = useState(0.65)
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollCooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentDateRef = useRef(currentDate)
@@ -370,6 +371,23 @@ export function CalendarGrid(): JSX.Element {
     return map
   }, [events, calendars, hideCompletedTasksInMonthView, selectedCategoryName])
 
+  const handleResizeStart = (e: React.MouseEvent): void => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startRatio = splitRatio
+    const containerWidth = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect().width
+    const onMove = (ev: MouseEvent): void => {
+      const delta = (ev.clientX - startX) / containerWidth
+      setSplitRatio(Math.min(0.85, Math.max(0.25, startRatio + delta)))
+    }
+    const onUp = (): void => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
   const handleDayClick = (day: Date): void => {
     const dateStr = format(day, 'yyyy-MM-dd')
     if (isTallWindow) {
@@ -377,6 +395,12 @@ export function CalendarGrid(): JSX.Element {
     } else {
       openModal(dateStr)
     }
+  }
+
+  const handleDayDoubleClick = (day: Date): void => {
+    setCurrentDate(format(day, 'yyyy-MM-dd'))
+    setCurrentView('day')
+    navigate(VIEW_ROUTES.day, { replace: true })
   }
 
   const handleDayNumberClick = (day: Date): void => {
@@ -489,6 +513,7 @@ export function CalendarGrid(): JSX.Element {
                               monthViewEventLimit={monthViewEventLimit}
                               isMobile={isMobile}
                               onDayClick={handleDayClick}
+                              onDayDoubleClick={handleDayDoubleClick}
                               onDayNumberClick={handleDayNumberClick}
                               openModal={openModal}
                             />
@@ -507,8 +532,9 @@ export function CalendarGrid(): JSX.Element {
           {bottomPanelDay ? (
             isWideWindow ? (
               <>
-                <div className={styles.splitDay}><DayView key={bottomPanelDay} selectedDate={bottomPanelDay} /></div>
-                <div className={styles.splitAgenda}><AgendaView embedded /></div>
+                <div className={styles.splitDay} style={{ flex: `0 0 ${splitRatio * 100}%` }}><DayView key={bottomPanelDay} selectedDate={bottomPanelDay} /></div>
+                <div className={styles.splitHandle} onMouseDown={handleResizeStart} />
+                <div className={styles.splitAgenda} style={{ flex: 1 }}><AgendaView embedded /></div>
               </>
             ) : (
               <DayView key={bottomPanelDay} selectedDate={bottomPanelDay} />
@@ -590,6 +616,7 @@ export function CalendarGrid(): JSX.Element {
                         monthViewEventLimit={monthViewEventLimit}
                         isMobile={isMobile}
                         onDayClick={handleDayClick}
+                        onDayDoubleClick={handleDayDoubleClick}
                         onDayNumberClick={handleDayNumberClick}
                         openModal={openModal}
                       />
@@ -619,6 +646,7 @@ interface DroppableDayProps {
   monthViewEventLimit: number
   isMobile: boolean
   onDayClick: (day: Date) => void
+  onDayDoubleClick: (day: Date) => void
   onDayNumberClick: (day: Date) => void
   openModal: (date?: string, endDate?: string, eventId?: string, mode?: 'event' | 'task') => void
 }
@@ -636,6 +664,7 @@ function DroppableDay({
   monthViewEventLimit,
   isMobile,
   onDayClick,
+  onDayDoubleClick,
   onDayNumberClick,
   openModal,
 }: DroppableDayProps): JSX.Element {
@@ -672,6 +701,7 @@ function DroppableDay({
       role="button"
       tabIndex={0}
       onClick={() => onDayClick(day)}
+      onDoubleClick={() => onDayDoubleClick(day)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()

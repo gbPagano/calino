@@ -350,3 +350,15 @@
   overflow: auto;
 }
 
+
+.splitHandle {
+  width: 6px;
+  cursor: col-resize;
+  flex-shrink: 0;
+  background: transparent;
+  transition: background 0.15s;
+}
+.splitHandle:hover,
+.splitHandle:active {
+  background: var(--color-border-visible, rgba(0, 0, 0, 0.08));
+}

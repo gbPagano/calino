@@ -280,6 +280,56 @@ export function EventModal(): JSX.Element | null {
   const closeModalRef = useRef(closeModal)
   closeModalRef.current = closeModal
 
+  // Title autocomplete
+  const [titleSuggestions, setTitleSuggestions] = useState<CalendarEvent[]>([])
+  const [highlightedIndex, setHighlightedIndex] = useState(-1)
+
+  const handleTitleChange = (val: string): void => {
+    setTitle(val)
+    setHighlightedIndex(-1)
+    if (val.length < 2) {
+      setTitleSuggestions([])
+      return
+    }
+    const q = val.toLowerCase()
+    const matches = events
+      .filter((e) => e.title.toLowerCase().includes(q))
+      .sort((a, b) => {
+        // Prefer titles that start with the query
+        const aStart = a.title.toLowerCase().startsWith(q) ? 0 : 1
+        const bStart = b.title.toLowerCase().startsWith(q) ? 0 : 1
+        return aStart - bStart || new Date(b.start).getTime() - new Date(a.start).getTime()
+      })
+      .slice(0, 5)
+    setTitleSuggestions(matches)
+  }
+
+  const applySuggestion = (ev: CalendarEvent): void => {
+    setTitle(ev.title)
+    setDescription(ev.description || '')
+    setLocation(ev.location || '')
+    setSelectedCategories(ev.categories || [])
+    setTitleSuggestions([])
+    setHighlightedIndex(-1)
+    titleInputRef.current?.focus()
+  }
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent): void => {
+    if (!showSuggestions) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlightedIndex((i) => Math.min(i + 1, titleSuggestions.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlightedIndex((i) => Math.max(i - 1, 0))
+    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+      e.preventDefault()
+      applySuggestion(titleSuggestions[highlightedIndex])
+    } else if (e.key === 'Escape') {
+      setTitleSuggestions([])
+    }
+  }
+
   useEffect(() => {
     if (
       selectedEventId !== lastSelectedEventId.current ||
@@ -362,6 +412,7 @@ export function EventModal(): JSX.Element | null {
 
   const isEditing = selectedEventId !== null
   const isRecurringEvent = initialState.recurrence !== 'none'
+  const showSuggestions = !isEditing && titleSuggestions.length > 0
   const originalEventId = initialState.originalEventId
   const existingEventForMode = selectedEventId
     ? events.find((e) => e.id === selectedEventId)
@@ -723,7 +774,8 @@ export function EventModal(): JSX.Element | null {
             type="text"
             placeholder="Event title"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            onKeyDown={handleTitleKeyDown}
             className={styles.modalTitle}
             required
             onInvalid={(e) => {
@@ -736,6 +788,23 @@ export function EventModal(): JSX.Element | null {
           <button className={styles.modalClose} onClick={closeModal} aria-label="Close">
             ×
           </button>
+          {showSuggestions && (
+            <div className={styles.titleSuggestions}>
+              {titleSuggestions.map((ev, i) => (
+                <button
+                  key={ev.id}
+                  type="button"
+                  className={`${styles.suggestionItem} ${i === highlightedIndex ? styles.suggestionItemActive : ''}`}
+                  onClick={() => applySuggestion(ev)}
+                >
+                  <span className={styles.suggestionTitle}>{ev.title}</span>
+                  {ev.description && (
+                    <span className={styles.suggestionDesc}>{ev.description}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <hr className={styles.modalDivider} />
         <form

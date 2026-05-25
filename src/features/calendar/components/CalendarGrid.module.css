@@ -280,8 +280,10 @@
 
 .gridTop {
   flex: 0 0 60%;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
 
 .agendaBottom {

@@ -159,19 +159,8 @@
 
 .dateTimeRow {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
-  align-items: center;
-}
-
-.durationLabel {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-muted, #a0a0a0);
-  white-space: nowrap;
-  text-align: center;
-  padding: 0 4px;
-  min-width: 50px;
 }
 
 .dateTimeGroup {

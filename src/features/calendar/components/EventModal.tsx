@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { format, parseISO, addHours } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
@@ -12,21 +12,6 @@ import { DeleteDialog } from './DeleteDialog'
 import { extractOriginalEventId } from '@/lib/events'
 import { isUUID } from '@/lib/uuid'
 import styles from './EventModal.module.css'
-
-const DEFAULT_DURATION_HOURS = 1
-
-function getDefaultTimeNowPlusOne(): { start: string; end: string } {
-  const now = new Date()
-  const totalMinutes = Math.floor(now.getMinutes() / 15) * 15 + 60 // round up to nearest 15 + 1 hour
-  const hours = Math.floor(totalMinutes / 60) % 24
-  const mins = totalMinutes % 60
-  const start = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
-  const endMinutes = totalMinutes + 60
-  const endHours = Math.floor(endMinutes / 60) % 24
-  const endMins = endMinutes % 60
-  const end = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`
-  return { start, end }
-}
 
 type RecurrenceEditMode = 'all' | 'future' | 'this'
 
@@ -114,20 +99,34 @@ function getInitialFormState(
     }
 
     if (selectedDate) {
-      const dateStr = selectedDate.includes('T') ? selectedDate.split('T')[0] : selectedDate
-      let startTimeVal: string
-      let endTimeVal: string
+      const hasTime = selectedDate.includes('T')
+      const dateStr = hasTime ? selectedDate.split('T')[0] : selectedDate
 
-      if (selectedDate.includes('T')) {
-        const time = selectedDate.split('T')[1]
+      let startTimeVal = '09:00'
+      let endTimeVal = '10:00'
+
+      if (hasTime) {
+        const time = selectedDate.split('T')[1]?.substring(0, 5) || '09:00'
         startTimeVal = time
-        const parsedTime = parseISO(`2000-01-01T${time}`)
-        endTimeVal = format(addHours(parsedTime, DEFAULT_DURATION_HOURS), 'HH:mm')
+        const [h, m] = time.split(':').map(Number)
+        const endMins = h * 60 + m + 60
+        const endH = Math.floor(endMins / 60) % 24
+        const endM = endMins % 60
+        endTimeVal = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
       } else {
-        // No specific time — use smart default: now rounded up to nearest 15min + 1 hour
-        const { start: smartStart, end: smartEnd } = getDefaultTimeNowPlusOne()
-        startTimeVal = smartStart
-        endTimeVal = smartEnd
+        // No specific time — use smart default: now rounded up to nearest 15min, then +1 hour
+        const now = new Date()
+        const roundedMins = Math.ceil(now.getMinutes() / 15) * 15
+        let hours = now.getHours()
+        let mins = roundedMins === 60 ? 0 : roundedMins
+        if (roundedMins === 60) {
+          hours = (hours + 1) % 24
+        }
+        startTimeVal = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+        const endMins = hours * 60 + mins + 60
+        const endH = Math.floor(endMins / 60) % 24
+        const endM = endMins % 60
+        endTimeVal = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
       }
 
       if (selectedEndDate && selectedEndDate.includes('T')) {

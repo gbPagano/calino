@@ -21,7 +21,7 @@ export function useSearch() {
     return () => clearTimeout(timer)
   }, [query])
 
-  const indexTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const indexTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     // Debounce index rebuild to avoid Fuse.js reconstructing on every

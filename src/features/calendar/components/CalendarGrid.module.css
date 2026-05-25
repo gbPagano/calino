@@ -293,3 +293,20 @@
   border-top: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
   padding-top: 8px;
 }
+
+.bottomSplit {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.bottomSplit > *:first-child {
+  flex: 1;
+  overflow: auto;
+  border-right: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
+}
+
+.bottomSplit > *:last-child {
+  flex: 0 0 35%;
+  overflow: auto;
+}

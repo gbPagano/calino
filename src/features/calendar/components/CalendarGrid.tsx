@@ -41,7 +41,7 @@ import { DayEventsPopup } from './DayEventsPopup'
 import { ContextMenu } from '@/components/common/ContextMenu'
 import { useGestures } from '@/hooks/useGestures'
 import { hapticIfEnabled } from '@/lib/haptics'
-import { useIsTallWindow } from '@/hooks/useWindowHeight'
+import { useIsTallWindow, useIsWideWindow } from '@/hooks/useWindowHeight'
 import { AgendaView } from './AgendaView'
 import { DayView } from './DayView'
 import type { CalendarEvent, ViewType } from '@/types'
@@ -99,6 +99,7 @@ export function CalendarGrid(): JSX.Element {
   const [scale, setScale] = useState(1)
   const isMobile = useIsMobile()
   const isTallWindow = useIsTallWindow()
+  const isWideWindow = useIsWideWindow()
   const [bottomPanelDay, setBottomPanelDay] = useState<string | null>(null)
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollCooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -504,7 +505,14 @@ export function CalendarGrid(): JSX.Element {
         </div>
         <div className={styles.agendaBottom}>
           {bottomPanelDay ? (
-            <DayView selectedDate={bottomPanelDay} />
+            isWideWindow ? (
+              <div className={styles.bottomSplit}>
+                <DayView selectedDate={bottomPanelDay} />
+                <AgendaView embedded />
+              </div>
+            ) : (
+              <DayView selectedDate={bottomPanelDay} />
+            )
           ) : (
             <AgendaView embedded />
           )}

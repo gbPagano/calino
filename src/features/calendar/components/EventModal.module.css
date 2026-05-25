@@ -66,10 +66,12 @@
 .titleInputWrapper {
   position: relative;
   flex: 1;
+  min-width: 0;
 }
 
 .modalTitle {
   flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -104,6 +106,7 @@
 }
 
 .modalClose {
+  flex-shrink: 0;
   width: 28px;
   height: 28px;
   border-radius: 50%;

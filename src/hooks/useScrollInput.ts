@@ -27,9 +27,12 @@ export function useScrollInput(
       e.preventDefault()
       e.stopPropagation()
 
-      // Use whichever axis has the larger magnitude
-      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
-      const dir = delta > 0 ? -1 : 1
+      // Normalize: trackpads can fire deltaX/Y of 100–200 per "unit" while
+      // mouse wheels fire 3–5. Divide to normalize to ~1 unit, then clamp.
+      const rawDelta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
+      const steps = Math.round(rawDelta / 100) // normalize to ±1, ±2, …
+      if (steps === 0) return
+      const dir = steps > 0 ? -1 : 1
 
       if (input.type === 'date') {
         const [y, m, d] = (input.value || '').split('-').map(Number)

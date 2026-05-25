@@ -352,13 +352,14 @@
 
 
 .splitHandle {
-  width: 6px;
+  width: 8px;
   cursor: col-resize;
   flex-shrink: 0;
-  background: transparent;
+  background: var(--color-border-subtle, rgba(0, 0, 0, 0.06));
   transition: background 0.15s;
+  margin: 0 -1px;
 }
 .splitHandle:hover,
 .splitHandle:active {
-  background: var(--color-border-visible, rgba(0, 0, 0, 0.08));
+  background: var(--color-accent, #c4a89a);
 }

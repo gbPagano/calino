@@ -327,13 +327,10 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
     const end = parseISO(dragEnd)
     const startMinutes = start.getHours() * 60 + start.getMinutes()
     const endMinutes = end.getHours() * 60 + end.getMinutes()
-    const topPct = (startMinutes / (24 * 60)) * 100
-    const heightPct = ((endMinutes - startMinutes) / (24 * 60)) * 100
-
-    return (
+        return (
       <div
         className={styles.selectionOverlay}
-        style={{ top: `${topPct}%`, height: `${Math.max(heightPct, 0.5)}%` }}
+        style={{ top: `calc(var(--hour-height, 60px) * ${startMinutes / 60})`, height: `calc(var(--hour-height, 60px) * ${Math.max((endMinutes - startMinutes) / 60, 0.1)})` }}
       />
     )
   }, [isDraggingToCreate, dragStart, dragEnd])
@@ -399,8 +396,6 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
       const startHour = start.getHours()
       const startMinutes = start.getMinutes()
       const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
-      const heightPct = Math.max((durationMinutes / (24 * 60)) * 100, 1.4)
-
       const calendar = calendars.find((c: Calendar) => c.id === event.calendarId)
       const eventColor = event.color || calendar?.color || DEFAULT_CALENDAR_COLOR
 
@@ -413,8 +408,8 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
           key={event.id}
           className={`${styles.eventPositioned} ${styles.eventTransparent}`}
           style={{
-            top: `${((startHour * 60 + startMinutes) / (24 * 60)) * 100}%`,
-            height: `${heightPct}%`,
+            top: `calc(var(--hour-height, 60px) * ${startHour + startMinutes / 60})`,
+            height: `calc(var(--hour-height, 60px) * ${durationMinutes / 60})`,
             left: `${leftPercent}%`,
             width: `${widthPercent}%`,
             backgroundColor: `${eventColor}20`,
@@ -435,8 +430,6 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
       const startMinutes = start.getMinutes()
 
       const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
-      const heightPct = Math.max((durationMinutes / (24 * 60)) * 100, 1.4)
-
       const gap = 4
       const leftPercent = (column / totalColumns) * 100 + gap / 2
       const widthPercent = 100 / totalColumns - gap
@@ -449,15 +442,13 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
         const travelStartHour = travelStart.getHours()
         const travelStartMinutes = travelStart.getMinutes()
         const travelDurationMinutes = event.travelDuration
-        const travelHeightPct = Math.max((travelDurationMinutes / (24 * 60)) * 100, 1.1)
-
         elements.push(
           <div
             key={`${event.id}-travel`}
             className={styles.travelBar}
             style={{
-              top: `${((travelStartHour * 60 + travelStartMinutes) / (24 * 60)) * 100}%`,
-              height: `${travelHeightPct}%`,
+              top: `calc(var(--hour-height, 60px) * ${travelStartHour + travelStartMinutes / 60})`,
+              height: `calc(var(--hour-height, 60px) * ${travelDurationMinutes / 60})`,
               left: `${leftPercent}%`,
               width: `${widthPercent}%`,
               backgroundColor: `${eventColor}15`,
@@ -476,8 +467,8 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
           key={event.id}
           className={styles.eventPositioned}
           style={{
-            top: `${((startHour * 60 + startMinutes) / (24 * 60)) * 100}%`,
-            height: `${heightPct}%`,
+            top: `calc(var(--hour-height, 60px) * ${startHour + startMinutes / 60})`,
+            height: `calc(var(--hour-height, 60px) * ${durationMinutes / 60})`,
             left: `${leftPercent}%`,
             width: `${widthPercent}%`,
             zIndex: event.isFragment ? 1 : 2,

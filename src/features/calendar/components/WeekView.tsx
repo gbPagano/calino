@@ -441,7 +441,7 @@ export function WeekView(): JSX.Element {
   }, [isDraggingToCreate, dragStart, dragEnd, weekDays])
 
   const dayColumnProps = useMemo(() => {
-    return weekDays.map((day) => {
+    return weekDays.map((day, idx) => {
       const dateKey = format(day, 'yyyy-MM-dd')
       return {
         day,
@@ -509,7 +509,7 @@ export function WeekView(): JSX.Element {
       <div className={styles.mobileHeader}>
         <div className={styles.weekNumberHeader}>W{weekNumber}</div>
         <div className={styles.headerDays}>
-          {weekDays.map((day) => (
+          {weekDays.map((day, idx) => (
             <div
               key={day.toISOString()}
               className={`${styles.dayHeader} ${isToday(day) ? styles.today : ''}`}
@@ -529,7 +529,7 @@ export function WeekView(): JSX.Element {
           ))}
         </div>
         <div ref={daysContainerRef} className={styles.daysContainer}>
-          {weekDays.map((day) => {
+          {weekDays.map((day, idx) => {
             return (
               <div
                 key={day.toISOString()}
@@ -567,7 +567,7 @@ export function WeekView(): JSX.Element {
   )
 
   const renderDesktopContent = () => {
-    const allDayEventsByDay = weekDays.map((day) => {
+    const allDayEventsByDay = weekDays.map((day, idx) => {
       const dateKey = format(day, 'yyyy-MM-dd')
       return allDayEventsMap.get(dateKey) || []
     })
@@ -630,7 +630,7 @@ export function WeekView(): JSX.Element {
             ))}
           </div>
           <div ref={daysContainerRef} className={styles.daysContainer}>
-            {weekDays.map((day) => {
+            {weekDays.map((day, idx) => {
               return (
                 <div
                   key={day.toISOString()}

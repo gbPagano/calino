@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
 import { updateSearchIndex, search } from '../lib/searchIndex'
 import type { SearchResult, SearchFilters } from '../types'
@@ -21,8 +21,16 @@ export function useSearch() {
     return () => clearTimeout(timer)
   }, [query])
 
+  const indexTimerRef = useRef<ReturnType<typeof setTimeout>>()
+
   useEffect(() => {
-    updateSearchIndex(events)
+    // Debounce index rebuild to avoid Fuse.js reconstructing on every
+    // events mutation during bulk operations (sync, import, rapid edits).
+    clearTimeout(indexTimerRef.current)
+    indexTimerRef.current = setTimeout(() => {
+      updateSearchIndex(events)
+    }, 500)
+    return () => clearTimeout(indexTimerRef.current)
   }, [events])
 
   const results = useMemo((): SearchResult[] => {

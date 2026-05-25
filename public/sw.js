@@ -1,11 +1,11 @@
-const CACHE_NAME = 'calino-v5'
+const CACHE_NAME = 'calino-v6'
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/apple-touch-icon.png',
   '/favicon-96x96.png',
   '/vite.svg',
+  '/calino-icon.svg',
+  '/icon-192.svg',
 ]
 
 self.addEventListener('install', (event) => {
@@ -31,22 +31,35 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
 
+  const { request } = event
+
+  // Network-first for navigation requests (HTML shell) so users always
+  // see the latest app version. Falls back to cache when offline.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const cloned = response.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned))
+          return response
+        })
+        .catch(() => caches.match(request))
+    )
+    return
+  }
+
+  // Cache-first for everything else (hashed JS/CSS assets, icons, etc.)
+  // New builds produce new URLs so cache-first is always fresh.
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
+    caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse
       }
-
-      return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response
+      return fetch(request).then((response) => {
+        if (response.ok && response.status === 200 && response.type === 'basic') {
+          const responseToCache = response.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache))
         }
-
-        const responseToCache = response.clone()
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache)
-        })
-
         return response
       })
     })

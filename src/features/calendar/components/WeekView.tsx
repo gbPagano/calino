@@ -448,7 +448,7 @@ export function WeekView(): JSX.Element {
 
   const handleDragStart = (event: DragStartEvent): void => {
     hapticIfEnabled('light')
-    const eventId = event.active.id as string
+    const eventId = String(event.active.id)
     const draggedEvent = events.find((e) => e.id === eventId)
     setActiveEvent(draggedEvent || null)
   }
@@ -460,7 +460,7 @@ export function WeekView(): JSX.Element {
 
     if (!over) return
 
-    const droppableId = over.id as string
+    const droppableId = String(over.id)
     const lastDashIndex = droppableId.lastIndexOf('-')
     const dayStr = droppableId.substring(0, lastDashIndex)
     const hourStr = droppableId.substring(lastDashIndex + 1)
@@ -482,7 +482,7 @@ export function WeekView(): JSX.Element {
       end: newEnd.toISOString(),
     }
 
-    storeUpdateEvent(active.id as string, updates)
+    storeUpdateEvent(String(active.id), updates)
 
     try {
       await caldavUpdateEvent(originalEvent.calendarId, {

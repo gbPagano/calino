@@ -211,8 +211,8 @@ export const CONFLICT_OPTIONS: { value: 'server-wins' | 'local-wins' | 'ask'; la
   { value: 'ask', label: 'Ask me' },
 ]
 
-let _timezoneOptions: ReturnType<typeof generateTimezoneOptions> | null = null
-export function getTimezoneOptions(): ReturnType<typeof generateTimezoneOptions> {
+let _timezoneOptions: { value: string; label: string }[] | null = null
+export function getTimezoneOptions(): { value: string; label: string }[] {
   if (!_timezoneOptions) {
     _timezoneOptions = generateTimezoneOptions()
   }

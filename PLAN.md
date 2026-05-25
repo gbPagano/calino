@@ -1,25 +1,18 @@
-# Build Error Fixes
+# Code Quality Improvements
 
-## Phase 1: WeekView & WeekDayColumn
-- [x] Fix unused `idx` params in WeekView.tsx `.map()` calls
-- [x] Remove unused `Calendar` import from WeekView.tsx
-- [x] Add `import type { JSX } from 'react'` to WeekDayColumn.tsx
-- [x] Remove unused `day` prop and `format` import from WeekDayColumn.tsx
-- [x] Fix `openModal` type signature in WeekDayColumn.tsx
-- [x] Fix ref type in CalendarGrid.tsx (HTMLDivElement → HTMLButtonElement)
+## Phase 1: Dead Code & Duplication
+- [x] Extract `isUUID` to `src/lib/uuid.ts` — eliminated 3 duplicate copies
+- [x] Share `HOURS` constant in `src/lib/hours.ts`
+- [x] Consolidate event positioning logic in `src/lib/eventPositioning.ts`
 
-## Phase 2: useSearch & uuid
-- [x] Fix `useRef` initial value in useSearch.ts
-- [x] Add `uuid` package dependency
-- [x] Import `v4 as uuidv4` in icalTypeMapping.ts
-- [x] Import `v4 as uuidv4` in credentials.ts
-- [x] Import `v4 as uuidv4` in accountStorage.ts
-- [x] Import `v4 as uuidv4` in EventModal.tsx
+## Phase 2: React Anti-patterns
+- [x] Fix stale closure in EventModal useEffect (closeModalRef pattern)
+- [x] Fix dual wheel listeners in CalendarGrid (consolidated to single handler)
+- [x] Fix throw statements in EventModal (toast + early return)
 
-## Phase 3: zustand Storage
-- [x] Wrap `safeLocalStorage` with `createJSONStorage()` in calendarStore.ts
-- [x] Wrap `safeLocalStorage` with `createJSONStorage()` in settingsStore.ts
-- [x] Commit and push all fixes to main
+## Phase 3: Test Coverage
+- [x] Add 29 tests for `useCalDAV` hook
 
 ## Status
-✅ All phases complete — build passes
+✅ All improvements complete — build passes
+✅ 12 files changed, 779 insertions(+), 709 deletions(-)

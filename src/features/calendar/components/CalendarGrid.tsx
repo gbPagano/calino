@@ -197,7 +197,7 @@ export function CalendarGrid(): JSX.Element {
 
   const handleDragStart = (event: DragStartEvent): void => {
     hapticIfEnabled('light')
-    const eventId = event.active.id as string
+    const eventId = String(event.active.id)
     const draggedEvent = events.find((e) => e.id === eventId)
     setActiveEvent(draggedEvent || null)
   }
@@ -208,7 +208,7 @@ export function CalendarGrid(): JSX.Element {
 
     if (!over) return
 
-    const droppableId = over.id as string
+    const droppableId = String(over.id)
     const dayStr = droppableId
 
     if (!dayStr) return
@@ -249,7 +249,7 @@ export function CalendarGrid(): JSX.Element {
       ...(isTask && { dueDate: newDueDate }),
     }
 
-    storeUpdateEvent(active.id as string, updates)
+    storeUpdateEvent(String(active.id), updates)
 
     try {
       await caldavUpdateEvent(originalEvent.calendarId, {

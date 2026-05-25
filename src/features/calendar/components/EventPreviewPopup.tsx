@@ -246,6 +246,9 @@ export function EventPreviewPopup({
     setHasChanges(false)
   }, [event.title, event.location, event.description])
 
+  const cancelEditingRef = useRef(cancelEditing)
+  cancelEditingRef.current = cancelEditing
+
   const handleFieldChange = (field: string, value: string): void => {
     setHasChanges(true)
     if (field === 'title') {
@@ -351,7 +354,7 @@ export function EventPreviewPopup({
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
         if (editingField) {
-          cancelEditing()
+          cancelEditingRef.current()
         } else {
           closePreview()
         }
@@ -359,13 +362,13 @@ export function EventPreviewPopup({
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [closePreview, editingField, cancelEditing])
+  }, [closePreview, editingField])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent): void => {
       if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
         if (editingField) {
-          cancelEditing()
+          cancelEditingRef.current()
         } else {
           closePreview()
         }
@@ -373,7 +376,7 @@ export function EventPreviewPopup({
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [closePreview, editingField, cancelEditing])
+  }, [closePreview, editingField])
 
   useEffect(() => {
     const handleContextMenu = (): void => {

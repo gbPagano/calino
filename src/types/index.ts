@@ -20,6 +20,7 @@ export interface Reminder {
 }
 
 export type EventType = 'event' | 'task'
+export type SyncStatus = 'synced' | 'pending' | 'failed'
 export type TaskPriority = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
 export interface CalendarEvent {
@@ -52,6 +53,7 @@ export interface CalendarEvent {
   isLastFragment?: boolean
   originalStart?: string
   originalEnd?: string
+  syncStatus?: SyncStatus
 }
 
 export interface Calendar {

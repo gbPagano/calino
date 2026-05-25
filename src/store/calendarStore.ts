@@ -333,26 +333,22 @@ export const useCalendarStore = create<CalendarStore>()(
                 throw new Error('No rrule string')
               }
               const options = RRule.parseString(rruleString)
-              const eventStartUtc = parseISO(event.start)
-              const offset = eventStartUtc.getTimezoneOffset() * 60000
-              const eventStartLocal = new Date(eventStartUtc.getTime() - offset)
+              const eventStart = parseISO(event.start)
+              const eventEnd = parseISO(event.end)
 
               const rule = new RRule({
                 ...options,
-                dtstart: eventStartLocal,
+                dtstart: eventStart,
               })
 
               const occurrences = rule.between(startDate, endDate, true)
               const excludedDates = event.excludedDates || []
 
               for (const occ of occurrences) {
-                const duration = parseISO(event.end).getTime() - eventStartUtc.getTime()
-                const occOffset = occ.getTimezoneOffset() * 60000
-                const occUtc = new Date(occ.getTime() + occOffset)
+                const duration = eventEnd.getTime() - eventStart.getTime()
                 const occEnd = new Date(occ.getTime() + duration)
-                const occEndUtc = new Date(occEnd.getTime() + occOffset)
 
-                const occDateStr = occUtc.toISOString().split('T')[0]
+                const occDateStr = occ.toISOString().split('T')[0]
                 if (excludedDates.some(d => d.startsWith(occDateStr))) {
                   continue
                 }
@@ -360,7 +356,7 @@ export const useCalendarStore = create<CalendarStore>()(
                 const exceptionKey = `${event.calendarId}-${occDateStr}`
                 const exception = exceptionMap.get(exceptionKey)
                 if (exception) {
-                  const occId = `${event.id}-${occUtc.toISOString()}`
+                  const occId = `${event.id}-${occ.toISOString()}`
                   if (!seenIds.has(occId)) {
                     seenIds.add(occId)
                     expandedEvents.push({
@@ -373,9 +369,9 @@ export const useCalendarStore = create<CalendarStore>()(
                   continue
                 }
 
-                const occId = `${event.id}-${occUtc.toISOString()}`
+                const occId = `${event.id}-${occ.toISOString()}`
                 if (!seenIds.has(occId)) {
-                  const exceptionId = `${event.id}-${occDateStr}T${occUtc.toISOString().split('T')[1]}`
+                  const exceptionId = `${event.id}-${occDateStr}T${occ.toISOString().split('T')[1]}`
                   const exceptionEvent = state.events.find(
                     (e) => e.id === exceptionId && !e.rruleString && !e.recurrence
                   )
@@ -390,8 +386,8 @@ export const useCalendarStore = create<CalendarStore>()(
                     expandedEvents.push({
                       ...event,
                       id: occId,
-                      start: occUtc.toISOString(),
-                      end: occEndUtc.toISOString(),
+                      start: occ.toISOString(),
+                      end: occEnd.toISOString(),
                     })
                   }
                 }

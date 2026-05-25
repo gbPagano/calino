@@ -34,6 +34,32 @@
   color: var(--color-text-secondary);
 }
 
+.syncFailedIcon {
+  position: absolute;
+  top: 2px;
+  right: 24px;
+  opacity: 0.9;
+  color: #eab308;
+  z-index: 2;
+  animation: syncFailedPulse 2s ease-in-out infinite;
+}
+
+.compact .syncFailedIcon {
+  top: 50%;
+  right: 22px;
+  transform: translateY(-50%);
+  margin-top: 1px;
+}
+
+@keyframes syncFailedPulse {
+  0%, 100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .compact .recurringIcon,
 .compact .checkbox {
   top: 50%;

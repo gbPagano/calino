@@ -274,24 +274,44 @@ export function EventModal(): JSX.Element | null {
     ) {
       lastSelectedEventId.current = selectedEventId
       lastSelectedDate.current = selectedDate
-      setTitle(initialState.title)
-      setDescription(initialState.description)
-      setLocation(initialState.location)
-      setStartDate(initialState.startDate)
-      setStartTime(initialState.startTime)
-      setEndDate(initialState.endDate)
-      setEndTime(initialState.endTime)
-      setIsAllDay(initialState.isAllDay)
-      setCalendarId(initialState.calendarId)
-      setRecurrence(initialState.recurrence)
-      setTravelDuration(initialState.travelDuration)
-      setTransparency(initialState.transparency)
-      setReminders(initialState.reminders)
-      setShowDescription(!!initialState.description)
-      setSelectedCategories(initialState.categories)
+
+      // Read fresh state via getState() so the form only resets when
+      // selectedEventId or selectedDate actually change — not when
+      // events/calendars change in the background (e.g. during CalDAV sync).
+      const state = useCalendarStore.getState()
+      const currentEvents = state.events
+      const currentCalendars = state.calendars
+      const currentCategories = state.categories
+      const currentSelectedEventType = state.selectedEventType
+
+      const formDefaults = getInitialFormState(
+        isModalOpen,
+        selectedEventId,
+        selectedDate,
+        selectedEndDate,
+        currentEvents,
+        currentCalendars,
+        currentCategories
+      )
+
+      setTitle(formDefaults.title)
+      setDescription(formDefaults.description)
+      setLocation(formDefaults.location)
+      setStartDate(formDefaults.startDate)
+      setStartTime(formDefaults.startTime)
+      setEndDate(formDefaults.endDate)
+      setEndTime(formDefaults.endTime)
+      setIsAllDay(formDefaults.isAllDay)
+      setCalendarId(formDefaults.calendarId)
+      setRecurrence(formDefaults.recurrence)
+      setTravelDuration(formDefaults.travelDuration)
+      setTransparency(formDefaults.transparency)
+      setReminders(formDefaults.reminders)
+      setShowDescription(!!formDefaults.description)
+      setSelectedCategories(formDefaults.categories)
 
       const existingEvent = selectedEventId
-        ? events.find((e) => e.id === selectedEventId)
+        ? currentEvents.find((e) => e.id === selectedEventId)
         : undefined
       if (existingEvent?.type === 'task') {
         const taskDueDate =
@@ -303,7 +323,7 @@ export function EventModal(): JSX.Element | null {
         setDueAllDay(existingEvent.isAllDay ?? true)
         setCompleted(existingEvent.completed || false)
         setPriority(existingEvent.priority)
-      } else if (selectedEventType === 'task') {
+      } else if (currentSelectedEventType === 'task') {
         setDueDate(selectedDate || format(new Date(), 'yyyy-MM-dd'))
         setDueTime('09:00')
         setDueAllDay(true)
@@ -317,7 +337,8 @@ export function EventModal(): JSX.Element | null {
         setPriority(undefined)
       }
     }
-  }, [selectedEventId, selectedDate, initialState, selectedEventType])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only reset on user-initiated event/date changes
+  }, [selectedEventId, selectedDate])
 
   const isEditing = selectedEventId !== null
   const isRecurringEvent = initialState.recurrence !== 'none'

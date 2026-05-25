@@ -421,10 +421,16 @@ export function useCalDAV(): UseCalDAVReturn {
             })
           }
 
-          // Delete events that exist locally but not on server
+          // Delete events that exist locally but not on server,
+          // but ONLY events whose start date falls within the queried range.
+          // Events outside this range may not have been returned by the server
+          // (pagination, date-filter truncation, far-future recurrence instances).
           for (const localEvent of calendarEvents) {
             if (!serverEventIds.has(localEvent.id)) {
-              storeDeleteEvent(localEvent.id)
+              const eventStart = localEvent.start
+              if (eventStart >= start && eventStart <= end) {
+                storeDeleteEvent(localEvent.id)
+              }
             }
           }
         }

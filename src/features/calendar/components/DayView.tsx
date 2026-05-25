@@ -26,6 +26,7 @@ import { EventCard } from './EventCard'
 import { ContextMenu } from '@/components/common/ContextMenu'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
+import { useWindowHeight } from '@/hooks/useWindowHeight'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { formatTravelDuration } from '@/lib/events'
 import { positionEvents } from '@/lib/eventPositioning'
@@ -91,6 +92,9 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
   const bodyRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
+  const windowHeight = useWindowHeight()
+  const stretchFactor = windowHeight > 1570 ? Math.min(windowHeight / 1570, 1.3) : 1
+  const effectiveScale = scale * stretchFactor
 
   useEffect(() => {
     if (openMenuId !== null && openMenuId !== 'dayview' && contextMenu) {
@@ -490,13 +494,13 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
       <div
         className={styles.container}
         ref={containerRef}
-        style={{ '--hour-height': `${60 * scale}px`, touchAction: 'none' } as React.CSSProperties}
+        style={{ '--hour-height': `${60 * effectiveScale}px`, touchAction: 'none' } as React.CSSProperties}
         onContextMenu={(e) => {
           e.preventDefault()
           openMenu('dayview')
           const bodyRect = bodyRef.current?.getBoundingClientRect()
           const bodyTop = bodyRect?.top ?? e.currentTarget.getBoundingClientRect().top
-          const bodyHeight = bodyRect?.height ?? 24 * 60 * scale
+          const bodyHeight = bodyRect?.height ?? 24 * 60 * effectiveScale
           const y = e.clientY - bodyTop
           const hourClicked = Math.max(0, Math.min(23, Math.floor((y / bodyHeight) * 24)))
           setContextMenu({ x: e.clientX, y: e.clientY, hour: hourClicked })

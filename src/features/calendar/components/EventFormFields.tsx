@@ -4,6 +4,20 @@ import type { RecurrenceRule, Reminder } from '@/types'
 import { useSettingsStore } from '@/store/settingsStore'
 import styles from './EventModal.module.css'
 
+function formatDuration(startTime: string, endTime: string): string {
+  const [sh, sm] = startTime.split(':').map(Number)
+  const [eh, em] = endTime.split(':').map(Number)
+  const startMinutes = sh * 60 + sm
+  const endMinutes = eh * 60 + em
+  const diff = endMinutes - startMinutes
+  if (diff <= 0) return ''
+  const hours = Math.floor(diff / 60)
+  const mins = diff % 60
+  if (hours === 0) return `${mins}m`
+  if (mins === 0) return `${hours}h`
+  return `${hours}h ${mins}m`
+}
+
 interface EventFormFieldsProps {
   isAllDay: boolean
   onIsAllDayChange: (checked: boolean) => void
@@ -143,6 +157,12 @@ export function EventFormFields({
             )}
           </div>
         </div>
+
+        {!isAllDay && (
+          <div className={styles.durationLabel}>
+            {formatDuration(startTime, endTime)}
+          </div>
+        )}
 
         <div className={styles.dateTimeGroup}>
           <label className={styles.label}>End</label>

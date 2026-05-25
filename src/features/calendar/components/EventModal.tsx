@@ -15,6 +15,19 @@ import styles from './EventModal.module.css'
 
 const DEFAULT_DURATION_HOURS = 1
 
+function getDefaultTimeNowPlusOne(): { start: string; end: string } {
+  const now = new Date()
+  const totalMinutes = Math.floor(now.getMinutes() / 15) * 15 + 60 // round up to nearest 15 + 1 hour
+  const hours = Math.floor(totalMinutes / 60) % 24
+  const mins = totalMinutes % 60
+  const start = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+  const endMinutes = totalMinutes + 60
+  const endHours = Math.floor(endMinutes / 60) % 24
+  const endMins = endMinutes % 60
+  const end = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`
+  return { start, end }
+}
+
 type RecurrenceEditMode = 'all' | 'future' | 'this'
 
 interface InitialFormState {
@@ -164,14 +177,15 @@ function getInitialFormState(
   }
 
   const today = format(new Date(), 'yyyy-MM-dd')
+  const { start: nowStart, end: nowEnd } = getDefaultTimeNowPlusOne()
   return {
     title: '',
     description: '',
     location: '',
     startDate: today,
-    startTime: '09:00',
+    startTime: nowStart,
     endDate: today,
-    endTime: '10:00',
+    endTime: nowEnd,
     isAllDay: false,
     calendarId: defaultCalendar?.id || '',
     recurrence: 'none',
@@ -337,6 +351,13 @@ export function EventModal(): JSX.Element | null {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only reset on user-initiated event/date changes
   }, [selectedEventId, selectedDate])
+
+  // Auto-focus title input when creating a new event
+  useEffect(() => {
+    if (isModalOpen && !selectedEventId) {
+      setTimeout(() => titleInputRef.current?.focus(), 50)
+    }
+  }, [isModalOpen, selectedEventId])
 
   const isEditing = selectedEventId !== null
   const isRecurringEvent = initialState.recurrence !== 'none'

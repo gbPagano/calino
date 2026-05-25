@@ -114,19 +114,21 @@ function getInitialFormState(
         const endM = endMins % 60
         endTimeVal = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
       } else {
-        // No specific time — use smart default: now rounded up to nearest 15min, then +1 hour
-        const now = new Date()
-        const roundedMins = Math.ceil(now.getMinutes() / 15) * 15
-        let hours = now.getHours()
-        let mins = roundedMins === 60 ? 0 : roundedMins
-        if (roundedMins === 60) {
-          hours = (hours + 1) % 24
+        // No specific time — smart default only applies for TODAY
+        const todayStr = format(new Date(), 'yyyy-MM-dd')
+        if (dateStr === todayStr) {
+          // Round up to next hour, then add 1 hour
+          const now = new Date()
+          let hours = now.getHours()
+          const mins = now.getMinutes()
+          if (mins > 0) hours += 1 // round up to next hour
+          hours += 1 // add 1 more hour
+          hours = hours % 24
+          startTimeVal = `${String(hours).padStart(2, '0')}:00`
+          const endHour = (hours + 1) % 24
+          endTimeVal = `${String(endHour).padStart(2, '0')}:00`
         }
-        startTimeVal = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
-        const endMins = hours * 60 + mins + 60
-        const endH = Math.floor(endMins / 60) % 24
-        const endM = endMins % 60
-        endTimeVal = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
+        // else: use default 09:00/10:00
       }
 
       if (selectedEndDate && selectedEndDate.includes('T')) {

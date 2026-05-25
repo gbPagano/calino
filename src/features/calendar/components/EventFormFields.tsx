@@ -114,9 +114,10 @@ export function EventFormFields({
               type="date"
               value={startDate}
               onChange={(e) => {
-                onStartDateChange(e.target.value)
-                if (endDate && e.target.value > endDate) {
-                  onEndDateChange(e.target.value)
+                const newDate = e.target.value
+                onStartDateChange(newDate)
+                if (newDate > endDate) {
+                  onEndDateChange(newDate)
                 }
               }}
               className={styles.input}
@@ -127,9 +128,13 @@ export function EventFormFields({
                 type="time"
                 value={startTime}
                 onChange={(e) => {
-                  onStartTimeChange(e.target.value)
-                  if (startDate === endDate && e.target.value > endTime) {
-                    onEndTimeChange(e.target.value)
+                  const newStart = e.target.value
+                  onStartTimeChange(newStart)
+                  if (startDate === endDate && newStart >= endTime) {
+                    // Add 1 hour to the new start time
+                    const [h, m] = newStart.split(':').map(Number)
+                    const endHour = h + 1
+                    onEndTimeChange(`${String(endHour).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
                   }
                 }}
                 className={styles.input}

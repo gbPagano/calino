@@ -565,11 +565,19 @@ function DroppableDay({
     <div
       ref={setNodeRef}
       className={`${styles.day} ${!isCurrentMonth ? styles.otherMonth : ''} ${isTodayDate ? styles.today : ''} ${isWeekend ? styles.weekend : ''} ${isOver ? styles.dropTarget : ''}`}
+      role="button"
+      tabIndex={0}
       onClick={() => onDayClick(day)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onDayClick(day)
+        }
+      }}
       onContextMenu={handleContextMenu}
     >
       <div className={styles.dayHeader}>
-        <span
+        <button
           className={styles.dayNumber}
           onClick={(e) => {
             e.stopPropagation()
@@ -577,7 +585,7 @@ function DroppableDay({
           }}
         >
           {format(day, 'd')}
-        </span>
+        </button>
       </div>
       <div className={styles.events}>
         <AnimatePresence>
@@ -598,9 +606,13 @@ function DroppableDay({
           })}
         </AnimatePresence>
         {dayEvents.length > monthViewEventLimit && (
-          <div ref={moreEventsRef} className={styles.moreEvents} onClick={handleMoreEventsClick}>
+          <button
+            ref={moreEventsRef}
+            className={styles.moreEvents}
+            onClick={handleMoreEventsClick}
+          >
             +{dayEvents.length - monthViewEventLimit} more
-          </div>
+          </button>
         )}
       </div>
       {dayTasks.length > 0 && (

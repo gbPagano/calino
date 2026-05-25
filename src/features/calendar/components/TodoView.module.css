@@ -136,6 +136,12 @@
   background: var(--color-bg-hover);
 }
 
+.taskRow:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+  background: var(--color-bg-hover);
+}
+
 .taskCompleted .taskTitle {
   text-decoration: line-through;
   color: var(--color-text-muted);

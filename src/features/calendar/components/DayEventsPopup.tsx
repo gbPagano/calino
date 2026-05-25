@@ -66,7 +66,19 @@ export function DayEventsPopup({
         </div>
         <div className={styles.eventList}>
           {events.map((event) => (
-            <div key={event.id} className={styles.eventItem} onClick={() => onEventClick(event)}>
+            <div
+              key={event.id}
+              className={styles.eventItem}
+              role="button"
+              tabIndex={0}
+              onClick={() => onEventClick(event)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onEventClick(event)
+                }
+              }}
+            >
               <div
                 className={styles.colorDot}
                 style={{ backgroundColor: event.color || '#4285F4' }}

@@ -113,6 +113,12 @@
   background: var(--day-cell-hover-bg, var(--color-bg-hover, rgba(0, 0, 0, 0.02)));
 }
 
+.day:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  background: var(--day-cell-hover-bg, var(--color-bg-hover, rgba(0, 0, 0, 0.02)));
+}
+
 .dropTarget {
   background: var(--color-accent-light);
   border: 2px dashed var(--color-accent);
@@ -164,11 +170,21 @@
   justify-content: center;
   border-radius: var(--today-badge-radius, 50%);
   transition: background var(--duration-day-hover, 150ms) ease;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
 }
 
 .dayNumber:hover {
   background: var(--color-accent-light);
   color: var(--color-accent);
+}
+
+.dayNumber:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+  border-radius: var(--today-badge-radius, 50%);
 }
 
 .events {
@@ -195,10 +211,19 @@
   padding: 2px 8px;
   cursor: pointer;
   flex-shrink: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
 }
 
 .moreEvents:hover {
   color: var(--color-text-primary);
+}
+
+.moreEvents:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+  border-radius: 4px;
 }
 
 .tasks {

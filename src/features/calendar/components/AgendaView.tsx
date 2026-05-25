@@ -249,7 +249,15 @@ export function AgendaView(): JSX.Element {
                         className={`${styles.agendaTask} ${
                           event.completed ? styles.agendaTaskCompleted : ''
                         }`}
-                        onMouseDown={(e) => handleEventClick(e, event)}
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => handleEventClick(e, event)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            handleEventClick(e as unknown as React.MouseEvent, event)
+                          }
+                        }}
                         onContextMenu={(e) => handleEventContextMenu(e, event)}
                       >
                         <div className={styles.agendaTaskBar} />
@@ -275,7 +283,15 @@ export function AgendaView(): JSX.Element {
                     <div
                       key={event.id}
                       className={styles.agendaEvent}
-                      onMouseDown={(e) => handleEventClick(e, event)}
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => handleEventClick(e, event)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          handleEventClick(e as unknown as React.MouseEvent, event)
+                        }
+                      }}
                       onContextMenu={(e) => handleEventContextMenu(e, event)}
                     >
                       <div className={styles.agendaEventBar} style={{ background: getEventBarColor(event) }} />

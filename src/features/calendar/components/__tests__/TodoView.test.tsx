@@ -24,9 +24,9 @@ describe('TodoView', () => {
 
   it('shows filter tabs', () => {
     renderWithRouter(<TodoView />)
-    expect(screen.getByRole('button', { name: /all/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /active/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /completed/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Active' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Completed' })).toBeInTheDocument()
   })
 
   it('shows add task button', () => {
@@ -80,7 +80,7 @@ describe('TodoView', () => {
 
     renderWithRouter(<TodoView />)
 
-    await userEvent.click(screen.getByRole('button', { name: /active/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Active' }))
     expect(screen.getByText('Active Task')).toBeInTheDocument()
     expect(screen.queryByText('Completed Task')).not.toBeInTheDocument()
   })
@@ -110,7 +110,7 @@ describe('TodoView', () => {
 
     renderWithRouter(<TodoView />)
 
-    await userEvent.click(screen.getByRole('button', { name: /completed/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Completed' }))
     expect(screen.queryByText('Active Task')).not.toBeInTheDocument()
     expect(screen.getByText('Completed Task')).toBeInTheDocument()
   })

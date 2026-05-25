@@ -255,9 +255,13 @@ export function EventCard({
           </div>
         )}
         {isTask && (
-          <div className={styles.checkbox} onClick={handleCheckboxClick}>
+          <button
+            className={styles.checkbox}
+            onClick={handleCheckboxClick}
+            aria-label="Toggle completion"
+          >
             {event.completed ? <CheckedIcon /> : <UncheckedIcon />}
-          </div>
+          </button>
         )}
         {isTask ? (
           <div
@@ -266,6 +270,13 @@ export function EventCard({
             onPointerDown={(e) => {
               e.stopPropagation()
               pointerStartPos.current = { x: e.clientX, y: e.clientY }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                e.stopPropagation()
+                handleClick(e as unknown as React.MouseEvent)
+              }
             }}
             {...listeners}
             {...attributes}
@@ -283,6 +294,13 @@ export function EventCard({
               onPointerDown={(e) => {
                 e.stopPropagation()
                 pointerStartPos.current = { x: e.clientX, y: e.clientY }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleClick(e as unknown as React.MouseEvent)
+                }
               }}
               {...listeners}
               {...attributes}

@@ -174,7 +174,15 @@ export function TodoView(): JSX.Element {
                   <div
                     key={task.id}
                     className={`${styles.taskRow} ${task.completed ? styles.taskCompleted : ''}`}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => handleTaskClick(task)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleTaskClick(task)
+                      }
+                    }}
                   >
                     <button
                       className={styles.checkbox}

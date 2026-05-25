@@ -63,9 +63,9 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 
 ### Desktop Integration
 
-- **PWA** — install as a native app (works offline)
+- **PWA** — install as a native app (*offline support requires self-hosting with proper CSP headers; GitHub Pages not supported*)
 - **Desktop notifications** with customizable reminders
-- Native event handling for dates and times
+- Sync retry: failed CalDAV operations are automatically retried; manual retry button in sidebar
 
 ### Customization
 
@@ -156,7 +156,7 @@ yourcaldav.server.com {
 
 ## Tech Stack
 
-React 19 + TypeScript + Vite, Zustand, date-fns, chrono-node, @dnd-kit, framer-motion, Fuse.js, tsdav, Vitest
+React 19 + TypeScript + Vite, Zustand v5, date-fns, chrono-node, @dnd-kit, framer-motion, Fuse.js, ical.js, Vitest
 
 ---
 

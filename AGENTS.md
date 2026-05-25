@@ -1,6 +1,6 @@
 # Calino - AI Agent Guidelines
 
-**Version:** 0.3.0 (follows semver: 0.x.y = breaking changes allowed, bump minor for features, patch for fixes)
+**Version:** 0.4.0 (follows semver: 0.x.y = breaking changes allowed, bump minor for features, patch for fixes)
 
 React 19 + TypeScript + Vite calendar app with CalDAV sync, NLP event creation, and PWA support.
 
@@ -32,7 +32,7 @@ src/
 ├── components/     # Common UI (ThemeProvider, common/)
 ├── features/      # calendar, events, caldav, nlp, search, commandPalette, settings, onboarding
 ├── hooks/         # Custom hooks (useNotifications, useGestures, useIsMobile)
-├── lib/           # events/, recurrence.ts, themes/, notifications.ts
+├── lib/           # events/, recurrence.ts, uuid.ts, hours.ts, eventPositioning.ts, storage.ts, themes/, notifications.ts
 ├── store/         # Zustand stores (calendarStore, settingsStore)
 ├── themes/        # CSS themes (built-in.css)
 ├── types/         # TypeScript interfaces
@@ -47,7 +47,7 @@ src/
 - **Animations**: Framer Motion for complex, CSS for simple (200-300ms)
 - **Errors**: Custom error classes, user-friendly messages, try/catch async
 - **Mobile**: Touch gestures via `useGestures`, native event listeners for pinch-to-zoom
-- **PWA**: Notifications via `lib/notifications.ts`, service worker for offline
+- **PWA**: Notifications via `lib/notifications.ts`. Service worker is disabled by default (not supported on GitHub Pages). Enable in `src/main.tsx` if self-hosting with proper CSP headers.
 
 ## Routes
 
@@ -62,9 +62,10 @@ src/
 ## Key Files
 
 - **Store**: `src/store/calendarStore.ts`, `src/store/settingsStore.ts`
-- **Events lib**: `src/lib/events.ts`, `src/lib/recurrence.ts`
+- **Events lib**: `src/lib/events.ts`, `src/lib/recurrence.ts`, `src/lib/uuid.ts`, `src/lib/hours.ts`, `src/lib/eventPositioning.ts`
 - **Notifications**: `src/lib/notifications.ts`, `src/hooks/useNotifications.ts`
 - **Config**: `src/config.ts` (appName, colors, default themes)
+- **Storage**: `src/lib/storage.ts` (safeLocalStorage wrapper for zustand persist)
 
 ## Features
 

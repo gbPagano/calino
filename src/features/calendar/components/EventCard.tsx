@@ -286,7 +286,7 @@ export function EventCard({
             {...listeners}
             {...attributes}
           >
-            <div className={styles.title}>{event.title}</div>
+            <div className={styles.title} title={event.title}>{event.title}</div>
             {hasDueTime(event) && event.dueDate && (
               <div className={styles.dueDate}>{format(parseISO(event.dueDate), 'h:mm a')}</div>
             )}
@@ -310,7 +310,7 @@ export function EventCard({
               {...listeners}
               {...attributes}
           >
-            <div className={styles.title}>{event.title}</div>
+            <div className={styles.title} title={event.title}>{event.title}</div>
             {!compact && !event.isAllDay && (
                 <div className={styles.time}>
                   {isFragmentFirst

@@ -769,6 +769,7 @@ export function EventPreviewPopup({
                 strokeLinejoin="round"
               />
             </svg>
+            Delete
           </button>
         </div>
 

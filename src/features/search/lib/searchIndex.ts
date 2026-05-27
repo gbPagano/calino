@@ -1,6 +1,6 @@
 import Fuse, { type IFuseOptions } from 'fuse.js'
 import { parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
-import { RRule } from 'rrule'
+import { RRule, type Frequency, type Options } from 'rrule'
 import type { CalendarEvent } from '@/types'
 import type { SearchResult, SearchFilters, SearchOptions } from '../types'
 
@@ -184,7 +184,7 @@ function recurringEventOverlapsRange(
         if (eq !== -1) parts[part.slice(0, eq)] = part.slice(eq + 1)
       })
 
-      const freqMap: Record<string, RRule.Frequency> = {
+      const freqMap: Record<string, Frequency> = {
         SECONDLY: RRule.SECONDLY,
         MINUTELY: RRule.MINUTELY,
         HOURLY: RRule.HOURLY,
@@ -201,7 +201,7 @@ function recurringEventOverlapsRange(
         FR: RRule.FR, SA: RRule.SA, SU: RRule.SU,
       }
 
-      const opts: Partial<RRule.Options> = {
+      const opts: Partial<Options> = {
         dtstart: eventStart,
         freq: freqMap[parts['FREQ']] ?? RRule.WEEKLY,
         interval: parseInt(parts['INTERVAL'] ?? '1', 10),
@@ -217,7 +217,7 @@ function recurringEventOverlapsRange(
       rrule = new RRule(opts)
     } else if (event.recurrence) {
       const { frequency, interval, byWeekday } = event.recurrence
-      const freqMap: Record<string, RRule.Frequency> = {
+      const freqMap: Record<string, Frequency> = {
         daily: RRule.DAILY,
         weekly: RRule.WEEKLY,
         monthly: RRule.MONTHLY,
@@ -226,7 +226,7 @@ function recurringEventOverlapsRange(
       const weekdayMap = [
         RRule.MO, RRule.TU, RRule.WE, RRule.TH, RRule.FR, RRule.SA, RRule.SU,
       ]
-      const opts: Partial<RRule.Options> = {
+      const opts: Partial<Options> = {
         dtstart: eventStart,
         freq: freqMap[frequency] ?? RRule.WEEKLY,
         interval: interval ?? 1,

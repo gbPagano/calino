@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useCalendarStore } from '../calendarStore'
 
 describe('calendarStore', () => {
@@ -452,10 +452,6 @@ describe('calendarStore', () => {
 
   describe('Bug 1: persist migrate preserves persistedState', () => {
     it('migrate returns persisted data instead of empty state', () => {
-      // Access the persist options to test migrate directly
-      // We simulate what zustand persist does: call migrate with a persisted state
-      const persistConfig = (useCalendarStore as any).getState
-
       // The migrate function should preserve existing fields from persistedState.
       // We test this by directly importing and checking the migrate behavior.
       // Since zustand persist's migrate is internal, we test the observable outcome:

@@ -31,7 +31,10 @@ vi.mock('react-router-dom', () => ({
 vi.mock('framer-motion', () => ({
   motion: {
     div: React.forwardRef<HTMLDivElement, Record<string, unknown>>(
-      ({ children, ...props }, ref) => <div ref={ref} {...(props as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>
+      (props, ref) => {
+        const { children, ...rest } = props
+        return <div ref={ref} {...(rest as React.HTMLAttributes<HTMLDivElement>)}>{children as React.ReactNode}</div>
+      }
     ),
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,

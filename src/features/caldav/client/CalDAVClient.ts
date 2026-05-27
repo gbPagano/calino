@@ -58,7 +58,8 @@ export class CalDAVClient {
   private client: Awaited<ReturnType<typeof createDAVClient>> | null = null
   // Cache of raw DAV calendar objects from tsdav, keyed by URL matching.
   // Populated on the first fetchCalendars() call and reused by findCalendarByUrl().
-  private cachedCalendars: Awaited<ReturnType<typeof this.getClient>['fetchCalendars']> = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private cachedCalendars: any[] = []
   private serverUrl: string
   private proxyUrl: string | null
   private credentials: CalDAVCredentials

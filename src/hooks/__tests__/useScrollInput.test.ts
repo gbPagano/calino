@@ -19,7 +19,7 @@ describe('useScrollInput', () => {
   /** Helper to get the registered wheel handler */
   function getWheelHandler(): EventListener {
     const wheelCall = addEventListenerSpy.mock.calls.find(
-      (call: [string, ...unknown[]]) => call[0] === 'wheel'
+      (call) => call[0] === 'wheel'
     )
     expect(wheelCall).toBeDefined()
     return wheelCall![1] as EventListener

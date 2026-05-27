@@ -81,7 +81,7 @@ describe('useGestures', () => {
 
   describe('long press timer cleanup on unmount', () => {
     it('clears the long press timer when component unmounts', () => {
-      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
+      const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout')
 
       const { unmount } = renderHook(() =>
         useGestures({ onLongPress: vi.fn(), longPressDelay: 500 })
@@ -121,7 +121,7 @@ describe('useGestures', () => {
     })
 
     it('cleans up long press timer via the clearLongPressTimer helper', () => {
-      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
+      const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout')
 
       const { result } = renderHook(() =>
         useGestures({ onLongPress: vi.fn(), longPressDelay: 500 })
@@ -155,7 +155,8 @@ describe('useGestures', () => {
       } as unknown as React.PointerEvent
 
       act(() => {
-        result.current.bind.onPointerMove?.(moveEvent as unknown as React.PointerEvent)
+        const handler = result.current.bind.onPointerMove as ((...args: unknown[]) => void) | undefined
+        handler?.(moveEvent)
       })
 
       // clearTimeout should have been called when the move cleared the timer

@@ -17,7 +17,6 @@ export function useNotifications(): void {
   const prevEnabledRef = useRef(enableNotifications)
 
   useEffect(() => {
-    const wasEnabled = prevEnabledRef.current
     prevEnabledRef.current = enableNotifications
 
     if (!enableNotifications) {

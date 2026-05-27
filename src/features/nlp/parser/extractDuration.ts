@@ -1,16 +1,16 @@
 const RECURRENCE_PATTERNS = [
   { pattern: /\bevery\s+day\b/i, frequency: 'daily' as const, interval: 1 },
-  { pattern: /\bdaily\b/i, frequency: 'daily' as const, interval: 1 },
+  { pattern: /(?<![-])\bdaily\b/i, frequency: 'daily' as const, interval: 1 },
   { pattern: /\bevery\s+week\b/i, frequency: 'weekly' as const, interval: 1 },
-  { pattern: /\bweekly\b/i, frequency: 'weekly' as const, interval: 1 },
+  { pattern: /(?<![-])\bweekly\b/i, frequency: 'weekly' as const, interval: 1 },
   { pattern: /\bevery\s+month\b/i, frequency: 'monthly' as const, interval: 1 },
-  { pattern: /\bmonthly\b/i, frequency: 'monthly' as const, interval: 1 },
+  { pattern: /(?<![-])\bmonthly\b/i, frequency: 'monthly' as const, interval: 1 },
   { pattern: /\bevery\s+year\b/i, frequency: 'yearly' as const, interval: 1 },
-  { pattern: /\b(?:yearly|annually)\b/i, frequency: 'yearly' as const, interval: 1 },
+  { pattern: /(?<![-])\b(?:yearly|annually)\b/i, frequency: 'yearly' as const, interval: 1 },
   { pattern: /\bevery\s+weekday\b/i, frequency: 'weekly' as const, interval: 1 },
   { pattern: /\bevery\s+weekend\b/i, frequency: 'weekly' as const, interval: 1 },
-  { pattern: /\bweekdays?\b/i, frequency: 'weekly' as const, interval: 1 },
-  { pattern: /\bweekends?\b/i, frequency: 'weekly' as const, interval: 1 },
+  { pattern: /(?<![-])\bweekdays?\b/i, frequency: 'weekly' as const, interval: 1 },
+  { pattern: /(?<![-])\bweekends?\b/i, frequency: 'weekly' as const, interval: 1 },
 ];
 
 const WEEKDAY_MAP: Record<string, number> = {

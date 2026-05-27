@@ -26,7 +26,15 @@ export function extractTitle(input: string, parsedText: string): string {
   let text = input
 
   if (parsedText) {
-    text = text.replace(parsedText, '').trim()
+    if (text.includes(parsedText)) {
+      text = text.replace(parsedText, '').trim()
+    } else {
+      // parsedText may differ from input when preprocessing transformed
+      // ordinals or other tokens. Fall back to pattern-based cleanup.
+      for (const pattern of DATE_TIME_PATTERNS) {
+        text = text.replace(pattern, '').trim()
+      }
+    }
   }
 
   text = text

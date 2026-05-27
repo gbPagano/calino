@@ -66,8 +66,8 @@ function preprocessInput(input: string, refDate: Date = new Date()): string {
   // Fix ordinal dates: "the 15th", "15th", "the 1st", etc. -> add month reference
   // chrono-node handles "15th March" but not ordinal alone, so we add current month
   const currentMonth = MONTH_NAMES[refDate.getMonth()]
-  processed = processed.replace(/\bthe\s+(\d{1,2})(st|nd|rd|th)\b/gi, `$1 ${currentMonth}`)
-  processed = processed.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, `$1 ${currentMonth}`)
+  processed = processed.replace(/\bthe\s+(\d{1,2})(st|nd|rd|th)\b(?!\s+(?:january|february|march|april|may|june|july|august|september|october|november|december))/gi, `$1 ${currentMonth}`)
+  processed = processed.replace(/\b(\d{1,2})(st|nd|rd|th)\b(?!\s+(?:january|february|march|april|may|june|july|august|september|october|november|december))/gi, `$1 ${currentMonth}`)
 
   return processed
 }
@@ -178,6 +178,9 @@ export class NLParser {
     }
   }
 
+  parseToEvent(): (input: string) => NLPParseResult {
+    return (input: string) => this.parse(input)
+  }
 }
 
 export function createParser(options?: NLPParseOptions): NLParser {

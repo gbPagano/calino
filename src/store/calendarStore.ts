@@ -52,8 +52,10 @@ export const useCalendarStore = create<CalendarStore>()(
       previewPosition: null,
 
       addEvent: (event: CalendarEvent): void => {
-        if (event.start > event.end) {
-          throw new Error('Event start must be before end')
+        // Skip events with invalid date ranges instead of blocking the entire import
+        if (event.start > event.end && !event.isAllDay) {
+          console.warn('[Calendar] Skipping event with start > end:', event.title, event.start, event.end)
+          return
         }
         const state = get()
         const autoCategoryNames = applyAutoCategories(event.title, state.autoCategoryRules, state.categories)
@@ -70,16 +72,18 @@ export const useCalendarStore = create<CalendarStore>()(
       updateEvent: (id: string, updates: Partial<CalendarEvent>): void => {
         const safeUpdates = { ...updates }
         if (safeUpdates.start !== undefined && safeUpdates.end !== undefined) {
-          if (safeUpdates.start > safeUpdates.end) {
-            throw new Error('Event start must be before end')
+          if (safeUpdates.start > safeUpdates.end && !safeUpdates.isAllDay) {
+            console.warn('[Calendar] Skipping update: start > end for', id)
+            return
           }
         } else if (safeUpdates.start !== undefined || safeUpdates.end !== undefined) {
           const existingEvent = get().events.find((e) => e.id === id)
           if (existingEvent) {
             const start = safeUpdates.start ?? existingEvent.start
             const end = safeUpdates.end ?? existingEvent.end
-            if (start > end) {
-              throw new Error('Event start must be before end')
+            if (start > end && !existingEvent.isAllDay) {
+              console.warn('[Calendar] Skipping update: start > end for', id)
+              return
             }
           }
         }

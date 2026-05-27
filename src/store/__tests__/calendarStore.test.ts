@@ -858,21 +858,19 @@ describe('calendarStore', () => {
   })
 
   describe('Bug 51: start < end validation', () => {
-    it('throws when addEvent start is after end', () => {
+    it('silently skips addEvent when start is after end', () => {
       const store = useCalendarStore.getState()
 
-      expect(() => {
-        store.addEvent({
-          id: 'bad-event',
-          calendarId: 'default',
-          title: 'Bad Event',
-          start: '2024-03-15T12:00:00',
-          end: '2024-03-15T10:00:00',
-          isAllDay: false,
-        })
-      }).toThrow('Event start must be before end')
+      store.addEvent({
+        id: 'bad-event',
+        calendarId: 'default',
+        title: 'Bad Event',
+        start: '2024-03-15T12:00:00',
+        end: '2024-03-15T10:00:00',
+        isAllDay: false,
+      })
 
-      // Event should not be in the store
+      // Event should not be in the store (skipped, not thrown)
       const event = useCalendarStore.getState().events.find((e) => e.id === 'bad-event')
       expect(event).toBeUndefined()
     })
@@ -913,7 +911,7 @@ describe('calendarStore', () => {
       expect(event).toBeDefined()
     })
 
-    it('throws when updateEvent changes start to be after end', () => {
+    it('silently skips updateEvent when start becomes after end', () => {
       const store = useCalendarStore.getState()
 
       store.addEvent({
@@ -925,20 +923,18 @@ describe('calendarStore', () => {
         isAllDay: false,
       })
 
-      expect(() => {
-        store.updateEvent('update-bad', {
-          start: '2024-03-15T12:00:00',
-          end: '2024-03-15T10:00:00',
-        })
-      }).toThrow('Event start must be before end')
+      store.updateEvent('update-bad', {
+        start: '2024-03-15T12:00:00',
+        end: '2024-03-15T10:00:00',
+      })
 
-      // Original event should be unchanged
+      // Original event should be unchanged (update was skipped)
       const event = useCalendarStore.getState().events.find((e) => e.id === 'update-bad')
       expect(event?.start).toBe('2024-03-15T10:00:00')
       expect(event?.end).toBe('2024-03-15T11:00:00')
     })
 
-    it('throws when updateEvent changes only start and it exceeds end', () => {
+    it('silently skips updateEvent when only start exceeds end', () => {
       const store = useCalendarStore.getState()
 
       store.addEvent({
@@ -950,14 +946,16 @@ describe('calendarStore', () => {
         isAllDay: false,
       })
 
-      expect(() => {
-        store.updateEvent('update-start-only', {
-          start: '2024-03-15T12:00:00',
-        })
-      }).toThrow('Event start must be before end')
+      store.updateEvent('update-start-only', {
+        start: '2024-03-15T12:00:00',
+      })
+
+      // Event unchanged
+      const event = useCalendarStore.getState().events.find((e) => e.id === 'update-start-only')
+      expect(event?.start).toBe('2024-03-15T10:00:00')
     })
 
-    it('throws when updateEvent changes only end and start exceeds it', () => {
+    it('silently skips updateEvent when only end makes start exceed it', () => {
       const store = useCalendarStore.getState()
 
       store.addEvent({
@@ -969,11 +967,13 @@ describe('calendarStore', () => {
         isAllDay: false,
       })
 
-      expect(() => {
-        store.updateEvent('update-end-only', {
-          end: '2024-03-15T09:00:00',
-        })
-      }).toThrow('Event start must be before end')
+      store.updateEvent('update-end-only', {
+        end: '2024-03-15T09:00:00',
+      })
+
+      // Event unchanged
+      const event = useCalendarStore.getState().events.find((e) => e.id === 'update-end-only')
+      expect(event?.end).toBe('2024-03-15T11:00:00')
     })
 
     it('allows updateEvent to change only title without validation error', () => {

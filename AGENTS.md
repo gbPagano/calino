@@ -1,6 +1,6 @@
 # Calino - AI Agent Guidelines
 
-**Version:** 0.4.0 (follows semver: 0.x.y = breaking changes allowed, bump minor for features, patch for fixes)
+**Version:** 0.6.0 (follows semver: 0.x.y = breaking changes allowed, bump minor for features, patch for fixes)
 
 React 19 + TypeScript + Vite calendar app with CalDAV sync, NLP event creation, and PWA support.
 
@@ -21,7 +21,7 @@ pnpm format           # Prettier format
 ## Code Style
 
 - **Imports**: React → External → Internal → Types → Styles
-- **TypeScript**: Explicit params/returns, no `any`, use interfaces
+- **TypeScript**: Explicit params/returns, use interfaces. `any` only where third-party types are incompatible (e.g., CalDAVClient cached calendars).
 - **Components**: Functional only, destructure props, <200 lines
 - **Testing**: Vitest + RTL, follow AAA pattern
 
@@ -32,7 +32,7 @@ src/
 ├── components/     # Common UI (ThemeProvider, common/)
 ├── features/      # calendar, events, caldav, nlp, search, commandPalette, settings, onboarding
 ├── hooks/         # Custom hooks (useNotifications, useGestures, useIsMobile)
-├── lib/           # events/, recurrence.ts, uuid.ts, hours.ts, eventPositioning.ts, storage.ts, themes/, notifications.ts
+├── lib/           # events/, recurrence.ts, uuid.ts, hours.ts, eventPositioning.ts, storage.ts, crypto.ts, themes/, notifications.ts
 ├── store/         # Zustand stores (calendarStore, settingsStore)
 ├── themes/        # CSS themes (built-in.css)
 ├── types/         # TypeScript interfaces
@@ -66,6 +66,7 @@ src/
 - **Notifications**: `src/lib/notifications.ts`, `src/hooks/useNotifications.ts`
 - **Config**: `src/config.ts` (appName, colors, default themes)
 - **Storage**: `src/lib/storage.ts` (safeLocalStorage wrapper for zustand persist)
+- **Encryption**: `src/lib/crypto.ts` (AES-256-GCM for CalDAV password storage)
 
 ## Features
 

@@ -81,6 +81,12 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 
 The only non-standard iCalendar feature, is the support for Apples travel time, so it plays well with iPhones and MacOS calendars. I chose to include that feature, as all edits will otherwise still be compatible with other CalDAV clients - although they'll naturally not show the travel time, if it's not supported.
 
+### Security
+
+- CalDAV passwords are encrypted (AES-256-GCM) before storing in localStorage
+- All data stays on your device — no central server, no telemetry
+- Open source — audit the code yourself
+
 ## Quick Start
 
 ```bash

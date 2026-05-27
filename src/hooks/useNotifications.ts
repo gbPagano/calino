@@ -97,12 +97,17 @@ export function useRequestNotificationPermission(): {
   const updateSettings = useSettingsStore((state) => state.updateSettings)
 
   useEffect(() => {
-    if (enableNotifications && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then((permission) => {
-        if (permission === 'denied') {
-          updateSettings({ enableDesktopNotifications: false })
-        }
-      })
+    if (enableNotifications && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then((permission) => {
+          if (permission === 'denied') {
+            updateSettings({ enableDesktopNotifications: false })
+          }
+        })
+      } else if (Notification.permission === 'denied') {
+        // Permission was previously denied — sync the setting
+        updateSettings({ enableDesktopNotifications: false })
+      }
     }
   }, [enableNotifications, updateSettings])
 

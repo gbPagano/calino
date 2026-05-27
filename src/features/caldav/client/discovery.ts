@@ -14,6 +14,7 @@ const COMMON_PATHS = [
 export async function discoverServerUrl(baseUrl: string, proxyUrl?: string): Promise<string> {
   const normalizedUrl = normalizeUrl(baseUrl)
   const DISCOVERY_TIMEOUT_MS = 5_000
+  const errors: Array<{ path: string; error: unknown }> = []
 
   for (const path of COMMON_PATHS) {
     const tryUrl = new URL(path, normalizedUrl).href
@@ -38,9 +39,22 @@ export async function discoverServerUrl(baseUrl: string, proxyUrl?: string): Pro
       if (response.ok || response.status === 401) {
         return tryUrl.replace(/\/$/, '')
       }
-    } catch {
+    } catch (error) {
+      // Bug 30 fix: collect errors instead of silently swallowing them
+      errors.push({ path, error })
       continue
     }
+  }
+
+  // Bug 30 fix: log all discovery errors after the loop completes
+  if (errors.length > 0) {
+    console.warn(
+      `[CalDAV] Discovery: all ${errors.length} paths failed for ${baseUrl}. Errors:`,
+      errors.map((e) => ({
+        path: e.path,
+        message: e.error instanceof Error ? e.error.message : String(e.error),
+      }))
+    )
   }
 
   return normalizedUrl.replace(/\/$/, '')

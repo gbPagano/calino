@@ -309,9 +309,10 @@ export function useCalDAV(): UseCalDAVReturn {
               const parsedEvents = parseICALData(eventData.data, cal.id)
 
               for (const parsedEvent of parsedEvents) {
+                // Bug 31 fix: do not filter categories by UUID pattern.
+                // Let users see all categories from their CalDAV server.
                 if (parsedEvent.categories) {
                   for (const catName of parsedEvent.categories) {
-                    if (isUUID(catName)) continue
                     const existingCat = accountStoreCategories.find((c) => c.name === catName)
                     if (!existingCat && !newCategoryNames.includes(catName)) {
                       newCategoryNames.push(catName)
@@ -421,9 +422,10 @@ export function useCalDAV(): UseCalDAVReturn {
                 serverEventIds.add(parsedEvent.id)
 
                 // Collect category names for auto-creation
+                // Bug 31 fix: do not filter categories by UUID pattern.
+                // Let users see all categories from their CalDAV server.
                 if (parsedEvent.categories) {
                   for (const catName of parsedEvent.categories) {
-                    if (isUUID(catName)) continue
                     const existingCat = currentCategories.find((c) => c.name === catName)
                     if (!existingCat && !newCategoryNames.includes(catName)) {
                       newCategoryNames.push(catName)
@@ -470,12 +472,10 @@ export function useCalDAV(): UseCalDAVReturn {
                   }
 
                   if (shouldUpdate) {
-                    const cleanedCategories = parsedEvent.categories?.filter((c) => !isUUID(c))
-                    storeUpdateEvent(parsedEvent.id, { ...parsedEvent, categories: cleanedCategories })
+                    storeUpdateEvent(parsedEvent.id, parsedEvent)
                   }
                 } else {
-                  const cleanedCategories = parsedEvent.categories?.filter((c) => !isUUID(c))
-                  storeAddEvent({ ...parsedEvent, categories: cleanedCategories })
+                  storeAddEvent(parsedEvent)
                 }
               }
             }
@@ -648,10 +648,34 @@ export function useCalDAV(): UseCalDAVReturn {
         const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
         const engine = new SyncEngine(client, calendarId)
 
+        // Bug 29 fix: only increment sequence if event data actually changed.
+        // Unconditional increment causes false conflict detection.
+        const existingEvent = useCalendarStore.getState().events.find(
+          (e) => e.id === event.id
+        )
+        const hasChanged = !existingEvent || (
+          existingEvent.title !== event.title ||
+          existingEvent.description !== event.description ||
+          existingEvent.location !== event.location ||
+          existingEvent.start !== event.start ||
+          existingEvent.end !== event.end ||
+          existingEvent.isAllDay !== event.isAllDay ||
+          existingEvent.transparency !== event.transparency ||
+          existingEvent.rruleString !== event.rruleString ||
+          existingEvent.completed !== event.completed ||
+          existingEvent.priority !== event.priority ||
+          existingEvent.dueDate !== event.dueDate ||
+          existingEvent.type !== event.type ||
+          JSON.stringify(existingEvent.categories ?? []) !== JSON.stringify(event.categories ?? []) ||
+          JSON.stringify(existingEvent.recurrence) !== JSON.stringify(event.recurrence) ||
+          JSON.stringify(existingEvent.reminders) !== JSON.stringify(event.reminders) ||
+          JSON.stringify(existingEvent.excludedDates) !== JSON.stringify(event.excludedDates)
+        )
+
         const currentSequence = event.sequence ?? 0
         const eventWithSequence: CalendarEvent = {
           ...event,
-          sequence: currentSequence + 1,
+          sequence: hasChanged ? currentSequence + 1 : currentSequence,
         }
 
         if (caldavDebugMode) {

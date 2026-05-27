@@ -1,6 +1,7 @@
 import ICAL from 'ical.js'
 import { v4 as uuidv4 } from 'uuid'
 import type { CalendarEvent, RecurrenceRule, Reminder, TaskPriority } from '@/types'
+import { addDays } from 'date-fns'
 import { DAY_NUM_TO_CODE } from '@/lib/recurrence'
 
 export function parseAppleTravelDuration(vevent: ICAL.Component): number | undefined {
@@ -164,9 +165,10 @@ function parseICalDateTime(value: string): { date: string; isAllDay: boolean } {
       }
     }
 
-    const asLocal = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`)
+    // Bug 25 fix: floating times (no Z, no TZID) must be preserved as-is per iCal spec.
+    // Do NOT convert through the browser's local timezone.
     return {
-      date: asLocal.toISOString(),
+      date: `${year}-${month}-${day}T${hour}:${minute}:${second}`,
       isAllDay: false,
     }
   }
@@ -185,6 +187,19 @@ function icalTimeToISO(icalTime: ICAL.Time): string {
 
   if (icalTime.isDate) {
     return icalTime.toString()
+  }
+
+  // Bug 25 fix: floating times (timezone 'floating') should be preserved as-is.
+  // The iCal spec says floating times represent wall-clock time with no timezone.
+  const tz = icalTime.zone
+  if (tz && tz.tzid === 'floating') {
+    const year = String(icalTime.year).padStart(4, '0')
+    const month = String(icalTime.month).padStart(2, '0')
+    const day = String(icalTime.day).padStart(2, '0')
+    const hour = String(icalTime.hour).padStart(2, '0')
+    const minute = String(icalTime.minute).padStart(2, '0')
+    const second = String(icalTime.second).padStart(2, '0')
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}`
   }
 
   const jsDate = icalTime.toJSDate()
@@ -314,14 +329,21 @@ export function icalEventToCalendarEvent(
 
       if (typeof triggerValue === 'string') {
         minutes = parseTriggerDuration(triggerValue)
+      } else if (triggerValue instanceof ICAL.Duration) {
+        // Duration triggers (e.g. -PT30M) are parsed by ical.js as ICAL.Duration
+        const totalSeconds = triggerValue.toSeconds()
+        minutes = Math.round(Math.abs(totalSeconds) / 60)
       } else if (triggerValue instanceof ICAL.Time) {
+        // Bug 26 fix: calculate minutes from event DTSTART, not Date.now()
         const isoStr = icalTimeToISO(triggerValue)
-        if (isoStr) {
+        if (isoStr && dtstart) {
           const triggerDate = new Date(isoStr)
-          const now = new Date()
-          const diffMs = now.getTime() - triggerDate.getTime()
-          minutes = Math.round(diffMs / 60000)
-          if (minutes < 0) minutes = Math.abs(minutes)
+          const startDate = new Date(icalTimeToISO(dtstart))
+          if (!isNaN(triggerDate.getTime()) && !isNaN(startDate.getTime())) {
+            const diffMs = startDate.getTime() - triggerDate.getTime()
+            minutes = Math.round(diffMs / 60000)
+            if (minutes < 0) minutes = Math.abs(minutes)
+          }
         }
       }
 
@@ -461,20 +483,19 @@ export function calendarEventToIcalComponent(event: CalendarEvent): ICAL.Compone
     const startDate = createAllDayDate(startYear, startMonth, startDay)
     vevent.updatePropertyWithValue('dtstart', startDate)
 
+    // Bug 27 fix: use date-fns addDays for proper date arithmetic.
+    // The old manual rollover used new Date(y, m, 0) which gives the
+    // last day of the previous month and fails at month/year boundaries.
     const endParts = event.end.split('T')[0].split('-')
-    let endYear = parseInt(endParts[0], 10)
-    let endMonth = parseInt(endParts[1], 10)
-    let endDay = parseInt(endParts[2], 10)
-    endDay += 1
-    if (endDay > new Date(endYear, endMonth, 0).getDate()) {
-      endDay = 1
-      endMonth += 1
-      if (endMonth > 12) {
-        endMonth = 1
-        endYear += 1
-      }
-    }
-    const endDate = createAllDayDate(endYear, endMonth, endDay)
+    const endYear = parseInt(endParts[0], 10)
+    const endMonth = parseInt(endParts[1], 10)
+    const endDay = parseInt(endParts[2], 10)
+    const endDateObj = addDays(new Date(endYear, endMonth - 1, endDay), 1)
+    const endDate = createAllDayDate(
+      endDateObj.getFullYear(),
+      endDateObj.getMonth() + 1,
+      endDateObj.getDate()
+    )
     vevent.updatePropertyWithValue('dtend', endDate)
   } else {
     const startTime = createIcalDateTime(event.start)

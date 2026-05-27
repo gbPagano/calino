@@ -1380,4 +1380,319 @@ describe('useCalDAV', () => {
       vi.useRealTimers()
     })
   })
+
+  // -----------------------------------------------------------------------
+  // Bug 29: Sequence increments unconditionally
+  // -----------------------------------------------------------------------
+  describe('Bug 29: sequence only increments when data changed', () => {
+    beforeEach(() => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+    })
+
+    it('does not increment sequence when event data is identical', async () => {
+      // Add an existing event to the store with the same data
+      const existingEvent: CalendarEvent = {
+        ...mockEvent,
+        sequence: 5,
+        etag: 'old-etag',
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(existingEvent)
+      })
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      // Update with identical data (same sequence)
+      const sameEvent: CalendarEvent = {
+        ...mockEvent,
+        sequence: 5,
+        etag: 'old-etag',
+      }
+
+      await act(async () => {
+        await result.current.updateEvent('cal-1', sameEvent)
+      })
+
+      // Sequence should NOT have been incremented
+      expect(mockSyncEngineInstance.updateEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ sequence: 5 }),
+        'old-etag'
+      )
+    })
+
+    it('increments sequence when event title changes', async () => {
+      const existingEvent: CalendarEvent = {
+        ...mockEvent,
+        sequence: 3,
+        etag: 'etag-3',
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(existingEvent)
+      })
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      const updatedEvent: CalendarEvent = {
+        ...mockEvent,
+        title: 'Updated Title',
+        sequence: 3,
+        etag: 'etag-3',
+      }
+
+      await act(async () => {
+        await result.current.updateEvent('cal-1', updatedEvent)
+      })
+
+      // Sequence should have been incremented
+      expect(mockSyncEngineInstance.updateEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ sequence: 4 }),
+        'etag-3'
+      )
+    })
+
+    it('increments sequence when event start time changes', async () => {
+      const existingEvent: CalendarEvent = {
+        ...mockEvent,
+        sequence: 0,
+        etag: 'etag-0',
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(existingEvent)
+      })
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      const updatedEvent: CalendarEvent = {
+        ...mockEvent,
+        start: '2025-06-01T12:00:00',
+        end: '2025-06-01T13:00:00',
+        sequence: 0,
+        etag: 'etag-0',
+      }
+
+      await act(async () => {
+        await result.current.updateEvent('cal-1', updatedEvent)
+      })
+
+      expect(mockSyncEngineInstance.updateEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ sequence: 1 }),
+        'etag-0'
+      )
+    })
+
+    it('increments sequence when categories change', async () => {
+      const existingEvent: CalendarEvent = {
+        ...mockEvent,
+        categories: ['work'],
+        sequence: 2,
+        etag: 'etag-2',
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(existingEvent)
+      })
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      const updatedEvent: CalendarEvent = {
+        ...mockEvent,
+        categories: ['work', 'important'],
+        sequence: 2,
+        etag: 'etag-2',
+      }
+
+      await act(async () => {
+        await result.current.updateEvent('cal-1', updatedEvent)
+      })
+
+      expect(mockSyncEngineInstance.updateEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ sequence: 3 }),
+        'etag-2'
+      )
+    })
+
+    it('increments sequence when event has no existing store entry', async () => {
+      // No event in the store (new event being synced)
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      const newEvent: CalendarEvent = {
+        ...mockEvent,
+        sequence: 0,
+        etag: 'new-etag',
+      }
+
+      await act(async () => {
+        await result.current.updateEvent('cal-1', newEvent)
+      })
+
+      // Should increment since no existing event means it's new
+      expect(mockSyncEngineInstance.updateEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ sequence: 1 }),
+        'new-etag'
+      )
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Bug 31: Category UUID filtering
+  // -----------------------------------------------------------------------
+  describe('Bug 31: categories are not filtered by UUID pattern', () => {
+    beforeEach(() => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAccountById.mockReturnValue(mockAccount)
+      mockAccountStorage.getCalendarsByAccountId.mockReturnValue([mockCalendar])
+    })
+
+    it('does not filter categories that look like UUIDs during sync', async () => {
+      const serverEvent: CalendarEvent = {
+        id: 'evt-uuid-cats',
+        calendarId: 'cal-1',
+        title: 'UUID Category Event',
+        start: '2025-06-10T10:00:00',
+        end: '2025-06-10T11:00:00',
+        isAllDay: false,
+        sequence: 0,
+        categories: ['550e8400-e29b-41d4-a716-446655440000', 'normal-category'],
+      }
+
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
+      vi.mocked(iCalendarAdapter.isUUID).mockReturnValue(true)
+
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([
+          { url: 'https://...', data: 'ical-data', etag: 'etag1' },
+        ]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      // The event should have BOTH categories, not filtered
+      const store = useCalendarStore.getState()
+      const evt = store.events.find((e) => e.id === 'evt-uuid-cats')
+      expect(evt).toBeDefined()
+      expect(evt?.categories).toContain('550e8400-e29b-41d4-a716-446655440000')
+      expect(evt?.categories).toContain('normal-category')
+    })
+
+    it('does not filter UUID-looking categories during addAccount', async () => {
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([])
+      vi.mocked(iCalendarAdapter.isUUID).mockReturnValue(true)
+
+      // Mock saveAccount to return an object with an id
+      mockAccountStorage.saveAccount.mockReturnValue({
+        id: 'new-acc',
+        name: 'Test Account',
+        serverUrl: 'https://caldav.example.com',
+        proxyUrl: null,
+        username: 'user',
+        credentialId: 'cred-1',
+      })
+      // Set up initial accounts so hook mount finds them
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([
+          {
+            url: 'https://...',
+            data: 'BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:test\r\nSUMMARY:Test\r\nDTSTART:20250615T100000Z\r\nDTEND:20250615T110000Z\r\nCATEGORIES:550e8400-e29b-41d4-a716-446655440000,my-tag\r\nEND:VEVENT\r\nEND:VCALENDAR',
+            etag: 'etag1',
+          },
+        ]),
+        fetchCalendars: vi.fn().mockResolvedValue([
+          {
+            id: 'cal-1',
+            url: 'https://caldav.example.com/cal/',
+            name: 'Test',
+            color: '#4285F4',
+            isVisible: true,
+            isDefault: true,
+          },
+        ]),
+      } as any)
+
+      // The parsed event should include UUID categories
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([
+        {
+          id: 'evt-cats',
+          calendarId: 'cal-1',
+          title: 'Test',
+          start: '2025-06-15T10:00:00',
+          end: '2025-06-15T11:00:00',
+          isAllDay: false,
+          categories: ['550e8400-e29b-41d4-a716-446655440000', 'my-tag'],
+        },
+      ])
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBeGreaterThanOrEqual(1))
+
+      await act(async () => {
+        await result.current.addAccount(
+          'https://caldav.example.com',
+          'user',
+          'pass',
+          'Test Account'
+        )
+      })
+
+      // UUID category should have been auto-created, not filtered
+      const store = useCalendarStore.getState()
+      const uuidCat = store.categories.find(
+        (c) => c.name === '550e8400-e29b-41d4-a716-446655440000'
+      )
+      expect(uuidCat).toBeDefined()
+
+      const normalCat = store.categories.find((c) => c.name === 'my-tag')
+      expect(normalCat).toBeDefined()
+    })
+
+    it('still auto-creates non-UUID categories from server', async () => {
+      const serverEvent: CalendarEvent = {
+        id: 'evt-normal-cats',
+        calendarId: 'cal-1',
+        title: 'Normal Category Event',
+        start: '2025-06-10T10:00:00',
+        end: '2025-06-10T11:00:00',
+        isAllDay: false,
+        sequence: 0,
+        categories: ['work', 'important'],
+      }
+
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
+      vi.mocked(iCalendarAdapter.isUUID).mockReturnValue(false)
+
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([
+          { url: 'https://...', data: 'ical-data', etag: 'etag1' },
+        ]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      const store = useCalendarStore.getState()
+      expect(store.categories.find((c) => c.name === 'work')).toBeDefined()
+      expect(store.categories.find((c) => c.name === 'important')).toBeDefined()
+    })
+  })
 })

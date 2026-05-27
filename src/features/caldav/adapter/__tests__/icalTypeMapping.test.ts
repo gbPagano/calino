@@ -1,0 +1,405 @@
+import { describe, it, expect } from 'vitest'
+import ICAL from 'ical.js'
+import {
+  icalEventToCalendarEvent,
+  calendarEventToIcalComponent,
+} from '../icalTypeMapping'
+import type { CalendarEvent } from '@/types'
+
+// ---------------------------------------------------------------------------
+// Helper: create a VEVENT ICAL.Component from raw iCal string
+// ---------------------------------------------------------------------------
+function createVevent(iCalStr: string): ICAL.Component {
+  const jCal = ICAL.parse(iCalStr)
+  const comp = new ICAL.Component(jCal)
+  const vevents = comp.getAllSubcomponents('vevent')
+  if (vevents.length === 0) throw new Error('No VEVENT found in iCal string')
+  return vevents[0]
+}
+
+// ---------------------------------------------------------------------------
+// Bug 25: Floating time timezone flip
+// ---------------------------------------------------------------------------
+describe('Bug 25: Floating time timezone flip', () => {
+  it('preserves floating datetime values without timezone conversion', () => {
+    // A floating time (no Z, no TZID) should be preserved as-is
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:floating-test-1',
+      'SUMMARY:Floating Event',
+      'DTSTART:20250615T140000',
+      'DTEND:20250615T150000',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const vevent = createVevent(iCalStr)
+    const event = icalEventToCalendarEvent(vevent, 'cal-1')
+
+    // The date string should preserve the original values, not be shifted
+    expect(event.start).toBe('2025-06-15T14:00:00')
+    expect(event.end).toBe('2025-06-15T15:00:00')
+    expect(event.isAllDay).toBe(false)
+  })
+
+  it('preserves UTC datetimes with Z suffix', () => {
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:utc-test-1',
+      'SUMMARY:UTC Event',
+      'DTSTART:20250615T140000Z',
+      'DTEND:20250615T150000Z',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const vevent = createVevent(iCalStr)
+    const event = icalEventToCalendarEvent(vevent, 'cal-1')
+
+    // UTC times go through toJSDate().toISOString() which adds .000
+    expect(event.start).toContain('2025-06-15T14:00:00')
+    expect(event.start).toContain('Z')
+    expect(event.end).toContain('2025-06-15T15:00:00')
+    expect(event.end).toContain('Z')
+  })
+
+  it('preserves floating times at midnight', () => {
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:floating-midnight',
+      'SUMMARY:Midnight Event',
+      'DTSTART:20250101T000000',
+      'DTEND:20250101T010000',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const vevent = createVevent(iCalStr)
+    const event = icalEventToCalendarEvent(vevent, 'cal-1')
+
+    expect(event.start).toBe('2025-01-01T00:00:00')
+    expect(event.end).toBe('2025-01-01T01:00:00')
+  })
+
+  it('preserves floating times with seconds', () => {
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:floating-seconds',
+      'SUMMARY:Seconds Event',
+      'DTSTART:20250615T143045',
+      'DTEND:20250615T153045',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const vevent = createVevent(iCalStr)
+    const event = icalEventToCalendarEvent(vevent, 'cal-1')
+
+    expect(event.start).toBe('2025-06-15T14:30:45')
+    expect(event.end).toBe('2025-06-15T15:30:45')
+  })
+
+  it('does not shift floating times across timezone boundaries', () => {
+    // Even if the system timezone is UTC, a floating time at 23:00
+    // should NOT become 00:00 the next day
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:floating-boundary',
+      'SUMMARY:Boundary Event',
+      'DTSTART:20251231T230000',
+      'DTEND:20260101T010000',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const vevent = createVevent(iCalStr)
+    const event = icalEventToCalendarEvent(vevent, 'cal-1')
+
+    expect(event.start).toBe('2025-12-31T23:00:00')
+    expect(event.end).toBe('2026-01-01T01:00:00')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Bug 26: Absolute reminder trigger uses Date.now()
+// ---------------------------------------------------------------------------
+describe('Bug 26: Absolute reminder trigger uses DTSTART, not Date.now()', () => {
+  it('calculates reminder minutes from DTSTART, not current time', () => {
+    // Create an event with an absolute TRIGGER (ICAL.Time) that fires
+    // 30 minutes BEFORE the event starts.
+    // DTSTART: 2025-06-15T14:00:00Z
+    // TRIGGER: 2025-06-15T13:30:00Z  (30 min before start)
+    // Note: ical.js requires TRIGGER;VALUE=DATE-TIME for absolute triggers
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:absolute-trigger-test',
+      'SUMMARY:Reminder Test',
+      'DTSTART:20250615T140000Z',
+      'DTEND:20250615T150000Z',
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      'TRIGGER;VALUE=DATE-TIME:20250615T133000Z',
+      'DESCRIPTION:Reminder',
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const vevent = createVevent(iCalStr)
+    const event = icalEventToCalendarEvent(vevent, 'cal-1')
+
+    expect(event.reminders).toBeDefined()
+    expect(event.reminders!.length).toBe(1)
+    // Should be 30 minutes before start
+    expect(event.reminders![0].minutesBefore).toBe(30)
+  })
+
+  it('calculates reminder minutes correctly when trigger is 15 min before', () => {
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:absolute-trigger-15',
+      'SUMMARY:15min Reminder',
+      'DTSTART:20250615T140000Z',
+      'DTEND:20250615T150000Z',
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      'TRIGGER;VALUE=DATE-TIME:20250615T134500Z',
+      'DESCRIPTION:Reminder',
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const vevent = createVevent(iCalStr)
+    const event = icalEventToCalendarEvent(vevent, 'cal-1')
+
+    expect(event.reminders).toBeDefined()
+    expect(event.reminders![0].minutesBefore).toBe(15)
+  })
+
+  it('still parses string-based duration triggers correctly', () => {
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:duration-trigger',
+      'SUMMARY:Duration Trigger',
+      'DTSTART:20250615T140000Z',
+      'DTEND:20250615T150000Z',
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      'TRIGGER:-PT30M',
+      'DESCRIPTION:Reminder',
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const vevent = createVevent(iCalStr)
+    const event = icalEventToCalendarEvent(vevent, 'cal-1')
+
+    expect(event.reminders).toBeDefined()
+    expect(event.reminders![0].minutesBefore).toBe(30)
+  })
+
+  it('handles absolute trigger that fires after event start gracefully', () => {
+    // Trigger 30 min AFTER the event start (unusual but possible)
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:absolute-trigger-after',
+      'SUMMARY:After Start',
+      'DTSTART:20250615T140000Z',
+      'DTEND:20250615T150000Z',
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      'TRIGGER;VALUE=DATE-TIME:20250615T143000Z',
+      'DESCRIPTION:Reminder',
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const vevent = createVevent(iCalStr)
+    const event = icalEventToCalendarEvent(vevent, 'cal-1')
+
+    expect(event.reminders).toBeDefined()
+    // Math.abs makes it positive: 30 minutes
+    expect(event.reminders![0].minutesBefore).toBe(30)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Bug 27: All-day DTEND rollover broken for December/January
+// ---------------------------------------------------------------------------
+describe('Bug 27: All-day DTEND rollover', () => {
+  it('rolls over from December 31 to January 1 of next year', () => {
+    const event: CalendarEvent = {
+      id: 'dec31-test',
+      calendarId: 'cal-1',
+      title: 'Year End',
+      start: '2025-12-31',
+      end: '2025-12-31',
+      isAllDay: true,
+    }
+
+    const vevent = calendarEventToIcalComponent(event)
+    const dtendProp = vevent.getFirstProperty('dtend')
+    const dtendValue = dtendProp?.getFirstValue()
+
+    expect(dtendValue).toBeInstanceOf(ICAL.Time)
+    if (dtendValue instanceof ICAL.Time) {
+      // DTEND should be 2026-01-01 (exclusive end per iCal spec)
+      expect(dtendValue.year).toBe(2026)
+      expect(dtendValue.month).toBe(1)
+      expect(dtendValue.day).toBe(1)
+    }
+  })
+
+  it('rolls over from January 31 to February 1', () => {
+    const event: CalendarEvent = {
+      id: 'jan31-test',
+      calendarId: 'cal-1',
+      title: 'Jan End',
+      start: '2025-01-31',
+      end: '2025-01-31',
+      isAllDay: true,
+    }
+
+    const vevent = calendarEventToIcalComponent(event)
+    const dtendProp = vevent.getFirstProperty('dtend')
+    const dtendValue = dtendProp?.getFirstValue()
+
+    expect(dtendValue).toBeInstanceOf(ICAL.Time)
+    if (dtendValue instanceof ICAL.Time) {
+      expect(dtendValue.year).toBe(2025)
+      expect(dtendValue.month).toBe(2)
+      expect(dtendValue.day).toBe(1)
+    }
+  })
+
+  it('rolls over from February 28 to March 1 in non-leap year', () => {
+    const event: CalendarEvent = {
+      id: 'feb28-test',
+      calendarId: 'cal-1',
+      title: 'Feb End',
+      start: '2025-02-28',
+      end: '2025-02-28',
+      isAllDay: true,
+    }
+
+    const vevent = calendarEventToIcalComponent(event)
+    const dtendProp = vevent.getFirstProperty('dtend')
+    const dtendValue = dtendProp?.getFirstValue()
+
+    expect(dtendValue).toBeInstanceOf(ICAL.Time)
+    if (dtendValue instanceof ICAL.Time) {
+      expect(dtendValue.year).toBe(2025)
+      expect(dtendValue.month).toBe(3)
+      expect(dtendValue.day).toBe(1)
+    }
+  })
+
+  it('rolls over from February 29 to March 1 in leap year', () => {
+    const event: CalendarEvent = {
+      id: 'feb29-test',
+      calendarId: 'cal-1',
+      title: 'Leap Day',
+      start: '2024-02-29',
+      end: '2024-02-29',
+      isAllDay: true,
+    }
+
+    const vevent = calendarEventToIcalComponent(event)
+    const dtendProp = vevent.getFirstProperty('dtend')
+    const dtendValue = dtendProp?.getFirstValue()
+
+    expect(dtendValue).toBeInstanceOf(ICAL.Time)
+    if (dtendValue instanceof ICAL.Time) {
+      expect(dtendValue.year).toBe(2024)
+      expect(dtendValue.month).toBe(3)
+      expect(dtendValue.day).toBe(1)
+    }
+  })
+
+  it('rolls over from February 28 to February 29 in leap year', () => {
+    const event: CalendarEvent = {
+      id: 'feb28-leap',
+      calendarId: 'cal-1',
+      title: 'Feb 28 in Leap Year',
+      start: '2024-02-28',
+      end: '2024-02-28',
+      isAllDay: true,
+    }
+
+    const vevent = calendarEventToIcalComponent(event)
+    const dtendProp = vevent.getFirstProperty('dtend')
+    const dtendValue = dtendProp?.getFirstValue()
+
+    expect(dtendValue).toBeInstanceOf(ICAL.Time)
+    if (dtendValue instanceof ICAL.Time) {
+      expect(dtendValue.year).toBe(2024)
+      expect(dtendValue.month).toBe(2)
+      expect(dtendValue.day).toBe(29)
+    }
+  })
+
+  it('rolls over from March 31 to April 1', () => {
+    const event: CalendarEvent = {
+      id: 'mar31-test',
+      calendarId: 'cal-1',
+      title: 'Mar End',
+      start: '2025-03-31',
+      end: '2025-03-31',
+      isAllDay: true,
+    }
+
+    const vevent = calendarEventToIcalComponent(event)
+    const dtendProp = vevent.getFirstProperty('dtend')
+    const dtendValue = dtendProp?.getFirstValue()
+
+    expect(dtendValue).toBeInstanceOf(ICAL.Time)
+    if (dtendValue instanceof ICAL.Time) {
+      expect(dtendValue.year).toBe(2025)
+      expect(dtendValue.month).toBe(4)
+      expect(dtendValue.day).toBe(1)
+    }
+  })
+
+  it('handles month with 30 days correctly (April 30)', () => {
+    const event: CalendarEvent = {
+      id: 'apr30-test',
+      calendarId: 'cal-1',
+      title: 'Apr End',
+      start: '2025-04-30',
+      end: '2025-04-30',
+      isAllDay: true,
+    }
+
+    const vevent = calendarEventToIcalComponent(event)
+    const dtendProp = vevent.getFirstProperty('dtend')
+    const dtendValue = dtendProp?.getFirstValue()
+
+    expect(dtendValue).toBeInstanceOf(ICAL.Time)
+    if (dtendValue instanceof ICAL.Time) {
+      expect(dtendValue.year).toBe(2025)
+      expect(dtendValue.month).toBe(5)
+      expect(dtendValue.day).toBe(1)
+    }
+  })
+})

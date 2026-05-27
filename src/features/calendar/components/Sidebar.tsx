@@ -57,6 +57,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const [editName, setEditName] = useState('')
   const [showYearDropdown, setShowYearDropdown] = useState(false)
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
+  const showYearDropdownRef = useRef(showYearDropdown)
+  const showMonthDropdownRef = useRef(showMonthDropdown)
   const [isTasksExpanded, setIsTasksExpanded] = useState(true)
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false)
   const [syncingCalendarId, setSyncingCalendarId] = useState<string | null>(null)
@@ -159,19 +161,25 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
     setShowYearDropdown(false)
   }
 
-  const handleClickOutside = (e: MouseEvent): void => {
-    if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-      setShowYearDropdown(false)
-      setShowMonthDropdown(false)
-    }
-  }
+  useEffect(() => {
+    showYearDropdownRef.current = showYearDropdown
+  }, [showYearDropdown])
 
   useEffect(() => {
-    if (showYearDropdown || showMonthDropdown) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+    showMonthDropdownRef.current = showMonthDropdown
+  }, [showMonthDropdown])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent): void => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowYearDropdown(false)
+        setShowMonthDropdown(false)
+      }
     }
-  }, [showYearDropdown, showMonthDropdown])
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const handleStartRename = (id: string, name: string): void => {
     setEditingId(id)

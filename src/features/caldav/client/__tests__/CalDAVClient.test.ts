@@ -420,6 +420,96 @@ END:VCALENDAR`,
     })
   })
 
+  describe('calendar caching (Bug 32)', () => {
+    it('caches calendars after first fetchCalendars() call', async () => {
+      await client.connect()
+
+      await client.fetchCalendars()
+
+      // Second call should NOT hit the network again because we cache
+      mockClientMethods.fetchCalendars.mockClear()
+
+      // Call fetchEvents which needs to find a calendar
+      mockClientMethods.fetchCalendarObjects
+        .mockResolvedValueOnce([mockEventObject])
+        .mockResolvedValueOnce([])
+
+      await client.fetchEvents(
+        mockCalendar.url,
+        '2024-01-01T00:00:00Z',
+        '2024-12-31T23:59:59Z'
+      )
+
+      // fetchCalendars should NOT have been called again — cached
+      expect(mockClientMethods.fetchCalendars).not.toHaveBeenCalled()
+    })
+
+    it('fetches calendars once and reuses cache for createEvent', async () => {
+      await client.connect()
+
+      await client.fetchCalendars()
+      mockClientMethods.fetchCalendars.mockClear()
+
+      mockClientMethods.createCalendarObject.mockResolvedValue({
+        url: mockEventObject.url,
+      })
+
+      await client.createEvent(mockCalendar.url, mockEventObject.data, 'event-1.ics')
+
+      expect(mockClientMethods.fetchCalendars).not.toHaveBeenCalled()
+    })
+
+    it('fetches calendars once and reuses cache for updateEvent', async () => {
+      await client.connect()
+
+      await client.fetchCalendars()
+      mockClientMethods.fetchCalendars.mockClear()
+
+      mockClientMethods.updateCalendarObject.mockResolvedValue({
+        url: mockEventObject.url,
+      })
+
+      await client.updateEvent(
+        mockCalendar.url,
+        mockEventObject.url,
+        mockEventObject.data,
+        mockEventObject.etag
+      )
+
+      expect(mockClientMethods.fetchCalendars).not.toHaveBeenCalled()
+    })
+
+    it('fetches calendars lazily on first findCalendarByUrl if cache is empty', async () => {
+      await client.connect()
+      // Do NOT call fetchCalendars() explicitly — cache should be populated lazily
+
+      mockClientMethods.fetchCalendars.mockClear()
+      mockClientMethods.fetchCalendarObjects
+        .mockResolvedValueOnce([mockEventObject])
+        .mockResolvedValueOnce([])
+
+      await client.fetchEvents(
+        mockCalendar.url,
+        '2024-01-01T00:00:00Z',
+        '2024-12-31T23:59:59Z'
+      )
+
+      // Should have fetched calendars once (lazy init)
+      expect(mockClientMethods.fetchCalendars).toHaveBeenCalledTimes(1)
+
+      // Now subsequent calls should use cache
+      mockClientMethods.fetchCalendars.mockClear()
+      mockClientMethods.fetchCalendarObjects
+        .mockResolvedValueOnce([mockEventObject])
+        .mockResolvedValueOnce([])
+
+      await client.createEvent(mockCalendar.url, mockEventObject.data, 'event-1.ics')
+
+      // Should NOT fetch calendars again
+      expect(mockClientMethods.fetchCalendars).not.toHaveBeenCalled()
+    })
+  })
+
   describe('network timeout (Bug 13)', () => {
     it('abort controller is used in proxy fetch path', async () => {
       const proxyClient = new CalDAVClient(

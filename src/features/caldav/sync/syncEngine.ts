@@ -138,12 +138,12 @@ export class SyncEngine {
       return true
     }
 
-    if (serverSeq === localSeq) {
-      const serverTime = new Date(server.start).getTime()
-      const localTime = new Date(local.start).getTime()
-      return serverTime > localTime
+    if (serverSeq < localSeq) {
+      return false
     }
 
+    // Bug 33 fix: sequences are equal — no reliable modification-time
+    // heuristic is available, so treat as the same version (not newer).
     return false
   }
 

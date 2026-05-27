@@ -4,7 +4,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { showNotification, createNotificationId } from '@/lib/notifications'
 import { parseISO, isWithinInterval, addMinutes } from 'date-fns'
 
-const CHECK_INTERVAL_MS = 5 * 60 * 1000
+const CHECK_INTERVAL_MS = 60 * 1000
 
 export function useNotifications(): void {
   const events = useCalendarStore((state) => state.events)

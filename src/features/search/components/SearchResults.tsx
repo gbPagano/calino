@@ -21,6 +21,14 @@ function HighlightedText({
     return <>{text}</>
   }
 
+  // Bounds check: if any index pair exceeds text length, return plain text
+  const hasOutOfBounds = indices.some(
+    ([start, end]) => start < 0 || end < start || end >= text.length
+  )
+  if (hasOutOfBounds) {
+    return <>{text}</>
+  }
+
   const parts: JSX.Element[] = []
   let lastIndex = 0
 

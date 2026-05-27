@@ -22,6 +22,7 @@ export function getAllCredentials(): CalDAVCredentials[] {
   try {
     return JSON.parse(stored) as CalDAVCredentials[];
   } catch {
+    console.warn('[CalDAV] Failed to parse stored credentials from localStorage. Data may be corrupted.');
     return [];
   }
 }

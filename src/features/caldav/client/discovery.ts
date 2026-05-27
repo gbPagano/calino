@@ -1,5 +1,4 @@
 import { createDAVClient } from 'tsdav'
-import type { ServerInfo } from '../types'
 
 const COMMON_PATHS = [
   '/dav.php',
@@ -58,36 +57,6 @@ export async function discoverServerUrl(baseUrl: string, proxyUrl?: string): Pro
   }
 
   return normalizedUrl.replace(/\/$/, '')
-}
-
-export async function getServerInfo(
-  serverUrl: string,
-  credentials: { username: string; password: string }
-): Promise<ServerInfo> {
-  try {
-    await createDAVClient({
-      serverUrl,
-      credentials: {
-        username: credentials.username,
-        password: credentials.password,
-      },
-      authMethod: 'Basic',
-      defaultAccountType: 'caldav',
-    })
-
-    const productId = 'Calino Client'
-    const capabilities: string[] = []
-
-    return {
-      url: serverUrl,
-      productId,
-      capabilities,
-    }
-  } catch (error) {
-    throw new Error(
-      `Failed to connect to server: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
-  }
 }
 
 export async function testConnection(

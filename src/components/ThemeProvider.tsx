@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, type ReactNode } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { useSettingsStore } from '@/store/settingsStore'
 import { loadThemes, getBuiltInThemeCSS, getThemeCSS, type ThemeInfo } from '@/lib/themes'
 import { ThemeContext } from './ThemeContext'
@@ -55,20 +55,27 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     requestAnimationFrame(updateThemeColor)
   }, [effectiveMode, themeMode])
 
+  const themeModeRef = useRef(themeMode)
+  useEffect(() => {
+    themeModeRef.current = themeMode
+  }, [themeMode])
+
   const handleMediaChange = useCallback(() => {
-    if (useSettingsStore.getState().themeMode === 'auto') {
+    if (themeModeRef.current === 'auto') {
       setTick((n) => n + 1)
     }
   }, [])
 
   useEffect(() => {
+    if (themeMode !== 'auto') return
+
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     mediaQuery.addEventListener('change', handleMediaChange)
 
     return () => {
       mediaQuery.removeEventListener('change', handleMediaChange)
     }
-  }, [handleMediaChange])
+  }, [themeMode, handleMediaChange])
 
   useEffect(() => {
     loadThemes().then((themes) => {

@@ -50,6 +50,15 @@ function intervalPrefix(interval: number, singular: string, plural: string): str
 
 function describeFromParts(freq: string, interval: number, byday: string[]): string {
   switch (freq) {
+    case 'SECONDLY':
+      return intervalPrefix(interval, 'second', 'seconds')
+
+    case 'MINUTELY':
+      return intervalPrefix(interval, 'minute', 'minutes')
+
+    case 'HOURLY':
+      return intervalPrefix(interval, 'hour', 'hours')
+
     case 'DAILY':
       return intervalPrefix(interval, 'day', 'days')
 
@@ -96,6 +105,9 @@ function describeFromRruleString(rruleString: string): string {
 
 function describeFromRecurrenceRule(rule: RecurrenceRule): string {
   const freqMap: Record<string, string> = {
+    secondly: 'SECONDLY',
+    minutely: 'MINUTELY',
+    hourly: 'HOURLY',
     daily: 'DAILY',
     weekly: 'WEEKLY',
     monthly: 'MONTHLY',

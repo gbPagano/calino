@@ -56,6 +56,9 @@ async function fetchWithTimeout(
 
 export class CalDAVClient {
   private client: Awaited<ReturnType<typeof createDAVClient>> | null = null
+  // Cache of raw DAV calendar objects from tsdav, keyed by URL matching.
+  // Populated on the first fetchCalendars() call and reused by findCalendarByUrl().
+  private cachedCalendars: Array<{ url: string; displayName?: string; components?: string[] }> = []
   private serverUrl: string
   private proxyUrl: string | null
   private credentials: CalDAVCredentials
@@ -93,6 +96,8 @@ export class CalDAVClient {
     const client = this.getClient()
     const davCalendars = await client.fetchCalendars()
 
+    this.cachedCalendars = davCalendars
+
     return davCalendars.map((cal, index) => ({
       id: cal.url || `cal-${index}-${uuidv4()}`,
       accountId: this.credentials.id,
@@ -107,19 +112,19 @@ export class CalDAVClient {
     }))
   }
 
-  async fetchEvents(
-    calendarUrl: string,
-    start: string,
-    end: string
-  ): Promise<{ url: string; data: string; etag?: string }[]> {
-    if (!navigator.onLine) {
-      throw new Error('No network connection. Please check your internet connection.')
+  /**
+   * Find a raw DAV calendar object by URL, using the cache when available.
+   * Falls back to a network fetch if the cache is empty (e.g. after connect()
+   * but before the first explicit fetchCalendars() call).
+   */
+  private async findCalendarByUrl(calendarUrl: string): Promise<CalDAVCalendar> {
+    // Lazily populate cache on first use after connect()
+    if (this.cachedCalendars.length === 0) {
+      const client = this.getClient()
+      this.cachedCalendars = await client.fetchCalendars()
     }
-    const client = this.getClient()
 
-    const calendars = await client.fetchCalendars()
-    // Match calendar — handle both raw URLs and legacy proxy-prefixed URLs in storage
-    const calendar = calendars.find((c) => {
+    const calendar = this.cachedCalendars.find((c) => {
       if (c.url === calendarUrl) return true
       // Legacy: stored URL may be proxy-prefixed (e.g. proxy/cal-encoded), decode it
       try {
@@ -132,6 +137,20 @@ export class CalDAVClient {
     if (!calendar) {
       throw new Error(`Calendar not found: ${calendarUrl}`)
     }
+
+    return calendar
+  }
+
+  async fetchEvents(
+    calendarUrl: string,
+    start: string,
+    end: string
+  ): Promise<{ url: string; data: string; etag?: string }[]> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+    const client = this.getClient()
+    const calendar = await this.findCalendarByUrl(calendarUrl)
 
     // Fetch VEVENTs with time range
     const eventObjects = await client.fetchCalendarObjects({
@@ -185,19 +204,7 @@ export class CalDAVClient {
       throw new Error('No network connection. Please check your internet connection.')
     }
     const client = this.getClient()
-
-    const calendars = await client.fetchCalendars()
-    const calendar = calendars.find((c) => {
-      if (c.url === calendarUrl) return true
-      try {
-        if (decodeURIComponent(calendarUrl) === c.url) return true
-      } catch { /* ignore */ }
-      return false
-    })
-
-    if (!calendar) {
-      throw new Error(`Calendar not found: ${calendarUrl}`)
-    }
+    const calendar = await this.findCalendarByUrl(calendarUrl)
 
     const result = await client.createCalendarObject({
       calendar,
@@ -221,19 +228,7 @@ export class CalDAVClient {
       throw new Error('No network connection. Please check your internet connection.')
     }
     const client = this.getClient()
-
-    const calendars = await client.fetchCalendars()
-    const calendar = calendars.find((c) => {
-      if (c.url === calendarUrl) return true
-      try {
-        if (decodeURIComponent(calendarUrl) === c.url) return true
-      } catch { /* ignore */ }
-      return false
-    })
-
-    if (!calendar) {
-      throw new Error(`Calendar not found: ${calendarUrl}`)
-    }
+    await this.findCalendarByUrl(calendarUrl)
 
     const result = await client.updateCalendarObject({
       calendarObject: { url: eventUrl, etag, data: iCalString },

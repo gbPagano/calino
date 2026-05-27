@@ -61,9 +61,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
     const handleGlobalKeyDown = (e: globalThis.KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        if (!isOpen) {
+        if (isOpen) {
           onClose()
         }
+        return
       }
       if (e.key === 'Escape' && isOpen) {
         e.preventDefault()

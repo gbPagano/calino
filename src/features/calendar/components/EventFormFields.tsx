@@ -142,7 +142,7 @@ export function EventFormFields({
                   if (startDate === endDate && newStart >= endTime) {
                     // Add 1 hour to the new start time
                     const [h, m] = newStart.split(':').map(Number)
-                    const endHour = h + 1
+                    const endHour = (h + 1) % 24
                     onEndTimeChange(`${String(endHour).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
                   }
                 }}
@@ -244,7 +244,7 @@ export function EventFormFields({
             </div>
           </div>
 
-          {recurrence === 'daily' && onByWeekdayChange && (
+          {recurrence === 'weekly' && onByWeekdayChange && (
             <div className={styles.weekdayField}>
               <label className={styles.label} style={{ fontWeight: 600 }}>
                 On days:

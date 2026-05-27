@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDrag, usePinch } from '@use-gesture/react'
 
 export interface UseGesturesOptions {
@@ -39,6 +39,57 @@ export function useGestures({
   const currentGesture = useRef<
     'idle' | 'detecting' | 'swiping' | 'pinching' | 'dragging' | 'longPress'
   >('idle')
+  const mountedRef = useRef(true)
+
+  // Store callbacks in refs to avoid stale closures (@use-gesture/react captures once)
+  const onLongPressRef = useRef(onLongPress)
+  const onSwipeRef = useRef(onSwipe)
+  const onPinchRef = useRef(onPinch)
+  const onTapRef = useRef(onTap)
+  const onDragStartRef = useRef(onDragStart)
+  const onDragEndRef = useRef(onDragEnd)
+  const longPressDelayRef = useRef(longPressDelay)
+  const swipeThresholdRef = useRef(swipeThreshold)
+  const pinchScaleRangeRef = useRef(pinchScaleRange)
+
+  useEffect(() => {
+    onLongPressRef.current = onLongPress
+  }, [onLongPress])
+  useEffect(() => {
+    onSwipeRef.current = onSwipe
+  }, [onSwipe])
+  useEffect(() => {
+    onPinchRef.current = onPinch
+  }, [onPinch])
+  useEffect(() => {
+    onTapRef.current = onTap
+  }, [onTap])
+  useEffect(() => {
+    onDragStartRef.current = onDragStart
+  }, [onDragStart])
+  useEffect(() => {
+    onDragEndRef.current = onDragEnd
+  }, [onDragEnd])
+  useEffect(() => {
+    longPressDelayRef.current = longPressDelay
+  }, [longPressDelay])
+  useEffect(() => {
+    swipeThresholdRef.current = swipeThreshold
+  }, [swipeThreshold])
+  useEffect(() => {
+    pinchScaleRangeRef.current = pinchScaleRange
+  }, [pinchScaleRange])
+
+  // Cleanup long press timer on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current)
+        longPressTimer.current = null
+      }
+    }
+  }, [])
 
   const clearLongPressTimer = useCallback(() => {
     if (longPressTimer.current) {
@@ -69,9 +120,9 @@ export function useGestures({
           if (!hasMoved.current && currentGesture.current === 'detecting') {
             currentGesture.current = 'longPress'
             setGestureState('longPress')
-            onLongPress?.({ x: clientX, y: clientY })
+            onLongPressRef.current?.({ x: clientX, y: clientY })
           }
-        }, longPressDelay)
+        }, longPressDelayRef.current)
       }
 
       const movedDistance = Math.sqrt(mx * mx + my * my)
@@ -82,18 +133,18 @@ export function useGestures({
 
         const isHorizontalSwipe = Math.abs(mx) > Math.abs(my)
 
-        if (isHorizontalSwipe && Math.abs(mx) > swipeThreshold) {
+        if (isHorizontalSwipe && Math.abs(mx) > swipeThresholdRef.current) {
           currentGesture.current = 'swiping'
           setGestureState('swiping')
           lastDirection.current = mx > 0 ? 'right' : 'left'
-        } else if (!isHorizontalSwipe && Math.abs(my) > swipeThreshold) {
+        } else if (!isHorizontalSwipe && Math.abs(my) > swipeThresholdRef.current) {
           currentGesture.current = 'swiping'
           setGestureState('swiping')
           lastDirection.current = my > 0 ? 'down' : 'up'
         } else {
           currentGesture.current = 'dragging'
           setGestureState('dragging')
-          onDragStart?.()
+          onDragStartRef.current?.()
         }
       }
 
@@ -101,16 +152,16 @@ export function useGestures({
         clearLongPressTimer()
 
         if (currentGesture.current === 'swiping' && lastDirection.current) {
-          onSwipe?.(lastDirection.current)
+          onSwipeRef.current?.(lastDirection.current)
         } else if (currentGesture.current === 'dragging') {
-          onDragEnd?.({ x: clientX, y: clientY })
+          onDragEndRef.current?.({ x: clientX, y: clientY })
         } else if (currentGesture.current === 'detecting' && touchStartPos.current) {
           const tapDistance = Math.sqrt(
             Math.pow(clientX - touchStartPos.current.x, 2) +
               Math.pow(clientY - touchStartPos.current.y, 2)
           )
           if (tapDistance < 10) {
-            onTap?.(touchStartPos.current)
+            onTapRef.current?.(touchStartPos.current)
           }
         }
 
@@ -147,8 +198,9 @@ export function useGestures({
       }
 
       if (active || last) {
-        const clampedScale = Math.min(Math.max(scale, pinchScaleRange.min), pinchScaleRange.max)
-        onPinch?.(clampedScale, scale - 1)
+        const pr = pinchScaleRangeRef.current
+        const clampedScale = Math.min(Math.max(scale, pr.min), pr.max)
+        onPinchRef.current?.(clampedScale, scale - 1)
       }
 
       if (last) {
@@ -173,21 +225,22 @@ export function useGestures({
         touches?: Array<{ clientX: number; clientY: number }>
       }
 
+      // 2-finger touch: only route to pinch, skip drag binding to avoid conflicts
       if (e.pointerType === 'touch' && nativeEvent.touches?.length === 2) {
         pinchBind.onPointerDown?.(e)
-      } else if (e.pointerType === 'touch') {
-        touchStartPos.current = { x: e.clientX, y: e.clientY }
-        longPressTimer.current = setTimeout(() => {
-          if (!hasMoved.current && currentGesture.current === 'detecting') {
-            currentGesture.current = 'longPress'
-            setGestureState('longPress')
-            onLongPress?.({ x: e.clientX, y: e.clientY })
-          }
-        }, longPressDelay)
+        return
       }
+
+      // 1-finger touch: only route to drag
+      if (e.pointerType === 'touch') {
+        bind.onPointerDown?.(e)
+        return
+      }
+
+      // Mouse or other pointer types: route to drag
       bind.onPointerDown?.(e)
     },
-    [bind, pinchBind, longPressDelay, onLongPress, clearLongPressTimer]
+    [bind, pinchBind]
   )
 
   const handlePointerMove = useCallback(
@@ -232,7 +285,7 @@ export function useGestures({
               Math.pow(touchEndY - touchStartPos.current.y, 2)
           )
           if (distance < 10) {
-            onTap?.(touchStartPos.current)
+            onTapRef.current?.(touchStartPos.current)
           }
         }
       }
@@ -244,13 +297,14 @@ export function useGestures({
       bind.onPointerUp?.(e)
 
       setTimeout(() => {
+        if (!mountedRef.current) return
         currentGesture.current = 'idle'
         setGestureState('idle')
         touchStartPos.current = null
         hasMoved.current = false
       }, 50)
     },
-    [bind, pinchBind, clearLongPressTimer, onTap]
+    [bind, pinchBind, clearLongPressTimer]
   )
 
   const handleWheel = useCallback(

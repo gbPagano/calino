@@ -184,11 +184,22 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       updateCategory: (id: string, updates: Partial<Category>): void => {
-        set((state) => {
-          const existingCategory = state.categories.find((c) => c.id === id)
-          const oldName = existingCategory?.name
-          const newName = updates.name
+        const state = get()
+        const existingCategory = state.categories.find((c) => c.id === id)
+        const oldName = existingCategory?.name
+        const newName = updates.name
 
+        if (newName && oldName !== newName) {
+          const nameCollision = state.categories.some(
+            (c) => c.id !== id && c.name.toLowerCase() === newName.toLowerCase()
+          )
+          if (nameCollision) {
+            console.warn(`[Calendar] Category name '${newName}' already exists. Rename rejected.`)
+            return
+          }
+        }
+
+        set((state) => {
           if (!oldName || !newName || oldName === newName) {
             return {
               categories: state.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
@@ -304,8 +315,42 @@ export const useCalendarStore = create<CalendarStore>()(
           : null
         const selectedCategoryName = selectedCategory?.name || null
 
-        const startDate = startOfDay(parseISO(start))
-        const endDate = endOfDay(parseISO(end))
+        const parseDate = parseISO(start)
+        const parseDateEnd = parseISO(end)
+
+        // Date-only strings (no time component) need startOfDay/endOfDay.
+        // Z-suffixed date-only strings use UTC boundaries; plain date-only use local.
+        // Strings with an explicit time component are used as-is.
+        const hasTimeStart = /\dT\d/.test(start)
+        const hasTimeEnd = /\dT\d/.test(end)
+        const isDateOnlyStart = !hasTimeStart
+        const isDateOnlyEnd = !hasTimeEnd
+
+        let startDate: Date
+        let endDate: Date
+        if (isDateOnlyStart && start.endsWith('Z')) {
+          // UTC date-only: use UTC start of day
+          startDate = new Date(Date.UTC(
+            parseDate.getUTCFullYear(), parseDate.getUTCMonth(), parseDate.getUTCDate(), 0, 0, 0, 0
+          ))
+        } else if (isDateOnlyStart) {
+          startDate = startOfDay(parseDate)
+        } else {
+          // Has explicit time component — use as-is
+          startDate = parseDate
+        }
+
+        if (isDateOnlyEnd && end.endsWith('Z')) {
+          // UTC date-only: use UTC end of day
+          endDate = new Date(Date.UTC(
+            parseDateEnd.getUTCFullYear(), parseDateEnd.getUTCMonth(), parseDateEnd.getUTCDate(), 23, 59, 59, 999
+          ))
+        } else if (isDateOnlyEnd) {
+          endDate = endOfDay(parseDateEnd)
+        } else {
+          // Has explicit time component — use as-is
+          endDate = parseDateEnd
+        }
         const expandedEvents: CalendarEvent[] = []
         const seenIds = new Set<string>()
 
@@ -384,7 +429,7 @@ export const useCalendarStore = create<CalendarStore>()(
                 const occEnd = new Date(occ.getTime() + duration)
 
                 const occDateStr = occ.toISOString().split('T')[0]
-                if (excludedDates.some(d => d.startsWith(occDateStr))) {
+                if (excludedDates.some(d => d.split('T')[0] === occDateStr)) {
                   continue
                 }
 

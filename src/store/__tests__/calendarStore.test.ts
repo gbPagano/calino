@@ -996,4 +996,238 @@ describe('calendarStore', () => {
       expect(event?.title).toBe('New Title')
     })
   })
+
+  describe('Bug 39: timezone-ambiguous date boundaries', () => {
+    it('uses UTC boundaries when query string has Z suffix', () => {
+      const store = useCalendarStore.getState()
+
+      // Event at 23:00 UTC on March 18
+      store.addEvent({
+        id: 'utc-late',
+        calendarId: 'default',
+        title: 'Late UTC Event',
+        start: '2024-03-18T23:00:00.000Z',
+        end: '2024-03-18T23:30:00.000Z',
+        isAllDay: false,
+      })
+
+      // Query for March 18 with explicit UTC boundary (Z suffix)
+      const events = store.getEventsForDateRange('2024-03-18Z', '2024-03-18Z')
+
+      // The event should be found because it falls within UTC March 18
+      const found = events.find((e) => e.id === 'utc-late')
+      expect(found).toBeDefined()
+    })
+
+    it('respects explicit datetime boundaries instead of rounding to day', () => {
+      const store = useCalendarStore.getState()
+
+      // Event at 01:00 UTC on March 19
+      store.addEvent({
+        id: 'utc-early',
+        calendarId: 'default',
+        title: 'Early UTC Event',
+        start: '2024-03-19T01:00:00.000Z',
+        end: '2024-03-19T01:30:00.000Z',
+        isAllDay: false,
+      })
+
+      // Query with explicit time component — end boundary is exactly midnight March 19
+      const events = store.getEventsForDateRange('2024-03-18T00:00:00Z', '2024-03-19T00:00:00Z')
+
+      // The event at 01:00 UTC March 19 should NOT be in range (it's after midnight)
+      const found = events.find((e) => e.id === 'utc-early')
+      expect(found).toBeUndefined()
+    })
+
+    it('date-only query uses local timezone boundaries', () => {
+      const store = useCalendarStore.getState()
+
+      // Event at noon local time
+      store.addEvent({
+        id: 'local-noon',
+        calendarId: 'default',
+        title: 'Local Noon Event',
+        start: '2024-03-15T12:00:00',
+        end: '2024-03-15T13:00:00',
+        isAllDay: false,
+      })
+
+      // Date-only query (no Z, no time) uses local boundaries
+      const events = store.getEventsForDateRange('2024-03-15', '2024-03-15')
+
+      const found = events.find((e) => e.id === 'local-noon')
+      expect(found).toBeDefined()
+    })
+  })
+
+  describe('Bug 40: excluded dates check compares date portions only', () => {
+    it('excludes occurrence when excluded date has different time suffix', () => {
+      const store = useCalendarStore.getState()
+
+      store.addEvent({
+        id: 'master-excl',
+        calendarId: 'default',
+        title: 'Weekly with Exclusion',
+        start: '2024-03-18T09:00:00.000Z',
+        end: '2024-03-18T10:00:00.000Z',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+        rruleString: 'FREQ=WEEKLY;INTERVAL=1',
+        excludedDates: ['2024-03-25T00:00:00.000Z'],
+      })
+
+      const events = store.getEventsForDateRange('2024-03-18', '2024-04-01')
+
+      // March 25 should be excluded even though excluded date has different time
+      const march25 = events.find((e) => e.start.startsWith('2024-03-25'))
+      expect(march25).toBeUndefined()
+
+      // March 18 and April 1 should still appear
+      const march18 = events.find((e) => e.start.startsWith('2024-03-18'))
+      const apr1 = events.find((e) => e.start.startsWith('2024-04-01'))
+      expect(march18).toBeDefined()
+      expect(apr1).toBeDefined()
+    })
+
+    it('excludes occurrence when excluded date is date-only string', () => {
+      const store = useCalendarStore.getState()
+
+      store.addEvent({
+        id: 'master-excl2',
+        calendarId: 'default',
+        title: 'Daily with Exclusion',
+        start: '2024-04-01T08:00:00.000Z',
+        end: '2024-04-01T08:30:00.000Z',
+        isAllDay: false,
+        recurrence: { frequency: 'daily', interval: 1 },
+        rruleString: 'FREQ=DAILY;INTERVAL=1',
+        excludedDates: ['2024-04-03'],
+      })
+
+      const events = store.getEventsForDateRange('2024-04-01', '2024-04-05')
+
+      // April 3 should be excluded (date-only in excludedDates matches the occurrence date)
+      const apr3 = events.find((e) => e.start.startsWith('2024-04-03'))
+      expect(apr3).toBeUndefined()
+
+      // Other dates should appear
+      expect(events.length).toBe(4)
+    })
+
+    it('does not exclude occurrence when excluded date differs from occurrence date', () => {
+      const store = useCalendarStore.getState()
+
+      store.addEvent({
+        id: 'master-excl3',
+        calendarId: 'default',
+        title: 'Weekly No Match',
+        start: '2024-05-06T10:00:00.000Z',
+        end: '2024-05-06T11:00:00.000Z',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+        rruleString: 'FREQ=WEEKLY;INTERVAL=1',
+        excludedDates: ['2024-05-15T12:00:00.000Z'], // May 15 is NOT a weekly occurrence day
+      })
+
+      const events = store.getEventsForDateRange('2024-05-06', '2024-05-27')
+
+      // May 20 should NOT be excluded because excluded date (May 15) differs from occurrence date (May 20)
+      const may20 = events.find((e) => e.start.startsWith('2024-05-20'))
+      expect(may20).toBeDefined()
+
+      // All 4 Mondays (May 6, 13, 20, 27) should appear
+      const mondays = events.filter((e) => e.id.startsWith('master-excl3'))
+      expect(mondays.length).toBe(4)
+    })
+  })
+
+  describe('Bug 43: updateCategory name-collision check', () => {
+    it('rejects rename when new name matches existing category', () => {
+      const store = useCalendarStore.getState()
+
+      store.addCategory({ id: 'cat-work', name: 'Work', color: '#FF0000' })
+      store.addCategory({ id: 'cat-personal', name: 'Personal', color: '#00FF00' })
+
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      // Try to rename 'Personal' to 'Work' (collision)
+      store.updateCategory('cat-personal', { name: 'Work' })
+
+      // Category name should remain unchanged
+      const personal = useCalendarStore.getState().categories.find((c) => c.id === 'cat-personal')
+      expect(personal?.name).toBe('Personal')
+
+      // Warning should have been logged
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Category name 'Work' already exists")
+      )
+
+      consoleSpy.mockRestore()
+    })
+
+    it('rejects rename when names differ only by case', () => {
+      const store = useCalendarStore.getState()
+
+      store.addCategory({ id: 'cat-a', name: 'Work', color: '#FF0000' })
+      store.addCategory({ id: 'cat-b', name: 'Personal', color: '#00FF00' })
+
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      // Try to rename 'Personal' to 'work' (case-insensitive collision)
+      store.updateCategory('cat-b', { name: 'work' })
+
+      const personal = useCalendarStore.getState().categories.find((c) => c.id === 'cat-b')
+      expect(personal?.name).toBe('Personal')
+
+      expect(consoleSpy).toHaveBeenCalled()
+      consoleSpy.mockRestore()
+    })
+
+    it('allows rename when new name is unique and updates events', () => {
+      const store = useCalendarStore.getState()
+
+      store.addCategory({ id: 'cat-x', name: 'Work', color: '#FF0000' })
+      store.addCategory({ id: 'cat-y', name: 'Personal', color: '#00FF00' })
+
+      // Add event with 'Personal' category BEFORE rename
+      store.addEvent({
+        id: 'cat-rename-test',
+        calendarId: 'default',
+        title: 'Test',
+        start: '2024-03-15T10:00:00',
+        end: '2024-03-15T11:00:00',
+        isAllDay: false,
+        categories: ['Personal'],
+      })
+
+      // Verify event has 'Personal' category
+      const before = useCalendarStore.getState().events.find((e) => e.id === 'cat-rename-test')
+      expect(before?.categories).toContain('Personal')
+
+      // Rename 'Personal' to 'Home' (no collision)
+      store.updateCategory('cat-y', { name: 'Home' })
+
+      const renamed = useCalendarStore.getState().categories.find((c) => c.id === 'cat-y')
+      expect(renamed?.name).toBe('Home')
+
+      // Events with old category name should be updated
+      const event = useCalendarStore.getState().events.find((e) => e.id === 'cat-rename-test')
+      expect(event?.categories).toContain('Home')
+      expect(event?.categories).not.toContain('Personal')
+    })
+
+    it('allows updating color without collision check', () => {
+      const store = useCalendarStore.getState()
+
+      store.addCategory({ id: 'cat-c', name: 'Work', color: '#FF0000' })
+
+      // Update color only (no name change, no collision check needed)
+      store.updateCategory('cat-c', { color: '#0000FF' })
+
+      const updated = useCalendarStore.getState().categories.find((c) => c.id === 'cat-c')
+      expect(updated?.color).toBe('#0000FF')
+      expect(updated?.name).toBe('Work')
+    })
+  })
 })

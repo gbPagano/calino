@@ -52,6 +52,9 @@ export const useCalendarStore = create<CalendarStore>()(
       previewPosition: null,
 
       addEvent: (event: CalendarEvent): void => {
+        if (event.start > event.end) {
+          throw new Error('Event start must be before end')
+        }
         const state = get()
         const autoCategoryNames = applyAutoCategories(event.title, state.autoCategoryRules, state.categories)
         const existingCategories = event.categories || []
@@ -65,17 +68,32 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       updateEvent: (id: string, updates: Partial<CalendarEvent>): void => {
+        const safeUpdates = { ...updates }
+        if (safeUpdates.start !== undefined && safeUpdates.end !== undefined) {
+          if (safeUpdates.start > safeUpdates.end) {
+            throw new Error('Event start must be before end')
+          }
+        } else if (safeUpdates.start !== undefined || safeUpdates.end !== undefined) {
+          const existingEvent = get().events.find((e) => e.id === id)
+          if (existingEvent) {
+            const start = safeUpdates.start ?? existingEvent.start
+            const end = safeUpdates.end ?? existingEvent.end
+            if (start > end) {
+              throw new Error('Event start must be before end')
+            }
+          }
+        }
         const state = get()
-        if (updates.title) {
+        if (safeUpdates.title) {
           const existingEvent = state.events.find((e) => e.id === id)
           if (existingEvent) {
-            const autoCategoryNames = applyAutoCategories(updates.title, state.autoCategoryRules, state.categories)
-            const existingCategories = updates.categories || existingEvent.categories || []
-            updates.categories = [...new Set([...existingCategories, ...autoCategoryNames])]
+            const autoCategoryNames = applyAutoCategories(safeUpdates.title, state.autoCategoryRules, state.categories)
+            const existingCategories = safeUpdates.categories || existingEvent.categories || []
+            safeUpdates.categories = [...new Set([...existingCategories, ...autoCategoryNames])]
           }
         }
         set((state) => ({
-          events: state.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+          events: state.events.map((e) => (e.id === id ? { ...e, ...safeUpdates } : e)),
         }))
       },
 
@@ -94,6 +112,15 @@ export const useCalendarStore = create<CalendarStore>()(
           ...eventToDuplicate,
           id: crypto.randomUUID(),
           title: `${eventToDuplicate.title} (copy)`,
+          recurrenceId: undefined,
+          isFragment: undefined,
+          isFirstFragment: undefined,
+          isLastFragment: undefined,
+          originalStart: undefined,
+          originalEnd: undefined,
+          syncStatus: undefined,
+          etag: undefined,
+          sequence: undefined,
         }
 
         set((state) => ({
@@ -274,9 +301,6 @@ export const useCalendarStore = create<CalendarStore>()(
         const exceptionMap = new Map<string, CalendarEvent>()
         for (const event of state.events) {
           if (event.recurrenceId && visibleCalendarIds.includes(event.calendarId)) {
-            if (selectedCategoryName && !event.categories?.includes(selectedCategoryName)) {
-              continue
-            }
             const dateKey = event.recurrenceId.split('T')[0]
             const key = `${event.calendarId}-${dateKey}`
             exceptionMap.set(key, event)
@@ -370,27 +394,13 @@ export const useCalendarStore = create<CalendarStore>()(
                 }
 
                 const occId = `${event.id}-${occ.toISOString()}`
-                if (!seenIds.has(occId)) {
-                  const exceptionId = `${event.id}-${occDateStr}T${occ.toISOString().split('T')[1]}`
-                  const exceptionEvent = state.events.find(
-                    (e) => e.id === exceptionId && !e.rruleString && !e.recurrence
-                  )
-                  if (exceptionEvent) {
-                    seenIds.add(occId)
-                    expandedEvents.push({
-                      ...exceptionEvent,
-                      id: occId,
-                    })
-                  } else {
-                    seenIds.add(occId)
-                    expandedEvents.push({
-                      ...event,
-                      id: occId,
-                      start: occ.toISOString(),
-                      end: occEnd.toISOString(),
-                    })
-                  }
-                }
+                seenIds.add(occId)
+                expandedEvents.push({
+                  ...event,
+                  id: occId,
+                  start: occ.toISOString(),
+                  end: occEnd.toISOString(),
+                })
               }
             } catch {
               const eventStart = parseISO(event.start)
@@ -440,7 +450,12 @@ export const useCalendarStore = create<CalendarStore>()(
       name: 'calino-storage',
       storage: createJSONStorage(() => safeLocalStorage),
       version: 1,
-      migrate: () => ({ events: [], calendars: [], categories: [], autoCategoryRules: [] }),
+      migrate: (persistedState: any) => ({
+        events: persistedState?.events ?? [],
+        calendars: persistedState?.calendars ?? [],
+        categories: persistedState?.categories ?? [],
+        autoCategoryRules: persistedState?.autoCategoryRules ?? [],
+      }),
       partialize: (state) => ({
         events: state.events,
         calendars: state.calendars,

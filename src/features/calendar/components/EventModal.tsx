@@ -254,6 +254,7 @@ export function EventModal(): JSX.Element | null {
   const [reminders, setReminders] = useState<Reminder[]>(initialState.reminders)
   const [showRecurrenceDialog, setShowRecurrenceDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [showDescription, setShowDescription] = useState(!!initialState.description)
 
   // Close on Escape
@@ -706,6 +707,12 @@ export function EventModal(): JSX.Element | null {
       return
     }
 
+    if (!confirmDelete) {
+      setConfirmDelete(true)
+      setTimeout(() => setConfirmDelete(false), 3000)
+      return
+    }
+
     performDelete('all')
   }
 
@@ -961,8 +968,8 @@ export function EventModal(): JSX.Element | null {
           <hr className={styles.modalDivider} />
           <div className={styles.modalFooter}>
             {isEditing && (
-              <button type="button" className={styles.modalDelete} onClick={handleDelete}>
-                Delete
+              <button type="button" className={`${styles.modalDelete} ${confirmDelete ? styles.modalDeleteConfirm : ''}`} onClick={handleDelete}>
+                {confirmDelete ? 'Click again to confirm' : 'Delete'}
               </button>
             )}
             <div className={styles.modalActions}>

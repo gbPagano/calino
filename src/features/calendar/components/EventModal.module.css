@@ -343,6 +343,12 @@
   border-color: var(--color-error-muted, #c47068);
 }
 
+.modalDeleteConfirm {
+  background: var(--color-error-muted, #c47068);
+  color: #fff;
+  border-color: var(--color-error-muted, #c47068);
+}
+
 .modalCancel {
   margin-right: auto;
   padding: 7px 18px;

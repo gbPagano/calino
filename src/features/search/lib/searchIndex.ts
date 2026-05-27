@@ -25,20 +25,19 @@ const DEFAULT_OPTIONS: IFuseOptions<CalendarEvent> = {
 let fuseInstance: Fuse<CalendarEvent> | null = null
 
 export function initializeSearchIndex(events: CalendarEvent[], options?: SearchOptions): void {
+  // Only pick valid IFuseOptions fields — don't spread the entire SearchOptions
+  // (which includes runtime fields like `limit` and `weights` that Fuse ignores)
   const fuseOptions: IFuseOptions<CalendarEvent> = {
     ...DEFAULT_OPTIONS,
-    ...options,
+    ...(options?.threshold !== undefined && { threshold: options.threshold }),
   }
 
-  if (options?.keys && options?.weights) {
+  // Always remap keys when provided — not just when weights are present
+  if (options?.keys) {
     fuseOptions.keys = options.keys.map((key) => ({
       name: key,
       weight: options.weights?.[key] ?? 1,
     }))
-  }
-
-  if (options?.threshold !== undefined) {
-    fuseOptions.threshold = options.threshold
   }
 
   fuseInstance = new Fuse(events, fuseOptions)
@@ -49,11 +48,21 @@ export function search(
   filters?: SearchFilters,
   options?: SearchOptions
 ): SearchResult[] {
-  if (!fuseInstance || !query.trim()) {
+  if (!fuseInstance) {
+    console.warn('[Search] Index not initialized. Call initializeSearchIndex() first.')
     return []
   }
 
-  const results = fuseInstance.search(query, { limit: options?.limit ?? 50 })
+  if (!query.trim()) {
+    if (!filters) return []
+    // Filter-only mode: return all events matching filters without Fuse search
+    return filterCollection(fuseInstance, filters)
+  }
+
+  const limit = options?.limit ?? 50
+
+  // Don't pass limit to Fuse — we need all matches for proper sorting
+  const results = fuseInstance.search(query)
 
   let filteredResults = results
 
@@ -66,29 +75,50 @@ export function search(
         passesFilters = passesFilters && filters.calendarIds.includes(event.calendarId)
       }
 
-      if (filters.dateFrom && filters.dateTo) {
-        const eventStart = parseISO(event.start)
-        const eventEnd = parseISO(event.end)
-        const fromDate = startOfDay(parseISO(filters.dateFrom))
-        const toDate = endOfDay(parseISO(filters.dateTo))
+      if (filters.dateFrom || filters.dateTo) {
+        const fromDate = filters.dateFrom ? startOfDay(parseISO(filters.dateFrom)) : null
+        const toDate = filters.dateTo ? endOfDay(parseISO(filters.dateTo)) : null
 
-        passesFilters =
-          passesFilters &&
-          (isWithinInterval(eventStart, { start: fromDate, end: toDate }) ||
-            isWithinInterval(eventEnd, { start: fromDate, end: toDate }) ||
-            (eventStart <= fromDate && eventEnd >= toDate))
+        passesFilters = passesFilters && dateOverlapsRange(event, fromDate, toDate)
       }
 
       return passesFilters
     })
   }
 
+  // Pre-parse start dates once for the sort
+  const dateCache = new Map<string, number>()
+  const getStartTime = (start: string): number => {
+    let ts = dateCache.get(start)
+    if (ts === undefined) {
+      try {
+        ts = parseISO(start).getTime()
+      } catch {
+        ts = 0
+      }
+      if (Number.isNaN(ts)) ts = 0
+      dateCache.set(start, ts)
+    }
+    return ts
+  }
+
+  const now = Date.now()
+
   return filteredResults
     .sort((a, b) => {
-      const dateA = parseISO(a.item.start).getTime()
-      const dateB = parseISO(b.item.start).getTime()
-      return dateB - dateA
+      // Blend Fuse relevance with date recency
+      const dateA = getStartTime(a.item.start)
+      const dateB = getStartTime(b.item.start)
+      const scoreA = a.score ?? 0
+      const scoreB = b.score ?? 0
+      // Lower Fuse score = better match
+      const recencyA = 1 / (1 + (now - dateA) / (1000 * 60 * 60 * 24))
+      const recencyB = 1 / (1 + (now - dateB) / (1000 * 60 * 60 * 24))
+      const combinedA = (1 - scoreA) * 0.7 + recencyA * 0.3
+      const combinedB = (1 - scoreB) * 0.7 + recencyB * 0.3
+      return combinedB - combinedA
     })
+    .slice(0, limit)
     .map((result) => ({
       event: result.item,
       score: result.score ?? 0,
@@ -97,19 +127,89 @@ export function search(
           field: match.key as 'title' | 'description' | 'location',
           indices: match.indices as [number, number][],
           value: match.value ?? '',
-          key: match.key ?? '',
         })) ?? [],
     }))
+}
+
+/**
+ * Check if an event's time range overlaps with the given date bounds.
+ */
+function dateOverlapsRange(
+  event: CalendarEvent,
+  fromDate: Date | null,
+  toDate: Date | null
+): boolean {
+  try {
+    const eventStart = parseISO(event.start)
+    const eventEnd = parseISO(event.end)
+
+    if (fromDate && toDate) {
+      return (
+        isWithinInterval(eventStart, { start: fromDate, end: toDate }) ||
+        isWithinInterval(eventEnd, { start: fromDate, end: toDate }) ||
+        (eventStart <= fromDate && eventEnd >= toDate)
+      )
+    }
+    if (fromDate) {
+      return eventEnd >= fromDate
+    }
+    if (toDate) {
+      return eventStart <= toDate
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Filter the full Fuse collection against the given filters (no query search).
+ */
+function filterCollection(
+  instance: Fuse<CalendarEvent>,
+  filters: SearchFilters
+): SearchResult[] {
+  const allEvents = instance.getIndex().docs as CalendarEvent[]
+
+  const filtered = allEvents.filter((event) => {
+    let passes = true
+
+    if (filters.calendarIds && filters.calendarIds.length > 0) {
+      passes = passes && filters.calendarIds.includes(event.calendarId)
+    }
+
+    if (filters.dateFrom || filters.dateTo) {
+      const fromDate = filters.dateFrom ? startOfDay(parseISO(filters.dateFrom)) : null
+      const toDate = filters.dateTo ? endOfDay(parseISO(filters.dateTo)) : null
+      passes = passes && dateOverlapsRange(event, fromDate, toDate)
+    }
+
+    return passes
+  })
+
+  return filtered.map((event) => ({
+    event,
+    score: 0,
+    matches: [],
+  }))
 }
 
 export function getSearchInstance(): Fuse<CalendarEvent> | null {
   return fuseInstance
 }
 
-export function updateSearchIndex(events: CalendarEvent[]): void {
+export function updateSearchIndex(
+  events: CalendarEvent[],
+  options?: SearchOptions
+): void {
   if (fuseInstance) {
-    fuseInstance.setCollection(events)
+    if (options) {
+      // Re-initialize with new options
+      initializeSearchIndex(events, options)
+    } else {
+      fuseInstance.setCollection(events)
+    }
   } else {
-    initializeSearchIndex(events)
+    initializeSearchIndex(events, options)
   }
 }

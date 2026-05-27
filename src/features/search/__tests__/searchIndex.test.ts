@@ -110,8 +110,10 @@ describe('searchIndex', () => {
 
   describe('search with filters', () => {
     it('filters by calendar IDs', () => {
+      // Empty query with filters returns filter-matched events (C6 fix)
       const results = search('', { calendarIds: ['cal1'] })
-      expect(results).toHaveLength(0)
+      expect(results).toHaveLength(3)
+      expect(results.every((r) => r.event.calendarId === 'cal1')).toBe(true)
 
       const resultsWithQuery = search('team', { calendarIds: ['cal1'] })
       expect(resultsWithQuery).toHaveLength(1)
@@ -119,11 +121,13 @@ describe('searchIndex', () => {
     })
 
     it('filters by date range', () => {
+      // Empty query with date filters returns filter-matched events (C6 fix)
       const results = search('', {
         dateFrom: '2024-03-15',
         dateTo: '2024-03-16',
       })
-      expect(results).toHaveLength(0)
+      // Events on Mar 15 and Mar 16: Team Meeting, Lunch with Client, Yoga Class
+      expect(results).toHaveLength(3)
 
       const resultsWithQuery = search('yoga', {
         dateFrom: '2024-03-15',

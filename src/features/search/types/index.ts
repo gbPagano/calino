@@ -4,7 +4,6 @@ export interface SearchMatch {
   field: 'title' | 'description' | 'location'
   indices: [number, number][]
   value: string
-  key: string
 }
 
 export interface SearchResult {

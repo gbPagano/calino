@@ -10,13 +10,25 @@ export function useNotifications(): void {
   const events = useCalendarStore((state) => state.events)
   const enableNotifications = useSettingsStore((state) => state.enableDesktopNotifications)
   const defaultReminderMinutes = useSettingsStore((state) => state.defaultReminderMinutes)
-  const shownReminders = useRef<Set<string>>(new Set())
+  // Track reminder ID → scheduled trigger timestamp so we can re-fire
+  // when the event is edited (trigger time changes).
+  const shownReminders = useRef<Map<string, number>>(new Map())
+  // Track previous enableNotifications to detect disable→enable transitions.
+  const prevEnabledRef = useRef(enableNotifications)
 
   useEffect(() => {
+    const wasEnabled = prevEnabledRef.current
+    prevEnabledRef.current = enableNotifications
+
     if (!enableNotifications) {
-      shownReminders.current.clear()
+      // Stop checking but do NOT clear the map — preserve already-fired
+      // reminders so they don't duplicate when re-enabled.
       return
     }
+
+    // On a fresh disable→enable transition the map is intentionally kept
+    // so that reminders outside the check window are not re-shown.
+    // The map only evicts entries when the trigger time changes (event edit).
 
     if (!('Notification' in window) || Notification.permission !== 'granted') {
       return
@@ -38,12 +50,16 @@ export function useNotifications(): void {
           reminderTime.setMinutes(reminderTime.getMinutes() - reminder.minutesBefore)
 
           const reminderId = createNotificationId(event.id, reminder.id)
+          const triggerTimestamp = reminderTime.getTime()
+          const previousTimestamp = shownReminders.current.get(reminderId)
 
-          if (
+          const shouldFire =
             isWithinInterval(reminderTime, { start: checkWindowStart, end: checkWindowEnd }) &&
-            !shownReminders.current.has(reminderId)
-          ) {
-            shownReminders.current.add(reminderId)
+            // Fire if never shown, or if the trigger time changed (event was edited)
+            (previousTimestamp === undefined || previousTimestamp !== triggerTimestamp)
+
+          if (shouldFire) {
+            shownReminders.current.set(reminderId, triggerTimestamp)
 
             const timeStr = event.isAllDay 
               ? 'All day' 

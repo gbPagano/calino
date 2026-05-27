@@ -159,8 +159,9 @@ export class NLParser {
         interval: recurrenceResult.interval,
         byWeekday: recurrenceResult.byWeekday,
       }
-      result.duration = undefined
-      result.endDate = undefined
+      // Keep endDate and duration for the first occurrence — they define
+      // the time range of this instance. Only clear them when there is no
+      // valid endDate (i.e., the recurrence is the sole time definition).
     }
 
     return result

@@ -42,18 +42,17 @@ export function positionEvents(events: CalendarEvent[]): PositionedEvent[] {
     const eventStart = parseISO(event.start).getTime()
     const eventEnd = parseISO(event.end).getTime()
 
-    let totalColumns = 1
-    const eventStartMinutes = eventStart / 60000
-    const eventEndMinutes = eventEnd / 60000
-
-    for (let t = eventStartMinutes; t < eventEndMinutes; t += 30) {
-      const overlapping = positioned.filter(
-        (p) =>
-          parseISO(p.event.start).getTime() / 60000 < t + 30 &&
-          parseISO(p.event.end).getTime() / 60000 > t
-      ).length
-      totalColumns = Math.max(totalColumns, overlapping)
-    }
+    // Compute totalColumns from the actual column assignments of overlapping
+    // events instead of sampling at 30-minute granularity, which misses
+    // overlaps between short events.
+    const overlapping = positioned.filter(
+      (p) =>
+        parseISO(p.event.start).getTime() < eventEnd &&
+        parseISO(p.event.end).getTime() > eventStart
+    )
+    const totalColumns = overlapping.length > 0
+      ? Math.max(...overlapping.map((p) => p.column)) + 1
+      : 1
 
     return { event, column, totalColumns }
   })

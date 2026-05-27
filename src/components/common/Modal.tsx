@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useCallback } from 'react'
+import { type ReactNode, useEffect, useCallback, useId } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import styles from './Modal.module.css'
@@ -12,6 +12,8 @@ export interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
+  const titleId = useId()
+
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -42,11 +44,11 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'modal-title' : undefined}
+        aria-labelledby={title ? titleId : undefined}
       >
         {title && (
           <div className={styles.header}>
-            <h2 id="modal-title" className={styles.title}>
+            <h2 id={titleId} className={styles.title}>
               {title}
             </h2>
             <button

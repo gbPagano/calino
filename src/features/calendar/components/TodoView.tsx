@@ -26,7 +26,6 @@ interface TaskSection {
 }
 
 const PRIORITY_LABELS: Partial<Record<TaskPriority, string>> = {
-  0: 'High',
   1: 'High',
   2: 'Medium',
   3: 'Low',

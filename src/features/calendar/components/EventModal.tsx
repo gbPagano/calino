@@ -515,7 +515,6 @@ export function EventModal(): JSX.Element | null {
     }
 
     if (!title.trim()) {
-      alert('Title is required')
       window.dispatchEvent(
         new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
       )

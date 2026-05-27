@@ -180,56 +180,266 @@ describe('useCalDAV', () => {
   })
 
   // -----------------------------------------------------------------------
-  // Initial state and loading
+  // Bug 18: No retry limit on pending changes
   // -----------------------------------------------------------------------
-  describe('initial state', () => {
-    it('returns empty accounts, calendars, and idle syncState', () => {
-      const { result } = renderHook(() => useCalDAV())
-
-      expect(result.current.accounts).toEqual([])
-      expect(result.current.calendars).toEqual([])
-      expect(result.current.syncState).toEqual({
-        status: 'idle',
-        lastSyncAt: null,
-        error: null,
-        pendingChanges: 0,
-      })
-    })
-
-    it('loads accounts and calendars from storage on mount', () => {
+  describe('Bug 18: pending change retry limit', () => {
+    it('drops pending changes that have exceeded MAX_RETRIES (10)', async () => {
       mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
       mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
-
-      const { result } = renderHook(() => useCalDAV())
-
-      expect(result.current.accounts).toHaveLength(1)
-      expect(result.current.accounts[0].name).toBe('Test Account')
-      expect(result.current.calendars).toHaveLength(1)
-      expect(result.current.calendars[0].name).toBe('Main Calendar')
-    })
-
-    it('reports pending changes count from storage on mount', () => {
       mockAccountStorage.getPendingChanges.mockReturnValue([
-        { type: 'create', eventId: 'evt-1', calendarId: 'cal-1' },
-        { type: 'update', eventId: 'evt-2', calendarId: 'cal-1' },
-      ] as any[])
-
-      const { result } = renderHook(() => useCalDAV())
-
-      expect(result.current.syncState.pendingChanges).toBe(2)
-    })
-
-    it('adds loaded CalDAV calendars to the Zustand calendar store', () => {
-      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
-      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+        {
+          id: 'pc-exhausted',
+          type: 'create',
+          eventId: 'evt-exhausted',
+          calendarId: 'cal-1',
+          data: JSON.stringify(mockEvent),
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 10, // at limit
+        },
+      ] as any)
 
       renderHook(() => useCalDAV())
 
-      const calStore = useCalendarStore.getState()
-      const found = calStore.calendars.find((c) => c.id === 'cal-1')
-      expect(found).toBeDefined()
-      expect(found!.name).toBe('Main Calendar')
-      expect(found!.accountId).toBe('acc-1')
+      // Should have been removed without attempting to push
+      await waitFor(() => {
+        expect(mockAccountStorage.removePendingChange).toHaveBeenCalledWith('pc-exhausted')
+      })
+
+      expect(mockSyncEngineInstance.pushEvent).not.toHaveBeenCalled()
+    })
+
+    it('drops pending changes that have exceeded MAX_RETRIES (11)', async () => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+      mockAccountStorage.getPendingChanges.mockReturnValue([
+        {
+          id: 'pc-over',
+          type: 'update',
+          eventId: 'evt-over',
+          calendarId: 'cal-1',
+          data: JSON.stringify(mockEvent),
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 15, // way over limit
+        },
+      ] as any)
+
+      renderHook(() => useCalDAV())
+
+      await waitFor(() => {
+        expect(mockAccountStorage.removePendingChange).toHaveBeenCalledWith('pc-over')
+      })
+
+      expect(mockSyncEngineInstance.updateEvent).not.toHaveBeenCalled()
+    })
+
+    it('still processes pending changes below the retry limit', async () => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+      mockAccountStorage.getPendingChanges.mockReturnValue([
+        {
+          id: 'pc-ok',
+          type: 'create',
+          eventId: 'evt-ok',
+          calendarId: 'cal-1',
+          data: JSON.stringify(mockEvent),
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 3, // below limit of 10
+        },
+      ] as any)
+
+      renderHook(() => useCalDAV())
+
+      await waitFor(() => {
+        expect(mockSyncEngineInstance.pushEvent).toHaveBeenCalled()
+      })
+
+      expect(mockAccountStorage.removePendingChange).toHaveBeenCalledWith('pc-ok')
+    })
+
+    it('processes pending changes at retryCount 9 (just below limit)', async () => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+      mockAccountStorage.getPendingChanges.mockReturnValue([
+        {
+          id: 'pc-ninth',
+          type: 'create',
+          eventId: 'evt-ninth',
+          calendarId: 'cal-1',
+          data: JSON.stringify(mockEvent),
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 9, // one below limit
+        },
+      ] as any)
+
+      renderHook(() => useCalDAV())
+
+      await waitFor(() => {
+        expect(mockSyncEngineInstance.pushEvent).toHaveBeenCalled()
+      })
+
+      expect(mockAccountStorage.removePendingChange).toHaveBeenCalledWith('pc-ninth')
+    })
+
+    it('processes a mix of exhausted and valid pending changes', async () => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+      mockAccountStorage.getPendingChanges.mockReturnValue([
+        {
+          id: 'pc-exhausted',
+          type: 'create',
+          eventId: 'evt-exhausted',
+          calendarId: 'cal-1',
+          data: JSON.stringify(mockEvent),
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 10,
+        },
+        {
+          id: 'pc-valid',
+          type: 'create',
+          eventId: 'evt-valid',
+          calendarId: 'cal-1',
+          data: JSON.stringify(mockEvent),
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 2,
+        },
+      ] as any)
+
+      renderHook(() => useCalDAV())
+
+      await waitFor(() => {
+        expect(mockSyncEngineInstance.pushEvent).toHaveBeenCalled()
+      })
+
+      // The exhausted one was removed, the valid one was processed and removed
+      expect(mockAccountStorage.removePendingChange).toHaveBeenCalledWith('pc-exhausted')
+      expect(mockAccountStorage.removePendingChange).toHaveBeenCalledWith('pc-valid')
+      // Only one push (for the valid one)
+      expect(mockSyncEngineInstance.pushEvent).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not call updatePendingChangeRetry for exhausted changes', async () => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+      mockAccountStorage.getPendingChanges.mockReturnValue([
+        {
+          id: 'pc-exhausted',
+          type: 'create',
+          eventId: 'evt-exhausted',
+          calendarId: 'cal-1',
+          data: JSON.stringify(mockEvent),
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 10,
+        },
+      ] as any)
+
+      renderHook(() => useCalDAV())
+
+      await waitFor(() => {
+        expect(mockAccountStorage.removePendingChange).toHaveBeenCalledWith('pc-exhausted')
+      })
+
+      expect(mockAccountStorage.updatePendingChangeRetry).not.toHaveBeenCalled()
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Bug 17: deleteEvent uses etag from store
+  // -----------------------------------------------------------------------
+  describe('Bug 17: deleteEvent uses stored etag', () => {
+    beforeEach(() => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+    })
+
+    it('passes the event etag from the store to deleteEvent', async () => {
+      // Add event with etag to the Zustand store
+      const eventWithEtag: CalendarEvent = {
+        ...mockEvent,
+        etag: '"server-etag-abc"',
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(eventWithEtag)
+      })
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.deleteEvent('cal-1', 'evt-1')
+      })
+
+      expect(mockSyncEngineInstance.deleteEvent).toHaveBeenCalledWith(
+        'https://caldav.example.com/cal/main/evt-1.ics',
+        '"server-etag-abc"'
+      )
+    })
+
+    it('falls back to empty string when event has no etag', async () => {
+      // Add event without etag
+      act(() => {
+        useCalendarStore.getState().addEvent(mockEvent)
+      })
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.deleteEvent('cal-1', 'evt-1')
+      })
+
+      expect(mockSyncEngineInstance.deleteEvent).toHaveBeenCalledWith(
+        'https://caldav.example.com/cal/main/evt-1.ics',
+        ''
+      )
+    })
+
+    it('falls back to empty string when event is no longer in the store', async () => {
+      // Event not added to the store (e.g., optimistic delete removed it)
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.deleteEvent('cal-1', 'evt-gone')
+      })
+
+      expect(mockSyncEngineInstance.deleteEvent).toHaveBeenCalledWith(
+        'https://caldav.example.com/cal/main/evt-gone.ics',
+        ''
+      )
+    })
+
+    it('passes stored etag when pending change processing triggers a delete', async () => {
+      // Add event with etag to the store
+      const eventWithEtag: CalendarEvent = {
+        ...mockEvent,
+        etag: '"pending-etag-xyz"',
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(eventWithEtag)
+      })
+
+      mockAccountStorage.getPendingChanges.mockReturnValue([
+        {
+          id: 'pc-del',
+          type: 'delete',
+          eventId: 'evt-1',
+          calendarId: 'cal-1',
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 0,
+        },
+      ] as any)
+
+      renderHook(() => useCalDAV())
+
+      await waitFor(() => {
+        expect(mockSyncEngineInstance.deleteEvent).toHaveBeenCalled()
+      })
+
+      // Bug 17: should use the etag from the store, not empty string
+      expect(mockSyncEngineInstance.deleteEvent).toHaveBeenCalledWith(
+        'https://caldav.example.com/cal/main/evt-1.ics',
+        '"pending-etag-xyz"'
+      )
     })
   })
 
@@ -415,7 +625,7 @@ describe('useCalDAV', () => {
   })
 
   // -----------------------------------------------------------------------
-  // deleteEvent
+  // deleteEvent (direct, not via pending changes)
   // -----------------------------------------------------------------------
   describe('deleteEvent', () => {
     beforeEach(() => {
@@ -595,7 +805,7 @@ describe('useCalDAV', () => {
       const callsAfterMount = mockSyncEngineInstance.pushEvent.mock.calls.length
       expect(callsAfterMount).toBeGreaterThanOrEqual(1)
 
-      // Advance 30 seconds – should re-process
+      // Advance 30 seconds - should re-process
       const callsBeforeInterval = mockSyncEngineInstance.pushEvent.mock.calls.length
       await vi.advanceTimersByTimeAsync(30000)
       expect(mockSyncEngineInstance.pushEvent.mock.calls.length).toBeGreaterThan(

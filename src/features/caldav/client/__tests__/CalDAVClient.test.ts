@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { CalDAVClient, createCalDAVClient } from '../CalDAVClient'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { CalDAVClient, createCalDAVClient, buildProxyUrl } from '../CalDAVClient'
 import type { CalDAVCredentials } from '../../types'
 
 vi.mock('tsdav', () => ({
@@ -67,12 +67,21 @@ END:VCALENDAR`,
     syncCollection: vi.fn(),
   } as any
 
+  let onLineSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
     vi.clearAllMocks()
+    // Default: online
+    onLineSpy = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
+
     client = new CalDAVClient(mockCredentials.serverUrl, mockCredentials)
 
     mockCreateDAVClient.mockResolvedValue(mockClientMethods)
     mockClientMethods.fetchCalendars.mockResolvedValue([mockCalendar])
+  })
+
+  afterEach(() => {
+    onLineSpy.mockRestore()
   })
 
   describe('createCalDAVClient', () => {
@@ -101,6 +110,49 @@ END:VCALENDAR`,
       expect(calendars).toHaveLength(1)
       expect(calendars[0].url).toBe(mockCalendar.url)
       expect(calendars[0].name).toBe(mockCalendar.displayName)
+    })
+
+    // Bug 14: calendar ID should use UUID, not Date.now()
+    it('generates unique UUID-based IDs when server does not provide a URL', async () => {
+      await client.connect()
+      mockClientMethods.fetchCalendars.mockResolvedValue([
+        { url: '', displayName: 'Cal 1' },
+        { url: '', displayName: 'Cal 2' },
+      ])
+
+      const calendars = await client.fetchCalendars()
+
+      expect(calendars[0].id).not.toBe(calendars[1].id)
+      // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+      expect(calendars[0].id).toMatch(
+        /^cal-0-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      )
+    })
+
+    // Bug 16: fetchCalendars should return raw server URLs, not proxy-prefixed
+    it('stores raw server URLs even when proxy is configured', async () => {
+      const proxyClient = new CalDAVClient(
+        mockCredentials.serverUrl,
+        mockCredentials,
+        'https://proxy.example.com'
+      )
+      await proxyClient.connect()
+
+      const calendars = await proxyClient.fetchCalendars()
+
+      // Should be the raw URL, NOT proxy-prefixed
+      expect(calendars[0].url).toBe(mockCalendar.url)
+      expect(calendars[0].url).not.toContain('proxy.example.com')
+    })
+
+    // Bug 20: offline detection
+    it('throws when offline', async () => {
+      onLineSpy.mockReturnValue(false)
+      await client.connect()
+
+      await expect(client.fetchCalendars()).rejects.toThrow(
+        'No network connection'
+      )
     })
   })
 
@@ -198,6 +250,56 @@ END:VCALENDAR`,
 
       expect(result).toHaveLength(0)
     })
+
+    // Bug 16: calendar lookup uses raw URL matching
+    it('finds calendar by raw server URL', async () => {
+      await client.connect()
+
+      mockClientMethods.fetchCalendarObjects
+        .mockResolvedValueOnce([mockEventObject])
+        .mockResolvedValueOnce([])
+
+      const result = await client.fetchEvents(
+        'https://caldav.example.com/calendars/test/default/',
+        '2024-01-01T00:00:00Z',
+        '2024-12-31T23:59:59Z'
+      )
+
+      expect(result).toHaveLength(1)
+    })
+
+    // Bug 16: event URLs should be raw, not proxy-prefixed
+    it('returns raw event URLs without proxy prefix', async () => {
+      const proxyClient = new CalDAVClient(
+        mockCredentials.serverUrl,
+        mockCredentials,
+        'https://proxy.example.com'
+      )
+      await proxyClient.connect()
+
+      mockClientMethods.fetchCalendarObjects
+        .mockResolvedValueOnce([mockEventObject])
+        .mockResolvedValueOnce([])
+
+      const result = await proxyClient.fetchEvents(
+        mockCalendar.url,
+        '2024-01-01T00:00:00Z',
+        '2024-12-31T23:59:59Z'
+      )
+
+      expect(result[0].url).toBe(mockEventObject.url)
+      expect(result[0].url).not.toContain('proxy.example.com')
+    })
+
+    // Bug 20: offline detection
+    it('throws when offline', async () => {
+      onLineSpy.mockReturnValue(false)
+      await client.connect()
+
+      await expect(
+        client.fetchEvents(mockCalendar.url, '2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z')
+      ).rejects.toThrow('No network connection')
+    })
   })
 
   describe('createEvent', () => {
@@ -216,6 +318,39 @@ END:VCALENDAR`,
         iCalString: mockEventObject.data,
       })
       expect(result.url).toBe(mockEventObject.url)
+    })
+
+    // Bug 16: returned URL should be raw
+    it('returns raw URL without proxy prefix', async () => {
+      const proxyClient = new CalDAVClient(
+        mockCredentials.serverUrl,
+        mockCredentials,
+        'https://proxy.example.com'
+      )
+      await proxyClient.connect()
+
+      mockClientMethods.createCalendarObject.mockResolvedValue({
+        url: mockEventObject.url,
+      })
+
+      const result = await proxyClient.createEvent(
+        mockCalendar.url,
+        mockEventObject.data,
+        'event-1.ics'
+      )
+
+      expect(result.url).toBe(mockEventObject.url)
+      expect(result.url).not.toContain('proxy.example.com')
+    })
+
+    // Bug 20: offline detection
+    it('throws when offline', async () => {
+      onLineSpy.mockReturnValue(false)
+      await client.connect()
+
+      await expect(
+        client.createEvent(mockCalendar.url, mockEventObject.data, 'event-1.ics')
+      ).rejects.toThrow('No network connection')
     })
   })
 
@@ -243,6 +378,21 @@ END:VCALENDAR`,
       })
       expect(result.url).toBe(mockEventObject.url)
     })
+
+    // Bug 20: offline detection
+    it('throws when offline', async () => {
+      onLineSpy.mockReturnValue(false)
+      await client.connect()
+
+      await expect(
+        client.updateEvent(
+          mockCalendar.url,
+          mockEventObject.url,
+          mockEventObject.data,
+          mockEventObject.etag
+        )
+      ).rejects.toThrow('No network connection')
+    })
   })
 
   describe('deleteEvent', () => {
@@ -257,6 +407,68 @@ END:VCALENDAR`,
           etag: mockEventObject.etag,
         },
       })
+    })
+
+    // Bug 20: offline detection
+    it('throws when offline', async () => {
+      onLineSpy.mockReturnValue(false)
+      await client.connect()
+
+      await expect(
+        client.deleteEvent(mockEventObject.url, mockEventObject.etag)
+      ).rejects.toThrow('No network connection')
+    })
+  })
+
+  describe('network timeout (Bug 13)', () => {
+    it('abort controller is used in proxy fetch path', async () => {
+      const proxyClient = new CalDAVClient(
+        mockCredentials.serverUrl,
+        mockCredentials,
+        'https://proxy.example.com'
+      )
+
+      // Spy on global fetch to verify AbortController is passed
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(null, { status: 200 })
+      )
+
+      await proxyClient.connect()
+
+      // Verify createDAVClient was called with a custom fetch function
+      expect(mockCreateDAVClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetch: expect.any(Function),
+        })
+      )
+
+      // Extract the custom fetch function and invoke it to test timeout
+      const customFetch = mockCreateDAVClient.mock.calls[0][0].fetch
+      await customFetch('https://caldav.example.com/dav.php')
+
+      // Verify fetch was called with a signal (from AbortController)
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        })
+      )
+
+      fetchSpy.mockRestore()
+    })
+  })
+
+  describe('buildProxyUrl', () => {
+    it('encodes the target URL', () => {
+      const result = buildProxyUrl('https://proxy.example.com', 'https://caldav.example.com/dav')
+      expect(result).toBe(
+        `https://proxy.example.com/${encodeURIComponent('https://caldav.example.com/dav')}`
+      )
+    })
+
+    it('strips trailing slash from proxy base', () => {
+      const result = buildProxyUrl('https://proxy.example.com/', 'https://target.com')
+      expect(result).toBe(`https://proxy.example.com/${encodeURIComponent('https://target.com')}`)
     })
   })
 })

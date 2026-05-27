@@ -1,5 +1,8 @@
 import { createDAVClient } from 'tsdav'
 import type { CalDAVCredentials, CalDAVCalendar } from '../types'
+import { v4 as uuidv4 } from 'uuid'
+
+const NETWORK_TIMEOUT_MS = 15_000
 
 export function buildProxyUrl(proxyBase: string, targetUrl: string): string {
   const encodedTarget = encodeURIComponent(targetUrl)
@@ -34,7 +37,20 @@ function createProxyFetch(proxyUrl: string): typeof fetch {
       url = input.toString()
     }
     const proxiedUrl = prefixUrlWithProxy(url, proxyUrl)
-    return fetch(proxiedUrl, init)
+    return fetchWithTimeout(proxiedUrl, init)
+  }
+}
+
+async function fetchWithTimeout(
+  url: string | URL,
+  init?: RequestInit
+): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), NETWORK_TIMEOUT_MS)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
   }
 }
 
@@ -71,13 +87,17 @@ export class CalDAVClient {
   }
 
   async fetchCalendars(): Promise<CalDAVCalendar[]> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
     const client = this.getClient()
     const davCalendars = await client.fetchCalendars()
 
     return davCalendars.map((cal, index) => ({
-      id: cal.url || `cal-${index}-${Date.now()}`,
+      id: cal.url || `cal-${index}-${uuidv4()}`,
       accountId: this.credentials.id,
-      url: this.proxyUrl ? prefixUrlWithProxy(cal.url || '', this.proxyUrl) : cal.url || '',
+      // Store the raw server URL — proxy prefix is applied only at HTTP request time
+      url: cal.url || '',
       name: typeof cal.displayName === 'string' ? cal.displayName : 'Unnamed Calendar',
       color: '#4285F4',
       ctag: null,
@@ -92,14 +112,14 @@ export class CalDAVClient {
     start: string,
     end: string
   ): Promise<{ url: string; data: string; etag?: string }[]> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
     const client = this.getClient()
 
     const calendars = await client.fetchCalendars()
-    const calendar = calendars.find(
-      (c) =>
-        c.url === calendarUrl ||
-        (this.proxyUrl && prefixUrlWithProxy(c.url || '', this.proxyUrl) === calendarUrl)
-    )
+    // Match calendar by raw server URL — both sides are now raw (no proxy prefix)
+    const calendar = calendars.find((c) => c.url === calendarUrl)
 
     if (!calendar) {
       throw new Error(`Calendar not found: ${calendarUrl}`)
@@ -133,12 +153,12 @@ export class CalDAVClient {
 
     const allItems = [...eventObjects, ...todoObjects]
 
-    // Remove duplicates by URL
+    // Remove duplicates by URL — store raw server URLs consistently
     const uniqueByUrl = new Map<string, { url: string; data: string; etag?: string }>()
     for (const obj of allItems) {
       if (!uniqueByUrl.has(obj.url)) {
         uniqueByUrl.set(obj.url, {
-          url: this.proxyUrl ? prefixUrlWithProxy(obj.url, this.proxyUrl) : obj.url,
+          url: obj.url,
           data: obj.data as string,
           etag: obj.etag,
         })
@@ -153,14 +173,14 @@ export class CalDAVClient {
     iCalString: string,
     filename: string
   ): Promise<{ url: string; etag: string }> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
     const client = this.getClient()
 
     const calendars = await client.fetchCalendars()
-    const calendar = calendars.find(
-      (c) =>
-        c.url === calendarUrl ||
-        (this.proxyUrl && prefixUrlWithProxy(c.url || '', this.proxyUrl) === calendarUrl)
-    )
+    // Match calendar by raw server URL
+    const calendar = calendars.find((c) => c.url === calendarUrl)
 
     if (!calendar) {
       throw new Error(`Calendar not found: ${calendarUrl}`)
@@ -173,7 +193,7 @@ export class CalDAVClient {
     })
 
     return {
-      url: this.proxyUrl ? prefixUrlWithProxy(result.url, this.proxyUrl) : result.url,
+      url: result.url,
       etag: '',
     }
   }
@@ -184,14 +204,14 @@ export class CalDAVClient {
     iCalString: string,
     etag: string
   ): Promise<{ url: string; etag: string }> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
     const client = this.getClient()
 
     const calendars = await client.fetchCalendars()
-    const calendar = calendars.find(
-      (c) =>
-        c.url === calendarUrl ||
-        (this.proxyUrl && prefixUrlWithProxy(c.url || '', this.proxyUrl) === calendarUrl)
-    )
+    // Match calendar by raw server URL
+    const calendar = calendars.find((c) => c.url === calendarUrl)
 
     if (!calendar) {
       throw new Error(`Calendar not found: ${calendarUrl}`)
@@ -202,12 +222,15 @@ export class CalDAVClient {
     })
 
     return {
-      url: this.proxyUrl ? prefixUrlWithProxy(result.url, this.proxyUrl) : result.url,
+      url: result.url,
       etag: '',
     }
   }
 
   async deleteEvent(eventUrl: string, etag: string): Promise<void> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
     const client = this.getClient()
 
     await client.deleteCalendarObject({

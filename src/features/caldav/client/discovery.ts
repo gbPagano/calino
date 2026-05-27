@@ -13,6 +13,7 @@ const COMMON_PATHS = [
 
 export async function discoverServerUrl(baseUrl: string, proxyUrl?: string): Promise<string> {
   const normalizedUrl = normalizeUrl(baseUrl)
+  const DISCOVERY_TIMEOUT_MS = 5_000
 
   for (const path of COMMON_PATHS) {
     const tryUrl = new URL(path, normalizedUrl).href
@@ -23,9 +24,17 @@ export async function discoverServerUrl(baseUrl: string, proxyUrl?: string): Pro
         const proxyBase = proxyUrl.replace(/\/$/, '')
         fetchUrl = `${proxyBase}/${encodedTarget}`
       }
-      const response = await fetch(fetchUrl, {
-        method: 'OPTIONS',
-      })
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), DISCOVERY_TIMEOUT_MS)
+      let response: Response
+      try {
+        response = await fetch(fetchUrl, {
+          method: 'OPTIONS',
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(timer)
+      }
       if (response.ok || response.status === 401) {
         return tryUrl.replace(/\/$/, '')
       }

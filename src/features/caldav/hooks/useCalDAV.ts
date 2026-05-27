@@ -25,6 +25,8 @@ import {
 const selectCalDavDebugMode = (state: { caldavDebugMode: boolean }) => state.caldavDebugMode
 const selectConflictResolution = (state: { conflictResolution: string }) => state.conflictResolution
 
+const MAX_RETRIES = 10
+
 function showToast(message: string): void {
   window.dispatchEvent(new CustomEvent('show-toast', { detail: { message } }))
 }
@@ -84,6 +86,16 @@ export function useCalDAV(): UseCalDAVReturn {
     let failed = 0
 
     for (const change of changes) {
+      // Bug 18 fix: enforce retry limit
+      if (change.retryCount >= MAX_RETRIES) {
+        console.warn(
+          `[CalDAV] Dropping pending change ${change.id} after ${MAX_RETRIES} retries (type=${change.type}, eventId=${change.eventId})`
+        )
+        storage.removePendingChange(change.id)
+        failed++
+        continue
+      }
+
       try {
         const calendar = allCalendars.find((c) => c.id === change.calendarId)
         const account = allAccounts.find((a) => a.id === calendar?.accountId)
@@ -121,7 +133,11 @@ export function useCalDAV(): UseCalDAVReturn {
           }
           case 'delete': {
             const eventUrl = `${calendar.url}${change.eventId}.ics`
-            await engine.deleteEvent(eventUrl, '')
+            // Bug 17 fix: look up the event's etag from the store before deleting
+            const eventInStore = useCalendarStore.getState().events.find(
+              (e) => e.id === change.eventId
+            )
+            await engine.deleteEvent(eventUrl, eventInStore?.etag || '')
             // Event was already removed from store; nothing to mark
             break
           }
@@ -674,7 +690,8 @@ export function useCalDAV(): UseCalDAVReturn {
         }
 
         const eventUrl = `${calendar.url}${eventId}.ics`
-        await engine.deleteEvent(eventUrl, '')
+        // Bug 17 fix: use the event's etag from the store instead of empty string
+        await engine.deleteEvent(eventUrl, eventData?.etag || '')
 
         storeDeleteEvent(eventId)
 

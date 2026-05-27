@@ -1,4 +1,4 @@
-export type SyncStatus = 'synced' | 'pending' | 'conflict'
+export type SyncStatus = 'synced' | 'pending' | 'failed' | 'conflict'
 
 export interface StoredEvent {
   id: string

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-
-const MOBILE_BREAKPOINT = 768
+import { MOBILE_BREAKPOINT } from '@/config'
 
 export function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = useState(
@@ -9,7 +8,6 @@ export function useIsMobile(): boolean {
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])

@@ -172,7 +172,6 @@ function recurringEventOverlapsRange(
 ): boolean {
   try {
     const eventStart = parseISO(event.start)
-    const eventDuration = parseISO(event.end).getTime() - eventStart.getTime()
     let rrule: RRule | null = null
 
     if (event.rruleString) {

@@ -571,6 +571,7 @@ export function EventPreviewPopup({
   return createPortal(
     <AnimatePresence>
       <motion.div
+        key="preview-popup"
         ref={popupRef}
         className={styles.popup}
         style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
@@ -775,12 +776,14 @@ export function EventPreviewPopup({
       </motion.div>
 
       <DeleteDialog
+        key="delete-dialog"
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         onConfirm={performDelete}
       />
 
       <RecurrenceDialog
+        key="recurrence-dialog"
         isOpen={showRecurrenceDialog}
         onClose={() => {
           setShowRecurrenceDialog(false)

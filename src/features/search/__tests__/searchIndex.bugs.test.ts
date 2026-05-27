@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { initializeSearchIndex, search, updateSearchIndex } from '../lib/searchIndex'
 import type { CalendarEvent } from '@/types'
 

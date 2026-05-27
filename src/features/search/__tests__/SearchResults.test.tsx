@@ -25,7 +25,6 @@ const mockResults: SearchResult[] = [
         field: 'title',
         indices: [[0, 4]],
         value: 'Team Meeting',
-        key: 'title',
       },
     ],
   },

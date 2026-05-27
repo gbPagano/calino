@@ -54,7 +54,7 @@ vi.mock('@/store/calendarStore', () => ({
 
 describe('Bug #98: useSearch timer cleanup race condition', () => {
   it('does not leak timers on unmount', () => {
-    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
+    const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout')
 
     const { unmount } = renderHook(() => useSearch())
 
@@ -67,9 +67,9 @@ describe('Bug #98: useSearch timer cleanup race condition', () => {
   })
 
   it('cleans up index rebuild timer on events change', () => {
-    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
+    const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout')
 
-    const { result, unmount } = renderHook(() => useSearch())
+    const { unmount } = renderHook(() => useSearch())
 
     // Trigger a re-render that changes events (this tests the cleanup path)
     unmount()

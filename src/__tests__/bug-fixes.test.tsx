@@ -30,7 +30,7 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: React.forwardRef<HTMLDivElement, Record<string, unknown>>(
+    div: React.forwardRef<HTMLDivElement, { children?: React.ReactNode; [key: string]: unknown }>(
       ({ children, ...props }, ref) => <div ref={ref} {...props}>{children}</div>
     ),
   },
@@ -214,7 +214,7 @@ describe('Bug 11: Modal dialogs portaled as siblings', () => {
   it('DeleteDialog should render outside the popup motion.div', async () => {
     const { EventPreviewPopup } = await import('@/features/calendar/components/EventPreviewPopup')
 
-    const { container } = render(
+    render(
       <EventPreviewPopup event={recurringEvent} position={{ x: 100, y: 100 }} clickedEventId="recurring-1" />
     )
 

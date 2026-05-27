@@ -5,7 +5,7 @@ import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo } from '../
 import { createCalDAVClient } from '../client/CalDAVClient'
 import { testConnection, discoverServerUrl } from '../client/discovery'
 import { saveCredentials, getCredentialById, deleteCredential } from '../client/credentials'
-import { parseICALData, isUUID } from '../adapter/iCalendarAdapter'
+import { parseICALData } from '../adapter/iCalendarAdapter'
 import * as storage from '../sync/accountStorage'
 import { SyncEngine } from '../sync/syncEngine'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -297,7 +297,6 @@ export function useCalDAV(): UseCalDAVReturn {
         const end = addDays(new Date(), 365).toISOString()
         const newCategoryNames: string[] = []
         let eventsAdded = 0
-        let eventsSkipped = 0
 
         for (const cal of serverCalendars) {
           console.log('[CalDAV] addAccount: fetching events for', cal.name, cal.url)

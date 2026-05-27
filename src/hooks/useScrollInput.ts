@@ -1,9 +1,21 @@
 import { useEffect } from 'react'
 
+// Bug 57 fix: use the native HTMLInputElement value setter so that
+// React-controlled inputs receive the value change through React's
+// synthetic event system (via the 'input' event).
+const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+  HTMLInputElement.prototype,
+  'value'
+)?.set
+
 /**
  * Intercepts wheel events at the document level (capture phase) when a
  * managed date/time input has focus. Prevents the browser's native behaviour
  * which causes double-firing on some platforms.
+ *
+ * Bug 57 fix: Instead of directly setting input.value (which bypasses React),
+ * we use the native setter + dispatch an 'input' event so React's onChange
+ * is triggered correctly.
  */
 export function useScrollInput(
   inputs: React.RefObject<HTMLInputElement | null>[]
@@ -34,22 +46,33 @@ export function useScrollInput(
       if (steps === 0) return
       const dir = steps > 0 ? -1 : 1
 
+      let newValue = ''
+
       if (input.type === 'date') {
         const [y, m, d] = (input.value || '').split('-').map(Number)
         if (!y) return
         const date = new Date(y, m - 1, d)
         date.setDate(date.getDate() + dir)
-        input.value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-        input.dispatchEvent(new Event('change', { bubbles: true }))
+        newValue = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
       } else {
         const [h, m] = (input.value || '09:00').split(':').map(Number)
         let minutes = h * 60 + m + dir * 15
         if (minutes < 0) minutes += 24 * 60
         const nh = Math.floor(minutes / 60) % 24
         const nm = minutes % 60
-        input.value = `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`
-        input.dispatchEvent(new Event('change', { bubbles: true }))
+        newValue = `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`
       }
+
+      // Bug 57 fix: use native setter + 'input' event instead of direct
+      // value assignment. This ensures React's onChange handler is triggered
+      // for controlled inputs.
+      if (nativeInputValueSetter) {
+        nativeInputValueSetter.call(input, newValue)
+      } else {
+        // Fallback for environments without prototype descriptor
+        input.value = newValue
+      }
+      input.dispatchEvent(new Event('input', { bubbles: true }))
     }
 
     // Use capture so we intercept BEFORE the browser's own handlers

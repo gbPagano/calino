@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { addDays } from 'date-fns'
 import type { CalendarEvent } from '@/types'
-import type { CalDAVAccount, CalDAVCalendar, SyncState } from '../types'
+import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo } from '../types'
 import { createCalDAVClient } from '../client/CalDAVClient'
 import { testConnection, discoverServerUrl } from '../client/discovery'
 import { saveCredentials, getCredentialById, deleteCredential } from '../client/credentials'
@@ -24,6 +24,9 @@ import {
 
 const selectCalDavDebugMode = (state: { caldavDebugMode: boolean }) => state.caldavDebugMode
 const selectConflictResolution = (state: { conflictResolution: string }) => state.conflictResolution
+
+// Bug 23 fix: ref to prevent concurrent processPendingChanges execution
+const isProcessingRef = { current: false }
 
 const MAX_RETRIES = 10
 
@@ -59,6 +62,7 @@ export function useCalDAV(): UseCalDAVReturn {
     lastSyncAt: null,
     error: null,
     pendingChanges: 0,
+    conflicts: [],
   })
 
   const storeAddEvent = useCalendarStore(selectAddEvent)
@@ -72,8 +76,13 @@ export function useCalDAV(): UseCalDAVReturn {
   const caldavDebugMode = useSettingsStore(selectCalDavDebugMode)
   const conflictResolution = useSettingsStore(selectConflictResolution)
 
+  // Bug 23 fix: prevent concurrent execution of processPendingChanges
   // Process any pending changes that failed in previous sessions
   const processPendingChanges = useCallback(async (): Promise<void> => {
+    if (isProcessingRef.current) return
+    isProcessingRef.current = true
+
+    try {
     const changes = storage.getPendingChanges()
     if (changes.length === 0) return
 
@@ -157,6 +166,9 @@ export function useCalDAV(): UseCalDAVReturn {
     console.log(
       `[CalDAV] Pending changes processed: ${succeeded} succeeded, ${failed} failed, ${remaining.length} remaining`
     )
+    } finally {
+      isProcessingRef.current = false
+    }
   }, [storeUpdateEvent])
 
   // Retry pending changes on mount and on a 30-second interval
@@ -427,13 +439,34 @@ export function useCalDAV(): UseCalDAVReturn {
                   const localSeq = existingEvent.sequence ?? 0
 
                   let shouldUpdate = false
+                  const isConflict = serverSeq !== localSeq
 
                   if (serverSeq > localSeq) {
                     shouldUpdate = conflictResolution === 'server-wins'
                   } else if (localSeq > serverSeq) {
                     shouldUpdate = conflictResolution === 'local-wins'
                   } else {
+                    // Same sequence - no real conflict, safe to sync from server
                     shouldUpdate = true
+                  }
+
+                  // Bug 22 fix: for 'ask' mode, never auto-update on conflicts.
+                  // Store conflict info for UI display.
+                  if (isConflict && conflictResolution === 'ask') {
+                    const conflict: ConflictInfo = {
+                      eventId: parsedEvent.id,
+                      localVersion: existingEvent,
+                      serverVersion: parsedEvent,
+                      resolution: 'ask',
+                    }
+                    setSyncState((prev) => ({
+                      ...prev,
+                      conflicts: [...prev.conflicts, conflict],
+                    }))
+                    console.log(
+                      `[CalDAV] Conflict detected for event ${parsedEvent.id} (local seq ${localSeq} vs server seq ${serverSeq}). Awaiting user resolution.`
+                    )
+                    continue
                   }
 
                   if (shouldUpdate) {
@@ -457,18 +490,12 @@ export function useCalDAV(): UseCalDAVReturn {
             })
           }
 
-          // Delete events that exist locally but not on server,
-          // but ONLY events whose start date falls within the queried range.
-          // Events outside this range may not have been returned by the server
-          // (pagination, date-filter truncation, far-future recurrence instances).
-          for (const localEvent of calendarEvents) {
-            if (!serverEventIds.has(localEvent.id)) {
-              const eventStart = localEvent.start
-              if (eventStart >= start && eventStart <= end) {
-                storeDeleteEvent(localEvent.id)
-              }
-            }
-          }
+          // Bug 19 fix: Do NOT delete local events during sync based on
+          // their absence from the server response. CalDAV REPORT queries
+          // may not return all events due to pagination, server-side limits,
+          // or network issues. Deleting events that were simply not returned
+          // would cause data loss. Events should only be deleted through
+          // explicit user actions.
         }
 
         storage.updateAccountLastSync(accountId)

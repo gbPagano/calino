@@ -26,6 +26,7 @@ export interface SyncState {
   lastSyncAt: string | null
   error: string | null
   pendingChanges: number
+  conflicts: ConflictInfo[]
 }
 
 export interface PendingChange {

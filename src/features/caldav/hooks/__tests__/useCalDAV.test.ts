@@ -960,4 +960,424 @@ describe('useCalDAV', () => {
       expect(mockAccountStorage.updateAccountLastSync).toHaveBeenCalled()
     })
   })
+
+  // -----------------------------------------------------------------------
+  // Bug 19: Sync can delete events server didn't return
+  // -----------------------------------------------------------------------
+  describe('Bug 19: sync must not delete local events based on absence from server', () => {
+    beforeEach(() => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAccountById.mockReturnValue(mockAccount)
+      mockAccountStorage.getCalendarsByAccountId.mockReturnValue([mockCalendar])
+    })
+
+    it('does not delete local events that server did not return', async () => {
+      // Add local events to the store
+      const localEvent1: CalendarEvent = {
+        id: 'local-evt-1',
+        calendarId: 'cal-1',
+        title: 'Local Event 1',
+        start: '2025-06-01T10:00:00',
+        end: '2025-06-01T11:00:00',
+        isAllDay: false,
+      }
+      const localEvent2: CalendarEvent = {
+        id: 'local-evt-2',
+        calendarId: 'cal-1',
+        title: 'Local Event 2',
+        start: '2025-06-02T10:00:00',
+        end: '2025-06-02T11:00:00',
+        isAllDay: false,
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(localEvent1)
+        useCalendarStore.getState().addEvent(localEvent2)
+      })
+
+      // Server returns only one event (the other was not returned, e.g. due to pagination)
+      const serverEvent: CalendarEvent = {
+        id: 'server-evt-1',
+        calendarId: 'cal-1',
+        title: 'Server Event',
+        start: '2025-06-03T10:00:00',
+        end: '2025-06-03T11:00:00',
+        isAllDay: false,
+        sequence: 0,
+      }
+
+      // Mock parseICALData to return the server event
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
+
+      // Configure fetchEvents to return event data so parseICALData gets called
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      // Both local events should still exist — sync must NOT delete them
+      const store = useCalendarStore.getState()
+      expect(store.events.find((e) => e.id === 'local-evt-1')).toBeDefined()
+      expect(store.events.find((e) => e.id === 'local-evt-2')).toBeDefined()
+
+      // The server event should have been added
+      expect(store.events.find((e) => e.id === 'server-evt-1')).toBeDefined()
+    })
+
+    it('still adds events returned by the server', async () => {
+      const serverEvent: CalendarEvent = {
+        id: 'server-new',
+        calendarId: 'cal-1',
+        title: 'New from Server',
+        start: '2025-06-10T10:00:00',
+        end: '2025-06-10T11:00:00',
+        isAllDay: false,
+        sequence: 0,
+      }
+
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
+
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      const store = useCalendarStore.getState()
+      expect(store.events.find((e) => e.id === 'server-new')).toBeDefined()
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Bug 22: Ask conflict resolution silently overwrites
+  // -----------------------------------------------------------------------
+  describe('Bug 22: ask conflict resolution should not auto-update', () => {
+    beforeEach(() => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAccountById.mockReturnValue(mockAccount)
+      mockAccountStorage.getCalendarsByAccountId.mockReturnValue([mockCalendar])
+
+      // Set conflict resolution to 'ask'
+      useSettingsStore.getState().updateSettings({
+        conflictResolution: 'ask',
+      })
+    })
+
+    it('does not overwrite local event when server has higher sequence', async () => {
+      // Local event with lower sequence
+      const localEvent: CalendarEvent = {
+        id: 'evt-conflict',
+        calendarId: 'cal-1',
+        title: 'Local Title',
+        start: '2025-06-01T10:00:00',
+        end: '2025-06-01T11:00:00',
+        isAllDay: false,
+        sequence: 1,
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(localEvent)
+      })
+
+      // Server event with higher sequence
+      const serverEvent: CalendarEvent = {
+        id: 'evt-conflict',
+        calendarId: 'cal-1',
+        title: 'Server Title',
+        start: '2025-06-01T10:00:00',
+        end: '2025-06-01T11:00:00',
+        isAllDay: false,
+        sequence: 3,
+      }
+
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
+
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      // Local event should NOT be overwritten
+      const store = useCalendarStore.getState()
+      const evt = store.events.find((e) => e.id === 'evt-conflict')
+      expect(evt?.title).toBe('Local Title')
+      expect(evt?.sequence).toBe(1)
+    })
+
+    it('does not overwrite local event when local has higher sequence', async () => {
+      const localEvent: CalendarEvent = {
+        id: 'evt-conflict-2',
+        calendarId: 'cal-1',
+        title: 'Local Title 2',
+        start: '2025-06-01T10:00:00',
+        end: '2025-06-01T11:00:00',
+        isAllDay: false,
+        sequence: 5,
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(localEvent)
+      })
+
+      const serverEvent: CalendarEvent = {
+        id: 'evt-conflict-2',
+        calendarId: 'cal-1',
+        title: 'Server Title 2',
+        start: '2025-06-01T10:00:00',
+        end: '2025-06-01T11:00:00',
+        isAllDay: false,
+        sequence: 2,
+      }
+
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
+
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      const store = useCalendarStore.getState()
+      const evt = store.events.find((e) => e.id === 'evt-conflict-2')
+      expect(evt?.title).toBe('Local Title 2')
+      expect(evt?.sequence).toBe(5)
+    })
+
+    it('stores conflict info in syncState for UI display', async () => {
+      const localEvent: CalendarEvent = {
+        id: 'evt-cf',
+        calendarId: 'cal-1',
+        title: 'Conflict Me',
+        start: '2025-06-01T10:00:00',
+        end: '2025-06-01T11:00:00',
+        isAllDay: false,
+        sequence: 1,
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(localEvent)
+      })
+
+      const serverEvent: CalendarEvent = {
+        id: 'evt-cf',
+        calendarId: 'cal-1',
+        title: 'Server Version',
+        start: '2025-06-01T10:00:00',
+        end: '2025-06-01T11:00:00',
+        isAllDay: false,
+        sequence: 3,
+      }
+
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
+
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      // Should have a conflict entry in syncState
+      expect(result.current.syncState.conflicts).toHaveLength(1)
+      expect(result.current.syncState.conflicts[0].eventId).toBe('evt-cf')
+      expect(result.current.syncState.conflicts[0].resolution).toBe('ask')
+      expect(result.current.syncState.conflicts[0].localVersion).toBeDefined()
+      expect(result.current.syncState.conflicts[0].serverVersion).toBeDefined()
+    })
+
+    it('still adds new server events when conflict resolution is ask', async () => {
+      const serverEvent: CalendarEvent = {
+        id: 'evt-new',
+        calendarId: 'cal-1',
+        title: 'New Event',
+        start: '2025-06-10T10:00:00',
+        end: '2025-06-10T11:00:00',
+        isAllDay: false,
+        sequence: 0,
+      }
+
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
+
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      const store = useCalendarStore.getState()
+      expect(store.events.find((e) => e.id === 'evt-new')).toBeDefined()
+    })
+
+    it('does not create conflict when sequences are equal (no real conflict)', async () => {
+      const localEvent: CalendarEvent = {
+        id: 'evt-same',
+        calendarId: 'cal-1',
+        title: 'Same Version',
+        start: '2025-06-01T10:00:00',
+        end: '2025-06-01T11:00:00',
+        isAllDay: false,
+        sequence: 2,
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(localEvent)
+      })
+
+      const serverEvent: CalendarEvent = {
+        id: 'evt-same',
+        calendarId: 'cal-1',
+        title: 'Updated from Server',
+        start: '2025-06-01T10:00:00',
+        end: '2025-06-01T11:00:00',
+        isAllDay: false,
+        sequence: 2,
+      }
+
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
+
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      // No conflict — same sequence means safe to update
+      expect(result.current.syncState.conflicts).toHaveLength(0)
+
+      // Event should be updated
+      const store = useCalendarStore.getState()
+      const evt = store.events.find((e) => e.id === 'evt-same')
+      expect(evt?.title).toBe('Updated from Server')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Bug 23: Concurrent processPendingChanges
+  // -----------------------------------------------------------------------
+  describe('Bug 23: concurrent processPendingChanges prevention', () => {
+    it('does not run processPendingChanges concurrently', async () => {
+      vi.useFakeTimers()
+
+      let resolveFirst: () => void
+      const firstCall = new Promise<void>((resolve) => {
+        resolveFirst = resolve
+      })
+
+      // Make pushEvent block until we resolve it
+      mockSyncEngineInstance.pushEvent.mockImplementation(() => firstCall)
+
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+      mockAccountStorage.getPendingChanges.mockReturnValue([
+        {
+          id: 'pc-1',
+          type: 'create',
+          eventId: 'evt-1',
+          calendarId: 'cal-1',
+          data: JSON.stringify(mockEvent),
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 0,
+        },
+      ] as any)
+
+      renderHook(() => useCalDAV())
+
+      // Wait for mount effect to start processing
+      await vi.advanceTimersByTimeAsync(100)
+
+      // The first call should be in progress
+      expect(mockSyncEngineInstance.pushEvent).toHaveBeenCalledTimes(1)
+
+      // Fire the interval while first call is still running
+      await vi.advanceTimersByTimeAsync(30000)
+
+      // Should NOT have started a second call
+      expect(mockSyncEngineInstance.pushEvent).toHaveBeenCalledTimes(1)
+
+      // Resolve the first call
+      resolveFirst!()
+      await vi.advanceTimersByTimeAsync(100)
+
+      vi.useRealTimers()
+    })
+
+    it('allows next call after previous completes', async () => {
+      vi.useFakeTimers()
+
+      mockSyncEngineInstance.pushEvent.mockResolvedValue({ url: 'https://...', etag: 'abc' })
+
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+      mockAccountStorage.getPendingChanges.mockReturnValue([
+        {
+          id: 'pc-2',
+          type: 'create',
+          eventId: 'evt-2',
+          calendarId: 'cal-1',
+          data: JSON.stringify(mockEvent),
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 0,
+        },
+      ] as any)
+
+      renderHook(() => useCalDAV())
+
+      // Mount processes pending changes
+      await vi.advanceTimersByTimeAsync(100)
+
+      const firstCount = mockSyncEngineInstance.pushEvent.mock.calls.length
+      expect(firstCount).toBeGreaterThanOrEqual(1)
+
+      // After first call completes, the next interval should be able to run
+      await vi.advanceTimersByTimeAsync(30000)
+      expect(mockSyncEngineInstance.pushEvent.mock.calls.length).toBeGreaterThan(firstCount)
+
+      vi.useRealTimers()
+    })
+  })
 })

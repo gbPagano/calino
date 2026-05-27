@@ -87,9 +87,9 @@ export async function decryptPassword(encrypted: EncryptedData): Promise<string>
   const data = fromBase64(encrypted.data)
 
   const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', iv: iv.buffer },
     key,
-    data
+    data.buffer
   )
 
   return decoder.decode(decrypted)

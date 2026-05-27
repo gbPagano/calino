@@ -230,7 +230,7 @@ describe('EventPreviewPopup', () => {
     const input = screen.getByDisplayValue('Test Meeting')
     fireEvent.change(input, { target: { value: 'Updated Meeting' } })
 
-    expect(screen.getByRole('button', { name: '' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
   })
 
   it('shows add description option when no description exists', () => {

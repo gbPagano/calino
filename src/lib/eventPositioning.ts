@@ -15,7 +15,12 @@ export interface PositionedEvent {
 export function positionEvents(events: CalendarEvent[]): PositionedEvent[] {
   const opaqueEvents = events
     .filter((e) => e.transparency !== 'transparent')
-    .sort((a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime())
+    .sort((a, b) => {
+      const startDiff = parseISO(a.start).getTime() - parseISO(b.start).getTime()
+      if (startDiff !== 0) return startDiff
+      // Secondary: longer events first (get priority in column assignment)
+      return parseISO(b.end).getTime() - parseISO(a.end).getTime()
+    })
 
   const positioned: { event: CalendarEvent; column: number }[] = []
 

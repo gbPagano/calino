@@ -169,6 +169,8 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       setDefaultCalendar: (id: string): void => {
+        const exists = get().calendars.some((c) => c.id === id)
+        if (!exists) return
         set((state) => ({
           calendars: state.calendars.map((c) => ({
             ...c,

@@ -111,4 +111,63 @@ describe('EventCard', () => {
 
     expect(mockDeleteCalDAVEvent).toHaveBeenCalledWith('default', 'test-event-1')
   })
+
+  it('removes old resize listeners before adding new ones (Bug #61)', () => {
+    const addSpy = vi.spyOn(document, 'addEventListener')
+    const removeSpy = vi.spyOn(document, 'removeEventListener')
+
+    const { unmount } = render(<EventCard event={mockEvent} />)
+
+    // Find the resize handle
+    const resizeHandle = document.querySelector('[class*="resizeHandle"]')
+    expect(resizeHandle).toBeInTheDocument()
+
+    // Simulate first resize start
+    fireEvent.pointerDown(resizeHandle!, {
+      clientX: 100,
+      clientY: 200,
+      bubbles: true,
+    })
+
+    // Should have added pointermove and pointerup listeners
+    const pointermoveCallsAfterFirst = addSpy.mock.calls.filter(
+      (c) => c[0] === 'pointermove'
+    )
+    const pointerupCallsAfterFirst = addSpy.mock.calls.filter(
+      (c) => c[0] === 'pointerup'
+    )
+    expect(pointermoveCallsAfterFirst.length).toBeGreaterThanOrEqual(1)
+    expect(pointerupCallsAfterFirst.length).toBeGreaterThanOrEqual(1)
+
+    const firstMoveHandler = pointermoveCallsAfterFirst[pointermoveCallsAfterFirst.length - 1][1]
+    const firstUpHandler = pointerupCallsAfterFirst[pointerupCallsAfterFirst.length - 1][1]
+
+    // Simulate second resize start (without ending the first)
+    addSpy.mockClear()
+    removeSpy.mockClear()
+
+    fireEvent.pointerDown(resizeHandle!, {
+      clientX: 100,
+      clientY: 200,
+      bubbles: true,
+    })
+
+    // The old listeners should have been removed before new ones were added
+    expect(removeSpy).toHaveBeenCalledWith('pointermove', firstMoveHandler)
+    expect(removeSpy).toHaveBeenCalledWith('pointerup', firstUpHandler)
+
+    // New listeners should have been added
+    const pointermoveCallsAfterSecond = addSpy.mock.calls.filter(
+      (c) => c[0] === 'pointermove'
+    )
+    const pointerupCallsAfterSecond = addSpy.mock.calls.filter(
+      (c) => c[0] === 'pointerup'
+    )
+    expect(pointermoveCallsAfterSecond.length).toBe(1)
+    expect(pointerupCallsAfterSecond.length).toBe(1)
+
+    addSpy.mockRestore()
+    removeSpy.mockRestore()
+    unmount()
+  })
 })

@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { GeneralSettings } from './GeneralSettings'
 import { ThemeSettings } from './ThemeSettings'
 import { CalendarSettings } from './CalendarSettings'
@@ -151,9 +151,21 @@ const NAV_ITEMS: NavItem[] = [
   },
 ]
 
+const VALID_TABS: SettingsTab[] = ['general', 'theme', 'calendar', 'events', 'categories', 'notifications', 'caldav', 'data']
+
 export function SettingsPage(): JSX.Element {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general')
+  const [searchParams] = useSearchParams()
+
+  const initialTab = useMemo((): SettingsTab => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam && VALID_TABS.includes(tabParam as SettingsTab)) {
+      return tabParam as SettingsTab
+    }
+    return 'general'
+  }, [])
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab)
 
   const renderContent = (): JSX.Element => {
     switch (activeTab) {

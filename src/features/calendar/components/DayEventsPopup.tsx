@@ -6,6 +6,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import type { CalendarEvent } from '@/types'
 import styles from './DayEventsPopup.module.css'
 
+
 interface DayEventsPopupProps {
   date: Date
   events: CalendarEvent[]
@@ -23,6 +24,14 @@ export function DayEventsPopup({
 }: DayEventsPopupProps): JSX.Element {
   const popupRef = useRef<HTMLDivElement>(null)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
+  const dateLabel = format(date, 'EEEE, MMMM d')
+
+  // Focus the popup on mount for accessibility
+  useEffect(() => {
+    if (popupRef.current) {
+      popupRef.current.focus()
+    }
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -53,6 +62,9 @@ export function DayEventsPopup({
         ref={popupRef}
         className={styles.popup}
         style={{ left: position.x, top: position.y }}
+        role="dialog"
+        aria-label={`Events for ${dateLabel}`}
+        tabIndex={-1}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}

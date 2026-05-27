@@ -157,6 +157,14 @@ export function EventCard({
     resizeStartY.current = e.clientY
     resizeStartEnd.current = parseISO(event.end)
 
+    // Remove any previously attached listeners to prevent accumulation
+    if (handleResizeMoveRef.current) {
+      document.removeEventListener('pointermove', handleResizeMoveRef.current)
+    }
+    if (handleResizeEndRef.current) {
+      document.removeEventListener('pointerup', handleResizeEndRef.current)
+    }
+
     const handleResizeMove = (moveEvent: PointerEvent): void => {
       if (resizeStartY.current === null || resizeStartEnd.current === null) return
 
@@ -176,6 +184,8 @@ export function EventCard({
       resizeStartEnd.current = null
       document.removeEventListener('pointermove', handleResizeMove)
       document.removeEventListener('pointerup', handleResizeEnd)
+      handleResizeMoveRef.current = null
+      handleResizeEndRef.current = null
     }
 
     handleResizeMoveRef.current = handleResizeMove

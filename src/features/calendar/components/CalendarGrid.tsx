@@ -122,10 +122,12 @@ export function CalendarGrid(): JSX.Element {
 
   const changeMonth = useCallback(
     (direction: 'up' | 'down') => {
+      // Read directly from the store to avoid lagging ref values
+      const currentDate = useCalendarStore.getState().currentDate
       if (direction === 'down') {
-        setCurrentDate(format(addMonths(parseISO(currentDateRef.current), 1), 'yyyy-MM-dd'))
+        setCurrentDate(format(addMonths(parseISO(currentDate), 1), 'yyyy-MM-dd'))
       } else if (direction === 'up') {
-        setCurrentDate(format(subMonths(parseISO(currentDateRef.current), 1), 'yyyy-MM-dd'))
+        setCurrentDate(format(subMonths(parseISO(currentDate), 1), 'yyyy-MM-dd'))
       }
     },
     [setCurrentDate]

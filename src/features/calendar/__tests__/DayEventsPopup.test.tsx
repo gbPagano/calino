@@ -185,4 +185,49 @@ describe('DayEventsPopup', () => {
     expect(screen.getByText('All Day Event')).toBeInTheDocument()
     expect(screen.getByText('Event with Location')).toBeInTheDocument()
   })
+
+  it('has role="dialog" for accessibility (Bug #65)', () => {
+    render(
+      <DayEventsPopup
+        date={mockDate}
+        events={[mockEvent]}
+        position={mockPosition}
+        onClose={mockOnClose}
+        onEventClick={mockOnEventClick}
+      />
+    )
+
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+  })
+
+  it('has aria-label with the date (Bug #65)', () => {
+    render(
+      <DayEventsPopup
+        date={mockDate}
+        events={[mockEvent]}
+        position={mockPosition}
+        onClose={mockOnClose}
+        onEventClick={mockOnEventClick}
+      />
+    )
+
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toHaveAttribute('aria-label', 'Events for Friday, March 15')
+  })
+
+  it('focuses the popup on mount (Bug #65)', () => {
+    render(
+      <DayEventsPopup
+        date={mockDate}
+        events={[mockEvent]}
+        position={mockPosition}
+        onClose={mockOnClose}
+        onEventClick={mockOnEventClick}
+      />
+    )
+
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toHaveFocus()
+  })
 })

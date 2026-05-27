@@ -118,8 +118,16 @@ export class CalDAVClient {
     const client = this.getClient()
 
     const calendars = await client.fetchCalendars()
-    // Match calendar by raw server URL — both sides are now raw (no proxy prefix)
-    const calendar = calendars.find((c) => c.url === calendarUrl)
+    // Match calendar — handle both raw URLs and legacy proxy-prefixed URLs in storage
+    const calendar = calendars.find((c) => {
+      if (c.url === calendarUrl) return true
+      // Legacy: stored URL may be proxy-prefixed (e.g. proxy/cal-encoded), decode it
+      try {
+        const decoded = decodeURIComponent(calendarUrl)
+        if (decoded === c.url) return true
+      } catch { /* ignore decode errors */ }
+      return false
+    })
 
     if (!calendar) {
       throw new Error(`Calendar not found: ${calendarUrl}`)
@@ -179,8 +187,13 @@ export class CalDAVClient {
     const client = this.getClient()
 
     const calendars = await client.fetchCalendars()
-    // Match calendar by raw server URL
-    const calendar = calendars.find((c) => c.url === calendarUrl)
+    const calendar = calendars.find((c) => {
+      if (c.url === calendarUrl) return true
+      try {
+        if (decodeURIComponent(calendarUrl) === c.url) return true
+      } catch { /* ignore */ }
+      return false
+    })
 
     if (!calendar) {
       throw new Error(`Calendar not found: ${calendarUrl}`)
@@ -210,8 +223,13 @@ export class CalDAVClient {
     const client = this.getClient()
 
     const calendars = await client.fetchCalendars()
-    // Match calendar by raw server URL
-    const calendar = calendars.find((c) => c.url === calendarUrl)
+    const calendar = calendars.find((c) => {
+      if (c.url === calendarUrl) return true
+      try {
+        if (decodeURIComponent(calendarUrl) === c.url) return true
+      } catch { /* ignore */ }
+      return false
+    })
 
     if (!calendar) {
       throw new Error(`Calendar not found: ${calendarUrl}`)

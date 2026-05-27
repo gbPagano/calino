@@ -205,9 +205,12 @@ export function useCalDAV(): UseCalDAVReturn {
       setSyncState((prev) => ({ ...prev, status: 'syncing', error: null }))
 
       try {
+        console.log('[CalDAV] addAccount: discovering server...', serverUrl)
         const discoveredUrl = await discoverServerUrl(serverUrl, proxyUrl ?? undefined)
+        console.log('[CalDAV] addAccount: discovered URL:', discoveredUrl)
 
         const connected = await testConnection(discoveredUrl, { username, password }, proxyUrl)
+        console.log('[CalDAV] addAccount: testConnection result:', connected)
 
         if (!connected) {
           throw new Error('Failed to connect to server. Please check your credentials.')
@@ -219,8 +222,11 @@ export function useCalDAV(): UseCalDAVReturn {
           password,
         })
 
+        console.log('[CalDAV] addAccount: creating client...')
         const client = await createCalDAVClient(discoveredUrl, credential, proxyUrl)
+        console.log('[CalDAV] addAccount: fetching calendars...')
         const serverCalendars = await client.fetchCalendars()
+        console.log('[CalDAV] addAccount: found', serverCalendars.length, 'calendars')
 
         const newAccount = storage.saveAccount({
           name,
@@ -280,7 +286,9 @@ export function useCalDAV(): UseCalDAVReturn {
         const newCategoryNames: string[] = []
 
         for (const cal of serverCalendars) {
+          console.log('[CalDAV] addAccount: fetching events for', cal.name, cal.url)
           const fetchedEvents = await client.fetchEvents(cal.url, start, end)
+          console.log('[CalDAV] addAccount: got', fetchedEvents.length, 'event objects for', cal.name)
 
           for (const eventData of fetchedEvents) {
             if (eventData.data) {
@@ -326,6 +334,7 @@ export function useCalDAV(): UseCalDAVReturn {
           lastSyncAt: new Date().toISOString(),
         }))
       } catch (error) {
+        console.error('[CalDAV] addAccount failed:', error)
         setSyncState((prev) => ({
           ...prev,
           status: 'error',

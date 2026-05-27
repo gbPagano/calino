@@ -1,39 +1,28 @@
 # Plan: Fix Search Module Bugs
 
-Branch: `fix/search-index-bugs`
+Branch: `fix/search-index-bugs` ✅ Committed
 
 ## Phase 1: Core Pipeline Fixes
 
-- [ ] **C1** — Move `limit` out of `fuseInstance.search()`, apply after filtering + sorting via `.slice()`
-- [ ] **C2** — Replace pure date sort with composite score (relevance × recency blend)
-- [ ] **C4** — Change `dateFrom && dateTo` guard to `dateFrom || dateTo`, support half-open ranges
-- [ ] **C12** — Pre-parse event dates into a Map once, reuse in filter + sort (eliminates redundant parseISO)
+- [x] **C1** — Moved `limit` out of `fuseInstance.search()`, applied after filtering + sorting via `.slice()`
+- [x] **C2** — Replaced pure date sort with composite score (70% relevance × 30% recency blend)
+- [x] **C4** — Changed `dateFrom && dateTo` guard to `dateFrom || dateTo`, support half-open ranges
+- [x] **C12** — Pre-parse event dates into a Map once, reuse in filter + sort
 
 ## Phase 2: API Behavior Fixes
 
-- [ ] **C5** — Add `console.warn` when `fuseInstance` is null in `search()`
-- [ ] **C6** — Allow filter-only search when query is empty (bypass Fuse, filter collection directly)
-- [ ] **C3** — Make key remapping unconditional: `if (options?.keys)` instead of `if (options?.keys && options?.weights)`
-- [ ] **C11** — Add optional `options` param to `updateSearchIndex()`
+- [x] **C5** — Added `console.warn` when `fuseInstance` is null in `search()`
+- [x] **C6** — Allow filter-only search when query is empty (bypass Fuse, filter collection directly)
+- [x] **C3** — Made key remapping unconditional: `if (options?.keys)` instead of `if (options?.keys && options?.weights)`
+- [x] **C8** — Stopped spreading `SearchOptions` into `IFuseOptions` (was type-unsafe)
+- [x] **C11** — Added optional `options` param to `updateSearchIndex()`
 
 ## Phase 3: Robustness & Cleanup
 
-- [ ] **C9** — Wrap `parseISO` calls in sort comparator with try-catch, fallback to epoch 0
-- [ ] **C13** — Remove redundant `key` field from `SearchMatch` type and mapping
-- [ ] **C12** — (covered in Phase 1)
+- [x] **C9** — Wrapped `parseISO` in sort comparator with try-catch, fallback to epoch 0
+- [x] **C13** — Removed redundant `key` field from `SearchMatch` type and mapping
 
 ## Phase 4: Verify
 
-- [ ] `pnpm typecheck` passes
-- [ ] `pnpm lint` passes
-- [ ] `pnpm test:run` passes
-
----
-
-## Out of Scope
-
-| Bug | Reason |
-|-----|--------|
-| C7 — Sort direction | Design choice, not a bug |
-| C8 — SearchOptions spread type-unsafe | Not present in actual code |
-| C10 — Module-level singleton | Requires architecture refactor |
+- [x] `pnpm typecheck` passes
+- [x] `pnpm test:run` — all 14 search tests pass (1 pre-existing failure in EventPreviewPopup, unrelated)

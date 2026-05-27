@@ -54,7 +54,14 @@ export const useCalendarStore = create<CalendarStore>()(
       addEvent: (event: CalendarEvent): void => {
         // Skip events with invalid date ranges instead of blocking the entire import
         if (event.start > event.end && !event.isAllDay) {
-          console.warn('[Calendar] Skipping event with start > end:', event.title, event.start, event.end)
+          console.warn(
+            `[Calendar] Skipping event with start > end:\n` +
+            `  id: ${event.id}\n` +
+            `  title: ${event.title}\n` +
+            `  calendar: ${event.calendarId}\n` +
+            `  start: ${event.start}\n` +
+            `  end: ${event.end}`
+          )
           return
         }
         const state = get()

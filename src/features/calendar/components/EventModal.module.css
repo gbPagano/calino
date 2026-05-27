@@ -309,6 +309,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   padding: 5px 0;
 }
 
@@ -325,19 +326,21 @@
   gap: 6px;
   padding: 7px 18px;
   border-radius: 8px;
-  border: 1px solid var(--color-error, #dc3545);
-  background: none;
-  cursor: pointer;
+  border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
+  background: #faf9f7;
+  color: var(--color-error-muted, #c47068);
   font-size: 13px;
   font-weight: 500;
   font-family: var(--font-sans, 'Inter', sans-serif);
-  color: var(--color-error, #dc3545);
+  cursor: pointer;
+  box-shadow: var(--shadow-event);
   transition: background-color 0.15s, color 0.15s;
 }
 
 .modalDelete:hover {
-  background: var(--color-error, #dc3545);
+  background: var(--color-error-muted, #c47068);
   color: #fff;
+  border-color: var(--color-error-muted, #c47068);
 }
 
 .modalCancel {

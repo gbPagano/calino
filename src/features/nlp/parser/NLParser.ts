@@ -178,9 +178,6 @@ export class NLParser {
     }
   }
 
-  parseToEvent(): (input: string) => NLPParseResult {
-    return (input: string) => this.parse(input)
-  }
 }
 
 export function createParser(options?: NLPParseOptions): NLParser {

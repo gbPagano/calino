@@ -131,7 +131,7 @@ export const useSettingsStore = create<SettingsStore>()(
       ...DEFAULT_SETTINGS,
 
       updateSettings: (updates: Partial<UserSettings>): void => {
-        set((state) => ({ ...state, ...updates }))
+        set(updates)
       },
 
       resetSettings: (): void => {

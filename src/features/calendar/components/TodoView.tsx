@@ -168,12 +168,12 @@ export function TodoView(): JSX.Element {
           sections.map((section) => (
             <div key={section.title} className={styles.section}>
               <div className={styles.sectionTitle}>{section.title}</div>
-              <div className={styles.sectionList}>
+              <div className={styles.sectionList} role="list">
                 {section.tasks.map((task) => (
                   <div
                     key={task.id}
                     className={`${styles.taskRow} ${task.completed ? styles.taskCompleted : ''}`}
-                    role="button"
+                    role="listitem"
                     tabIndex={0}
                     onClick={() => handleTaskClick(task)}
                     onKeyDown={(e) => {

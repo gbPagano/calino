@@ -411,8 +411,8 @@ export function EventModal(): JSX.Element | null {
         setPriority(undefined)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only reset on user-initiated event/date changes
-  }, [selectedEventId, selectedDate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only reset on user-initiated event/date/endDate changes
+  }, [selectedEventId, selectedDate, selectedEndDate])
 
   // Auto-focus title input when creating a new event
   useEffect(() => {
@@ -524,8 +524,8 @@ export function EventModal(): JSX.Element | null {
 
     const localStart = isAllDay ? `${startDate}T00:00:00` : `${startDate}T${startTime}:00`
     const localEnd = isAllDay ? `${endDate}T23:59:59` : `${endDate}T${endTime}:00`
-    const startDateTime = isAllDay ? `${startDate}T00:00:00.000Z` : new Date(localStart).toISOString()
-    const endDateTime = isAllDay ? `${endDate}T00:00:00.000Z` : new Date(localEnd).toISOString()
+    const startDateTime = isAllDay ? `${startDate}T00:00:00` : new Date(localStart).toISOString()
+    const endDateTime = isAllDay ? `${endDate}T00:00:00` : new Date(localEnd).toISOString()
 
     const recurrenceRule: RecurrenceRule | undefined =
       recurrence !== 'none'

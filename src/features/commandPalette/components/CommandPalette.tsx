@@ -19,7 +19,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
   const timeFormat = useSettingsStore((state) => state.timeFormat)
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    async (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
         setSelectedIndex((i) => Math.min(i + 1, results.length - 1))
@@ -28,15 +28,12 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
         setSelectedIndex((i) => Math.max(i - 1, 0))
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        const handleEnter = async () => {
-          const result = await executeSelected()
-          if (result?.success && result.message) {
-            window.dispatchEvent(
-              new CustomEvent('show-toast', { detail: { message: result.message } })
-            )
-          }
+        const result = await executeSelected()
+        if (result?.success && result.message) {
+          window.dispatchEvent(
+            new CustomEvent('show-toast', { detail: { message: result.message } })
+          )
         }
-        handleEnter()
         onClose()
       }
     },

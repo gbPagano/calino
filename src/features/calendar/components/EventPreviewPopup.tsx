@@ -128,11 +128,15 @@ export function EventPreviewPopup({
       }
     } else if (field === 'endDate' && !editEndDate) {
       setEditEndDate(format(parseISO(effectiveEnd), 'yyyy-MM-dd'))
-    } else if (field === 'time' && !editTime) {
-      if (isTask && event.dueDate) {
-        setEditTime(format(parseISO(event.dueDate), 'HH:mm'))
-      } else {
-        setEditTime(format(parseISO(effectiveStart), 'HH:mm'))
+    } else if (field === 'time') {
+      if (!editTime) {
+        if (isTask && event.dueDate) {
+          setEditTime(format(parseISO(event.dueDate), 'HH:mm'))
+        } else {
+          setEditTime(format(parseISO(effectiveStart), 'HH:mm'))
+        }
+      }
+      if (!editEndTime && !isTask) {
         setEditEndTime(format(parseISO(effectiveEnd), 'HH:mm'))
       }
     }
@@ -461,7 +465,7 @@ export function EventPreviewPopup({
           className={styles.inlineTimeInputs}
           onClick={(e) => e.stopPropagation()}
           onBlur={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget as Node)) {
               setEditingField(null)
             }
           }}
@@ -768,21 +772,22 @@ export function EventPreviewPopup({
           </button>
         </div>
 
-        <DeleteDialog
-          isOpen={showDeleteDialog}
-          onClose={() => setShowDeleteDialog(false)}
-          onConfirm={performDelete}
-        />
-
-        <RecurrenceDialog
-          isOpen={showRecurrenceDialog}
-          onClose={() => {
-            setShowRecurrenceDialog(false)
-            setPendingUpdates(null)
-          }}
-          onConfirm={handleRecurrenceDialogConfirm}
-        />
       </motion.div>
+
+      <DeleteDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={performDelete}
+      />
+
+      <RecurrenceDialog
+        isOpen={showRecurrenceDialog}
+        onClose={() => {
+          setShowRecurrenceDialog(false)
+          setPendingUpdates(null)
+        }}
+        onConfirm={handleRecurrenceDialogConfirm}
+      />
     </AnimatePresence>,
     document.body
   )

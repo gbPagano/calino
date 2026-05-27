@@ -519,6 +519,8 @@ export const useCalendarStore = create<CalendarStore>()(
         calendars: state.calendars,
         categories: state.categories,
         autoCategoryRules: state.autoCategoryRules,
+        currentDate: state.currentDate,
+        currentView: state.currentView,
       }),
     }
   )

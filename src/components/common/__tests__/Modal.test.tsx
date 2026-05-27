@@ -88,7 +88,11 @@ describe('Modal', () => {
 
     const dialog = screen.getByRole('dialog')
     expect(dialog).toHaveAttribute('aria-modal', 'true')
-    expect(dialog).toHaveAttribute('aria-labelledby', 'modal-title')
+    const labelledBy = dialog.getAttribute('aria-labelledby')
+    expect(labelledBy).toBeTruthy()
+    const heading = document.getElementById(labelledBy!)
+    expect(heading).toBeInTheDocument()
+    expect(heading).toHaveTextContent('Accessible Modal')
   })
 
   it('applies custom className', () => {

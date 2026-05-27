@@ -30,12 +30,14 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
     const tasks = events
       .filter((e) => e.type === 'task' && !e.completed)
       .filter((task) => {
-        if (!task.dueDate) return false
+        if (!task.dueDate) return true // Show tasks without due date
         const dueDate = startOfDay(parseISO(task.dueDate))
         return !isBefore(dueDate, today) && isWithinInterval(dueDate, { start: today, end: weekFromNow })
       })
       .sort((a, b) => {
-        if (!a.dueDate || !b.dueDate) return 0
+        if (!a.dueDate && !b.dueDate) return 0
+        if (!a.dueDate) return 1 // No due date goes to end
+        if (!b.dueDate) return -1
         return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime()
       })
       .slice(0, 8)
@@ -143,7 +145,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                     </button>
                     <div className={styles.taskContent} onClick={() => handleTaskClick(task)}>
                       <span className={styles.taskTitle}>{task.title}</span>
-                      {task.dueDate && (
+                      {task.dueDate ? (
                         <span
                           className={`${styles.taskDue} ${
                             isBefore(startOfDay(parseISO(task.dueDate)), startOfDay(new Date()))
@@ -153,6 +155,8 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                         >
                           {isToday(parseISO(task.dueDate)) ? 'Today' : format(parseISO(task.dueDate), 'MMM d')}
                         </span>
+                      ) : (
+                        <span className={styles.taskDue}>No date</span>
                       )}
                     </div>
                   </motion.div>

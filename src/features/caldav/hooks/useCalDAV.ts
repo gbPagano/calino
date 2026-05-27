@@ -115,7 +115,7 @@ export function useCalDAV(): UseCalDAVReturn {
           continue
         }
 
-        const credential = getCredentialById(account.credentialId)
+        const credential = await getCredentialById(account.credentialId)
         if (!credential) {
           failed++
           storage.updatePendingChangeRetry(change.id)
@@ -228,7 +228,7 @@ export function useCalDAV(): UseCalDAVReturn {
           throw new Error('Failed to connect to server. Please check your credentials.')
         }
 
-        const credential = saveCredentials({
+        const credential = await saveCredentials({
           serverUrl: discoveredUrl,
           username,
           password,
@@ -389,7 +389,7 @@ export function useCalDAV(): UseCalDAVReturn {
       setSyncState((prev) => ({ ...prev, status: 'syncing', error: null }))
 
       try {
-        const credential = getCredentialById(account.credentialId)
+        const credential = await getCredentialById(account.credentialId)
         if (!credential) {
           throw new Error('Credentials not found')
         }
@@ -566,7 +566,7 @@ export function useCalDAV(): UseCalDAVReturn {
       }
 
       try {
-        const credential = getCredentialById(account.credentialId)
+        const credential = await getCredentialById(account.credentialId)
         if (!credential) {
           throw new Error('Credentials not found')
         }
@@ -639,7 +639,7 @@ export function useCalDAV(): UseCalDAVReturn {
       }
 
       try {
-        const credential = getCredentialById(account.credentialId)
+        const credential = await getCredentialById(account.credentialId)
         if (!credential) {
           throw new Error('Credentials not found')
         }
@@ -741,7 +741,7 @@ export function useCalDAV(): UseCalDAVReturn {
       }
 
       try {
-        const credential = getCredentialById(account.credentialId)
+        const credential = await getCredentialById(account.credentialId)
         if (!credential) {
           throw new Error('Credentials not found')
         }
@@ -834,7 +834,7 @@ export function useCalDAV(): UseCalDAVReturn {
       }
 
       try {
-        const credential = getCredentialById(account.credentialId)
+        const credential = await getCredentialById(account.credentialId)
         if (!credential) {
           throw new Error('Credentials not found')
         }

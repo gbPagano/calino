@@ -61,7 +61,10 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const [miniDateInitialized, setMiniDateInitialized] = useState(false)
   const showYearDropdownRef = useRef(showYearDropdown)
   const showMonthDropdownRef = useRef(showMonthDropdown)
-  const [isTasksExpanded, setIsTasksExpanded] = useState(true)
+  const [isTasksExpanded, setIsTasksExpanded] = useState(() => {
+    const events = useCalendarStore.getState().events
+    return events.some(e => e.type === 'task' && !e.completed)
+  })
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false)
   const [syncingCalendarId, setSyncingCalendarId] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<Record<string, 'success' | 'error'>>({})

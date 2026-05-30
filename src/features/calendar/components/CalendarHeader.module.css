@@ -148,7 +148,7 @@
 
 /* ---- Spacer ---- */
 .spacer {
-  flex: 1;
+  min-width: 0;
 }
 
 /* ---- Right Cluster ---- */

@@ -1,0 +1,117 @@
+/* ============================================================================
+   CALINO — Tasks page
+   A focused reading column inside the same warm system. Every value derives
+   from base.css tokens; category colour rides on --c (user-chosen, per task).
+   Design intent:
+     • metadata sits WITH its task (no full-width float)
+     • tasks group by time-to-act, not one alarming "overdue" dump
+     • priority weight is inverted — Low recedes, High is the only loud one
+   ========================================================================== */
+
+.calino .tasks-page {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 4px 0 72px;
+}
+.calino .tp-inner { max-width: 860px; margin: 0 auto; padding: 0 12px; }
+
+/* ----------------------------------------------------------------- top bar */
+.calino .tp-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  padding: 8px 14px 14px; margin-bottom: 6px;
+  border-bottom: 1px solid var(--line-2);
+}
+.calino .tp-count { font-size: 14px; color: var(--ink-2); }
+.calino .tp-count b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.calino .tp-count .dim { color: var(--ink-3); }
+.calino .tp-controls { display: flex; align-items: center; gap: 14px; }
+
+.calino .add-task {
+  height: 36px; padding: 0 15px; border-radius: 10px;
+  background: var(--accent); color: #fff;
+  font-size: 13.5px; font-weight: 500;
+  display: flex; align-items: center; gap: 7px;
+  box-shadow: 0 1px 2px rgba(44,40,33,.14);
+  transition: background .14s, transform .04s;
+}
+.calino .add-task:hover { background: color-mix(in srgb, var(--accent) 88%, #000); }
+.calino .add-task:active { transform: translateY(1px); }
+.calino .add-task svg { width: 14px; height: 14px; }
+
+/* --------------------------------------------------------------- group head */
+.calino .tg-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 14px; margin: 26px 0 2px;
+}
+.calino .tg:first-child .tg-head { margin-top: 14px; }
+.calino .tg-title {
+  font-size: 11.5px; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ink-3); white-space: nowrap;
+}
+.calino .tg-count {
+  font-size: 11px; font-weight: 600; color: var(--ink-2);
+  background: rgba(44,40,33,.07); border-radius: 999px; padding: 1px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.calino .tg-rule { flex: 1 1 auto; height: 1px; background: var(--line-2); }
+.calino .tg.is-overdue .tg-title { color: #bb5d6e; }
+.calino .tg.is-overdue .tg-count { color: #bb5d6e; background: color-mix(in srgb, #c2697f 13%, transparent); }
+
+/* ----------------------------------------------------------------- task row */
+.calino .task {
+  display: grid; grid-template-columns: 22px 1fr auto; gap: 14px;
+  align-items: start; padding: 12px 14px; border-radius: 13px;
+  transition: background .12s;
+}
+.calino .task:hover { background: color-mix(in srgb, var(--ink) 3.5%, transparent); }
+
+.calino .task-check {
+  margin-top: 1px; width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
+  border: 1.7px solid color-mix(in srgb, var(--c) 55%, var(--ink-3));
+  display: grid; place-content: center; color: #fff;
+  transition: background .14s, border-color .14s;
+}
+.calino .task-check svg { width: 11px; height: 11px; opacity: 0; transition: opacity .12s; }
+.calino .task:hover .task-check { border-color: var(--c); background: color-mix(in srgb, var(--c) 9%, transparent); }
+.calino .task:hover .task-check svg { opacity: .4; }
+.calino .task.is-done .task-check { background: var(--c); border-color: var(--c); }
+.calino .task.is-done .task-check svg { opacity: 1; }
+
+.calino .task-body { min-width: 0; }
+.calino .task-title { font-size: 14.5px; font-weight: 500; color: var(--ink); line-height: 1.35; }
+.calino .task-note { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; line-height: 1.4;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calino .task.is-done .task-title { text-decoration: line-through; color: var(--ink-3); font-weight: 400; }
+.calino .task.is-done .task-note { color: var(--ink-3); }
+
+/* metadata travels WITH the task, right-aligned inside the reading column */
+.calino .task-meta { display: flex; align-items: center; gap: 12px; padding-top: 2px; white-space: nowrap; }
+
+/* priority — weight inverted: Low whispers, High is the only one that speaks up */
+.calino .pri { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.calino .pri-high { padding: 2px 7px; border-radius: 6px;
+  background: color-mix(in srgb, #b0584a 15%, var(--canvas)); color: #a4503f; }
+.calino .pri-med { padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line); color: var(--ink-2); }
+.calino .pri-low { color: var(--ink-3); letter-spacing: .05em; }
+
+.calino .due { font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums;
+  min-width: 56px; text-align: right; }
+.calino .due.is-overdue { color: #bb5d6e; }
+.calino .due.is-today { color: var(--accent); font-weight: 600; }
+
+/* ----------------------------------------------------------- inline composer */
+.calino .tp-compose {
+  display: grid; grid-template-columns: 22px 1fr; gap: 14px; align-items: center;
+  padding: 12px 14px; margin: 8px 0 4px; border-radius: 13px;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.calino .tp-compose .task-check { border-color: color-mix(in srgb, var(--accent) 50%, var(--ink-3)); cursor: default; }
+.calino .tp-compose input { border: none; background: transparent; font: inherit;
+  font-size: 14.5px; color: var(--ink); outline: none; width: 100%; }
+.calino .tp-compose input::placeholder { color: var(--ink-3); }
+
+/* ---------------------------------------------------------------- empty state */
+.calino .tp-empty { text-align: center; color: var(--ink-3); font-size: 14px; padding: 64px 0; }
+.calino .tp-empty b { display: block; color: var(--ink-2); font-weight: 500; margin-bottom: 4px;
+  font-family: "Newsreader", Georgia, serif; font-size: 19px; }

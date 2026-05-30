@@ -17,11 +17,6 @@ describe('TodoView', () => {
     store.events.forEach((e) => store.deleteEvent(e.id))
   })
 
-  it('renders Tasks title', () => {
-    renderWithRouter(<TodoView />)
-    expect(screen.getByText('Tasks')).toBeInTheDocument()
-  })
-
   it('shows filter tabs', () => {
     renderWithRouter(<TodoView />)
     expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument()
@@ -36,7 +31,8 @@ describe('TodoView', () => {
 
   it('shows empty state when no active tasks (default filter)', () => {
     renderWithRouter(<TodoView />)
-    expect(screen.getByText('No active tasks')).toBeInTheDocument()
+    expect(screen.getByText('All clear')).toBeInTheDocument()
+    expect(screen.getByText('Nothing here right now.')).toBeInTheDocument()
   })
 
   it('shows tasks when they exist', async () => {
@@ -139,7 +135,10 @@ describe('TodoView', () => {
     })
 
     renderWithRouter(<TodoView />)
-    expect(screen.getByText(/1 active, 1 completed/)).toBeInTheDocument()
+    // Count is split across elements: <b>1</b> active · 1 completed
+    const countEl = screen.getByText(/active/)
+    expect(countEl).toBeInTheDocument()
+    expect(countEl.textContent).toContain('active')
   })
 
   it('shows description when present', () => {

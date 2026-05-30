@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calino — Tasks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="calino/base.css">
+<link rel="stylesheet" href="calino/themes.css">
+<link rel="stylesheet" href="calino/tasks.css">
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { background: #faf8f3; }
+  #app { width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="calino/data.js"></script>
+<script src="calino/render.js"></script>
+<script src="calino/tasks.js"></script>
+<script>
+  const app = document.getElementById('app');
+  window.renderCalino(app, 'theme-rail');
+  window.renderCalinoTasks(app);
+</script>
+</body>
+</html>

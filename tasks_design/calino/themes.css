@@ -1,0 +1,38 @@
+/* ============================================================================
+   CALINO — Accent Rail chip treatment.
+   Every value derives from --c (the user's chosen event color) so ANY hue
+   stays calm and intentional rather than reading like an alert.
+
+   Anatomy of a chip (.evt):
+     • event   → soft tint fill (--c @ 9%) + 3px color rail on the left
+     • task    → no fill; a checkbox in the user's color (to-dos read distinct)
+     • all-day → slightly stronger tint (--c @ 16%), keeps the rail
+     • recurring → small ↻ glyph, muted, right-aligned
+   ========================================================================== */
+
+.theme-rail .evt {
+  padding: 4px 9px 4px 13px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--c) 9%, var(--canvas));
+  align-items: center;
+}
+.theme-rail .evt-rail {
+  display: block; position: absolute; left: 5px; top: 5px; bottom: 5px;
+  width: 3px; border-radius: 3px; background: var(--c);
+}
+.theme-rail .evt-title { font-weight: 500; color: var(--ink); }
+.theme-rail .is-allday .evt { background: color-mix(in srgb, var(--c) 16%, var(--canvas)); }
+
+/* tasks: drop the fill, lead with a checkbox tinted in the user's color */
+.theme-rail .evt.is-task { background: transparent; padding-left: 8px; }
+.theme-rail .is-task .evt-rail { display: none; }
+.theme-rail .is-task .evt-check {
+  display: flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; border-radius: 4px; color: #fff;
+  border: 1.6px solid color-mix(in srgb, var(--c) 60%, var(--ink-3));
+}
+.theme-rail .is-task.is-done .evt-check { background: var(--c); border-color: var(--c); }
+.theme-rail .is-task .evt-check svg { width: 11px; height: 11px; }
+
+/* today's cell gets a barely-there warm wash */
+.theme-rail .cell.is-today { background: color-mix(in srgb, var(--accent) 4%, transparent); }

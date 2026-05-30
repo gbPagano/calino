@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import {
   format,
   parseISO,
@@ -11,24 +11,76 @@ import {
 } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
-import type { CalendarEvent, TaskPriority } from '@/types'
+import type { CalendarEvent } from '@/types'
 import styles from './TodoView.module.css'
 
 type FilterType = 'all' | 'active' | 'completed'
 
-interface TaskWithCalendar extends CalendarEvent {
+interface TaskWithColor extends CalendarEvent {
   calendarColor: string
 }
 
-interface TaskSection {
-  title: string
-  tasks: TaskWithCalendar[]
+interface TaskGroup {
+  key: string
+  label: string
+  isOverdue?: boolean
+  tasks: TaskWithColor[]
 }
 
-const PRIORITY_LABELS: Partial<Record<TaskPriority, string>> = {
+const PRIORITY_LABELS: Record<number, string> = {
   1: 'High',
   2: 'Medium',
   3: 'Low',
+}
+
+function getPriorityClass(priority?: number): string {
+  if (priority === 1) return styles.priorityHigh
+  if (priority === 2) return styles.priorityMed
+  if (priority === 3) return styles.priorityLow
+  return ''
+}
+
+function getDueLabel(task: TaskWithColor): { text: string; className: string } {
+  if (!task.dueDate) return { text: '—', className: '' }
+
+  const today = startOfDay(new Date())
+  const dueDate = startOfDay(parseISO(task.dueDate))
+  const diffMs = dueDate.getTime() - today.getTime()
+  const diffDays = Math.round(diffMs / 86400000)
+
+  if (diffDays < 0) {
+    return { text: format(parseISO(task.dueDate), 'MMM d'), className: styles.dueOverdue }
+  }
+  if (diffDays === 0) return { text: 'Today', className: styles.dueToday }
+  if (diffDays === 1) return { text: 'Tomorrow', className: '' }
+  if (diffDays <= 6) {
+    return { text: format(parseISO(task.dueDate), 'EEE'), className: '' }
+  }
+  return { text: format(parseISO(task.dueDate), 'MMM d'), className: '' }
+}
+
+function getTaskGroup(task: TaskWithColor): string {
+  if (!task.dueDate) return 'nodate'
+
+  const today = startOfDay(new Date())
+  const dueDate = startOfDay(parseISO(task.dueDate))
+  const diffMs = dueDate.getTime() - today.getTime()
+  const diffDays = Math.round(diffMs / 86400000)
+
+  if (diffDays < 0) return 'overdue'
+  if (diffDays === 0) return 'today'
+  if (diffDays <= 6) return 'week'
+  return 'later'
+}
+
+const GROUP_ORDER = ['overdue', 'today', 'week', 'later', 'nodate']
+
+const GROUP_LABELS: Record<string, string> = {
+  overdue: 'Overdue',
+  today: 'Today',
+  week: 'This week',
+  later: 'Later',
+  nodate: 'No due date',
 }
 
 export function TodoView(): JSX.Element {
@@ -39,8 +91,16 @@ export function TodoView(): JSX.Element {
   const { updateEvent: updateCalDAVEvent } = useCalDAV()
 
   const [filter, setFilter] = useState<FilterType>('active')
+  const [composing, setComposing] = useState(false)
+  const composerRef = useRef<HTMLInputElement>(null)
 
-  const tasks: TaskWithCalendar[] = useMemo(() => {
+  useEffect(() => {
+    if (composing && composerRef.current) {
+      composerRef.current.focus()
+    }
+  }, [composing])
+
+  const tasks: TaskWithColor[] = useMemo(() => {
     const calendarMap = new Map(calendars.map((c) => [c.id, c.color]))
     return events
       .filter((e) => e.type === 'task')
@@ -50,60 +110,68 @@ export function TodoView(): JSX.Element {
       }))
   }, [events, calendars])
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      if (filter === 'active') return !task.completed
-      if (filter === 'completed') return task.completed
-      return true
-    })
-  }, [tasks, filter])
+  const activeCount = useMemo(() => tasks.filter((t) => !t.completed).length, [tasks])
+  const completedCount = useMemo(() => tasks.filter((t) => t.completed).length, [tasks])
 
-  const sections = useMemo((): TaskSection[] => {
-    const today = startOfDay(new Date())
-    const weekFromNow = addDays(today, 7)
+  const groupedTasks = useMemo((): TaskGroup[] => {
+    const active = tasks.filter((t) => !t.completed)
+    const done = tasks.filter((t) => t.completed)
 
-    const overdue: TaskWithCalendar[] = []
-    const todayTasks: TaskWithCalendar[] = []
-    const upcoming: TaskWithCalendar[] = []
-    const noDate: TaskWithCalendar[] = []
+    const result: TaskGroup[] = []
 
-    const sortedTasks = [...filteredTasks].sort((a, b) => {
-      if (a.completed !== b.completed) return a.completed ? 1 : -1
-      if (!a.dueDate && !b.dueDate) return 0
-      if (!a.dueDate) return 1
-      if (!b.dueDate) return -1
-      return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime()
-    })
+    if (filter !== 'completed') {
+      // Sort active tasks: due date ascending (earliest first), no-date last
+      const sorted = [...active].sort((a, b) => {
+        if (!a.dueDate && !b.dueDate) return 0
+        if (!a.dueDate) return 1
+        if (!b.dueDate) return -1
+        return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime()
+      })
 
-    for (const task of sortedTasks) {
-      if (!task.dueDate) {
-        noDate.push(task)
-      } else {
-        const dueDate = startOfDay(parseISO(task.dueDate))
-        if (isBefore(dueDate, today)) {
-          overdue.push(task)
-        } else if (isToday(dueDate)) {
-          todayTasks.push(task)
-        } else if (isWithinInterval(dueDate, { start: today, end: weekFromNow })) {
-          upcoming.push(task)
-        } else {
-          upcoming.push(task)
+      // Group by time-to-act
+      const grouped = new Map<string, TaskWithColor[]>()
+      for (const task of sorted) {
+        const group = getTaskGroup(task)
+        if (!grouped.has(group)) grouped.set(group, [])
+        grouped.get(group)!.push(task)
+      }
+
+      // Add groups in order
+      for (const key of GROUP_ORDER) {
+        const groupTasks = grouped.get(key)
+        if (groupTasks && groupTasks.length > 0) {
+          result.push({
+            key,
+            label: GROUP_LABELS[key],
+            isOverdue: key === 'overdue',
+            tasks: groupTasks,
+          })
         }
       }
     }
 
-    const result: TaskSection[] = []
-    if (overdue.length > 0) result.push({ title: 'Overdue', tasks: overdue })
-    if (todayTasks.length > 0) result.push({ title: 'Today', tasks: todayTasks })
-    if (upcoming.length > 0) result.push({ title: 'Upcoming', tasks: upcoming })
-    if (noDate.length > 0) result.push({ title: 'No due date', tasks: noDate })
+    if (filter !== 'active' && done.length > 0) {
+      // Sort completed: most recently done first
+      const sortedDone = [...done].sort((a, b) => {
+        if (!a.dueDate && !b.dueDate) return 0
+        if (!a.dueDate) return 1
+        if (!b.dueDate) return -1
+        return parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime()
+      })
+
+      result.push({
+        key: 'done',
+        label: 'Completed',
+        tasks: sortedDone,
+      })
+    }
 
     return result
-  }, [filteredTasks])
+  }, [tasks, filter])
 
-  const handleToggleComplete = async (taskId: string, task: CalendarEvent): Promise<void> => {
+  const handleToggleComplete = async (task: TaskWithColor): Promise<void> => {
     const newCompleted = !task.completed
-    updateEvent(taskId, { completed: newCompleted })
+    updateEvent(task.id, { completed: newCompleted })
     if (!task.calendarId) return
     try {
       await updateCalDAVEvent(task.calendarId, { ...task, completed: newCompleted })
@@ -112,114 +180,145 @@ export function TodoView(): JSX.Element {
     }
   }
 
-  const handleTaskClick = (task: CalendarEvent): void => {
+  const handleTaskClick = (task: TaskWithColor): void => {
     openModal(undefined, undefined, task.id, 'task')
   }
 
-  const activeCount = tasks.filter((t) => !t.completed).length
-  const completedCount = tasks.filter((t) => t.completed).length
-
   const handleCreateTask = (): void => {
-    openModal(format(new Date(), 'yyyy-MM-dd'), undefined, undefined, 'task')
+    setComposing(true)
+    if (filter === 'completed') setFilter('active')
+  }
+
+  const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === 'Enter' && composerRef.current?.value.trim()) {
+      const title = composerRef.current.value.trim()
+      // Create new task with no due date and low priority
+      openModal(format(new Date(), 'yyyy-MM-dd'), undefined, undefined, 'task')
+      // TODO: Pre-fill title in modal
+      setComposing(false)
+    } else if (e.key === 'Escape') {
+      setComposing(false)
+    }
   }
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <div className={styles.title}>
-          <h2>Tasks</h2>
-          <span className={styles.count}>
-            {activeCount} active, {completedCount} completed
-          </span>
-        </div>
-        <div className={styles.actions}>
-          <div className={styles.tabs}>
-            <button
-              className={`${styles.tab} ${filter === 'all' ? styles.tabActive : ''}`}
-              onClick={() => setFilter('all')}
-            >
-              All
-            </button>
-            <button
-              className={`${styles.tab} ${filter === 'active' ? styles.tabActive : ''}`}
-              onClick={() => setFilter('active')}
-            >
-              Active
-            </button>
-            <button
-              className={`${styles.tab} ${filter === 'completed' ? styles.tabActive : ''}`}
-              onClick={() => setFilter('completed')}
-            >
-              Completed
+      <div className={styles.tpInner}>
+        {/* Top Bar */}
+        <div className={styles.tpBar}>
+          <div className={styles.tpCount}>
+            <b>{activeCount}</b> active <span className={styles.dim}>·</span> {completedCount} completed
+          </div>
+          <div className={styles.tpControls}>
+            <div className={styles.segmentedControl}>
+              <button
+                className={`${styles.tab} ${filter === 'all' ? styles.tabActive : ''}`}
+                onClick={() => setFilter('all')}
+              >
+                All
+              </button>
+              <button
+                className={`${styles.tab} ${filter === 'active' ? styles.tabActive : ''}`}
+                onClick={() => setFilter('active')}
+              >
+                Active
+              </button>
+              <button
+                className={`${styles.tab} ${filter === 'completed' ? styles.tabActive : ''}`}
+                onClick={() => setFilter('completed')}
+              >
+                Completed
+              </button>
+            </div>
+            <button className={styles.addTask} onClick={handleCreateTask}>
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M7 2v10M2 7h10" />
+              </svg>
+              Add task
             </button>
           </div>
-          <button className={styles.addButton} onClick={handleCreateTask}>
-            + Add task
-          </button>
         </div>
-      </div>
 
-      <div className={styles.list}>
-        {sections.length === 0 ? (
-          <div className={styles.empty}>
-            {filter === 'all' ? 'No tasks yet' : `No ${filter} tasks`}
-          </div>
-        ) : (
-          sections.map((section) => (
-            <div key={section.title} className={styles.section}>
-              <div className={styles.sectionTitle}>{section.title}</div>
-              <div className={styles.sectionList} role="list">
-                {section.tasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`${styles.taskRow} ${task.completed ? styles.taskCompleted : ''}`}
-                    role="listitem"
-                    tabIndex={0}
-                    onClick={() => handleTaskClick(task)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        handleTaskClick(task)
-                      }
-                    }}
-                  >
-                    <button
-                      className={styles.checkbox}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleToggleComplete(task.id, task)
-                      }}
+        {/* Task List */}
+        <div className={styles.taskList}>
+          {/* Inline Composer */}
+          {composing && (
+            <div className={styles.inlineComposer}>
+              <span className={styles.composerCheck} />
+              <input
+                ref={composerRef}
+                type="text"
+                className={styles.composerInput}
+                placeholder="What needs doing?"
+                onKeyDown={handleComposerKeyDown}
+                onBlur={() => setComposing(false)}
+              />
+            </div>
+          )}
+
+          {/* Empty State */}
+          {groupedTasks.length === 0 && (
+            <div className={styles.emptyState}>
+              <span className={styles.emptyTitle}>All clear</span>
+              Nothing here right now.
+            </div>
+          )}
+
+          {/* Task Groups */}
+          {groupedTasks.map((group) => (
+            <div
+              key={group.key}
+              className={`${styles.taskGroup} ${group.isOverdue ? styles.overdueGroup : ''}`}
+            >
+              <div className={styles.groupHeader}>
+                <span className={styles.groupTitle}>{group.label}</span>
+                <span className={styles.groupCount}>{group.tasks.length}</span>
+                <span className={styles.groupRule} />
+              </div>
+              <div className={styles.groupTasks}>
+                {group.tasks.map((task) => {
+                  const dueInfo = getDueLabel(task)
+                  return (
+                    <div
+                      key={task.id}
+                      className={`${styles.taskRow} ${task.completed ? styles.taskDone : ''}`}
+                      style={{ '--event-color': task.calendarColor } as React.CSSProperties}
                     >
-                      {task.completed && (
-                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                          <polyline points="20 6 9 17 4 12" />
+                      <button
+                        className={styles.taskCheck}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleToggleComplete(task)
+                        }}
+                        aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
+                      >
+                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 7.5l2.5 2.5L11 4" />
                         </svg>
-                      )}
-                    </button>
-                    <div className={styles.taskContent}>
-                      <div className={styles.taskMain}>
-                        <span className={styles.taskTitle}>{task.title}</span>
+                      </button>
+                      <div className={styles.taskBody} onClick={() => handleTaskClick(task)}>
+                        <div className={styles.taskTitle}>{task.title}</div>
                         {task.description && (
-                          <span className={styles.taskDescription}>{task.description}</span>
+                          <div className={styles.taskNote}>{task.description}</div>
                         )}
                       </div>
+                      <div className={styles.taskMeta}>
+                        {task.priority && task.priority <= 3 && (
+                          <span className={`${styles.priority} ${getPriorityClass(task.priority)}`}>
+                            {PRIORITY_LABELS[task.priority]}
+                          </span>
+                        )}
+                        <span className={`${styles.dueLabel} ${dueInfo.className}`}>
+                          {dueInfo.text}
+                        </span>
+                      </div>
                     </div>
-                    {task.priority && task.priority <= 3 && task.priority in PRIORITY_LABELS && (
-                      <span className={styles.priority} data-priority={task.priority}>
-                        {PRIORITY_LABELS[task.priority]}
-                      </span>
-                    )}
-                    {task.dueDate && (
-                      <span className={`${styles.taskDue} ${isBefore(startOfDay(parseISO(task.dueDate)), startOfDay(new Date())) ? styles.overdue : ''}`}>
-                        {format(parseISO(task.dueDate), 'MMM d')}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
-          ))
-        )}
+          ))}
+        </div>
       </div>
     </div>
   )

@@ -1,256 +1,366 @@
 /* ============================================================================
-   TodoView — Editorial Design
+   TodoView — Editorial Tasks Design
+   Focused reading column, time-to-act grouping, inverted priority hierarchy
+   Design reference: tasks_design/calino/tasks.css
    ============================================================================ */
 
+/* ---- Page Layout ---- */
 .container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--canvas);
-}
-
-.header {
-  padding: 20px 32px;
-  border-bottom: 1px solid var(--line);
-  background: var(--panel);
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 14px;
-  margin-top: 16px;
-}
-
-.tabs {
-  display: flex;
-  gap: 2px;
-  align-items: center;
-  background: rgba(44, 40, 33, 0.045);
-  padding: 4px;
-  border-radius: 11px;
-}
-
-.addButton {
-  padding: 8px 16px;
-  border: none;
-  background: var(--accent);
-  border-radius: 8px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.14s ease;
-  white-space: nowrap;
-}
-
-.addButton:hover {
-  background: var(--accent-hover, #9a6c42);
-}
-
-@media (max-width: 768px) {
-  .addButton {
-    display: none;
-  }
-}
-
-.title {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.title h2 {
-  font-family: var(--font-serif, 'Newsreader', Georgia, serif);
-  font-size: 24px;
-  font-weight: 500;
-  color: var(--ink);
-  margin: 0;
-}
-
-.count {
-  font-size: 13px;
-  color: var(--ink-3);
-}
-
-.tab {
-  height: 30px;
-  padding: 0 14px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-2);
-  cursor: pointer;
-  transition: all 0.14s ease;
-}
-
-.tab:hover {
-  color: var(--ink);
-}
-
-.tabActive {
-  background: var(--panel);
-  color: var(--ink);
-  box-shadow: 0 1px 2px rgba(44, 40, 33, 0.08), 0 0 0 1px var(--line);
-}
-
-.list {
-  flex: 1;
+  flex: 1 1 auto;
   overflow-y: auto;
-  padding: 16px 32px;
+  padding: 4px 0 72px;
+  background: var(--canvas, #faf8f3);
 }
 
-.empty {
-  padding: 48px 24px;
-  text-align: center;
-  color: var(--ink-3);
-  font-size: 14px;
+.tpInner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 12px;
 }
 
-.section {
-  margin-bottom: 28px;
-}
-
-.sectionTitle {
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--ink-3);
-  padding: 8px 0;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--line);
-}
-
-.sectionList {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.taskRow {
+/* ---- Top Bar ---- */
+.tpBar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 9px;
-  background: transparent;
-  cursor: pointer;
-  transition: background 0.12s ease;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 8px 14px 14px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
 }
 
-.taskRow:hover {
-  background: rgba(44, 40, 33, 0.04);
-}
-
-.taskRow:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-  background: rgba(44, 40, 33, 0.04);
-}
-
-.taskCompleted .taskTitle {
-  text-decoration: line-through;
-  color: var(--ink-3);
-}
-
-.checkbox {
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
-  border: 1.6px solid var(--ink-3);
-  border-radius: 50%;
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.14s ease;
-  padding: 0;
-}
-
-.checkbox:hover {
-  border-color: var(--accent);
-}
-
-.checkbox svg {
-  width: 12px;
-  height: 12px;
-  color: var(--accent);
-}
-
-.taskContent {
-  flex: 1;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
-}
-
-.taskMain {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.taskTitle {
+.tpCount {
   font-size: 14px;
-  font-weight: 500;
-  color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--ink-2, #6f6a62);
 }
 
-.taskDescription {
-  font-size: 12px;
-  color: var(--ink-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.taskDue {
-  font-size: 12.5px;
-  color: var(--ink-3);
-  background: transparent;
-  padding: 2px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
+.tpCount b {
+  color: var(--ink, #2c2823);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.taskDue.overdue {
-  color: #c2697f;
+.tpCount .dim {
+  color: var(--ink-3, #a39d93);
 }
 
-.priority {
-  font-size: 11px;
-  font-weight: 600;
+.tpControls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ---- Segmented Filter ---- */
+.segmentedControl {
+  display: flex;
+  gap: 0;
+  padding: 4px;
+  background: rgba(44, 40, 33, 0.045);
+  border-radius: 12px;
+}
+
+.tab {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2, #6f6a62);
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  font-family: inherit;
+}
+
+.tab:hover {
+  color: var(--ink, #2c2823);
+}
+
+.tabActive {
+  background: var(--panel, #ffffff);
+  color: var(--ink, #2c2823);
+  box-shadow: 0 1px 2px rgba(44, 40, 33, 0.08), 0 0 0 1px var(--line, rgba(44, 40, 33, 0.09));
+}
+
+/* ---- Add Task Button ---- */
+.addTask {
+  height: 36px;
+  padding: 0 15px;
+  border-radius: 10px;
+  background: var(--accent, #b07d4f);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(44, 40, 33, 0.14);
+  transition: background 0.14s, transform 0.04s;
+  font-family: inherit;
+}
+
+.addTask:hover {
+  background: color-mix(in srgb, var(--accent, #b07d4f) 88%, #000);
+}
+
+.addTask:active {
+  transform: translateY(1px);
+}
+
+.addTask svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---- Task Group ---- */
+.taskGroup {
+  margin-bottom: 8px;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  margin: 26px 0 2px;
+}
+
+.taskGroup:first-child .groupHeader {
+  margin-top: 14px;
+}
+
+.groupTitle {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 3px;
+  color: var(--ink-3, #a39d93);
   white-space: nowrap;
 }
 
-.priority[data-priority='0'],
-.priority[data-priority='1'] {
-  background: rgba(194, 105, 127, 0.12);
-  color: #c2697f;
+.groupCount {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2, #6f6a62);
+  background: rgba(44, 40, 33, 0.07);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-variant-numeric: tabular-nums;
 }
 
-.priority[data-priority='2'] {
-  background: rgba(191, 148, 78, 0.12);
-  color: #bf944e;
+.groupRule {
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--line-2, rgba(44, 40, 33, 0.05));
 }
 
-.priority[data-priority='3'] {
-  background: rgba(93, 154, 120, 0.12);
-  color: #5d9a78;
+/* ---- Overdue Group Variant ---- */
+.overdueGroup .groupTitle {
+  color: #bb5d6e;
+}
+
+.overdueGroup .groupCount {
+  color: #bb5d6e;
+  background: color-mix(in srgb, #c2697f 13%, transparent);
+}
+
+/* ---- Task Row ---- */
+.taskRow {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 14px;
+  align-items: start;
+  padding: 12px 14px;
+  border-radius: 13px;
+  transition: background 0.12s;
+}
+
+.taskRow:hover {
+  background: color-mix(in srgb, var(--ink, #2c2823) 3.5%, transparent);
+}
+
+/* ---- Completion Checkbox ---- */
+.taskCheck {
+  margin-top: 1px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1.7px solid color-mix(in srgb, var(--event-color, var(--accent)) 55%, var(--ink-3, #a39d93));
+  background: transparent;
+  display: grid;
+  place-content: center;
+  color: #fff;
+  padding: 0;
+  transition: background 0.14s, border-color 0.14s;
+}
+
+.taskCheck svg {
+  width: 11px;
+  height: 11px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.taskRow:hover .taskCheck {
+  border-color: var(--event-color, var(--accent));
+  background: color-mix(in srgb, var(--event-color, var(--accent)) 9%, transparent);
+}
+
+.taskRow:hover .taskCheck svg {
+  opacity: 0.4;
+}
+
+.taskDone .taskCheck {
+  background: var(--event-color, var(--accent));
+  border-color: var(--event-color, var(--accent));
+}
+
+.taskDone .taskCheck svg {
+  opacity: 1;
+}
+
+/* ---- Task Body ---- */
+.taskBody {
+  min-width: 0;
+}
+
+.taskTitle {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--ink, #2c2823);
+  line-height: 1.35;
+}
+
+.taskNote {
+  font-size: 12.5px;
+  color: var(--ink-2, #6f6a62);
+  margin-top: 2px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskDone .taskTitle {
+  text-decoration: line-through;
+  color: var(--ink-3, #a39d93);
+  font-weight: 400;
+}
+
+.taskDone .taskNote {
+  color: var(--ink-3, #a39d93);
+}
+
+/* ---- Task Meta (Priority + Due) ---- */
+.taskMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+
+/* ---- Priority Chips (Inverted: Low recedes, High is loud) ---- */
+.priority {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.priorityHigh {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, #b0584a 15%, var(--canvas, #faf8f3));
+  color: #a4503f;
+}
+
+.priorityMed {
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  color: var(--ink-2, #6f6a62);
+}
+
+.priorityLow {
+  color: var(--ink-3, #a39d93);
+  letter-spacing: 0.05em;
+}
+
+/* ---- Due Label ---- */
+.dueLabel {
+  font-size: 12.5px;
+  color: var(--ink-3, #a39d93);
+  font-variant-numeric: tabular-nums;
+  min-width: 56px;
+  text-align: right;
+}
+
+.dueOverdue {
+  color: #bb5d6e;
+}
+
+.dueToday {
+  color: var(--accent, #b07d4f);
+  font-weight: 600;
+}
+
+/* ---- Inline Composer ---- */
+.inlineComposer {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  margin: 8px 0 4px;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--accent, #b07d4f) 5%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent, #b07d4f) 20%, transparent);
+}
+
+.composerCheck {
+  margin-top: 1px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.7px solid color-mix(in srgb, var(--accent, #b07d4f) 50%, var(--ink-3, #a39d93));
+  background: transparent;
+  display: grid;
+  place-content: center;
+  cursor: default;
+  padding: 0;
+}
+
+.composerInput {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--ink, #2c2823);
+  outline: none;
+  width: 100%;
+}
+
+.composerInput::placeholder {
+  color: var(--ink-3, #a39d93);
+}
+
+/* ---- Empty State ---- */
+.emptyState {
+  text-align: center;
+  color: var(--ink-3, #a39d93);
+  font-size: 14px;
+  padding: 64px 0;
+}
+
+.emptyTitle {
+  display: block;
+  color: var(--ink-2, #6f6a62);
+  font-weight: 500;
+  margin-bottom: 4px;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 19px;
 }

@@ -76,6 +76,7 @@ export function CalendarGrid(): JSX.Element {
   const compactRecurringEvents = useSettingsStore((state) => state.compactRecurringEvents ?? false)
   const compressPastWeeks = useSettingsStore((state) => state.compressPastWeeks ?? false)
   const monthViewEventLimit = useSettingsStore((state) => state.monthViewEventLimit ?? 3)
+  const showWeekNumbers = useSettingsStore((state) => state.showWeekNumbers)
   const hideCompletedTasksInMonthView = useSettingsStore(
     (state) => state.hideCompletedTasksInMonthView ?? true
   )
@@ -474,7 +475,7 @@ export function CalendarGrid(): JSX.Element {
                 style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
               >
               <div className={styles.header}>
-                <div className={styles.weekNumHeader}>W#</div>
+                {showWeekNumbers && <div className={styles.weekNumHeader}>W#</div>}
                 {weekdays.map((day) => (
                   <div key={day} className={styles.weekday}>
                     {day}
@@ -500,12 +501,14 @@ export function CalendarGrid(): JSX.Element {
                         key={weekIdx}
                         className={`${styles.weekRow} ${isPastWeek ? styles.compressedWeek : ''}`}
                       >
-                        <div
-                          className={styles.weekNumber}
-                          onClick={() => handleWeekClick(days[weekIdx * 7])}
-                        >
-                          {weekNum}
-                        </div>
+                        {showWeekNumbers && (
+                          <div
+                            className={styles.weekNumber}
+                            onClick={() => handleWeekClick(days[weekIdx * 7])}
+                          >
+                            {weekNum}
+                          </div>
+                        )}
                         {days.slice(weekIdx * 7, weekIdx * 7 + 7).map((day) => {
                           const dateKey = format(day, 'yyyy-MM-dd')
                           const dayEvents = eventsMap.get(dateKey) || []
@@ -576,7 +579,7 @@ export function CalendarGrid(): JSX.Element {
           style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
         >
         <div className={styles.header}>
-          <div className={styles.weekNumHeader}>W#</div>
+          {showWeekNumbers && <div className={styles.weekNumHeader}>W#</div>}
           {weekdays.map((day) => (
             <div key={day} className={styles.weekday}>
               {day}
@@ -602,12 +605,14 @@ export function CalendarGrid(): JSX.Element {
                   key={weekIdx}
                   className={`${styles.weekRow} ${isPastWeek ? styles.compressedWeek : ''}`}
                 >
-                  <div
-                    className={styles.weekNumber}
-                    onClick={() => handleWeekClick(days[weekIdx * 7])}
-                  >
-                    {weekNum}
-                  </div>
+                  {showWeekNumbers && (
+                    <div
+                      className={styles.weekNumber}
+                      onClick={() => handleWeekClick(days[weekIdx * 7])}
+                    >
+                      {weekNum}
+                    </div>
+                  )}
                   {days.slice(weekIdx * 7, weekIdx * 7 + 7).map((day) => {
                     const dateKey = format(day, 'yyyy-MM-dd')
                     const dayEvents = eventsMap.get(dateKey) || []

@@ -11,7 +11,7 @@ type CalDAVDeleteFn = (calendarId: string, eventId: string) => Promise<void>
 export async function safeCalDAVUpdate(
   caldavUpdateEvent: CalDAVUpdateFn,
   calendarId: string,
-  event: { id: string; [key: string]: unknown },
+  event: CalendarEvent,
   updates: Record<string, unknown>,
   errorMessage = 'Failed to sync with CalDAV server. It will be retried.'
 ): Promise<boolean> {

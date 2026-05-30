@@ -474,7 +474,7 @@ export function CalendarGrid(): JSX.Element {
                 onTouchEnd={handleTouchEnd}
                 style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
               >
-              <div className={styles.header}>
+              <div className={`${styles.header} ${!showWeekNumbers ? styles.headerNoWeekNum : ''}`}>
                 {showWeekNumbers && <div className={styles.weekNumHeader}>W#</div>}
                 {weekdays.map((day) => (
                   <div key={day} className={styles.weekday}>
@@ -499,7 +499,7 @@ export function CalendarGrid(): JSX.Element {
                     return (
                       <div
                         key={weekIdx}
-                        className={`${styles.weekRow} ${isPastWeek ? styles.compressedWeek : ''}`}
+                        className={`${styles.weekRow} ${!showWeekNumbers ? styles.weekRowNoWeekNum : ''} ${isPastWeek ? styles.compressedWeek : ''}`}
                       >
                         {showWeekNumbers && (
                           <div
@@ -578,7 +578,7 @@ export function CalendarGrid(): JSX.Element {
           onTouchEnd={handleTouchEnd}
           style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
         >
-        <div className={styles.header}>
+        <div className={`${styles.header} ${!showWeekNumbers ? styles.headerNoWeekNum : ''}`}>
           {showWeekNumbers && <div className={styles.weekNumHeader}>W#</div>}
           {weekdays.map((day) => (
             <div key={day} className={styles.weekday}>
@@ -603,7 +603,7 @@ export function CalendarGrid(): JSX.Element {
               return (
                 <div
                   key={weekIdx}
-                  className={`${styles.weekRow} ${isPastWeek ? styles.compressedWeek : ''}`}
+                  className={`${styles.weekRow} ${!showWeekNumbers ? styles.weekRowNoWeekNum : ''} ${isPastWeek ? styles.compressedWeek : ''}`}
                 >
                   {showWeekNumbers && (
                     <div

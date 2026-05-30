@@ -51,10 +51,14 @@ export function CalendarHeader({
   const setCurrentDate = useCalendarStore((state) => state.setCurrentDate)
   const setCurrentView = useCalendarStore((state) => state.setCurrentView)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
+  const showWeekNumbers = useSettingsStore((state) => state.showWeekNumbers)
+  const updateSettings = useSettingsStore((state) => state.updateSettings)
 
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
   )
+  const [showQuickSettings, setShowQuickSettings] = useState(false)
+  const quickSettingsTimeoutRef = useState(() => ({ current: null as ReturnType<typeof setTimeout> | null }))[0]
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
@@ -250,14 +254,46 @@ export function CalendarHeader({
           <DisplayIcon />
         </button>
 
-        {/* Settings */}
-        <button
-          className={styles.iconButton}
-          onClick={() => navigate('/settings')}
-          aria-label="Settings"
+        {/* Settings with quick dropdown */}
+        <div
+          className={styles.settingsWrapper}
+          onMouseEnter={() => {
+            clearTimeout(quickSettingsTimeoutRef.current)
+            setShowQuickSettings(true)
+          }}
+          onMouseLeave={() => {
+            quickSettingsTimeoutRef.current = setTimeout(() => setShowQuickSettings(false), 200)
+          }}
         >
-          <SettingsIcon />
-        </button>
+          <button
+            className={styles.iconButton}
+            onClick={() => navigate('/settings')}
+            aria-label="Settings"
+          >
+            <SettingsIcon />
+          </button>
+          {showQuickSettings && !isMobile && (
+            <div className={styles.quickSettingsDropdown}>
+              <div className={styles.quickSettingsItem}>
+                <span className={styles.quickSettingsLabel}>Week numbers</span>
+                <button
+                  className={`${styles.toggleSwitch} ${showWeekNumbers ? styles.toggleActive : ''}`}
+                  onClick={() => updateSettings({ showWeekNumbers: !showWeekNumbers })}
+                  aria-label="Toggle week numbers"
+                >
+                  <span className={styles.toggleThumb} />
+                </button>
+              </div>
+              <div className={styles.quickSettingsDivider} />
+              <button
+                className={styles.quickSettingsLink}
+                onClick={() => navigate('/settings')}
+              >
+                All settings →
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Mobile view switcher */}

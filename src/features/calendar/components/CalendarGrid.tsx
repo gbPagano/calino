@@ -466,16 +466,13 @@ export function CalendarGrid(): JSX.Element {
       <div className={styles.splitContainer}>
         <div className={styles.gridTop} style={{ flex: `0 0 ${gridRatio * 100}%`, maxHeight: 800 * gridRatio / 0.6 }}>
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div
-              className={styles.grid}
-              ref={containerRef}
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-              {...bind}
-              style={
-                { '--day-cell-height': `${rowHeight}px`, touchAction: 'none' } as React.CSSProperties
-              }
-            >
+            <div className={styles.gridPanel} ref={containerRef} {...bind} style={{ touchAction: 'none' as const }}>
+              <div
+                className={styles.grid}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
+              >
               <div className={styles.header}>
                 <div className={styles.weekNumHeader}>W#</div>
                 {weekdays.map((day) => (
@@ -545,6 +542,7 @@ export function CalendarGrid(): JSX.Element {
                 </motion.div>
               </AnimatePresence>
             </div>
+            </div>
             <DragOverlay>{activeEvent ? <EventCard event={activeEvent} /> : null}</DragOverlay>
           </DndContext>
         </div>
@@ -570,16 +568,13 @@ export function CalendarGrid(): JSX.Element {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div
-        className={styles.grid}
-        ref={containerRef}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        {...bind}
-        style={
-          { '--day-cell-height': `${rowHeight}px`, touchAction: 'none' } as React.CSSProperties
-        }
-      >
+      <div className={styles.gridPanel} ref={containerRef} {...bind} style={{ touchAction: 'none' as const }}>
+        <div
+          className={styles.grid}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
+        >
         <div className={styles.header}>
           <div className={styles.weekNumHeader}>W#</div>
           {weekdays.map((day) => (
@@ -648,6 +643,7 @@ export function CalendarGrid(): JSX.Element {
             })}
           </motion.div>
         </AnimatePresence>
+      </div>
       </div>
       <DragOverlay>{activeEvent ? <EventCard event={activeEvent} /> : null}</DragOverlay>
     </DndContext>
@@ -742,34 +738,36 @@ function DroppableDay({
           {format(day, 'd')}
         </button>
       </div>
-      <div className={styles.events}>
-        <AnimatePresence>
-          {dayEvents.slice(0, monthViewEventLimit).map((event) => {
-            const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
-            const shouldCompact =
-              isPastWeek ||
-              (compactRecurringEvents && (!!event.rruleString || event.isAllDay || isMultiDay)) ||
-              event.isFragment
-            return (
-              <EventCard
-                key={event.id}
-                event={event}
-                compact={shouldCompact}
-                isMobileMonth={isMobile}
-              />
-            )
-          })}
-        </AnimatePresence>
-        {dayEvents.length > monthViewEventLimit && (
-          <button
-            ref={moreEventsRef}
-            className={styles.moreEvents}
-            onClick={handleMoreEventsClick}
-          >
-            +{dayEvents.length - monthViewEventLimit} more
-          </button>
-        )}
-      </div>
+      {dayEvents.length > 0 && (
+        <div className={styles.events}>
+          <AnimatePresence>
+            {dayEvents.slice(0, monthViewEventLimit).map((event) => {
+              const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
+              const shouldCompact =
+                isPastWeek ||
+                (compactRecurringEvents && (!!event.rruleString || event.isAllDay || isMultiDay)) ||
+                event.isFragment
+              return (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  compact={shouldCompact}
+                  isMobileMonth={isMobile}
+                />
+              )
+            })}
+          </AnimatePresence>
+          {dayEvents.length > monthViewEventLimit && (
+            <button
+              ref={moreEventsRef}
+              className={styles.moreEvents}
+              onClick={handleMoreEventsClick}
+            >
+              +{dayEvents.length - monthViewEventLimit} more
+            </button>
+          )}
+        </div>
+      )}
       {dayTasks.length > 0 && (
         <div className={styles.tasks}>
           <AnimatePresence mode="popLayout">

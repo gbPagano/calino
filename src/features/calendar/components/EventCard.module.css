@@ -9,7 +9,7 @@
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  padding: 4px 9px 4px 13px;
+  padding: 2px 9px 2px 13px;
   border-radius: 7px;
   background: color-mix(in srgb, var(--event-color, var(--accent)) 9%, var(--canvas, #faf8f3));
   cursor: pointer;
@@ -50,10 +50,12 @@
 /* ---- Drag Content ---- */
 .dragContent {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   cursor: grab;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .dragContent:focus-visible {
@@ -192,17 +194,15 @@
 
 /* ---- Compact Mode (Month View) ---- */
 .compact {
-  padding: 3px 6px 3px 10px;
+  padding: 2px 4px 2px 8px;
   min-height: 18px;
   height: auto;
   flex-shrink: 0;
+  border-left: none;
 }
 
 .compact::before {
-  left: 4px;
-  top: 4px;
-  bottom: 4px;
-  width: 2px;
+  display: none;
 }
 
 .compact .resizeHandle {
@@ -269,7 +269,7 @@
 
 /* ---- Fragment Styles (for multi-day spanning) ---- */
 .fragmentMiddle {
-  border-left: 1px dashed rgba(44, 40, 33, 0.15) !important;
+  border-left: 1px dashed rgba(0, 0, 0, 0.2) !important;
   border-radius: 0 !important;
   padding-left: 4px !important;
   padding-right: 0 !important;
@@ -278,29 +278,18 @@
   width: calc(100% + 9px);
 }
 
-.fragmentMiddle::before {
-  display: none;
-}
-
 .fragmentFirst {
-  border-radius: 7px 0 0 7px !important;
-  padding: 3px 0 1px 8px !important;
+  border-radius: 8px 0 0 8px !important;
+  padding: 2px 0 2px 8px !important;
   margin-right: -4px !important;
-}
-
-.fragmentFirst::before {
-  display: none;
+  border-left: none !important;
 }
 
 .fragmentLast {
-  border-radius: 0 7px 7px 0 !important;
-  padding-left: 8px !important;
+  border-radius: 0 8px 8px 0 !important;
+  padding: 2px 4px 2px 8px !important;
   margin-left: -5px !important;
-  border-left: 1px dashed rgba(44, 40, 33, 0.15) !important;
-}
-
-.fragmentLast::before {
-  display: none;
+  border-left: 1px dashed rgba(0, 0, 0, 0.2) !important;
 }
 
 /* ---- No Top Radius ---- */
@@ -325,7 +314,13 @@
 /* ---- Task Variant ---- */
 .task {
   background: transparent;
-  padding-left: 8px;
+  padding: 2px 22px 2px 8px;
+  min-height: 18px;
+}
+
+.task .dragContent {
+  padding-left: 16px;
+  padding-right: 0;
 }
 
 .task::before {
@@ -333,6 +328,8 @@
 }
 
 .task .taskCheckbox {
+  left: 5px;
+  right: auto;
   width: 15px;
   height: 15px;
   border-radius: 4px;

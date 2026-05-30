@@ -1,19 +1,26 @@
+/* ============================================================================
+   WeekView — Editorial Design
+   ============================================================================ */
+
 .container {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  background: var(--canvas, #faf8f3);
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  box-shadow: var(--shadow-card, 0 1px 2px rgba(44, 40, 33, 0.04), 0 6px 16px rgba(44, 40, 33, 0.03));
 }
 
 .header {
   display: flex;
-  border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
+  border-bottom: 1px solid var(--line, rgba(44, 40, 33, 0.09));
   position: sticky;
   top: 0;
-  background: var(--color-bg, var(--color-bg-secondary));
+  background: var(--panel, #ffffff);
   z-index: 10;
-  transition: box-shadow 0.2s ease;
   flex-shrink: 0;
   padding-right: var(--scrollbar-width, 0px);
 }
@@ -24,15 +31,26 @@
   flex: 1;
 }
 
+.allDayEventsInHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  margin-top: 2px;
+  overflow: hidden;
+}
+
 .allDayEvent {
-  font-size: 10px;
-  padding: 2px 4px;
-  border-radius: 3px;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 7px;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: filter 0.15s ease;
+  transition: filter 0.14s ease;
+  display: flex;
+  align-items: center;
 }
 
 .allDayEvent:hover {
@@ -40,30 +58,33 @@
 }
 
 .allDayEventTitle {
+  font-size: 11px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--ink, #2c2823);
 }
 
 .headerShadow {
-  box-shadow: var(--shadow-topbar);
+  box-shadow: 0 2px 8px rgba(44, 40, 33, 0.05);
 }
 
 .weekNumberColumn {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--color-border-subtle, var(--color-border));
-  background: var(--color-bg-tertiary);
+  border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  background: var(--panel, #ffffff);
 }
 
 .weekNumberHeader {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-day-header, 12px);
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  background: var(--color-bg-tertiary);
-  border-right: 1px solid var(--color-border-subtle, var(--color-border));
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3, #a39d93);
+  background: var(--panel, #ffffff);
+  border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
   min-height: 48px;
   min-width: 45px;
   max-width: 45px;
@@ -72,7 +93,7 @@
 .timeColumn {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--color-border-subtle, var(--color-border));
+  border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
   min-width: 45px;
   max-width: 45px;
 }
@@ -81,25 +102,27 @@
   min-height: var(--hour-height, 60px);
   height: var(--hour-height, 60px);
   padding: var(--space-1, 4px) var(--space-2, 8px);
-  font-size: var(--font-size-event-time, 11px);
+  font-size: 11px;
   font-weight: 500;
-  color: var(--color-text-muted);
+  color: var(--ink-3, #a39d93);
+  font-variant-numeric: tabular-nums;
   text-align: center;
   justify-content: center;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
+  border-bottom: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
   box-sizing: border-box;
 }
 
 .timeGutter {
-  border-right: 1px solid var(--color-border-subtle, var(--color-border));
+  border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-event-time, 11px);
-  color: var(--color-text-muted);
+  font-size: 11px;
+  color: var(--ink-3, #a39d93);
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .dayHeader {
@@ -107,7 +130,7 @@
   flex-direction: column;
   align-items: center;
   padding: var(--space-1, 4px);
-  border-right: 1px solid var(--color-border-subtle, var(--color-border));
+  border-right: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
   min-height: 48px;
   overflow: hidden;
 }
@@ -130,33 +153,34 @@
 }
 
 .dayHeader.today {
-  background: var(--color-bg-tertiary);
+  background: rgba(176, 125, 79, 0.04);
 }
 
 .dayHeader.today .dayNumber {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--today-badge-size, 28px);
-  height: var(--today-badge-size, 28px);
-  background: var(--color-terracotta, var(--color-accent));
+  width: 28px;
+  height: 28px;
+  background: var(--accent, #b07d4f);
   color: white;
-  border-radius: var(--today-badge-radius, 50%);
-  font-weight: var(--font-weight-today-number, 600);
+  border-radius: 50%;
+  font-weight: 600;
 }
 
 .dayName {
-  font-size: var(--font-size-day-header, 12px);
-  font-weight: var(--font-weight-day-header, 500);
-  color: var(--color-text-secondary);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-uppercase, 0.05em);
+  color: var(--ink-3, #a39d93);
 }
 
 .dayNumber {
-  font-size: 18px;
-  font-weight: var(--font-weight-day-number, 400);
-  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-2, #6f6a62);
+  font-variant-numeric: tabular-nums;
 }
 
 .body {
@@ -164,7 +188,7 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background: linear-gradient(to right, var(--color-bg-tertiary) 45px, var(--color-bg-primary) 45px);
+  background: var(--panel, #ffffff);
 }
 
 .daysContainer {
@@ -177,7 +201,7 @@
   position: relative;
   min-height: calc(24 * var(--hour-height, 60px));
   height: 100%;
-  border-right: 1px solid var(--color-border);
+  border-right: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
 }
 
 .dayColumn:last-child {
@@ -193,19 +217,19 @@
 .cell {
   height: var(--hour-height, 60px);
   flex: none;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.12s ease;
   box-sizing: border-box;
 }
 
 .cell:hover {
-  background: var(--color-bg-hover);
+  background: rgba(44, 40, 33, 0.03);
 }
 
 .cell.dropTarget {
-  background: var(--color-accent-light);
-  border: 2px dashed var(--color-accent);
+  background: var(--accent-soft, #efe7db);
+  border: 2px dashed var(--accent, #b07d4f);
 }
 
 .eventsOverlay {
@@ -227,15 +251,15 @@
 
 .eventTransparent {
   z-index: 1;
-  border-radius: var(--event-border-radius, 8px);
+  border-radius: 7px;
 }
 
 .selectionOverlay {
   position: absolute;
   left: 2px;
   right: 2px;
-  background: rgba(66, 133, 244, 0.3);
-  border: 2px solid var(--color-accent);
+  background: rgba(176, 125, 79, 0.2);
+  border: 2px solid var(--accent, #b07d4f);
   border-radius: 4px;
   pointer-events: none;
   z-index: 5;
@@ -260,7 +284,7 @@
 
 .travelBarInner {
   font-size: 10px;
-  color: rgba(0, 0, 0, 0.5);
+  color: var(--ink-2, #6f6a62);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -296,8 +320,8 @@
 .tasksFixedFooter {
   position: sticky;
   bottom: 0;
-  background: var(--color-bg-tertiary);
-  border-top: 1px solid var(--color-border);
+  background: var(--panel, #ffffff);
+  border-top: 1px solid var(--line, rgba(44, 40, 33, 0.09));
   padding: 8px 0;
   display: grid;
   grid-template-columns: 60px repeat(7, 1fr);
@@ -341,8 +365,8 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    background: var(--color-bg, var(--color-bg-secondary));
-    border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
+    background: var(--panel, #ffffff);
+    border-bottom: 1px solid var(--line, rgba(44, 40, 33, 0.09));
   }
 
   .mobileBody {
@@ -359,11 +383,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--font-size-day-header, 12px);
-    font-weight: 600;
-    color: var(--color-text-secondary);
-    background: var(--color-bg-tertiary);
-    border-right: 1px solid var(--color-border-subtle, var(--color-border));
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3, #a39d93);
+    background: var(--panel, #ffffff);
+    border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
     min-height: 48px;
   }
 
@@ -380,7 +406,7 @@
     flex-direction: column;
     align-items: center;
     padding: var(--space-1, 4px);
-    border-right: 1px solid var(--color-border-subtle, var(--color-border));
+    border-right: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
   }
 
   .dayHeader:last-child {
@@ -396,11 +422,11 @@
     position: sticky;
     left: 0;
     z-index: 5;
-    background: var(--color-bg-tertiary);
+    background: var(--panel, #ffffff);
     min-width: 45px;
     max-width: 45px;
     flex-shrink: 0;
-    border-right: 1px solid var(--color-border-subtle, var(--color-border));
+    border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
   }
 
   .timeCell {
@@ -409,12 +435,13 @@
     padding: var(--space-1, 4px) 2px;
     font-size: 10px;
     font-weight: 500;
-    color: var(--color-text-muted);
+    color: var(--ink-3, #a39d93);
+    font-variant-numeric: tabular-nums;
     text-align: center;
     justify-content: center;
     display: flex;
     align-items: center;
-    border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
+    border-bottom: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
     box-sizing: border-box;
   }
 
@@ -430,7 +457,7 @@
     min-height: calc(24 * var(--hour-height, 60px));
     height: 100%;
     position: relative;
-    border-right: 1px solid var(--color-border);
+    border-right: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
   }
 
   .dayColumn:last-child {

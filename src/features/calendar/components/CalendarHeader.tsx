@@ -179,18 +179,6 @@ export function CalendarHeader({
         </button>
       )}
 
-      {/* Month Title */}
-      <div className={styles.titleGroup}>
-        {typeof title === 'object' ? (
-          <>
-            <h1 className={styles.monthTitle}>{title.month}</h1>
-            <span className={styles.yearTitle}>{title.year}</span>
-          </>
-        ) : (
-          <h1 className={styles.viewTitle}>{title}</h1>
-        )}
-      </div>
-
       {/* Navigator - grouped segmented control */}
       {!isMobile && currentView !== 'todo' && (
         <div className={styles.navigator}>
@@ -213,6 +201,18 @@ export function CalendarHeader({
           </button>
         </div>
       )}
+
+      {/* Month Title */}
+      <div className={styles.titleGroup}>
+        {typeof title === 'object' ? (
+          <>
+            <h1 className={styles.monthTitle}>{title.month}</h1>
+            <span className={styles.yearTitle}>{title.year}</span>
+          </>
+        ) : (
+          <h1 className={styles.viewTitle}>{title}</h1>
+        )}
+      </div>
 
       {/* Spacer */}
       <div className={styles.spacer} />

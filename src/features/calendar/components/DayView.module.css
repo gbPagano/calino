@@ -1,3 +1,7 @@
+/* ============================================================================
+   DayView — Editorial Design
+   ============================================================================ */
+
 .container {
   display: flex;
   flex-direction: column;
@@ -6,14 +10,20 @@
   min-height: 0;
   overflow: auto;
   position: relative;
+  background: var(--canvas, #faf8f3);
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  box-shadow: var(--shadow-card, 0 1px 2px rgba(44, 40, 33, 0.04), 0 6px 16px rgba(44, 40, 33, 0.03));
 }
 
 .header {
-  padding: var(--space-2, 8px) var(--space-4, 16px);
-  border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
-  background: var(--color-bg, var(--color-bg-secondary));
-  transition: box-shadow 0.2s ease;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  background: var(--panel, #ffffff);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header.hasAllDayEvents {
@@ -31,13 +41,13 @@
 
 .allDayEvent {
   font-size: 11px;
-  padding: 3px 6px;
-  border-radius: 4px;
+  padding: 2px 6px;
+  border-radius: 7px;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: filter 0.15s ease;
+  transition: filter 0.14s ease;
   display: flex;
   align-items: center;
   min-width: 80px;
@@ -49,12 +59,13 @@
 }
 
 .allDayEventTitle {
+  font-size: 11px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--ink, #2c2823);
 }
 
 .headerShadow {
-  box-shadow: var(--shadow-topbar);
+  box-shadow: 0 2px 8px rgba(44, 40, 33, 0.05);
 }
 
 .body {
@@ -64,7 +75,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  background: var(--color-bg, var(--color-bg-primary));
+  background: var(--panel, #ffffff);
   position: relative;
 }
 
@@ -75,17 +86,17 @@
 }
 
 .dayName {
-  font-size: var(--font-size-day-header, 14px);
-  font-weight: var(--font-weight-day-header, 500);
-  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-2, #6f6a62);
   text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-uppercase, 0.05em);
+  letter-spacing: 0.05em;
 }
 
 .dayNumber {
   font-size: 18px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--ink, #2c2823);
 }
 
 .dayNumber.today {
@@ -94,10 +105,10 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: var(--color-terracotta, var(--color-accent));
+  background: var(--accent, #b07d4f);
   color: white;
-  border-radius: var(--today-badge-radius, 50%);
-  font-weight: var(--font-weight-today-number, 600);
+  border-radius: 50%;
+  font-weight: 600;
 }
 
 @media (max-width: 768px) {
@@ -120,7 +131,7 @@
   grid-template-columns: 60px 1fr;
   height: var(--hour-height, 60px);
   flex: none;
-  border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
+  border-bottom: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
   box-sizing: border-box;
 }
 
@@ -132,25 +143,27 @@
 
 .timeLabel {
   padding: var(--space-1, 4px) var(--space-2, 8px);
-  font-size: var(--font-size-event-time, 11px);
-  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-3, #a39d93);
+  font-variant-numeric: tabular-nums;
   text-align: right;
-  border-right: 1px solid var(--color-border-subtle, var(--color-border));
-  background: var(--color-bg, var(--color-bg-secondary));
+  border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  background: var(--panel, #ffffff);
 }
 
 .cell {
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.12s ease;
 }
 
 .cell:hover {
-  background: var(--color-bg-hover);
+  background: rgba(44, 40, 33, 0.03);
 }
 
 .cell.dropTarget {
-  background: var(--color-accent-light);
-  border: 2px dashed var(--color-accent);
+  background: var(--accent-soft, #efe7db);
+  border: 2px dashed var(--accent, #b07d4f);
 }
 
 .eventsOverlay {
@@ -172,15 +185,15 @@
 
 .eventTransparent {
   z-index: 1;
-  border-radius: var(--event-border-radius, 8px);
+  border-radius: 7px;
 }
 
 .selectionOverlay {
   position: absolute;
   left: 2px;
   right: 2px;
-  background: rgba(66, 133, 244, 0.3);
-  border: 2px solid var(--color-accent);
+  background: rgba(176, 125, 79, 0.2);
+  border: 2px solid var(--accent, #b07d4f);
   border-radius: 4px;
   pointer-events: none;
   z-index: 5;
@@ -205,7 +218,7 @@
 
 .travelBarInner {
   font-size: 10px;
-  color: rgba(0, 0, 0, 0.5);
+  color: var(--ink-2, #6f6a62);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -241,8 +254,8 @@
 .tasksFixedFooter {
   position: sticky;
   bottom: 0;
-  background: var(--color-bg-tertiary);
-  border-top: 1px solid var(--color-border);
+  background: var(--panel, #ffffff);
+  border-top: 1px solid var(--line, rgba(44, 40, 33, 0.09));
   padding: 8px 0;
   display: grid;
   grid-template-columns: 60px 1fr;

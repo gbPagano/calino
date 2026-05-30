@@ -94,10 +94,26 @@
   padding: 2px 16px;
 }
 
-/* ---- Mini Calendar ---- */
+/* Ensure mini calendar is in a card */
 .mini {
   display: flex;
   flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 16px 18px;
+  box-shadow: 0 1px 2px rgba(44, 40, 33, 0.04), 0 6px 16px rgba(44, 40, 33, 0.03);
+}
+
+/* Tasks section card */
+.tasksSection {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 16px 3px;
+  box-shadow: 0 1px 2px rgba(44, 40, 33, 0.04), 0 6px 16px rgba(44, 40, 33, 0.03);
 }
 
 .miniHeader {
@@ -158,7 +174,23 @@
   transition: background 0.14s, color 0.14s;
 }
 
-.miniNav:hover {
+.miniNavBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--ink-3);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+
+.miniNav:hover,
+.miniNavBtn:hover {
   background: rgba(44, 40, 33, 0.05);
   color: var(--ink);
 }
@@ -330,6 +362,129 @@
   flex-direction: column;
 }
 
+.sectionTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.sectionTitle {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+
+.addCalendarButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: var(--ink-3);
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+
+.addCalendarButton:hover {
+  background: rgba(44, 40, 33, 0.06);
+  color: var(--ink);
+}
+
+.calendarItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.12s;
+}
+
+.calendarItem:hover {
+  background: rgba(44, 40, 33, 0.04);
+}
+
+.calendarItem:hover .syncButton {
+  opacity: 1;
+}
+
+.checkbox {
+  appearance: none;
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  border: 1.5px solid var(--ink-3);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+}
+
+.checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.checkbox:checked::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: #fff;
+  clip-path: polygon(13% 50%, 38% 75%, 87% 18%, 96% 30%, 39% 95%, 4% 60%);
+}
+
+.colorDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+
+.colorDot:hover {
+  transform: scale(1.3);
+}
+
+.calName {
+  font-size: 14px;
+  color: var(--ink);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendarName {
+  font-size: 14px;
+  color: var(--ink);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.renameInput {
+  flex: 1;
+  font-size: 13px;
+  padding: 2px 4px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  outline: none;
+  background: var(--panel);
+  color: var(--ink);
+}
+
 .calRow {
   display: flex;
   align-items: center;
@@ -444,11 +599,6 @@
 }
 
 /* ---- Tasks Section ---- */
-.tasksSection {
-  display: flex;
-  flex-direction: column;
-}
-
 .tasksHeader {
   display: flex;
   align-items: center;
@@ -598,6 +748,162 @@
 
 .tasksViewAll:hover {
   color: var(--ink);
+}
+
+/* ---- Categories Section ---- */
+.categoriesWrapper {
+  position: relative;
+}
+
+.categoryCard {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(44, 40, 33, 0.1);
+  margin-bottom: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.categoryCardList {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.categoryCard::-webkit-scrollbar {
+  width: 6px;
+}
+
+.categoryCard::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.categoryCard::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+
+/* ---- Section Header ---- */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  width: 100%;
+}
+
+.sectionHeader:hover .sectionTitle {
+  color: var(--ink);
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--ink-3);
+  transition: transform 0.2s ease;
+}
+
+.chevronExpanded {
+  transform: rotate(180deg);
+}
+
+/* ---- Sync Button ---- */
+.syncButton {
+  opacity: 0;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--ink-2);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.calendarItem:hover .syncButton {
+  opacity: 1;
+}
+
+.syncButton:hover {
+  color: var(--ink);
+  background: rgba(44, 40, 33, 0.06);
+}
+
+.syncButton.syncing {
+  opacity: 1;
+  animation: spin 1s linear infinite;
+}
+
+.syncButton.success {
+  opacity: 1;
+  color: var(--color-success);
+}
+
+.syncButton.error {
+  opacity: 1;
+  color: var(--color-error);
+}
+
+/* ---- Mini Calendar (alias) ---- */
+.miniCalendar {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 16px 18px;
+  box-shadow: 0 1px 2px rgba(44, 40, 33, 0.04), 0 6px 16px rgba(44, 40, 33, 0.03);
+}
+
+/* ---- Year/Month Dropdowns ---- */
+.yearDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(44, 40, 33, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  min-width: 120px;
+}
+
+.yearDropdownRight {
+  left: auto;
+  right: 0;
+}
+
+.yearOption {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.yearOption:hover {
+  background: rgba(44, 40, 33, 0.04);
+}
+
+.yearOptionSelected {
+  background: rgba(44, 40, 33, 0.04);
+  font-weight: 600;
 }
 
 /* ---- Categories Section ---- */

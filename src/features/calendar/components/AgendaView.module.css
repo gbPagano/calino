@@ -1,3 +1,7 @@
+/* ============================================================================
+   AgendaView — Editorial Design
+   ============================================================================ */
+
 .container {
   flex: 1;
   display: flex;
@@ -5,19 +9,25 @@
   min-height: 0;
   overflow: auto;
   padding: 16px 24px;
-  background: var(--color-bg-primary);
+  background: var(--canvas, #faf8f3);
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  box-shadow: var(--shadow-card, 0 1px 2px rgba(44, 40, 33, 0.04), 0 6px 16px rgba(44, 40, 33, 0.03));
 }
 
 .embedded {
   padding: 0;
   background: transparent;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
 }
 
 .containerShadow {
-  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: inset 0 -2px 4px rgba(44, 40, 33, 0.05);
 }
 
-/* Day header */
+/* ---- Day Header ---- */
 .agendaDayHeader {
   display: flex;
   align-items: baseline;
@@ -25,21 +35,27 @@
   padding: 14px 20px 6px;
 }
 
+.agendaDayLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .agendaDow {
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--ink, #2c2823);
 }
 
 .agendaDayHeader.isEmpty .agendaDow,
 .agendaDayHeader.isEmpty .agendaDate {
-  color: var(--color-text-muted);
+  color: var(--ink-3, #a39d93);
 }
 
 .agendaDate {
   font-size: 12px;
-  color: var(--color-text-muted);
-  margin-left: 8px;
+  color: var(--ink-3, #a39d93);
+  margin-left: 0;
 }
 
 .agendaAdd {
@@ -47,52 +63,53 @@
   border: none;
   cursor: pointer;
   font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--ink-3, #a39d93);
   padding: 0;
-  font-family: var(--font-sans);
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif);
+  transition: color 0.12s ease;
 }
 
 .agendaAdd:hover {
-  color: var(--color-text-secondary);
+  color: var(--ink-2, #6f6a62);
 }
 
-/* Divider */
+/* ---- Divider ---- */
 .agendaDivider {
   height: 1px;
-  background: var(--color-border-subtle);
+  background: var(--line, rgba(44, 40, 33, 0.09));
   margin: 8px 12px 0;
 }
 
-/* Event row */
+/* ---- Event Row ---- */
 .agendaEvent {
   display: flex;
   align-items: stretch;
   margin: 0 12px 4px;
-  border-radius: 8px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-subtle);
-  box-shadow: var(--shadow-event);
+  border-radius: 7px;
+  background: var(--panel, #ffffff);
+  border: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  box-shadow: var(--shadow-event, 0 1px 2px rgba(44, 40, 33, 0.04));
   overflow: hidden;
   cursor: pointer;
-  transition: box-shadow 150ms, transform 150ms;
+  transition: box-shadow 0.14s, transform 0.14s;
 }
 
 .agendaEvent:hover {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(44, 40, 33, 0.08);
   transform: translateY(-1px);
 }
 
 .agendaEvent:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--accent, #b07d4f);
   outline-offset: 1px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(44, 40, 33, 0.08);
   transform: translateY(-1px);
 }
 
 .agendaEventBar {
   width: 3px;
   flex-shrink: 0;
-  background: var(--color-border-visible);
+  background: var(--accent, #b07d4f);
 }
 
 .agendaEventBody {
@@ -108,26 +125,27 @@
 
 .agendaEventTime {
   font-size: 11.5px;
-  color: var(--color-text-muted);
+  color: var(--ink-3, #a39d93);
   font-weight: 500;
   min-width: 40px;
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .agendaEventTitle {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--ink, #2c2823);
 }
 
 .agendaEventSub {
   font-size: 11.5px;
-  color: var(--color-text-muted);
+  color: var(--ink-2, #6f6a62);
   margin-top: 2px;
   padding-left: 52px;
 }
 
-/* Skip row for 2+ consecutive empty days */
+/* ---- Skip Row ---- */
 .agendaSkip {
   display: flex;
   align-items: center;
@@ -140,8 +158,8 @@
   height: 1px;
   background: repeating-linear-gradient(
     90deg,
-    var(--color-border-visible) 0,
-    var(--color-border-visible) 4px,
+    var(--line, rgba(44, 40, 33, 0.09)) 0,
+    var(--line, rgba(44, 40, 33, 0.09)) 4px,
     transparent 4px,
     transparent 10px
   );
@@ -151,40 +169,40 @@
   flex-shrink: 0;
   font-size: 11.5px;
   font-weight: 500;
-  color: var(--color-text-muted);
+  color: var(--ink-3, #a39d93);
   white-space: nowrap;
 }
 
-/* Task row */
+/* ---- Task Row ---- */
 .agendaTask {
   display: flex;
   align-items: stretch;
   margin: 0 12px 4px;
-  border-radius: 8px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-subtle);
-  box-shadow: var(--shadow-event);
+  border-radius: 7px;
+  background: var(--panel, #ffffff);
+  border: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  box-shadow: var(--shadow-event, 0 1px 2px rgba(44, 40, 33, 0.04));
   overflow: hidden;
   cursor: pointer;
-  transition: box-shadow 150ms, transform 150ms;
+  transition: box-shadow 0.14s, transform 0.14s;
 }
 
 .agendaTask:hover {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(44, 40, 33, 0.08);
   transform: translateY(-1px);
 }
 
 .agendaTask:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--accent, #b07d4f);
   outline-offset: 1px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(44, 40, 33, 0.08);
   transform: translateY(-1px);
 }
 
 .agendaTaskBar {
   width: 3px;
   flex-shrink: 0;
-  background: var(--color-border-visible);
+  background: var(--ink-3, #a39d93);
 }
 
 .agendaTaskBody {
@@ -200,25 +218,32 @@
 
 .agendaTaskTime {
   font-size: 11.5px;
-  color: var(--color-text-muted);
+  color: var(--ink-3, #a39d93);
   font-weight: 500;
   min-width: 40px;
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .agendaTaskTitle {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--ink, #2c2823);
 }
 
 .agendaTaskCompleted .agendaTaskTitle {
   text-decoration: line-through;
-  color: var(--color-text-muted);
+  color: var(--ink-3, #a39d93);
 }
 
 .agendaTaskIcon {
-  font-size: 12px;
-  color: var(--color-text-secondary);
+  font-size: 14px;
+  color: var(--ink-2, #6f6a62);
   margin-right: 8px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }

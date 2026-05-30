@@ -51,11 +51,11 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
       })
       .sort((a, b) => {
         if (!a.dueDate || !b.dueDate) return 0
-        return parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime()
+        return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime()
       })
       .slice(0, 5)
 
-    return [...overdue, ...tasks].slice(0, 10)
+    return [...tasks, ...overdue].slice(0, 10)
   }, [events])
 
   const activeCount = events.filter((e) => e.type === 'task' && !e.completed).length

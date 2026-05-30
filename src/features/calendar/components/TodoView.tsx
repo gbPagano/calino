@@ -210,7 +210,7 @@ export function TodoView(): JSX.Element {
                       </span>
                     )}
                     {task.dueDate && (
-                      <span className={styles.taskDue}>
+                      <span className={`${styles.taskDue} ${isBefore(startOfDay(parseISO(task.dueDate)), startOfDay(new Date())) ? styles.overdue : ''}`}>
                         {format(parseISO(task.dueDate), 'MMM d')}
                       </span>
                     )}

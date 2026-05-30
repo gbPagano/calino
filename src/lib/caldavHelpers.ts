@@ -1,8 +1,9 @@
+import type { CalendarEvent } from '@/types'
 import { showToast } from './toast'
 
 type CalDAVUpdateFn = (
   calendarId: string,
-  event: { id: string; [key: string]: unknown }
+  event: CalendarEvent
 ) => Promise<void>
 
 type CalDAVDeleteFn = (calendarId: string, eventId: string) => Promise<void>

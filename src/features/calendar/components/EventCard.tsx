@@ -13,7 +13,6 @@ import type { CalendarEvent } from '@/types'
 import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
-import { showToast } from '@/lib/toast'
 import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
 
 import { isUUID } from '@/features/caldav/adapter/iCalendarAdapter'

@@ -58,7 +58,7 @@ export function CalendarHeader({
     typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
   )
   const [showQuickSettings, setShowQuickSettings] = useState(false)
-  const quickSettingsTimeoutRef = useState(() => ({ current: null as ReturnType<typeof setTimeout> | null }))[0]
+  const quickSettingsTimeoutRef = useState(() => ({ current: undefined as ReturnType<typeof setTimeout> | undefined }))[0]
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)

@@ -13,6 +13,8 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
+import { showToast } from '@/lib/toast'
+import { safeCalDAVDelete } from '@/lib/caldavHelpers'
 import type { CalendarEvent } from '@/types'
 import { isUUID } from '@/lib/uuid'
 import { ContextMenu } from '@/components/common/ContextMenu'
@@ -31,7 +33,7 @@ interface DayGroup {
 }
 
 export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): JSX.Element {
-  void embedded // suppress unused warning
+  const containerClass = `${styles.container} ${embedded ? styles.embedded : ''}`
   const currentDate = useCalendarStore((state) => state.currentDate)
   const calendars = useCalendarStore((state) => state.calendars)
   const categories = useCalendarStore((state) => state.categories)
@@ -203,7 +205,7 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
   return (
     <div
       ref={containerRef}
-      className={`${styles.container} ${isScrolled ? styles.containerShadow : ''}`}
+      className={`${containerClass} ${isScrolled ? styles.containerShadow : ''}`}
       onScroll={handleScroll}
     >
       {dayGroups.map((group) => {
@@ -367,15 +369,7 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
                   const eventId = eventContextMenu.event.id
                   const calendarId = eventContextMenu.event.calendarId
                   deleteEvent(eventId)
-                  try {
-                    await deleteCalDAVEvent(calendarId, eventId)
-                  } catch {
-                    window.dispatchEvent(
-                      new CustomEvent('show-toast', {
-                        detail: { message: 'Failed to sync deletion with CalDAV server. It will be retried.' },
-                      })
-                    )
-                  }
+                  await safeCalDAVDelete(deleteCalDAVEvent, calendarId, eventId)
                   setEventContextMenu(null)
                 },
                 danger: true,

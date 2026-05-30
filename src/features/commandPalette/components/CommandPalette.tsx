@@ -3,6 +3,7 @@ import { useRef, useEffect, useCallback } from 'react'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCommandPalette } from '../hooks/useCommandPalette'
 import { CommandItem } from './CommandItem'
+import { showToast } from '@/lib/toast'
 import styles from './CommandPalette.module.css'
 
 interface CommandPaletteProps {
@@ -30,9 +31,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
         e.preventDefault()
         const result = await executeSelected()
         if (result?.success && result.message) {
-          window.dispatchEvent(
-            new CustomEvent('show-toast', { detail: { message: result.message } })
-          )
+          showToast(result.message)
         }
         onClose()
       }
@@ -81,7 +80,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
   const handleItemClick = async (index: number) => {
     const result = await executeSelected(index)
     if (result?.success && result.message) {
-      window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: result.message } }))
+      showToast(result.message)
     }
     onClose()
   }

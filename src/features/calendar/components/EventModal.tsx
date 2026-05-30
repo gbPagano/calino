@@ -4,6 +4,8 @@ import { format, parseISO } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
+import { showToast } from '@/lib/toast'
+import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
 import type { CalendarEvent, RecurrenceRule, TaskPriority, Reminder } from '@/types'
 import { TaskFormFields } from './TaskFormFields'
 import { EventFormFields } from './EventFormFields'
@@ -495,9 +497,7 @@ export function EventModal(): JSX.Element | null {
     e.preventDefault()
 
     if (!title.trim()) {
-      window.dispatchEvent(
-        new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
-      )
+      showToast('Title is required')
       return
     }
 
@@ -516,9 +516,7 @@ export function EventModal(): JSX.Element | null {
     }
 
     if (!title.trim()) {
-      window.dispatchEvent(
-        new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
-      )
+      showToast('Title is required')
       return
     }
 
@@ -540,11 +538,7 @@ export function EventModal(): JSX.Element | null {
       if (mode === 'this' && originalEventId) {
         const masterEvent = events.find((e) => e.id === originalEventId)
         if (!masterEvent) {
-          window.dispatchEvent(
-            new CustomEvent('show-toast', {
-              detail: { message: 'Master event not found. Cannot edit single occurrence.' },
-            })
-          )
+          showToast('Master event not found. Cannot edit single occurrence.')
           return
         }
 
@@ -553,11 +547,7 @@ export function EventModal(): JSX.Element | null {
         )
         const originalOccurrenceDate = isoDateMatch ? isoDateMatch[2] : null
         if (!originalOccurrenceDate) {
-          window.dispatchEvent(
-            new CustomEvent('show-toast', {
-              detail: { message: 'Invalid event data. Cannot edit single occurrence.' },
-            })
-          )
+          showToast('Invalid event data. Cannot edit single occurrence.')
           return
         }
 
@@ -583,11 +573,7 @@ export function EventModal(): JSX.Element | null {
         try {
           await createCalDAVEvent(masterEvent.calendarId, exceptionEvent)
         } catch {
-          window.dispatchEvent(
-            new CustomEvent('show-toast', {
-              detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
-            })
-          )
+          showToast('Failed to sync event with CalDAV server. It will be retried.')
         }
       } else {
         const eventId = originalEventId || selectedEventId
@@ -618,8 +604,10 @@ export function EventModal(): JSX.Element | null {
         })
         const existingEvent = events.find((e) => e.id === eventId)
         if (existingEvent) {
-          try {
-            await updateCalDAVEvent(calendarId, {
+          await safeCalDAVUpdate(
+            updateCalDAVEvent,
+            calendarId,
+            {
               ...existingEvent,
               title,
               description: description || undefined,
@@ -637,14 +625,26 @@ export function EventModal(): JSX.Element | null {
               reminders: isTaskMode ? undefined : reminders,
               transparency: isTaskMode ? undefined : transparency,
               categories: selectedCategories,
-            })
-          } catch {
-            window.dispatchEvent(
-              new CustomEvent('show-toast', {
-                detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
-              })
-            )
-          }
+            },
+            {
+              title,
+              description: description || undefined,
+              location: location || undefined,
+              start: eventStart,
+              end: eventEnd,
+              isAllDay: isTaskMode ? dueAllDay : isAllDay,
+              calendarId,
+              recurrence: isTaskMode ? undefined : recurrenceRule,
+              travelDuration: isTaskMode ? undefined : travelDuration,
+              type: isTaskMode ? 'task' : 'event',
+              dueDate: taskDueDate,
+              completed: isTaskMode ? completed : undefined,
+              priority: isTaskMode ? priority : undefined,
+              reminders: isTaskMode ? undefined : reminders,
+              transparency: isTaskMode ? undefined : transparency,
+              categories: selectedCategories,
+            }
+          )
         }
       }
     } else {
@@ -676,15 +676,12 @@ export function EventModal(): JSX.Element | null {
         categories: selectedCategories,
       }
       addEvent(newEvent)
-      try {
-        await createCalDAVEvent(calendarId, newEvent)
-      } catch {
-        window.dispatchEvent(
-          new CustomEvent('show-toast', {
-            detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
-          })
-        )
-      }
+      await safeCalDAVUpdate(
+        createCalDAVEvent,
+        calendarId,
+        newEvent,
+        {}
+      )
     }
 
     setShowRecurrenceDialog(false)
@@ -693,9 +690,7 @@ export function EventModal(): JSX.Element | null {
 
   const handleRecurrenceDialogConfirm = async (mode: RecurrenceEditMode): Promise<void> => {
     if (!title.trim()) {
-      window.dispatchEvent(
-        new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
-      )
+      showToast('Title is required')
       return
     }
     await saveEvent(mode)
@@ -728,30 +723,19 @@ export function EventModal(): JSX.Element | null {
         if (!excludedDates.includes(occurrenceDate)) {
           const updatedExcludedDates = [...excludedDates, occurrenceDate]
           updateEvent(originalEventId, { excludedDates: updatedExcludedDates })
-          try {
-            await updateCalDAVEvent(calendarId, { ...masterEvent, excludedDates: updatedExcludedDates })
-          } catch {
-            window.dispatchEvent(
-              new CustomEvent('show-toast', {
-                detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
-              })
-            )
-          }
+          await safeCalDAVUpdate(
+            updateCalDAVEvent,
+            calendarId,
+            { ...masterEvent, excludedDates: updatedExcludedDates },
+            { excludedDates: updatedExcludedDates }
+          )
         }
       }
     } else {
       const eventIdToDelete = originalEventId || selectedEventId
       if (eventIdToDelete) {
         deleteEvent(eventIdToDelete)
-        try {
-          await deleteCalDAVEvent(calendarId, eventIdToDelete)
-        } catch {
-          window.dispatchEvent(
-            new CustomEvent('show-toast', {
-              detail: { message: 'Failed to sync event with CalDAV server. It will be retried.' },
-            })
-          )
-        }
+        await safeCalDAVDelete(deleteCalDAVEvent, calendarId, eventIdToDelete)
       }
     }
     setShowDeleteDialog(false)
@@ -798,9 +782,7 @@ export function EventModal(): JSX.Element | null {
               required
               onInvalid={(e) => {
                 e.preventDefault()
-                window.dispatchEvent(
-                  new CustomEvent('show-toast', { detail: { message: 'Title is required' } })
-                )
+                showToast('Title is required')
               }}
             />
             {showSuggestions && (

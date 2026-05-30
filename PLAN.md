@@ -1,28 +1,49 @@
-# Plan: Fix Search Module Bugs
+# Plan: Code Quality Improvements
 
-Branch: `fix/search-index-bugs` ✅ Committed
+## Phase 1: Toast System
 
-## Phase 1: Core Pipeline Fixes
+- [ ] **T1** — Create `src/lib/toast.ts` with `showToast(message: string)` utility (wraps the CustomEvent dispatch)
+- [ ] **T2** — Create `src/hooks/useToast.ts` hook that listens for toast events and manages state (for components that want to render a toast component instead of relying on App.tsx listener)
+- [ ] **T3** — Replace all 28 `window.dispatchEvent(new CustomEvent('show-toast', ...))` calls with `showToast()` across EventCard, WeekView, DayView, AgendaView, EventPreviewPopup, EventModal, CalendarGrid
 
-- [x] **C1** — Moved `limit` out of `fuseInstance.search()`, applied after filtering + sorting via `.slice()`
-- [x] **C2** — Replaced pure date sort with composite score (70% relevance × 30% recency blend)
-- [x] **C4** — Changed `dateFrom && dateTo` guard to `dateFrom || dateTo`, support half-open ranges
-- [x] **C12** — Pre-parse event dates into a Map once, reuse in filter + sort
+## Phase 2: CalDAV Error Handling
 
-## Phase 2: API Behavior Fixes
+- [ ] **C1** — Create `src/lib/caldavHelpers.ts` with `safeCalDAVOperation` wrapper that handles try/catch + showToast + returns success boolean
+- [ ] **C2** — Create `src/lib/caldavHelpers.ts` with `safeCalDAVUpdate` and `safeCalDAVDelete` convenience functions for the two most common patterns
+- [ ] **C3** — Refactor EventCard (checkbox toggle, convert type, delete) to use shared helpers
+- [ ] **C4** — Refactor WeekView `handleDragEnd` to use shared helpers
+- [ ] **C5** — Refactor DayView drag handler to use shared helpers
+- [ ] **C6** — Refactor EventPreviewPopup delete/toggle handlers to use shared helpers
+- [ ] **C7** — Refactor AgendaView delete handler to use shared helpers
 
-- [x] **C5** — Added `console.warn` when `fuseInstance` is null in `search()`
-- [x] **C6** — Allow filter-only search when query is empty (bypass Fuse, filter collection directly)
-- [x] **C3** — Made key remapping unconditional: `if (options?.keys)` instead of `if (options?.keys && options?.weights)`
-- [x] **C8** — Stopped spreading `SearchOptions` into `IFuseOptions` (was type-unsafe)
-- [x] **C11** — Added optional `options` param to `updateSearchIndex()`
+## Phase 3: EventModal Decomposition
 
-## Phase 3: Robustness & Cleanup
+- [ ] **E1** — Extract `getInitialFormState` + `buildEventFromForm` into `src/features/calendar/components/EventModal/formUtils.ts`
+- [ ] **E2** — Extract validation logic (`validateForm`) into `src/features/calendar/components/EventModal/validateForm.ts`
+- [ ] **E3** — Create `useEventForm` hook in `src/features/calendar/components/EventModal/useEventForm.ts` (manages form state, validation, save)
+- [ ] **E4** — Simplify EventModal.tsx to ~300-400 lines (just render, delegates logic to hook + utils)
 
-- [x] **C9** — Wrapped `parseISO` in sort comparator with try-catch, fallback to epoch 0
-- [x] **C13** — Removed redundant `key` field from `SearchMatch` type and mapping
+## Phase 4: CalendarGrid Cleanup
 
-## Phase 4: Verify
+- [ ] **G1** — Extract month-view-specific logic (cell click, drag-to-create, event positioning) into `src/features/calendar/components/CalendarGrid/monthViewUtils.ts`
+- [ ] **G2** — Extract context menu handler and keyboard navigation into separate concerns
+- [ ] **G3** — Simplify CalendarGrid to ~500 lines
 
-- [x] `pnpm typecheck` passes
-- [x] `pnpm test:run` — all 14 search tests pass (1 pre-existing failure in EventPreviewPopup, unrelated)
+## Phase 5: Keyboard Click Helper
+
+- [ ] **K1** — Create `src/lib/keyboardClick.ts` with `handleKeyboardClick(e, handler)` that types `React.KeyboardEvent` → `React.MouseEvent` bridge properly
+- [ ] **K2** — Replace all `e as unknown as React.MouseEvent` usages in EventCard, AgendaView
+
+## Phase 6: Verify
+
+- [ ] `pnpm typecheck` passes
+- [ ] `pnpm test:run` passes (no new failures)
+- [ ] `pnpm lint` passes
+
+---
+
+## Out of Scope (Future)
+
+- **CalendarStore `getEventsForDateRange`** — Extract recurrence expansion to pure utility. High effort, high risk of regressions. Worth doing but needs careful testing.
+- **useCalDAV hook (893 lines)** — Could be split into sub-hooks, but tightly coupled to CalDAV state machine. Leave for a dedicated refactor.
+- **EventPreviewPopup (797 lines)** — Large but self-contained. Low priority.

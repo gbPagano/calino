@@ -36,6 +36,8 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { showToast } from '@/lib/toast'
+import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { EventCard } from './EventCard'
 import { DayEventsPopup } from './DayEventsPopup'
 import { ContextMenu } from '@/components/common/ContextMenu'
@@ -261,14 +263,13 @@ export function CalendarGrid(): JSX.Element {
 
     storeUpdateEvent(String(active.id), updates)
 
-    try {
-      await caldavUpdateEvent(originalEvent.calendarId, {
-        ...originalEvent,
-        ...updates,
-      })
-    } catch {
-      window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: 'Failed to sync dragged event' } }))
-    }
+    await safeCalDAVUpdate(
+      caldavUpdateEvent,
+      originalEvent.calendarId,
+      { ...originalEvent, ...updates },
+      updates,
+      'Failed to sync dragged event'
+    )
   }
 
   const weekdays = useMemo(() => {

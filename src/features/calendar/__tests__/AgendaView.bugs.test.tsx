@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
 import { AgendaView } from '../components/AgendaView'
+import styles from '../components/AgendaView.module.css'
 
 vi.mock('@/store/calendarStore', () => ({
   useCalendarStore: vi.fn((selector) => {
@@ -63,18 +64,18 @@ describe('Bug #75: AgendaView embedded prop', () => {
   it('applies embedded class when embedded prop is true', () => {
     const { container } = render(<AgendaView embedded={true} />)
     const rootEl = container.firstChild as HTMLElement
-    expect(rootEl.className).toContain('embedded')
+    expect(rootEl.className).toContain(styles.embedded)
   })
 
   it('does not apply embedded class when embedded prop is false', () => {
     const { container } = render(<AgendaView embedded={false} />)
     const rootEl = container.firstChild as HTMLElement
-    expect(rootEl.className).not.toContain('embedded')
+    expect(rootEl.className).not.toContain(styles.embedded)
   })
 
   it('does not apply embedded class by default', () => {
     const { container } = render(<AgendaView />)
     const rootEl = container.firstChild as HTMLElement
-    expect(rootEl.className).not.toContain('embedded')
+    expect(rootEl.className).not.toContain(styles.embedded)
   })
 })

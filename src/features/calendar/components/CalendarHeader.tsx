@@ -16,14 +16,29 @@ import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/store/calendarStore'
 import { MOBILE_BREAKPOINT } from '@/config'
 import { useSettingsStore } from '@/store/settingsStore'
-import { ViewSwitcher } from './ViewSwitcher'
-import { ThemeToggle } from './ThemeToggle'
 import { useGestures } from '@/hooks/useGestures'
+import type { ViewType } from '@/types'
 import styles from './CalendarHeader.module.css'
 
 interface CalendarHeaderProps {
   onToggleSidebar?: () => void
   onOpenCommandPalette?: () => void
+}
+
+const VIEWS: { value: ViewType; label: string }[] = [
+  { value: 'month', label: 'Month' },
+  { value: 'week', label: 'Week' },
+  { value: 'day', label: 'Day' },
+  { value: 'agenda', label: 'Agenda' },
+  { value: 'todo', label: 'Tasks' },
+]
+
+const VIEW_ROUTES: Record<ViewType, string> = {
+  month: '/month',
+  week: '/week',
+  day: '/day',
+  agenda: '/agenda',
+  todo: '/tasks',
 }
 
 export function CalendarHeader({
@@ -34,6 +49,7 @@ export function CalendarHeader({
   const currentDate = useCalendarStore((state) => state.currentDate)
   const currentView = useCalendarStore((state) => state.currentView)
   const setCurrentDate = useCalendarStore((state) => state.setCurrentDate)
+  const setCurrentView = useCalendarStore((state) => state.setCurrentView)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
 
   const [isMobile, setIsMobile] = useState(
@@ -48,18 +64,19 @@ export function CalendarHeader({
   }, [])
 
   const date = parseISO(currentDate)
+  const year = format(date, 'yyyy')
 
-  const getTitle = (): string => {
+  const getTitle = (): { month: string; year: string } | string => {
     switch (currentView) {
       case 'month':
-        return format(date, 'MMMM')
+        return { month: format(date, 'MMMM'), year }
       case 'week': {
         const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek })
         const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
         if (format(weekStart, 'MMM') === format(weekEnd, 'MMM')) {
-          return `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'd')}`
+          return `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'd')}`
         }
-        return `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`
+        return `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d')}`
       }
       case 'day':
         return format(date, 'EEE, MMMM d')
@@ -71,6 +88,8 @@ export function CalendarHeader({
         return format(date, 'MMMM')
     }
   }
+
+  const title = getTitle()
 
   const handleNavigate = (direction: 'prev' | 'next'): void => {
     let newDate: Date
@@ -99,6 +118,14 @@ export function CalendarHeader({
   const handleToday = (): void => {
     setCurrentDate(format(new Date(), 'yyyy-MM-dd'))
   }
+
+  const handleViewChange = useCallback(
+    (view: ViewType) => {
+      setCurrentView(view)
+      navigate(VIEW_ROUTES[view], { replace: true })
+    },
+    [setCurrentView, navigate]
+  )
 
   const handleSwipe = useCallback(
     (direction: 'left' | 'right' | 'up' | 'down') => {
@@ -137,115 +164,165 @@ export function CalendarHeader({
 
   return (
     <div className={styles.header} {...bind}>
-      <div className={styles.left}>
+      {/* Brand Mark - only on desktop */}
+      {!isMobile && (
+        <div className={styles.brand}>
+          <div className={styles.brandDiamond} />
+          <span className={styles.brandName}>Calino</span>
+        </div>
+      )}
+
+      {/* Mobile hamburger */}
+      {isMobile && (
         <button className={styles.hamburger} onClick={onToggleSidebar} aria-label="Toggle menu">
-          <MenuIcon />
+          <HamburgerIcon />
         </button>
-        <h1 className={styles.title}>{getTitle()}</h1>
-        {!isMobile && (
-          <div className={styles.nav}>
-            <button className={styles.navButton} onClick={() => handleNavigate('prev')} aria-label="Previous month">
-              <ChevronLeft />
-            </button>
-            <button className={styles.todayButton} onClick={handleToday}>
-              Today
-            </button>
-            <button className={styles.navButton} onClick={() => handleNavigate('next')} aria-label='Next month'>
-              <ChevronRight />
-            </button>
-          </div>
+      )}
+
+      {/* Month Title */}
+      <div className={styles.titleGroup}>
+        {typeof title === 'object' ? (
+          <>
+            <h1 className={styles.monthTitle}>{title.month}</h1>
+            <span className={styles.yearTitle}>{title.year}</span>
+          </>
+        ) : (
+          <h1 className={styles.viewTitle}>{title}</h1>
         )}
       </div>
-      <div className={styles.right}>
+
+      {/* Navigator - grouped segmented control */}
+      {!isMobile && currentView !== 'todo' && (
+        <div className={styles.navigator}>
+          <button
+            className={styles.navArrow}
+            onClick={() => handleNavigate('prev')}
+            aria-label="Previous"
+          >
+            <ChevronLeft />
+          </button>
+          <button className={styles.navToday} onClick={handleToday}>
+            Today
+          </button>
+          <button
+            className={styles.navArrow}
+            onClick={() => handleNavigate('next')}
+            aria-label="Next"
+          >
+            <ChevronRight />
+          </button>
+        </div>
+      )}
+
+      {/* Spacer */}
+      <div className={styles.spacer} />
+
+      {/* Right cluster */}
+      <div className={styles.rightCluster}>
+        {/* Search */}
         <button
-          className={`${styles.searchButton} ${styles.searchButtonMobile}`}
+          className={styles.iconButton}
           onClick={onOpenCommandPalette}
           aria-label="Search or commands"
         >
           <SearchIcon />
         </button>
-        <ViewSwitcher className={isMobile ? styles.mobileViewSwitcher : undefined} />
+
+        {/* View Tabs - segmented control */}
         {!isMobile && (
-          <>
-            <ThemeToggle className={`${styles.createButton} ${styles.themeToggle}`} />
-            <button className={styles.createButton} onClick={() => navigate('/settings')} aria-label="Open settings">
-              <SettingsIcon />
-            </button>
-          </>
+          <div className={styles.viewTabs}>
+            {VIEWS.map((view) => (
+              <button
+                key={view.value}
+                className={`${styles.viewTab} ${currentView === view.value ? styles.viewTabActive : ''}`}
+                onClick={() => handleViewChange(view.value)}
+              >
+                {view.label}
+              </button>
+            ))}
+          </div>
         )}
+
+        {/* Display toggle (theme) */}
+        <button className={styles.iconButton} aria-label="Toggle display">
+          <DisplayIcon />
+        </button>
+
+        {/* Settings */}
+        <button
+          className={styles.iconButton}
+          onClick={() => navigate('/settings')}
+          aria-label="Settings"
+        >
+          <SettingsIcon />
+        </button>
       </div>
+
+      {/* Mobile view switcher */}
+      {isMobile && (
+        <div className={styles.mobileViewTabs}>
+          {VIEWS.map((view) => (
+            <button
+              key={view.value}
+              className={`${styles.mobileViewTab} ${currentView === view.value ? styles.mobileViewTabActive : ''}`}
+              onClick={() => handleViewChange(view.value)}
+            >
+              {view.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
 function ChevronLeft(): JSX.Element {
   return (
-    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M12.5 15L7.5 10L12.5 5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 12L6 8L10 4" />
     </svg>
   )
 }
 
 function ChevronRight(): JSX.Element {
   return (
-    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M7.5 5L12.5 10L7.5 15"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 4L10 8L6 12" />
     </svg>
   )
 }
 
-function MenuIcon(): JSX.Element {
+function HamburgerIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M3 12H21M3 6H21M3 18H21"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M3 10H17M3 6H17M3 14H17" />
     </svg>
   )
 }
 
 function SearchIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
-      <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21L16.65 16.65" />
+    </svg>
+  )
+}
+
+function DisplayIcon(): JSX.Element {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2" />
+      <path d="M8 21H16M12 17V21" />
     </svg>
   )
 }
 
 function SettingsIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M12 15a3 3 0 100-6 3 3 0 000 6z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
     </svg>
   )
 }

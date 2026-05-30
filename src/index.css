@@ -15,9 +15,9 @@
   -moz-osx-font-smoothing: grayscale;
 
   /* Layout */
-  --sidebar-width: 260px;
+  --sidebar-width: 300px;
   --sidebar-collapsed-width: 40px;
-  --header-height: 64px;
+  --header-height: 76px;
   --mobile-breakpoint: 768px;
 
   /* Safe area for notched phones */
@@ -57,4 +57,13 @@ button:focus-visible {
 input:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+/* ---- Editorial Theme Utilities ---- */
+.font-serif {
+  font-family: var(--font-serif, Georgia, serif);
+}
+
+.font-tabular {
+  font-variant-numeric: tabular-nums;
 }

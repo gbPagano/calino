@@ -213,19 +213,17 @@ export function EventCard({
   }
 
   const style = transform
-    ? {
-        backgroundColor: `${eventColor}20`,
-        borderLeftColor: `${eventColor}80`,
+    ? ({
+        '--event-color': eventColor,
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
         cursor: 'grabbing',
         zIndex: 1000,
         opacity: 0,
-      }
-    : {
-        backgroundColor: `${eventColor}20`,
-        borderLeftColor: `${eventColor}80`,
+      } as React.CSSProperties)
+    : ({
+        '--event-color': eventColor,
         cursor: 'grab',
-      }
+      } as React.CSSProperties)
 
   const handleContextMenu = (e: React.MouseEvent): void => {
     e.preventDefault()
@@ -253,7 +251,7 @@ export function EventCard({
         ref={setNodeRef}
         style={style}
         data-event-card
-        className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''}`}
+        className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${event.completed ? styles.isDone : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''}`}
         onContextMenu={handleContextMenu}
         {...bind}
       >
@@ -269,11 +267,15 @@ export function EventCard({
         )}
         {isTask && (
           <button
-            className={styles.checkbox}
+            className={`${styles.checkbox} ${styles.taskCheckbox}`}
             onClick={handleCheckboxClick}
             aria-label="Toggle completion"
           >
-            {event.completed ? <CheckedIcon /> : <UncheckedIcon />}
+            {event.completed ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : null}
           </button>
         )}
         {isTask ? (

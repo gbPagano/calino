@@ -184,7 +184,7 @@ describe('settingsStore', () => {
     const settings = useSettingsStore.getState()
 
     expect(settings.themeMode).toBe('auto')
-    expect(settings.lightTheme).toBe('calm-v2')
+    expect(settings.lightTheme).toBe('built-in')
     expect(settings.darkTheme).toBe('built-in')
   })
 

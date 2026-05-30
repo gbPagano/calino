@@ -1,26 +1,31 @@
+/* ============================================================================
+   ViewSwitcher — Editorial Design (Segmented Control)
+   ============================================================================ */
+
 .container {
   display: flex;
-  gap: 4px;
-  background: var(--color-bg-tertiary);
+  align-items: center;
+  gap: 2px;
+  background: rgba(44, 40, 33, 0.045);
   padding: 4px;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 .button {
-  padding: 6px 12px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 14px;
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 9px;
+  font-size: 13.5px;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: var(--ink-2);
+  background: transparent;
+  border: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.14s;
 }
 
 .button:hover {
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
+  color: var(--ink);
 }
 
 .button:active {
@@ -28,11 +33,12 @@
 }
 
 .button.active {
-  background: var(--color-bg-secondary);
-  color: var(--color-text-primary);
-  box-shadow: var(--shadow-event);
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(44, 40, 33, 0.08), 0 0 0 1px var(--line);
 }
 
+/* ---- Mobile Dropdown ---- */
 .dropdown {
   position: relative;
   display: flex;
@@ -46,13 +52,13 @@
   gap: 6px;
   padding: 8px 12px;
   border: none;
-  background: var(--color-bg-tertiary);
-  border-radius: 8px;
+  background: rgba(44, 40, 33, 0.045);
+  border-radius: 11px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--ink);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.14s;
   min-width: 80px;
   max-width: 100%;
   width: 100%;
@@ -61,11 +67,11 @@
 }
 
 .dropdownButton:hover {
-  background: var(--color-bg-hover);
+  background: rgba(44, 40, 33, 0.06);
 }
 
 .dropdownArrow {
-  transition: transform 0.15s ease;
+  transition: transform 0.14s;
 }
 
 .dropdownArrowOpen {
@@ -77,10 +83,10 @@
   top: calc(100% + 4px);
   right: 0;
   left: auto;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: var(--shadow-card);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  box-shadow: 0 4px 12px rgba(44, 40, 33, 0.1);
   overflow: hidden;
   z-index: 100;
   min-width: 120px;
@@ -92,23 +98,21 @@
   width: 100%;
   padding: 10px 16px;
   border: none;
-  background: rgba(var(--color-bg-secondary-rgb, 255, 255, 255), 0.5);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: transparent;
   text-align: left;
   font-size: 14px;
-  color: var(--color-text-secondary);
+  color: var(--ink-2);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s;
 }
 
 .dropdownItem:hover {
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
+  background: rgba(44, 40, 33, 0.04);
+  color: var(--ink);
 }
 
 .dropdownItem.active {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
+  background: var(--accent-soft);
+  color: var(--accent);
   font-weight: 500;
 }

@@ -1,51 +1,69 @@
+/* ============================================================================
+   CalendarGrid — Editorial Design
+   Rounded bordered panel, refined cell styling
+   ============================================================================ */
+
 .grid {
   display: flex;
   flex-direction: column;
   flex: 1;
-  background: var(--color-bg, var(--color-bg-secondary));
+  background: var(--canvas);
   overflow: auto;
+  padding: 0 36px 24px 0;
 }
 
+/* ---- Panel Container ---- */
+.gridPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+/* ---- Header Row ---- */
 .header {
   display: grid;
-  grid-template-columns: 40px repeat(7, 1fr);
-  border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
+  grid-template-columns: 46px repeat(7, 1fr);
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
 
 .weekNumHeader {
-  padding: 12px 8px;
-  text-align: center;
-  font-size: var(--font-size-day-header, 11px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 13px 8px;
+  font-size: 10.5px;
   font-weight: 600;
-  color: var(--color-text-muted);
-  background: var(--color-bg-tertiary);
-  border-right: 1px solid var(--color-border-subtle, var(--color-border));
-}
-
-.weekdays {
-  display: contents;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  border-right: 1px solid var(--line-2);
 }
 
 .weekday {
-  padding: var(--day-cell-padding, 12px);
+  padding: 13px 16px;
   text-align: center;
-  font-size: var(--font-size-day-header, 12px);
-  font-weight: var(--font-weight-day-header, 500);
-  color: var(--color-text-secondary);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
   text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-uppercase, 0.05em);
 }
 
+/* ---- Days Container ---- */
 .daysContainer {
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
+/* ---- Week Row ---- */
 .weekRow {
   display: grid;
-  grid-template-columns: 40px repeat(7, 1fr);
+  grid-template-columns: 46px repeat(7, 1fr);
   flex: 1;
 }
 
@@ -57,10 +75,6 @@
   min-height: 50px;
 }
 
-.compressedWeek > .day[data-vh] {
-  min-height: calc(50px * var(--scale, 1));
-}
-
 .compressedWeek .events {
   margin-top: 2px;
 }
@@ -69,135 +83,125 @@
   font-size: 10px;
 }
 
+/* ---- Week Number ---- */
 .weekNumber {
-  padding: 8px 4px;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  background: var(--color-bg-tertiary);
-  border-right: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
   display: flex;
-  align-items: flex-start;
   justify-content: center;
+  padding-top: 14px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  border-right: 1px solid var(--line-2);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.14s, color 0.14s;
   height: 100%;
   min-height: var(--day-cell-height, 100px);
 }
 
 .weekNumber:hover {
-  background: var(--color-bg-hover);
-  color: var(--color-accent);
+  background: rgba(44, 40, 33, 0.03);
+  color: var(--accent);
 }
 
+/* ---- Day Cell ---- */
 .day {
-  min-height: var(--day-cell-height, 100px);
-  border-right: 1px solid var(--color-border-subtle, var(--color-border));
-  border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
-  padding: var(--space-1, 4px);
-  cursor: pointer;
-  transition: background var(--duration-day-hover, 150ms) ease;
+  position: relative;
+  padding: 8px 10px 10px;
+  border-right: 1px solid var(--line-2);
+  border-bottom: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
+  cursor: pointer;
+  transition: background 0.12s;
 }
 
-.day:nth-child(7n) {
+.day:last-child {
   border-right: none;
 }
 
 .day:hover {
-  background: var(--day-cell-hover-bg, var(--color-bg-hover, rgba(0, 0, 0, 0.02)));
+  background: rgba(44, 40, 33, 0.02);
 }
 
 .day:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
-  background: var(--day-cell-hover-bg, var(--color-bg-hover, rgba(0, 0, 0, 0.02)));
+  background: rgba(44, 40, 33, 0.02);
 }
 
 .dropTarget {
-  background: var(--color-accent-light);
-  border: 2px dashed var(--color-accent);
+  background: var(--accent-soft);
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
 }
 
+/* ---- Out of Month ---- */
 .otherMonth {
-  background: var(--color-bg-tertiary);
-  opacity: var(--past-date-opacity, 1);
+  background: rgba(44, 40, 33, 0.02);
 }
 
 .otherMonth .dayNumber {
-  color: var(--color-text-muted);
+  color: var(--ink-3);
+  opacity: 0.6;
+}
+
+/* ---- Today ---- */
+.today {
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
 }
 
 .today .dayNumber {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--today-badge-size, 28px);
-  height: var(--today-badge-size, 28px);
-  background: var(--color-terracotta, var(--color-accent));
-  color: white;
-  border-radius: var(--today-badge-radius, 50%);
-  font-weight: var(--font-weight-today-number, 600);
-  position: relative;
-  z-index: 1;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
 }
 
-.today .dayNumber:hover {
-  background: var(--color-terracotta-hover, var(--color-accent-hover));
-}
-
+/* ---- Day Header ---- */
 .dayHeader {
   display: flex;
-  justify-content: flex-end;
-  padding: var(--space-1, 4px);
-  flex-shrink: 0;
+  align-items: center;
+  margin-bottom: 6px;
 }
 
 .dayNumber {
-  font-size: var(--font-size-day-number, 14px);
-  font-weight: var(--font-weight-day-number, 400);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  width: var(--today-badge-size, 28px);
-  height: var(--today-badge-size, 28px);
-  display: inline-flex;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  width: 28px;
+  height: 28px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--today-badge-radius, 50%);
-  transition: background var(--duration-day-hover, 150ms) ease;
+  border-radius: 50%;
+  background: transparent;
   border: none;
-  background: none;
+  cursor: pointer;
   padding: 0;
   font-family: inherit;
+  transition: background 0.12s, color 0.12s;
 }
 
 .dayNumber:hover {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
+  background: rgba(44, 40, 33, 0.06);
 }
 
 .dayNumber:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
-  border-radius: var(--today-badge-radius, 50%);
 }
 
+/* ---- Events Container ---- */
 .events {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  align-self: flex-start;
-  width: 100%;
-  gap: var(--event-gap, 2px);
-  margin-top: var(--space-1, 4px);
-  padding: 0;
-  position: relative;
-  z-index: 1;
+  gap: 3px;
+  min-height: 0;
+  flex: 1;
 }
 
 .events .card {
@@ -205,38 +209,39 @@
   flex-shrink: 0;
 }
 
+/* ---- More Events Button ---- */
 .moreEvents {
-  font-size: var(--font-size-event-time, 11px);
-  color: var(--color-text-secondary);
+  font-size: 11.5px;
+  color: var(--ink-2);
   padding: 2px 8px;
   cursor: pointer;
   flex-shrink: 0;
   border: none;
   background: none;
   font-family: inherit;
+  text-align: left;
+  transition: color 0.12s;
 }
 
 .moreEvents:hover {
-  color: var(--color-text-primary);
+  color: var(--ink);
 }
 
 .moreEvents:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
   border-radius: 4px;
 }
 
+/* ---- Tasks Container ---- */
 .tasks {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  align-self: flex-start;
-  width: 100%;
-  gap: var(--event-gap, 2px);
+  gap: 3px;
   padding: 0;
   position: relative;
   z-index: 0;
-  margin-top: var(--event-gap, 2px);
+  margin-top: 3px;
 }
 
 .tasks .card {
@@ -246,30 +251,7 @@
   z-index: 0;
 }
 
-.taskCount {
-  font-size: var(--font-size-mini-cal, 11px);
-  color: var(--color-text-secondary);
-  padding: 2px 4px;
-  cursor: pointer;
-}
-
-.taskCount:hover {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
-  border-radius: 4px;
-}
-
-/* Weekend dimming */
-.day:nth-child(7n):not(.today) .dayNumber,
-.day:nth-child(7n):not(.today) .events {
-  opacity: var(--weekend-opacity, 1);
-}
-
-.day:nth-child(7n + 1):not(.today) .dayNumber,
-.day:nth-child(7n + 1):not(.today) .events {
-  opacity: var(--weekend-opacity, 1);
-}
-
+/* ---- Split View ---- */
 .splitContainer {
   display: flex;
   flex-direction: column;
@@ -292,14 +274,14 @@
   display: flex;
   min-height: 0;
   overflow: hidden;
-  border-top: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
+  border-top: 1px solid var(--line);
 }
 
 .splitDay {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  border-right: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
+  border-right: 1px solid var(--line);
 }
 
 .splitDay,
@@ -307,41 +289,50 @@
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
+
 .splitDay:hover,
 .splitAgenda:hover {
   scrollbar-color: auto;
 }
+
 .splitDay::-webkit-scrollbar,
 .splitAgenda::-webkit-scrollbar {
   width: 6px;
 }
+
 .splitDay::-webkit-scrollbar-thumb,
 .splitAgenda::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: 3px;
 }
+
 .splitDay:hover::-webkit-scrollbar-thumb,
 .splitAgenda:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(44, 40, 33, 0.18);
 }
-/* Agenda-only mode: target AgendaView container inside .agendaBottom */
+
 .agendaBottom > [class*="container"] {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
+
 .agendaBottom:hover > [class*="container"] {
   scrollbar-color: auto;
 }
+
 .agendaBottom > [class*="container"]::-webkit-scrollbar {
   width: 6px;
 }
+
 .agendaBottom > [class*="container"]::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: 3px;
 }
+
 .agendaBottom:hover > [class*="container"]::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(44, 40, 33, 0.18);
 }
+
 .splitAgenda {
   flex: 0 0 35%;
   display: flex;
@@ -349,7 +340,6 @@
   min-height: 0;
   overflow: auto;
 }
-
 
 .splitHandle {
   width: 3px;
@@ -359,9 +349,10 @@
   background: transparent;
   transition: background 0.2s;
 }
+
 .splitHandle:hover,
 .splitHandle:active {
-  background: var(--color-border-visible, rgba(0, 0, 0, 0.1));
+  background: rgba(44, 40, 33, 0.1);
 }
 
 .splitHandleH {
@@ -371,7 +362,19 @@
   background: transparent;
   transition: background 0.2s;
 }
+
 .splitHandleH:hover,
 .splitHandleH:active {
-  background: var(--color-border-visible, rgba(0, 0, 0, 0.1));
+  background: rgba(44, 40, 33, 0.1);
+}
+
+/* ---- Weekend Dimming ---- */
+.day:nth-child(7n):not(.today) .dayNumber,
+.day:nth-child(7n):not(.today) .events {
+  opacity: 0.9;
+}
+
+.day:nth-child(7n + 1):not(.today) .dayNumber,
+.day:nth-child(7n + 1):not(.today) .events {
+  opacity: 0.9;
 }

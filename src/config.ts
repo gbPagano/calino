@@ -6,7 +6,7 @@ export const config = {
   websiteUrl: 'https://calino.io',
   privacyPolicyUrl: '/privacy',
   defaultView: 'month' as const,
-  defaultLightTheme: 'calm-v2',
+  defaultLightTheme: 'built-in',
   defaultDarkTheme: 'built-in',
 } as const
 

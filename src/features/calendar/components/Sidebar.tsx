@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import { useMemo, useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ContextMenu } from '@/components/common/ContextMenu'
@@ -57,6 +57,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const [editName, setEditName] = useState('')
   const [showYearDropdown, setShowYearDropdown] = useState(false)
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
+  const [miniDate, setMiniDate] = useState<Date | null>(null)
+  const [miniDateInitialized, setMiniDateInitialized] = useState(false)
   const showYearDropdownRef = useRef(showYearDropdown)
   const showMonthDropdownRef = useRef(showMonthDropdown)
   const [isTasksExpanded, setIsTasksExpanded] = useState(true)
@@ -84,6 +86,17 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const showAddCalendar = useCalendarStore((state) => state.showAddCalendar)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)
   const { syncAccount } = useCalDAV()
+  const navigate = useNavigate()
+
+  // Initialize miniDate from the store on first render
+  useEffect(() => {
+    if (!miniDateInitialized) {
+      setMiniDate(parseISO(currentDate))
+      setMiniDateInitialized(true)
+    }
+  }, [currentDate, miniDateInitialized])
+
+  const effectiveMiniDate = miniDate ?? parseISO(currentDate)
 
   const handleSyncCalendar = async (calendarId: string, accountId?: string): Promise<void> => {
     if (!accountId || syncingCalendarId) return
@@ -145,8 +158,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   }
 
   const handleMonthSelect = (monthIndex: number): void => {
-    const newDate = new Date(date.getFullYear(), monthIndex, 1)
-    setCurrentDate(format(newDate, 'yyyy-MM-dd'))
+    const newDate = new Date(effectiveMiniDate.getFullYear(), monthIndex, 1)
+    setMiniDate(newDate)
     setShowMonthDropdown(false)
   }
 
@@ -155,9 +168,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   }
 
   const handleYearSelect = (year: number): void => {
-    const newDate = new Date(date.getFullYear(), date.getMonth(), 1)
+    const newDate = new Date(effectiveMiniDate.getFullYear(), effectiveMiniDate.getMonth(), 1)
     newDate.setFullYear(year)
-    setCurrentDate(format(newDate, 'yyyy-MM-dd'))
+    setMiniDate(newDate)
     setShowYearDropdown(false)
   }
 
@@ -209,16 +222,13 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
     updateCalendar(calendarId, { color: nextColor })
   }
 
-  const date = parseISO(currentDate)
-
   const miniCalendarDays = useMemo(() => {
-    const parsedDate = parseISO(currentDate)
-    const monthStart = startOfMonth(parsedDate)
-    const monthEnd = endOfMonth(parsedDate)
+    const monthStart = startOfMonth(effectiveMiniDate)
+    const monthEnd = endOfMonth(effectiveMiniDate)
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: firstDayOfWeek })
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: firstDayOfWeek })
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd })
-  }, [currentDate, firstDayOfWeek])
+  }, [effectiveMiniDate, firstDayOfWeek])
 
   const weekdays = useMemo(() => {
     const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -227,19 +237,28 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   }, [firstDayOfWeek])
 
   const handlePrevMonth = (): void => {
-    setCurrentDate(format(subMonths(date, 1), 'yyyy-MM-dd'))
+    setMiniDate(subMonths(effectiveMiniDate, 1))
   }
 
   const handleNextMonth = (): void => {
-    setCurrentDate(format(addMonths(date, 1), 'yyyy-MM-dd'))
+    setMiniDate(addMonths(effectiveMiniDate, 1))
   }
 
   const handleDayClick = (day: Date): void => {
     setCurrentDate(format(day, 'yyyy-MM-dd'))
+    setMiniDate(day)
+  }
+
+  const handleDayDoubleClick = (day: Date): void => {
+    setCurrentDate(format(day, 'yyyy-MM-dd'))
+    setMiniDate(day)
+    navigate('/day')
   }
 
   const handleToday = (): void => {
-    setCurrentDate(format(new Date(), 'yyyy-MM-dd'))
+    const today = new Date()
+    setCurrentDate(format(today, 'yyyy-MM-dd'))
+    setMiniDate(today)
   }
 
   useEffect(() => {
@@ -282,7 +301,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
             <div style={{ position: 'relative' }} ref={dropdownRef}>
               <span className={styles.miniMonth}>
                 <button onClick={handleMonthClick} className={styles.miniMonthButton}>
-                  {format(date, 'MMMM')}
+                  {format(effectiveMiniDate, 'MMMM')}
                 </button>
                 {showMonthDropdown && (
                   <div className={styles.yearDropdown}>
@@ -291,7 +310,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
                         key={month}
                         onClick={() => handleMonthSelect(index)}
                         className={`${styles.yearOption} ${
-                          index === date.getMonth() ? styles.yearOptionSelected : ''
+                          index === effectiveMiniDate.getMonth() ? styles.yearOptionSelected : ''
                         }`}
                       >
                         {month}
@@ -300,7 +319,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
                   </div>
                 )}
                 <button onClick={handleYearClick} className={styles.miniMonthButton}>
-                  {format(date, 'yyyy')}
+                  {format(effectiveMiniDate, 'yyyy')}
                 </button>
                 {showYearDropdown && (
                   <div className={`${styles.yearDropdown} ${styles.yearDropdownRight}`}>
@@ -309,7 +328,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
                         key={year}
                         onClick={() => handleYearSelect(year)}
                         className={`${styles.yearOption} ${
-                          year === date.getFullYear() ? styles.yearOptionSelected : ''
+                          year === effectiveMiniDate.getFullYear() ? styles.yearOptionSelected : ''
                         }`}
                       >
                         {year}
@@ -332,8 +351,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
           </div>
           <div className={styles.miniDays}>
             {miniCalendarDays.map((day) => {
-              const isCurrentMonth = isSameMonth(day, date)
-              const isSelected = isSameDay(day, date)
+              const isCurrentMonth = isSameMonth(day, effectiveMiniDate)
+              const isSelected = isSameDay(day, parseISO(currentDate))
               const isTodayDate = isToday(day)
               return (
                 <button
@@ -342,6 +361,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
                     isSelected ? styles.selected : ''
                   } ${isTodayDate ? styles.today : ''}`}
                   onClick={() => handleDayClick(day)}
+                  onDoubleClick={() => handleDayDoubleClick(day)}
                 >
                   {format(day, 'd')}
                 </button>

@@ -3,11 +3,7 @@ import { useMemo, useState, useRef, useEffect } from 'react'
 import {
   format,
   parseISO,
-  isToday,
-  isBefore,
   startOfDay,
-  addDays,
-  isWithinInterval,
 } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
@@ -191,10 +187,7 @@ export function TodoView(): JSX.Element {
 
   const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     if (e.key === 'Enter' && composerRef.current?.value.trim()) {
-      const title = composerRef.current.value.trim()
-      // Create new task with no due date and low priority
       openModal(format(new Date(), 'yyyy-MM-dd'), undefined, undefined, 'task')
-      // TODO: Pre-fill title in modal
       setComposing(false)
     } else if (e.key === 'Escape') {
       setComposing(false)

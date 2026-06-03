@@ -12,7 +12,7 @@ Despite Calino being a web app, it acts as a desktop client, in the sense that i
 
 Due to the browser based nature of Calino, if your CalDAV server doesn't support CORS, you can use Calino's hosted proxy URL during setup: https://proxy.calino.io
 
-With that said, I urge you to either selfhost Calino or at least use your own proxy, to minimize the amount of data being sent to servers that are not your own. Calino.proxy.io is solely for convenience. Don't rely on it. Instructions for setting up your own proxy is further down in the readme.
+With that said, I urge you to either selfhost Calino or at least use your own proxy, to minimize the amount of data being sent to servers that are not your own. `proxy.calino.io` is solely for convenience — don't rely on it. To run your own proxy, see [`docs/CORS_PROXY.md`](./docs/CORS_PROXY.md).
 
 ## Features
 
@@ -63,7 +63,7 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 
 ### Desktop Integration
 
-- **PWA** — install as a native app (*offline support requires self-hosting with proper CSP headers; GitHub Pages not supported*)
+- **PWA** — install as a native app (*offline / service-worker support requires self-hosting; GitHub Pages strips the `Service-Worker-Allowed` header, so offline mode does not work there. See "Service Worker" below.*)
 - **Desktop notifications** with customizable reminders
 - Sync retry: failed CalDAV operations are automatically retried; manual retry button in sidebar
 
@@ -101,21 +101,56 @@ Open http://localhost:5173
 Calino is just a static React app — host it anywhere that serves HTML/JS.
 
 1. Build: `pnpm build`
-2. Serve the `dist/` folder
+2. Serve the `dist/` folder (make sure SPA fallback is configured — see the platform notes below)
 
-**Config:**
+All user data, including CalDAV credentials, lives in the browser's `localStorage`. There is no backend, no telemetry, and no central Calino server to store your information.
+
+**Config (in-app):**
 
 - Click the gear icon or use `Cmd+K` → "Settings"
 - Add your CalDAV server URL, username, password
-- App stores credentials in localStorage
+- App stores credentials in `localStorage` (encrypted with AES-256-GCM)
 
-**Site URL (for SEO/social cards):**
+**Site URL (for SEO / Open Graph cards):**
 
 ```bash
 cp .env.example .env.local
 # Edit .env.local and set VITE_SITE_URL=https://your-domain.com
 pnpm build
 ```
+
+`VITE_SITE_URL` is baked into `index.html` at build time and used for the canonical link, Open Graph / Twitter cards, and the JSON-LD structured-data block. If unset, the meta tags will contain the literal placeholder `%VITE_SITE_URL%` and social shares will look broken.
+
+### Deployment
+
+Calino is a Vite SPA. Any static host works as long as it rewrites all unknown paths to `/index.html` (so client-side routes like `/week` and `/day` resolve on refresh). A few common choices:
+
+**Netlify** — already configured. The `public/_redirects` file in this repo maps every route to `/index.html`. Just connect the repo and use:
+
+- Build command: `pnpm build`
+- Publish directory: `dist`
+
+**Cloudflare Pages:**
+
+- Build command: `pnpm build`
+- Build output: `dist`
+- Add a `_redirects` file (or a Pages Function) that rewrites `/*` to `/index.html`
+
+**GitHub Pages** — supported with a caveat. The repo includes a `public/404.html` that uses the [rafgraph/spa-github-pages](https://github.com/rafgraph/spa-github-pages) trick to recover the route. Service-worker offline support does **not** work on GitHub Pages (their response headers strip the `Service-Worker` allowed header). Enable the service worker only when self-hosting with a host that lets you set CSP — see below.
+
+**Any static host (Nginx, Apache, Caddy, S3+CloudFront, etc.):** configure SPA fallback so unknown paths return `index.html`. Example for Nginx:
+
+```nginx
+location / {
+    try_files $uri /index.html;
+}
+```
+
+### Service Worker / Offline Mode
+
+The service worker is **disabled by default**. It is registered only when the build is served with a CSP that allows it, since the default `<meta http-equiv="Content-Security-Policy">` in `index.html` permits it (`script-src 'self'` is enough), but some hosts strip the response header that enables it.
+
+To enable offline support, register the service worker in `src/main.tsx` (see the comment in that file) and make sure your host returns `Service-Worker-Allowed: /` so the SW can claim the whole origin.
 
 ### Supported CalDAV Servers
 
@@ -142,6 +177,8 @@ yourcaldav.server.com {
 
     handle @cors {
         header {
+            # Replace "*" with your Calino origin in production, e.g.
+            # Access-Control-Allow-Origin "https://calendar.example.com"
             Access-Control-Allow-Origin "*"
             Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PROPFIND, REPORT, OPTIONS"
             Access-Control-Allow-Headers "Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match"
@@ -159,6 +196,12 @@ yourcaldav.server.com {
     reverse_proxy 192.168.1.1:89 # replace with your own address
 }
 ```
+
+**Tip:** the `*` in `Access-Control-Allow-Origin` works for development and trusted clients. For production, replace it with your Calino origin (e.g. `https://calendar.example.com`) to avoid letting arbitrary sites read your calendar.
+
+### Self-Hosting a CORS Proxy
+
+If you can't add CORS headers to your CalDAV server, you can run a tiny proxy yourself. See [`docs/CORS_PROXY.md`](./docs/CORS_PROXY.md) for a one-file Cloudflare Worker you can deploy in a few minutes, plus the privacy trade-offs of using any proxy.
 
 ## Tech Stack
 

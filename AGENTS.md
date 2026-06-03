@@ -108,6 +108,8 @@ If your CalDAV server doesn't support CORS, you can use Calino's hosted proxy:
 https://proxy.calino.io/https%3A%2F%2Fyour-caldav-server.com
 ```
 
+> The hosted proxy uses a path-based format (`/https%3A%2F%2Fserver/...`). The worker snippet below uses a different query-based format (`?server=`) for self-hosted deployments only — pick one and stick with it. The full, security-hardened path-based version (with Origin checking) lives in [`docs/CORS_PROXY.md`](./docs/CORS_PROXY.md).
+
 **Self-host the proxy:**
 
 ```javascript

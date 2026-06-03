@@ -21,7 +21,7 @@
   user-select: none;
   box-sizing: border-box;
   box-shadow: none;
-  height: auto;
+  height: 100%;
   border-left: none;
 }
 

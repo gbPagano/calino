@@ -61,10 +61,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const [miniDateInitialized, setMiniDateInitialized] = useState(false)
   const showYearDropdownRef = useRef(showYearDropdown)
   const showMonthDropdownRef = useRef(showMonthDropdown)
-  const [isTasksExpanded, setIsTasksExpanded] = useState(() => {
-    const events = useCalendarStore.getState().events
-    return events.some(e => e.type === 'task' && !e.completed)
-  })
+  const [isTasksExpanded, setIsTasksExpanded] = useState(false)
+  const hasInitializedTasksExpandedRef = useRef(false)
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false)
   const [syncingCalendarId, setSyncingCalendarId] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<Record<string, 'success' | 'error'>>({})
@@ -98,6 +96,16 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
       setMiniDateInitialized(true)
     }
   }, [currentDate, miniDateInitialized])
+
+  useEffect(() => {
+    if (!hasInitializedTasksExpandedRef.current) {
+      const events = useCalendarStore.getState().events
+      if (events.length > 0) {
+        setIsTasksExpanded(events.some((e) => e.type === 'task' && !e.completed))
+        hasInitializedTasksExpandedRef.current = true
+      }
+    }
+  })
 
   const effectiveMiniDate = miniDate ?? parseISO(currentDate)
 

@@ -68,24 +68,45 @@ The container is **stateless** — all user data lives in the browser's `localSt
 
 The image supports **amd64** (x86) and **arm64** (Apple Silicon, Raspberry Pi 4+, Oracle Cloud ARM).
 
-### Building for current platform
+### Pull from GHCR (no build needed)
+
+Pre-built multi-arch images are published to GitHub Container Registry on every push to `main` and on version tags:
+
+```bash
+# Latest from main
+docker pull ghcr.io/ivan-malinovski/calino:main
+
+# Specific version
+docker pull ghcr.io/ivan-malinovski/calino:0.6.0
+
+# Run directly
+docker run -d -p 8080:8080 ghcr.io/ivan-malinovski/calino:main
+```
+
+Docker automatically pulls the correct architecture for your machine.
+
+### Build locally for current platform
 
 ```bash
 docker compose build
+docker compose up -d
 ```
 
-### Building for multiple platforms
+On Apple Silicon this produces an arm64 image natively — no emulation.
 
-Requires `docker buildx`:
+### Build multi-arch locally
+
+Requires `docker buildx` and QEMU:
 
 ```bash
-# Create a buildx builder (one-time setup)
-docker buildx create --name calino-builder --use
+# One-time setup: create a buildx builder with multi-platform support
+docker buildx create --name calino-builder --driver docker-container --use
+docker buildx inspect --bootstrap
 
-# Build for both platforms
-docker buildx build --platform linux/amd64,linux/arm64 -t calino:latest --load .
+# Build for both platforms (loads only native into local Docker)
+docker buildx build --platform linux/amd64,linux/arm64 -t calino:latest .
 
-# Or push to a registry
+# Build and push to a registry
 docker buildx build --platform linux/amd64,linux/arm64 -t your-registry/calino:latest --push .
 ```
 

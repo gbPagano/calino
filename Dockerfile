@@ -6,8 +6,12 @@ RUN corepack enable && corepack prepare pnpm@10 --activate
 # Build-time env vars (overridable via --build-arg)
 ARG VITE_SITE_URL=https://calino.io
 ARG CALINO_ENABLE_SW=false
+ARG CALINO_GITHUB_REPO=ivan-malinovski/Calino
+ARG CALINO_CONTACT_EMAIL=calendar@malinov.ski
 ENV VITE_SITE_URL=$VITE_SITE_URL \
-    CALINO_ENABLE_SW=$CALINO_ENABLE_SW
+    CALINO_ENABLE_SW=$CALINO_ENABLE_SW \
+    CALINO_GITHUB_REPO=$CALINO_GITHUB_REPO \
+    CALINO_CONTACT_EMAIL=$CALINO_CONTACT_EMAIL
 
 WORKDIR /app
 
@@ -25,12 +29,17 @@ FROM nginx:1.27-alpine
 # Remove default content
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copy our nginx config + security headers include
+# Copy our configs — main context replaces the default nginx.conf,
+# server block goes into conf.d alongside the security headers include.
+COPY nginx-main.conf /etc/nginx/nginx.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY nginx-security-headers.conf /etc/nginx/conf.d/nginx-security-headers.conf
 
 # Copy built assets from build stage (owned by nginx user)
 COPY --from=build --chown=nginx:nginx /app/dist /usr/share/nginx/html
+
+# Run entirely as non-root (port 8080 > 1024, no root needed)
+USER nginx
 
 EXPOSE 8080
 

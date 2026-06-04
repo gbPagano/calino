@@ -66,6 +66,7 @@ export function CalendarHeader({
   )
   const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false)
   const viewDropdownRef = useRef<HTMLDivElement>(null)
+  const viewDropdownCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showQuickSettings, setShowQuickSettings] = useState(false)
   const quickSettingsTimeoutRef = useState(() => ({ current: undefined as ReturnType<typeof setTimeout> | undefined }))[0]
 
@@ -267,8 +268,19 @@ export function CalendarHeader({
           <div
             className={styles.viewDropdown}
             ref={viewDropdownRef}
-            onMouseEnter={() => setIsViewDropdownOpen(true)}
-            onMouseLeave={() => setIsViewDropdownOpen(false)}
+            onMouseEnter={() => {
+              if (viewDropdownCloseTimer.current) {
+                clearTimeout(viewDropdownCloseTimer.current)
+                viewDropdownCloseTimer.current = null
+              }
+              setIsViewDropdownOpen(true)
+            }}
+            onMouseLeave={() => {
+              viewDropdownCloseTimer.current = setTimeout(() => {
+                setIsViewDropdownOpen(false)
+                viewDropdownCloseTimer.current = null
+              }, 150)
+            }}
           >
             <button
               className={styles.viewDropdownButton}

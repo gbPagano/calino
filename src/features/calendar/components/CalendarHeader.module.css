@@ -140,12 +140,6 @@
   color: var(--accent);
 }
 
-@media (max-width: 768px) {
-  .navigator {
-    display: none;
-  }
-}
-
 /* ---- Spacer ---- */
 .spacer {
   min-width: 0;

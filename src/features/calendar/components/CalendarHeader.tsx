@@ -196,8 +196,8 @@ export function CalendarHeader({
         </button>
       )}
 
-      {/* Navigator - grouped segmented control (placeholder on todo to keep grid aligned) */}
-      {!isMobile && currentView !== 'todo' ? (
+      {/* Navigator - prev/today/next */}
+      {currentView !== 'todo' ? (
         <div className={styles.navigator}>
           <button
             className={styles.navArrow}
@@ -206,9 +206,11 @@ export function CalendarHeader({
           >
             <ChevronLeft />
           </button>
-          <button className={styles.navToday} onClick={handleToday}>
-            Today
-          </button>
+          {!isCompact && (
+            <button className={styles.navToday} onClick={handleToday}>
+              Today
+            </button>
+          )}
           <button
             className={styles.navArrow}
             onClick={() => handleNavigate('next')}
@@ -217,9 +219,9 @@ export function CalendarHeader({
             <ChevronRight />
           </button>
         </div>
-      ) : !isMobile ? (
+      ) : (
         <div />
-      ) : null}
+      )}
 
       {/* Month Title */}
       <div className={styles.titleGroup}>

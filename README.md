@@ -96,6 +96,16 @@ pnpm dev
 
 Open http://localhost:5173
 
+## Docker
+
+The fastest way to self-host:
+
+```bash
+docker compose up -d
+```
+
+Calino runs at http://localhost:8080. To customize settings (site URL, offline support), create a `.env` file — see [`docs/DOCKER.md`](./docs/DOCKER.md) for full details.
+
 ## Selfhosting
 
 Calino is just a static React app — host it anywhere that serves HTML/JS.
@@ -136,7 +146,14 @@ Calino is a Vite SPA. Any static host works as long as it rewrites all unknown p
 - Build output: `dist`
 - Add a `_redirects` file (or a Pages Function) that rewrites `/*` to `/index.html`
 
-**GitHub Pages** — supported with a caveat. The repo includes a `public/404.html` that uses the [rafgraph/spa-github-pages](https://github.com/rafgraph/spa-github-pages) trick to recover the route. Service-worker offline support does **not** work on GitHub Pages (their response headers strip the `Service-Worker` allowed header). Enable the service worker only when self-hosting with a host that lets you set CSP — see below.
+**GitHub Pages** — deploy via GitHub Actions:
+
+1. Fork the repo
+2. Edit `.github/workflows/deploy.yml` — change `VITE_SITE_URL` to `https://<your-user>.github.io/<your-repo>`
+3. Settings → Pages → Source: **GitHub Actions**
+4. Push to `main` (or Actions → Deploy to GitHub Pages → Run workflow)
+
+Caveat: service-worker offline support does **not** work on GitHub Pages (their response headers strip the `Service-Worker-Allowed` header). See "Service Worker" below.
 
 **Any static host (Nginx, Apache, Caddy, S3+CloudFront, etc.):** configure SPA fallback so unknown paths return `index.html`. Example for Nginx:
 
@@ -148,9 +165,12 @@ location / {
 
 ### Service Worker / Offline Mode
 
-The service worker is **disabled by default**. It is registered only when the build is served with a CSP that allows it, since the default `<meta http-equiv="Content-Security-Policy">` in `index.html` permits it (`script-src 'self'` is enough), but some hosts strip the response header that enables it.
+The service worker is **disabled by default**. To enable offline support:
 
-To enable offline support, register the service worker in `src/main.tsx` (see the comment in that file) and make sure your host returns `Service-Worker-Allowed: /` so the SW can claim the whole origin.
+1. Build with `CALINO_ENABLE_SW=true` (or add it to `.env.local`)
+2. Make sure your host returns `Service-Worker-Allowed: /` so the SW can claim the whole origin
+
+For Docker, set `CALINO_ENABLE_SW=true` in your `.env` file and rebuild — see [`docs/DOCKER.md`](./docs/DOCKER.md).
 
 ### Supported CalDAV Servers
 

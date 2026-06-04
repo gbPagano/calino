@@ -85,6 +85,9 @@ jobs:
         run: |
           docker run -d --name calino-test \
             -p 8080:8080 \
+            --tmpfs /var/cache/nginx:rw,noexec,nosuid,uid=101,gid=101 \
+            --tmpfs /var/run:rw,noexec,nosuid,uid=101,gid=101 \
+            --tmpfs /tmp:rw,noexec,nosuid,uid=101,gid=101 \
             --health-cmd 'wget -qO- http://localhost:8080/ || exit 1' \
             --health-interval 5s \
             --health-timeout 3s \
@@ -104,7 +107,7 @@ jobs:
       - name: Verify SPA response
         run: |
           # Root should return 200 with HTML
-          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/)
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/ || echo '000')
           if [ "$STATUS" != "200" ]; then
             echo "❌ Root returned $STATUS, expected 200"
             exit 1
@@ -112,7 +115,7 @@ jobs:
           echo "✅ Root returns 200"
 
           # SPA route should also return 200 (nginx fallback)
-          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/week)
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/week || echo '000')
           if [ "$STATUS" != "200" ]; then
             echo "❌ /week returned $STATUS, expected 200"
             exit 1
@@ -120,7 +123,7 @@ jobs:
           echo "✅ SPA route /week returns 200"
 
           # Verify security headers
-          HEADERS=$(curl -s -I http://localhost:8080/)
+          HEADERS=$(curl -s -I http://localhost:8080/ || echo '')
           for HEADER in "X-Frame-Options" "X-Content-Type-Options" "Referrer-Policy" "Permissions-Policy"; do
             if echo "$HEADERS" | grep -qi "$HEADER"; then
               echo "✅ $HEADER present"

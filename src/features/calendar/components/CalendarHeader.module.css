@@ -308,10 +308,89 @@
   box-shadow: 0 1px 2px rgba(44, 40, 33, 0.08), 0 0 0 1px var(--line);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1220px) {
   .viewTabs {
     display: none;
   }
+}
+
+@media (max-width: 768px) {
+  .viewDropdown {
+    display: none;
+  }
+}
+
+/* ---- Tablet View Dropdown ---- */
+.viewDropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.viewDropdownButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background: rgba(44, 40, 33, 0.045);
+  border-radius: 11px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.14s;
+  font-family: inherit;
+}
+
+.viewDropdownButton:hover {
+  background: rgba(44, 40, 33, 0.08);
+}
+
+.viewDropdownArrow {
+  transition: transform 0.14s;
+}
+
+.viewDropdownArrowOpen {
+  transform: rotate(180deg);
+}
+
+.viewDropdownMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  box-shadow: 0 4px 12px rgba(44, 40, 33, 0.1);
+  overflow: hidden;
+  z-index: 100;
+  min-width: 120px;
+}
+
+.viewDropdownItem {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  color: var(--ink-2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.12s;
+}
+
+.viewDropdownItem:hover {
+  background: rgba(44, 40, 33, 0.04);
+  color: var(--ink);
+}
+
+.viewDropdownItemActive {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
 }
 
 /* ---- Mobile Hamburger ---- */

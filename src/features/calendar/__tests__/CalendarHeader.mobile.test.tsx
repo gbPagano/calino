@@ -15,12 +15,14 @@ describe('CalendarHeader Mobile', () => {
     store.setCurrentDate('2024-03-15')
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2024-03-15'))
-    Object.defineProperty(window, 'innerWidth', { value: 375, writable: true })
+    Object.defineProperty(window, 'innerWidth', { value: 375, writable: true, configurable: true })
+    window.dispatchEvent(new Event('resize'))
   })
 
   afterEach(() => {
     vi.useRealTimers()
-    Object.defineProperty(window, 'innerWidth', { value: 1024, writable: true })
+    Object.defineProperty(window, 'innerWidth', { value: 1024, writable: true, configurable: true })
+    window.dispatchEvent(new Event('resize'))
   })
 
   it('renders hamburger menu button', () => {

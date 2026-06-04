@@ -10,6 +10,9 @@ const renderWithRouter = (component: React.ReactElement) => {
 
 describe('CalendarHeader', () => {
   beforeEach(() => {
+    // Set desktop width so the button bar renders (not the dropdown)
+    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1440 })
+    window.dispatchEvent(new Event('resize'))
     const store = useCalendarStore.getState()
     store.setCurrentView('month')
     store.setCurrentDate('2024-03-15')

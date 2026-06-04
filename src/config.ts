@@ -25,6 +25,7 @@ export const CALENDAR_COLORS = [
 ] as const
 
 export const MOBILE_BREAKPOINT = 768
+export const TABLET_BREAKPOINT = 1220
 export const TOAST_DURATION_MS = 2000
 
 export type AppConfig = typeof config

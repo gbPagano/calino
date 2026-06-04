@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   format,
   addMonths,
@@ -14,7 +14,7 @@ import {
 } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/store/calendarStore'
-import { MOBILE_BREAKPOINT } from '@/config'
+import { MOBILE_BREAKPOINT, TABLET_BREAKPOINT } from '@/config'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useGestures } from '@/hooks/useGestures'
 import type { ViewType } from '@/types'
@@ -57,11 +57,19 @@ export function CalendarHeader({
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
   )
+  const [isTablet, setIsTablet] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < TABLET_BREAKPOINT : false
+  )
+  const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false)
+  const viewDropdownRef = useRef<HTMLDivElement>(null)
   const [showQuickSettings, setShowQuickSettings] = useState(false)
   const quickSettingsTimeoutRef = useState(() => ({ current: undefined as ReturnType<typeof setTimeout> | undefined }))[0]
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+      setIsTablet(window.innerWidth < TABLET_BREAKPOINT)
+    }
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
@@ -234,8 +242,8 @@ export function CalendarHeader({
           <SearchIcon />
         </button>
 
-        {/* View Tabs - segmented control */}
-        {!isMobile && (
+        {/* View Tabs - segmented control or dropdown */}
+        {!isMobile && !isTablet && (
           <div className={styles.viewTabs}>
             {VIEWS.map((view) => (
               <button
@@ -246,6 +254,39 @@ export function CalendarHeader({
                 {view.label}
               </button>
             ))}
+          </div>
+        )}
+        {!isMobile && isTablet && (
+          <div
+            className={styles.viewDropdown}
+            ref={viewDropdownRef}
+            onMouseEnter={() => setIsViewDropdownOpen(true)}
+            onMouseLeave={() => setIsViewDropdownOpen(false)}
+          >
+            <button
+              className={styles.viewDropdownButton}
+            >
+              {VIEWS.find((v) => v.value === currentView)?.label}
+              <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" className={`${styles.viewDropdownArrow} ${isViewDropdownOpen ? styles.viewDropdownArrowOpen : ''}`}>
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {isViewDropdownOpen && (
+              <div className={styles.viewDropdownMenu}>
+                {VIEWS.map((view) => (
+                  <button
+                    key={view.value}
+                    className={`${styles.viewDropdownItem} ${currentView === view.value ? styles.viewDropdownItemActive : ''}`}
+                    onClick={() => {
+                      handleViewChange(view.value)
+                      setIsViewDropdownOpen(false)
+                    }}
+                  >
+                    {view.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

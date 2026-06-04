@@ -96,6 +96,16 @@ pnpm dev
 
 Open http://localhost:5173
 
+## Docker
+
+The fastest way to self-host:
+
+```bash
+docker compose up -d
+```
+
+Calino runs at http://localhost:8080. To customize settings (site URL, offline support), create a `.env` file — see [`docs/DOCKER.md`](./docs/DOCKER.md) for full details.
+
 ## Selfhosting
 
 Calino is just a static React app — host it anywhere that serves HTML/JS.
@@ -148,9 +158,12 @@ location / {
 
 ### Service Worker / Offline Mode
 
-The service worker is **disabled by default**. It is registered only when the build is served with a CSP that allows it, since the default `<meta http-equiv="Content-Security-Policy">` in `index.html` permits it (`script-src 'self'` is enough), but some hosts strip the response header that enables it.
+The service worker is **disabled by default**. To enable offline support:
 
-To enable offline support, register the service worker in `src/main.tsx` (see the comment in that file) and make sure your host returns `Service-Worker-Allowed: /` so the SW can claim the whole origin.
+1. Build with `CALINO_ENABLE_SW=true` (or add it to `.env.local`)
+2. Make sure your host returns `Service-Worker-Allowed: /` so the SW can claim the whole origin
+
+For Docker, set `CALINO_ENABLE_SW=true` in your `.env` file and rebuild — see [`docs/DOCKER.md`](./docs/DOCKER.md).
 
 ### Supported CalDAV Servers
 

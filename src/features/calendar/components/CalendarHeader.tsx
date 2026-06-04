@@ -183,14 +183,13 @@ export function CalendarHeader({
   return (
     <div className={styles.header} {...bind}>
       {/* Brand Mark - only on desktop */}
-      {!isMobile && (
+      {/* Brand + hamburger — brand hides in compact mode, hamburger takes its place */}
+      {!isMobile && !isCompact && (
         <div className={styles.brand}>
           <div className={styles.brandDiamond} />
           <span className={styles.brandName}>Calino</span>
         </div>
       )}
-
-      {/* Hamburger — shown when sidebar is hidden (compact/mobile) */}
       {(isMobile || isCompact) && (
         <button className={styles.hamburger} onClick={onToggleSidebar} aria-label="Toggle menu">
           <HamburgerIcon />

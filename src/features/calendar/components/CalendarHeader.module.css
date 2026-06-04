@@ -47,12 +47,6 @@
   color: var(--ink);
 }
 
-@media (max-width: 800px) {
-  .brand {
-    display: none;
-  }
-}
-
 /* ---- Title Group ---- */
 .titleGroup {
   display: flex;

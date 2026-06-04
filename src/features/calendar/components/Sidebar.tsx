@@ -18,7 +18,7 @@ import {
   subMonths,
   parseISO,
 } from 'date-fns'
-import { config, MOBILE_BREAKPOINT, TOAST_DURATION_MS } from '@/config'
+import { config, TOAST_DURATION_MS } from '@/config'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'

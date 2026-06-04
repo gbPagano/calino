@@ -261,7 +261,7 @@ export function CalendarHeader({
             ))}
           </div>
         )}
-        {!isMobile && isTablet && (
+        {isTablet && (
           <div
             className={styles.viewDropdown}
             ref={viewDropdownRef}

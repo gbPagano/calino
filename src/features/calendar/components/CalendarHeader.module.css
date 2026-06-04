@@ -149,6 +149,7 @@
 /* ---- Spacer ---- */
 .spacer {
   min-width: 0;
+  flex: 1;
 }
 
 /* ---- Right Cluster ---- */
@@ -320,12 +321,6 @@
   }
 }
 
-@media (max-width: 768px) {
-  .viewDropdown {
-    display: none;
-  }
-}
-
 /* ---- Tablet View Dropdown ---- */
 .viewDropdown {
   position: relative;
@@ -372,6 +367,7 @@
   overflow: hidden;
   z-index: 100;
   min-width: 120px;
+  max-width: calc(100vw - 32px);
 }
 
 .viewDropdownItem {
@@ -432,38 +428,6 @@
 
 @media (max-width: 768px) {
   .mobileViewTabs {
-    display: flex;
-    gap: 2px;
-    background: rgba(44, 40, 33, 0.045);
-    padding: 4px;
-    border-radius: 12px;
-    width: 100%;
-    overflow-x: auto;
-  }
-
-  .mobileViewTab {
-    flex: 1;
-    min-width: 0;
-    height: 32px;
-    padding: 0 8px;
-    border-radius: 9px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--ink-2);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: color 0.14s;
-  }
-
-  .mobileViewTab:hover {
-    color: var(--ink);
-  }
-
-  .mobileViewTabActive {
-    background: var(--panel);
-    color: var(--ink);
-    box-shadow: 0 1px 2px rgba(44, 40, 33, 0.08), 0 0 0 1px var(--line);
+    display: none;
   }
 }

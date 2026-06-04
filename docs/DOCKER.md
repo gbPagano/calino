@@ -79,8 +79,12 @@ docker pull ghcr.io/ivan-malinovski/calino:main
 # Specific version
 docker pull ghcr.io/ivan-malinovski/calino:0.6.0
 
-# Run directly
-docker run -d -p 8080:8080 ghcr.io/ivan-malinovski/calino:main
+# Run directly (tmpfs mounts required for non-root nginx)
+docker run -d -p 8080:8080 \
+  --tmpfs /var/cache/nginx:rw,noexec,nosuid,uid=101,gid=101 \
+  --tmpfs /var/run:rw,noexec,nosuid,uid=101,gid=101 \
+  --tmpfs /tmp:rw,noexec,nosuid,uid=101,gid=101 \
+  ghcr.io/ivan-malinovski/calino:main
 ```
 
 Docker automatically pulls the correct architecture for your machine.

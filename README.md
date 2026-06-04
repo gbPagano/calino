@@ -102,7 +102,11 @@ The fastest way to self-host. Pre-built multi-arch images (amd64 + arm64) are on
 
 ```bash
 # Pull and run (auto-selects your architecture)
-docker run -d -p 8080:8080 ghcr.io/ivan-malinovski/calino:main
+docker run -d -p 8080:8080 \
+  --tmpfs /var/cache/nginx:rw,noexec,nosuid,uid=101,gid=101 \
+  --tmpfs /var/run:rw,noexec,nosuid,uid=101,gid=101 \
+  --tmpfs /tmp:rw,noexec,nosuid,uid=101,gid=101 \
+  ghcr.io/ivan-malinovski/calino:main
 ```
 
 Or clone and customize:

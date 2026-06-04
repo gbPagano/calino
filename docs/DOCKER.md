@@ -98,13 +98,22 @@ The Docker setup follows least-privilege principles:
 | Runs as non-root | ✅ | nginx master process runs as `nginx` user |
 | Read-only filesystem | ✅ | `read_only: true` + `tmpfs` for temp dirs |
 | All capabilities dropped | ✅ | `cap_drop: ALL` |
-| Only required capability added | ✅ | `NET_BIND_SERVICE` (not needed — we listen on 8080) |
+| Only required capabilities added | ✅ | `CHOWN`, `SETGID`, `SETUID` (nginx worker process user switching) |
 | No new privileges | ✅ | `no-new-privileges` |
 | Graceful shutdown | ✅ | `STOPSIGNAL SIGQUIT` |
 | Process limit | ✅ | `pids_limit: 256` |
+| Memory limit | ✅ | `mem_limit: 128m` (static site needs very little) |
 | nginx version hidden | ✅ | `server_tokens off` |
-| Security headers | ✅ | X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
+| Security headers | ✅ | X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy |
 | Log rotation | ✅ | 3 × 10 MB max |
+
+### Content Security Policy
+
+Calino does **not** ship a `Content-Security-Policy` header because the app connects to **user-configured CalDAV servers** at arbitrary origins — a static CSP would break the app for most deployments. If your CalDAV server has a fixed origin, you can add a CSP header in your reverse proxy. A reasonable starting point:
+
+```
+Content-Security-Policy: default-src 'self'; connect-src 'self' https://your-caldav.example.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self';
+```
 
 ## Updating
 

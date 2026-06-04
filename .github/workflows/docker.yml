@@ -1,0 +1,118 @@
+name: Docker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ── Lint & Typecheck ──────────────────────────────────────────
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        # version auto-read from packageManager field
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+  # ── Docker build & healthcheck ────────────────────────────────
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: calino:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start container
+        run: |
+          docker run -d --name calino-test \
+            -p 8080:8080 \
+            --health-cmd 'wget -qO- http://localhost:8080/ || exit 1' \
+            --health-interval 5s \
+            --health-timeout 3s \
+            --health-retries 5 \
+            calino:test
+
+      - name: Wait for healthy
+        run: |
+          echo "Waiting for container to become healthy..."
+          timeout 30 bash -c '
+            until docker inspect --format="{{.State.Health.Status}}" calino-test 2>/dev/null | grep -q healthy; do
+              sleep 2
+            done
+          '
+          echo "✅ Container is healthy"
+
+      - name: Verify SPA response
+        run: |
+          # Root should return 200 with HTML
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/)
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Root returned $STATUS, expected 200"
+            exit 1
+          fi
+          echo "✅ Root returns 200"
+
+          # SPA route should also return 200 (nginx fallback)
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/week)
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ /week returned $STATUS, expected 200"
+            exit 1
+          fi
+          echo "✅ SPA route /week returns 200"
+
+          # Verify security headers
+          HEADERS=$(curl -s -I http://localhost:8080/)
+          for HEADER in "X-Frame-Options" "X-Content-Type-Options" "Referrer-Policy" "Permissions-Policy"; do
+            if echo "$HEADERS" | grep -qi "$HEADER"; then
+              echo "✅ $HEADER present"
+            else
+              echo "❌ $HEADER missing"
+              exit 1
+            fi
+          done
+
+          # Verify server version is hidden (server_tokens off strips version, keeps name)
+          if echo "$HEADERS" | grep -iE 'Server:.*/'; then
+            echo "❌ nginx version exposed in Server header"
+            exit 1
+          fi
+          echo "✅ Server version hidden"
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker logs calino-test
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f calino-test

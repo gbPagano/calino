@@ -6,6 +6,9 @@ services:
     environment:
       - VITE_SITE_URL=${VITE_SITE_URL:-https://calino.io}
       - CALINO_ENABLE_SW=${CALINO_ENABLE_SW:-false}
+      # Uncomment to customize (requires rebuild: docker compose build)
+      # - CALINO_GITHUB_REPO=your-user/your-repo
+      # - CALINO_CONTACT_EMAIL=you@example.com
     restart: unless-stopped
     read_only: true
     cap_drop:
@@ -17,6 +20,8 @@ services:
     security_opt:
       - no-new-privileges:true
     pids_limit: 256
+    mem_limit: 128m
+    memswap_limit: 128m
     tmpfs:
       - /var/cache/nginx
       - /var/run

@@ -25,8 +25,9 @@ FROM nginx:1.27-alpine
 # Remove default content
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copy our nginx config
+# Copy our nginx config + security headers include
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx-security-headers.conf /etc/nginx/conf.d/nginx-security-headers.conf
 
 # Copy built assets from build stage (owned by nginx user)
 COPY --from=build --chown=nginx:nginx /app/dist /usr/share/nginx/html

@@ -98,7 +98,14 @@ Open http://localhost:5173
 
 ## Docker
 
-The fastest way to self-host:
+The fastest way to self-host. Pre-built multi-arch images (amd64 + arm64) are on GHCR:
+
+```bash
+# Pull and run (auto-selects your architecture)
+docker run -d -p 8080:8080 ghcr.io/ivan-malinovski/calino:main
+```
+
+Or clone and customize:
 
 ```bash
 docker compose up -d

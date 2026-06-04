@@ -274,10 +274,6 @@ export function icalEventToCalendarEvent(
 
   const isAllDay = dtstart ? dtstart.isDate : false
 
-  // DEBUG
-  if (isAllDay) {
-  }
-
   let start = ''
   let end = ''
 

@@ -459,7 +459,7 @@ describe('Bug 59: EventModal timezone for all-day events', () => {
     })
 
     const allDayLabel = screen.getByText('All day')
-    const allDayCheckbox = allDayLabel.closest('label')?.querySelector('input[type="checkbox"]')!
+    const allDayCheckbox = allDayLabel.closest('label')?.querySelector('input[type="checkbox"]') as HTMLInputElement | null
     await act(async () => {
       fireEvent.click(allDayCheckbox)
     })

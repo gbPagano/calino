@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { GeneralSettings } from './GeneralSettings'
 import { ThemeSettings } from './ThemeSettings'
@@ -157,13 +157,13 @@ export function SettingsPage(): JSX.Element {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  const initialTab = useMemo((): SettingsTab => {
+  const initialTab = ((): SettingsTab => {
     const tabParam = searchParams.get('tab')
     if (tabParam && VALID_TABS.includes(tabParam as SettingsTab)) {
       return tabParam as SettingsTab
     }
     return 'general'
-  }, [])
+  })()
 
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab)
 

@@ -203,7 +203,7 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps): {
     [commands]
   )
 
-  const results = useMemo((): CommandResult[] => {
+  const results = ((): CommandResult[] => {
     if (!query.trim()) {
       const defaultCommands = filterCommands('')
       return defaultCommands.map((cmd) => ({
@@ -269,7 +269,7 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps): {
     }))
 
     return [...commandResults, ...calendarResults, ...eventResults]
-  }, [query, parseInput, filterCommands, searchEvents, searchCalendars])
+  })()
 
   const preview = useMemo((): NLPParseResult | null => {
     const parsed = parseInput(query)

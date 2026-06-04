@@ -252,7 +252,9 @@ export function EventPreviewPopup({
   }, [event.title, event.location, event.description])
 
   const cancelEditingRef = useRef(cancelEditing)
-  cancelEditingRef.current = cancelEditing
+  useEffect(() => {
+    cancelEditingRef.current = cancelEditing
+  }, [cancelEditing])
 
   const handleFieldChange = (field: string, value: string): void => {
     setHasChanges(true)

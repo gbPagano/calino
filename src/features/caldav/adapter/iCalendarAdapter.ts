@@ -14,9 +14,9 @@ export function parseICALEvent(iCalData: string, calendarId: string): CalendarEv
     return []
   }
 
-  let jCal: string | any[]
+  let jCal: string | unknown[]
   try {
-    jCal = ICAL.parse(iCalData)
+    jCal = ICAL.parse(iCalData) as string | unknown[]
   } catch (e) {
     console.error('ICAL.parse failed:', e)
     return []
@@ -71,9 +71,9 @@ export function parseICALTask(iCalData: string, calendarId: string): CalendarEve
     return []
   }
 
-  let jCal: string | any[]
+  let jCal: string | unknown[]
   try {
-    jCal = ICAL.parse(iCalData)
+    jCal = ICAL.parse(iCalData) as string | unknown[]
   } catch (e) {
     console.error('ICAL.parse failed for tasks:', e)
     return []

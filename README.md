@@ -146,7 +146,14 @@ Calino is a Vite SPA. Any static host works as long as it rewrites all unknown p
 - Build output: `dist`
 - Add a `_redirects` file (or a Pages Function) that rewrites `/*` to `/index.html`
 
-**GitHub Pages** — supported with a caveat. The repo includes a `public/404.html` that uses the [rafgraph/spa-github-pages](https://github.com/rafgraph/spa-github-pages) trick to recover the route. Service-worker offline support does **not** work on GitHub Pages (their response headers strip the `Service-Worker` allowed header). Enable the service worker only when self-hosting with a host that lets you set CSP — see below.
+**GitHub Pages** — deploy via GitHub Actions:
+
+1. Fork the repo
+2. Edit `.github/workflows/deploy.yml` — change `VITE_SITE_URL` to `https://<your-user>.github.io/<your-repo>`
+3. Settings → Pages → Source: **GitHub Actions**
+4. Push to `main` (or Actions → Deploy to GitHub Pages → Run workflow)
+
+Caveat: service-worker offline support does **not** work on GitHub Pages (their response headers strip the `Service-Worker-Allowed` header). See "Service Worker" below.
 
 **Any static host (Nginx, Apache, Caddy, S3+CloudFront, etc.):** configure SPA fallback so unknown paths return `index.html`. Example for Nginx:
 

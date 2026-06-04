@@ -269,19 +269,19 @@
 
 /* ---- Fragment Styles (for multi-day spanning) ---- */
 .fragmentMiddle {
-  border-left: 1px dashed rgba(0, 0, 0, 0.2) !important;
+  border-left: none !important;
   border-radius: 0 !important;
   padding-left: 4px !important;
   padding-right: 0 !important;
   margin-left: -5px;
-  margin-right: -4px;
-  width: calc(100% + 9px);
+  margin-right: -6px;
+  width: calc(100% + 11px);
 }
 
 .fragmentFirst {
   border-radius: 8px 0 0 8px !important;
   padding: 2px 0 2px 8px !important;
-  margin-right: -4px !important;
+  margin-right: -6px !important;
   border-left: none !important;
 }
 
@@ -289,7 +289,7 @@
   border-radius: 0 8px 8px 0 !important;
   padding: 2px 4px 2px 8px !important;
   margin-left: -5px !important;
-  border-left: 1px dashed rgba(0, 0, 0, 0.2) !important;
+  border-left: none !important;
 }
 
 /* ---- No Top Radius ---- */

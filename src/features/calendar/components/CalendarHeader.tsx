@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/store/calendarStore'
 import { MOBILE_BREAKPOINT, TABLET_BREAKPOINT } from '@/config'
+const SIDEBAR_BREAKPOINT = 950
 import { useSettingsStore } from '@/store/settingsStore'
 import { useGestures } from '@/hooks/useGestures'
 import type { ViewType } from '@/types'
@@ -60,6 +61,9 @@ export function CalendarHeader({
   const [isTablet, setIsTablet] = useState(
     typeof window !== 'undefined' ? window.innerWidth < TABLET_BREAKPOINT : false
   )
+  const [isCompact, setIsCompact] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < SIDEBAR_BREAKPOINT : false
+  )
   const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false)
   const viewDropdownRef = useRef<HTMLDivElement>(null)
   const [showQuickSettings, setShowQuickSettings] = useState(false)
@@ -67,8 +71,10 @@ export function CalendarHeader({
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-      setIsTablet(window.innerWidth < TABLET_BREAKPOINT)
+      const w = window.innerWidth
+      setIsMobile(w < MOBILE_BREAKPOINT)
+      setIsTablet(w < TABLET_BREAKPOINT)
+      setIsCompact(w < SIDEBAR_BREAKPOINT)
     }
     checkMobile()
     window.addEventListener('resize', checkMobile)
@@ -184,8 +190,8 @@ export function CalendarHeader({
         </div>
       )}
 
-      {/* Mobile hamburger */}
-      {isMobile && (
+      {/* Hamburger — shown when sidebar is hidden (compact/mobile) */}
+      {(isMobile || isCompact) && (
         <button className={styles.hamburger} onClick={onToggleSidebar} aria-label="Toggle menu">
           <HamburgerIcon />
         </button>

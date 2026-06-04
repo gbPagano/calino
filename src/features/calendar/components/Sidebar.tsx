@@ -53,6 +53,9 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCompact, setIsCompact] = useState(
+    typeof window !== 'undefined' ? window.innerWidth <= 950 : false
+  )
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [showYearDropdown, setShowYearDropdown] = useState(false)
@@ -275,7 +278,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   useEffect(() => {
     if (isOpen && onClose) {
       const handleResize = (): void => {
-        if (window.innerWidth > MOBILE_BREAKPOINT) {
+        if (window.innerWidth > 950) {
           onClose()
         }
       }
@@ -284,9 +287,16 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
     }
   }, [isOpen, onClose])
 
+  useEffect(() => {
+    const check = (): void => setIsCompact(window.innerWidth <= 950)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   const sidebarClass = `${styles.sidebar}${isOpen ? ` ${styles.open}` : ''}`
 
-  if (isCollapsed) {
+  if (isCollapsed && !isCompact) {
     return (
       <div className={styles.collapsed}>
         <button

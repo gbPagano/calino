@@ -508,12 +508,15 @@ export const useCalendarStore = create<CalendarStore>()(
       name: 'calino-storage',
       storage: createJSONStorage(() => safeLocalStorage),
       version: 1,
-      migrate: (persistedState: Record<string, unknown>) => ({
-        events: persistedState?.events ?? [],
-        calendars: persistedState?.calendars ?? [],
-        categories: persistedState?.categories ?? [],
-        autoCategoryRules: persistedState?.autoCategoryRules ?? [],
-      }),
+      migrate: (persistedState: unknown) => {
+        const state = persistedState as Record<string, unknown> | undefined
+        return {
+          events: state?.events ?? [],
+          calendars: state?.calendars ?? [],
+          categories: state?.categories ?? [],
+          autoCategoryRules: state?.autoCategoryRules ?? [],
+        }
+      },
       partialize: (state) => ({
         events: state.events,
         calendars: state.calendars,

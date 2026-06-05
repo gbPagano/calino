@@ -3,15 +3,18 @@ import {
   useSettingsStore,
   DURATION_OPTIONS,
   REMINDER_OPTIONS,
-  EVENT_COLORS,
 } from '@/store/settingsStore'
+import { useCalendarStore } from '@/store/calendarStore'
 import styles from './Settings.module.css'
 
 export function EventDefaultsSettings(): JSX.Element {
   const defaultDuration = useSettingsStore((s) => s.defaultDuration)
   const defaultReminderMinutes = useSettingsStore((s) => s.defaultReminderMinutes)
-  const defaultEventColor = useSettingsStore((s) => s.defaultEventColor)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
+  const calendars = useCalendarStore((s) => s.calendars)
+  const updateCalendar = useCalendarStore((s) => s.updateCalendar)
+
+  const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
 
   return (
     <section className={`${styles.section} ${styles.sectionActive}`}>
@@ -48,12 +51,16 @@ export function EventDefaultsSettings(): JSX.Element {
           <div className={styles.rowControl}>
             <select
               className={styles.select}
-              value={defaultEventColor}
-              onChange={(e) => updateSettings({ defaultEventColor: e.target.value })}
+              value={defaultCalendar?.id || ''}
+              onChange={(e) => {
+                calendars.forEach((cal) => {
+                  updateCalendar(cal.id, { isDefault: cal.id === e.target.value })
+                })
+              }}
             >
-              {EVENT_COLORS.map((color) => (
-                <option key={color} value={color}>
-                  {color}
+              {calendars.map((cal) => (
+                <option key={cal.id} value={cal.id}>
+                  {cal.name}
                 </option>
               ))}
             </select>

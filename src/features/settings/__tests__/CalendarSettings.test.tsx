@@ -18,7 +18,7 @@ describe('CalendarSettings', () => {
   it('renders calendar settings', () => {
     render(<CalendarSettings />)
 
-    expect(screen.getByText('Calendar Display')).toBeInTheDocument()
+    expect(screen.getByText('Calendar')).toBeInTheDocument()
     expect(screen.getByText('Default View')).toBeInTheDocument()
     expect(screen.getByText('Show Week Numbers')).toBeInTheDocument()
     expect(screen.getByText('Event Display Density')).toBeInTheDocument()
@@ -28,10 +28,11 @@ describe('CalendarSettings', () => {
     const user = userEvent.setup()
     render(<CalendarSettings />)
 
-    const buttons = screen.getAllByRole('button')
-    const compactToggle = buttons[1]
+    const checkbox = screen.getAllByRole('checkbox')
+    // checkbox[0] = showWeekNumbers, checkbox[1] = compactRecurring
+    const compactToggle = checkbox[1]
 
-    expect(compactToggle).toHaveAttribute('aria-pressed', 'true')
+    expect(compactToggle).toBeChecked()
 
     await user.click(compactToggle)
 
@@ -42,10 +43,11 @@ describe('CalendarSettings', () => {
     const user = userEvent.setup()
     render(<CalendarSettings />)
 
-    const buttons = screen.getAllByRole('button')
-    const compressToggle = buttons[2]
+    const checkbox = screen.getAllByRole('checkbox')
+    // checkbox[0] = showWeekNumbers, checkbox[1] = compactRecurring, checkbox[2] = compressPast
+    const compressToggle = checkbox[2]
 
-    expect(compressToggle).toHaveAttribute('aria-pressed', 'true')
+    expect(compressToggle).toBeChecked()
 
     await user.click(compressToggle)
 

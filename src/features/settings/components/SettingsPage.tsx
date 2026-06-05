@@ -24,15 +24,9 @@ const NAV_ITEMS: NavItem[] = [
     id: 'general',
     label: 'General',
     icon: (
-      <svg aria-hidden="true"
-        className={styles.navIcon}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+      <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+        <circle cx="9" cy="9" r="2.5" />
+        <path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.22 3.22l1.42 1.42M13.36 13.36l1.42 1.42M3.22 14.78l1.42-1.42M13.36 4.64l1.42-1.42" />
       </svg>
     ),
   },
@@ -40,15 +34,12 @@ const NAV_ITEMS: NavItem[] = [
     id: 'theme',
     label: 'Theme',
     icon: (
-      <svg aria-hidden="true"
-        className={styles.navIcon}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <circle cx="12" cy="12" r="5" />
-        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+      <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 2a7 7 0 100 14A4 4 0 009 2z" />
+        <circle cx="6" cy="7" r="1" />
+        <circle cx="11" cy="5.5" r="1" />
+        <circle cx="13" cy="10" r="1" />
+        <circle cx="7.5" cy="12.5" r="1" />
       </svg>
     ),
   },
@@ -56,17 +47,9 @@ const NAV_ITEMS: NavItem[] = [
     id: 'calendar',
     label: 'Calendar',
     icon: (
-      <svg aria-hidden="true"
-        className={styles.navIcon}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
+      <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="14" height="13" rx="3" />
+        <path d="M2 7h14M6 2v2M12 2v2" />
       </svg>
     ),
   },
@@ -74,14 +57,8 @@ const NAV_ITEMS: NavItem[] = [
     id: 'events',
     label: 'Events',
     icon: (
-      <svg aria-hidden="true"
-        className={styles.navIcon}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+      <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 2l1.8 4 4.2.6-3 3 .7 4.2L9 12l-3.7 1.8.7-4.2-3-3 4.2-.6L9 2z" />
       </svg>
     ),
   },
@@ -89,15 +66,10 @@ const NAV_ITEMS: NavItem[] = [
     id: 'categories',
     label: 'Categories',
     icon: (
-      <svg aria-hidden="true"
-        className={styles.navIcon}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-        <line x1="7" y1="7" x2="7.01" y2="7" />
+      <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 4h14M2 9h14M2 14h8" />
+        <circle cx="14" cy="14" r="2.5" />
+        <path d="M14 12.5v1.5h1.5" />
       </svg>
     ),
   },
@@ -105,15 +77,9 @@ const NAV_ITEMS: NavItem[] = [
     id: 'notifications',
     label: 'Notifications',
     icon: (
-      <svg aria-hidden="true"
-        className={styles.navIcon}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 2a5 5 0 00-5 5c0 3-1.5 4-1.5 4h13S14 10 14 7a5 5 0 00-5-5z" />
+        <path d="M7.5 15a1.5 1.5 0 003 0" />
       </svg>
     ),
   },
@@ -121,14 +87,9 @@ const NAV_ITEMS: NavItem[] = [
     id: 'caldav',
     label: 'Sync',
     icon: (
-      <svg aria-hidden="true"
-        className={styles.navIcon}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9" />
+      <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9a6 6 0 0110.7-3.7M15 9a6 6 0 01-10.7 3.7" />
+        <path d="M12.5 5l1.2 1.2-1.2 1.2M5.5 13l-1.2-1.2 1.2-1.2" />
       </svg>
     ),
   },
@@ -136,16 +97,10 @@ const NAV_ITEMS: NavItem[] = [
     id: 'data',
     label: 'Data',
     icon: (
-      <svg aria-hidden="true"
-        className={styles.navIcon}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <ellipse cx="12" cy="5" rx="9" ry="3" />
-        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+      <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse cx="9" cy="5" rx="6" ry="2.5" />
+        <path d="M3 5v4c0 1.4 2.7 2.5 6 2.5S15 10.4 15 9V5" />
+        <path d="M3 9v4c0 1.4 2.7 2.5 6 2.5S15 14.4 15 13V9" />
       </svg>
     ),
   },
@@ -190,55 +145,36 @@ export function SettingsPage(): JSX.Element {
     }
   }
 
-  const getTitle = (): string => {
-    switch (activeTab) {
-      case 'general':
-        return 'General Settings'
-      case 'theme':
-        return 'Theme Settings'
-      case 'calendar':
-        return 'Calendar Display'
-      case 'events':
-        return 'Event Defaults'
-      case 'categories':
-        return 'Categories'
-      case 'notifications':
-        return 'Notifications'
-      case 'caldav':
-        return 'CalDAV Sync'
-      case 'data':
-        return 'Data & Storage'
-      default:
-        return 'Settings'
-    }
-  }
-
   return (
     <div className={styles.container}>
-      <aside className={styles.sidebar}>
-        <h1 className={styles.sidebarTitle}>Settings</h1>
-        <nav className={styles.nav}>
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              className={`${styles.navItem} ${activeTab === item.id ? styles.active : ''}`}
-              onClick={() => setActiveTab(item.id)}
-            >
-              {item.icon}
-              {item.label}
+      <div className={styles.body}>
+        <aside className={styles.nav}>
+          <h1 className={styles.navTitle}>Settings</h1>
+          <nav className={styles.navList}>
+            {NAV_ITEMS.map((item) => (
+              <button
+                key={item.id}
+                className={`${styles.navItem} ${activeTab === item.id ? styles.navItemActive : ''}`}
+                onClick={() => setActiveTab(item.id)}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+        <main className={styles.main}>
+          <div className={styles.header}>
+            <button className={styles.back} onClick={() => navigate('/')}>
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 2L4 7l5 5" />
+              </svg>
+              Back to Calendar
             </button>
-          ))}
-        </nav>
-      </aside>
-      <main className={styles.content}>
-        <div className={styles.header}>
-          <button className={styles.backButton} onClick={() => navigate('/')}>
-            ← Back to Calendar
-          </button>
-        </div>
-        <h2 className={styles.pageTitle}>{getTitle()}</h2>
-        {renderContent()}
-      </main>
+          </div>
+          {renderContent()}
+        </main>
+      </div>
     </div>
   )
 }

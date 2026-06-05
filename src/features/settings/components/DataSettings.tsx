@@ -1,15 +1,12 @@
 import type { JSX } from 'react'
 import { useState, useRef } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
-import { useSettingsStore } from '@/store/settingsStore'
 import { parseICALEvent } from '@/features/caldav/adapter/iCalendarAdapter'
-import * as accountStorage from '@/features/caldav/sync/accountStorage'
 import styles from './Settings.module.css'
 
 export function DataSettings(): JSX.Element {
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
-  const [isClearing, setIsClearing] = useState(false)
   const [importStatus, setImportStatus] = useState<{
     type: 'success' | 'error'
     message: string
@@ -18,40 +15,6 @@ export function DataSettings(): JSX.Element {
 
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
-  const updateCalendar = useCalendarStore((state) => state.updateCalendar)
-  const settings = useSettingsStore()
-
-  const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
-
-  const handleSetDefaultCalendar = (calendarId: string): void => {
-    calendars.forEach((cal) => {
-      updateCalendar(cal.id, { isDefault: cal.id === calendarId })
-    })
-  }
-
-  const handleExport = async (): Promise<void> => {
-    setIsExporting(true)
-    try {
-      const data = {
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        events,
-        calendars,
-      }
-
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `calino-export-${new Date().toISOString().split('T')[0]}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } finally {
-      setIsExporting(false)
-    }
-  }
 
   const handleExportICS = async (): Promise<void> => {
     setIsExporting(true)
@@ -62,22 +25,16 @@ export function DataSettings(): JSX.Element {
       }
 
       let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Calino//Calendar//EN\r\n'
-
       for (const event of events) {
         ics += 'BEGIN:VEVENT\r\n'
         ics += `UID:${event.id}\r\n`
         ics += `DTSTART:${formatDate(event.start)}\r\n`
         ics += `DTEND:${formatDate(event.end)}\r\n`
         ics += `SUMMARY:${event.title}\r\n`
-        if (event.description) {
-          ics += `DESCRIPTION:${event.description}\r\n`
-        }
-        if (event.location) {
-          ics += `LOCATION:${event.location}\r\n`
-        }
+        if (event.description) ics += `DESCRIPTION:${event.description}\r\n`
+        if (event.location) ics += `LOCATION:${event.location}\r\n`
         ics += 'END:VEVENT\r\n'
       }
-
       ics += 'END:VCALENDAR\r\n'
 
       const blob = new Blob([ics], { type: 'text/calendar' })
@@ -92,63 +49,6 @@ export function DataSettings(): JSX.Element {
     } finally {
       setIsExporting(false)
     }
-  }
-
-  const handleExportSettings = (): void => {
-    const accounts = accountStorage.getAllAccounts()
-    const calendars = accountStorage.getAllCalendars()
-
-    const exportData = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      type: 'calino-settings',
-      settings: {
-        timezone: settings.timezone,
-        dateFormat: settings.dateFormat,
-        timeFormat: settings.timeFormat,
-        firstDayOfWeek: settings.firstDayOfWeek,
-        defaultDuration: settings.defaultDuration,
-        defaultView: settings.defaultView,
-        showWeekNumbers: settings.showWeekNumbers,
-        eventDensity: settings.eventDensity,
-        defaultReminderMinutes: settings.defaultReminderMinutes,
-        defaultEventColor: settings.defaultEventColor,
-        enableDesktopNotifications: settings.enableDesktopNotifications,
-        enableSoundAlerts: settings.enableSoundAlerts,
-        syncEnabled: settings.syncEnabled,
-        syncIntervalMinutes: settings.syncIntervalMinutes,
-        conflictResolution: settings.conflictResolution,
-        compactRecurringEvents: settings.compactRecurringEvents,
-      },
-      calendars: accounts.map((account) => ({
-        id: account.id,
-        name: account.name,
-        serverUrl: account.serverUrl,
-        username: account.username,
-        lastSyncAt: account.lastSyncAt,
-        createdAt: account.createdAt,
-        calendars: calendars
-          .filter((c) => c.accountId === account.id)
-          .map((c) => ({
-            id: c.id,
-            name: c.name,
-            color: c.color,
-            url: c.url,
-            isVisible: c.isVisible,
-            isDefault: c.isDefault,
-          })),
-      })),
-    }
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-      a.download = `calino-settings-${new Date().toISOString().split('T')[0]}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
   }
 
   const handleImport = (): void => {
@@ -166,206 +66,101 @@ export function DataSettings(): JSX.Element {
 
       if (fileName.endsWith('.json')) {
         const data = JSON.parse(text)
-
         if (data.events && Array.isArray(data.events)) {
           for (const event of data.events) {
             useCalendarStore.getState().addEvent(event)
           }
-          setImportStatus({
-            type: 'success',
-            message: `Imported ${data.events.length} events from JSON`,
-          })
+          setImportStatus({ type: 'success', message: `Imported ${data.events.length} events` })
         } else {
           setImportStatus({ type: 'error', message: 'No events found in JSON file' })
         }
       } else if (fileName.endsWith('.ics')) {
         const defaultCalendar = calendars.find((c) => c.isDefault) ?? calendars[0]
         const calendarId = defaultCalendar?.id ?? 'default'
-
         const importedEvents = parseICALEvent(text, calendarId)
-
         for (const event of importedEvents) {
           useCalendarStore.getState().addEvent(event)
         }
-        setImportStatus({
-          type: 'success',
-          message: `Imported ${importedEvents.length} events from ICS`,
-        })
+        setImportStatus({ type: 'success', message: `Imported ${importedEvents.length} events` })
       }
-    } catch (error) {
-      console.error('Failed to import file:', error)
+    } catch {
       setImportStatus({ type: 'error', message: 'Failed to import file. Please check the format.' })
     } finally {
       setIsImporting(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
+      if (fileInputRef.current) fileInputRef.current.value = ''
       setTimeout(() => setImportStatus(null), 3000)
     }
   }
 
   const handleClearData = async (): Promise<void> => {
-    if (!confirm('Are you sure you want to delete all local data? This cannot be undone.')) {
-      return
-    }
-
-    setIsClearing(true)
-    try {
-      localStorage.clear()
-      sessionStorage.clear()
-      window.location.reload()
-    } finally {
-      setIsClearing(false)
-    }
-  }
-
-  const handleClearEventCategories = (): void => {
-    if (!confirm('Remove all categories from all events? This cannot be undone.')) {
-      return
-    }
-    const events = useCalendarStore.getState().events
-    events.forEach((event) => {
-      if (event.categories && event.categories.length > 0) {
-        useCalendarStore.getState().updateEvent(event.id, { categories: [] })
-      }
-    })
+    if (!confirm('Are you sure you want to delete all local data? This cannot be undone.')) return
+    localStorage.clear()
+    sessionStorage.clear()
+    window.location.reload()
   }
 
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Data & Storage</h2>
-      <p className={styles.sectionDescription}>Export, import, or clear your calendar data.</p>
+    <section className={`${styles.section} ${styles.sectionActive}`}>
+      <h1 className={styles.pageTitle}>Data</h1>
 
-      {calendars.length > 0 && (
-        <div className={styles.settingRow}>
-          <div className={styles.settingLabel}>
-            <span className={styles.settingLabelText}>Default Calendar</span>
-            <span className={styles.settingLabelHint}>Used when creating new events</span>
+      <div className={styles.group}>
+        <div className={styles.groupLabel}>Import & Export</div>
+        <div className={styles.actionRow}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Export Calendar</div>
+            <div className={styles.rowDesc}>Download all events as a standard .ics file</div>
           </div>
-          <select
-            className={styles.select}
-            value={defaultCalendar?.id || ''}
-            onChange={(e) => handleSetDefaultCalendar(e.target.value)}
-          >
-            {calendars.map((cal) => (
-              <option key={cal.id} value={cal.id}>
-                {cal.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Export Settings</span>
-          <span className={styles.settingLabelHint}>
-            Download your settings and calendar accounts (without passwords)
-          </span>
-        </div>
-        <button
-          className={`${styles.button} ${styles.buttonSecondary}`}
-          onClick={handleExportSettings}
-        >
-          Export Settings
-        </button>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Export Calendar</span>
-          <span className={styles.settingLabelHint}>Download your events as JSON or ICS file</span>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            className={`${styles.button} ${styles.buttonSecondary}`}
-            onClick={handleExport}
-            disabled={isExporting}
-          >
-            {isExporting ? 'Exporting...' : 'Export JSON'}
-          </button>
-          <button
-            className={`${styles.button} ${styles.buttonSecondary}`}
-            onClick={handleExportICS}
-            disabled={isExporting}
-          >
-            Export ICS
+          <button className={styles.actionBtn} onClick={handleExportICS} disabled={isExporting} type="button">
+            {isExporting ? 'Exporting...' : 'Export .ics'}
           </button>
         </div>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Import Calendar</span>
-          <span className={styles.settingLabelHint}>Restore events from a JSON or ICS file</span>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              className={`${styles.button} ${styles.buttonSecondary}`}
-              onClick={handleImport}
-              disabled={isImporting}
-            >
-              {isImporting ? 'Importing...' : 'Import JSON'}
-            </button>
-            <button
-              className={`${styles.button} ${styles.buttonSecondary}`}
-              onClick={handleImport}
-              disabled={isImporting}
-            >
-              {isImporting ? 'Importing...' : 'Import ICS'}
-            </button>
+        <div className={styles.actionRow}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Import Calendar</div>
+            <div className={styles.rowDesc}>Add events from a .ics or .json file</div>
           </div>
-          {importStatus && (
-            <span
-              style={{
-                fontSize: '13px',
-                color: importStatus.type === 'success' ? '#1e8e3e' : '#d93025',
-              }}
-            >
-              {importStatus.message}
-            </span>
-          )}
+          <button className={styles.actionBtn} onClick={handleImport} disabled={isImporting} type="button">
+            {isImporting ? 'Importing...' : 'Choose file…'}
+          </button>
         </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json,.ics"
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-        />
+        {importStatus && (
+          <div style={{ padding: '0 20px 16px', fontSize: '13px', color: importStatus.type === 'success' ? 'var(--color-success)' : 'var(--color-error)' }}>
+            {importStatus.message}
+          </div>
+        )}
+        <input ref={fileInputRef} type="file" accept=".json,.ics" onChange={handleFileChange} style={{ display: 'none' }} />
       </div>
 
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Clear All Categories from Events</span>
-          <span className={styles.settingLabelHint}>
-            Remove all category assignments from events
-          </span>
+      <div className={`${styles.group} ${styles.dangerZone}`}>
+        <div className={`${styles.groupLabel} ${styles.dangerZoneLabel}`}>Danger Zone</div>
+        <div className={styles.actionRow}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Delete All Events</div>
+            <div className={styles.rowDesc}>Permanently remove every event from this calendar. This cannot be undone.</div>
+          </div>
+          <button
+            className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
+            onClick={() => {
+              if (confirm('Delete all events? This cannot be undone.')) {
+                const allEvents = useCalendarStore.getState().events
+                allEvents.forEach((e) => useCalendarStore.getState().deleteEvent(e.id))
+              }
+            }}
+            type="button"
+          >
+            Delete all events
+          </button>
         </div>
-        <button
-          className={`${styles.button} ${styles.buttonSecondary}`}
-          onClick={handleClearEventCategories}
-        >
-          Clear Categories
-        </button>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Clear All Data</span>
-          <span className={styles.settingLabelHint}>
-            Delete all events, calendars, and settings
-          </span>
+        <div className={styles.actionRow}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Reset Calino</div>
+            <div className={styles.rowDesc}>Erase all data, settings, and connected accounts and start fresh.</div>
+          </div>
+          <button className={`${styles.actionBtn} ${styles.actionBtnDanger}`} onClick={handleClearData} type="button">
+            Reset app
+          </button>
         </div>
-        <button
-          className={`${styles.button} ${styles.buttonDanger}`}
-          onClick={handleClearData}
-          disabled={isClearing}
-        >
-          {isClearing ? 'Clearing...' : 'Clear All Data'}
-        </button>
       </div>
-    </div>
+    </section>
   )
 }

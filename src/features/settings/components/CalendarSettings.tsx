@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useSettingsStore, VIEW_OPTIONS, DENSITY_OPTIONS } from '@/store/settingsStore'
+import { useSettingsStore } from '@/store/settingsStore'
 import styles from './Settings.module.css'
 
 export function CalendarSettings(): JSX.Element {
@@ -13,131 +13,157 @@ export function CalendarSettings(): JSX.Element {
   const updateSettings = useSettingsStore((s) => s.updateSettings)
 
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Calendar Display</h2>
-      <p className={styles.sectionDescription}>Customize how your calendar looks and behaves.</p>
+    <section className={`${styles.section} ${styles.sectionActive}`}>
+      <h1 className={styles.pageTitle}>Calendar</h1>
 
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Default View</span>
-          <span className={styles.settingLabelHint}>The view shown when you open the calendar</span>
+      <div className={styles.group}>
+        <div className={styles.groupLabel}>Display</div>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Default View</div>
+            <div className={styles.rowDesc}>The view shown when you open the app</div>
+          </div>
+          <div className={styles.rowControl}>
+            <div className={styles.seg}>
+              {[
+                { value: 'month', label: 'Month' },
+                { value: 'week', label: 'Week' },
+                { value: 'day', label: 'Day' },
+                { value: 'agenda', label: 'Agenda' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  className={`${styles.segTab} ${defaultView === opt.value ? styles.segTabActive : ''}`}
+                  onClick={() =>
+                    updateSettings({ defaultView: opt.value as 'month' | 'week' | 'day' | 'agenda' })
+                  }
+                  type="button"
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <select
-          className={styles.select}
-          value={defaultView}
-          onChange={(e) =>
-            updateSettings({ defaultView: e.target.value as 'month' | 'week' | 'day' | 'agenda' })
-          }
-        >
-          {VIEW_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Show Week Numbers</div>
+            <div className={styles.rowDesc}>Display ISO week numbers on the left of each row</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={showWeekNumbers}
+                onChange={() => updateSettings({ showWeekNumbers: !showWeekNumbers })}
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
+        </div>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Event Display Density</div>
+            <div className={styles.rowDesc}>How compact event chips appear in the grid</div>
+          </div>
+          <div className={styles.rowControl}>
+            <div className={styles.seg}>
+              {[
+                { value: 'compact', label: 'Compact' },
+                { value: 'comfortable', label: 'Comfortable' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  className={`${styles.segTab} ${eventDensity === opt.value ? styles.segTabActive : ''}`}
+                  onClick={() =>
+                    updateSettings({ eventDensity: opt.value as 'comfortable' | 'compact' })
+                  }
+                  type="button"
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Show Week Numbers</span>
-          <span className={styles.settingLabelHint}>Display week numbers in month view</span>
+      <div className={styles.group}>
+        <div className={styles.groupLabel}>Grid Behaviour</div>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Compact Recurring Events</div>
+            <div className={styles.rowDesc}>Show recurring events as minimal chips in month view</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={compactRecurringEvents}
+                onChange={() => updateSettings({ compactRecurringEvents: !compactRecurringEvents })}
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
         </div>
-        <button
-          className={`${styles.toggle} ${showWeekNumbers ? styles.active : ''}`}
-          onClick={() => updateSettings({ showWeekNumbers: !showWeekNumbers })}
-          aria-pressed={showWeekNumbers}
-        >
-          <span className={styles.toggleKnob} />
-        </button>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Event Display Density</span>
-          <span className={styles.settingLabelHint}>Choose how compact event items appear</span>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Compact Past Weeks</div>
+            <div className={styles.rowDesc}>Reduce height of rows that have already passed</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={compressPastWeeks}
+                onChange={() => updateSettings({ compressPastWeeks: !compressPastWeeks })}
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
         </div>
-        <select
-          className={styles.select}
-          value={eventDensity}
-          onChange={(e) =>
-            updateSettings({ eventDensity: e.target.value as 'comfortable' | 'compact' })
-          }
-        >
-          {DENSITY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Compact Recurring Events</span>
-          <span className={styles.settingLabelHint}>
-            Show recurring events as minimal blocks in month view
-          </span>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Hide Completed Tasks</div>
+            <div className={styles.rowDesc}>Don't show done tasks in the calendar grid</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={hideCompletedTasksInMonthView}
+                onChange={() =>
+                  updateSettings({ hideCompletedTasksInMonthView: !hideCompletedTasksInMonthView })
+                }
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
         </div>
-        <button
-          className={`${styles.toggle} ${compactRecurringEvents ? styles.active : ''}`}
-          onClick={() => updateSettings({ compactRecurringEvents: !compactRecurringEvents })}
-          aria-pressed={compactRecurringEvents}
-        >
-          <span className={styles.toggleKnob} />
-        </button>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Compact Past Weeks</span>
-          <span className={styles.settingLabelHint}>
-            Compact events in past weeks in month view
-          </span>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Events Before Rollup</div>
+            <div className={styles.rowDesc}>How many events to show per day before showing "+N more"</div>
+          </div>
+          <div className={styles.rowControl}>
+            <select
+              className={styles.select}
+              style={{ minWidth: '120px' }}
+              value={monthViewEventLimit}
+              onChange={(e) => updateSettings({ monthViewEventLimit: Number(e.target.value) })}
+            >
+              <option value={2}>2</option>
+              <option value={3}>3</option>
+              <option value={4}>4</option>
+              <option value={5}>5</option>
+            </select>
+          </div>
         </div>
-        <button
-          className={`${styles.toggle} ${compressPastWeeks ? styles.active : ''}`}
-          onClick={() => updateSettings({ compressPastWeeks: !compressPastWeeks })}
-          aria-pressed={compressPastWeeks}
-        >
-          <span className={styles.toggleKnob} />
-        </button>
       </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Hide Completed Tasks in Month View</span>
-          <span className={styles.settingLabelHint}>Don't show completed tasks in month view</span>
-        </div>
-        <button
-          className={`${styles.toggle} ${hideCompletedTasksInMonthView ? styles.active : ''}`}
-          onClick={() =>
-            updateSettings({ hideCompletedTasksInMonthView: !hideCompletedTasksInMonthView })
-          }
-          aria-pressed={hideCompletedTasksInMonthView}
-        >
-          <span className={styles.toggleKnob} />
-        </button>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Events Before Rollup</span>
-          <span className={styles.settingLabelHint}>
-            Number of events to show before rollup in month view
-          </span>
-        </div>
-        <select
-          className={styles.select}
-          value={monthViewEventLimit}
-          onChange={(e) => updateSettings({ monthViewEventLimit: Number(e.target.value) })}
-        >
-          <option value={2}>2</option>
-          <option value={3}>3</option>
-          <option value={4}>4</option>
-          <option value={5}>5</option>
-          <option value={6}>6</option>
-        </select>
-      </div>
-    </div>
+    </section>
   )
 }

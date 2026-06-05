@@ -2,7 +2,6 @@ import type { JSX } from 'react'
 import { useState } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
 import { EVENT_COLORS } from '@/store/settingsStore'
-import type { Category } from '@/types/categories'
 import styles from './Settings.module.css'
 
 export function CategoriesSettings(): JSX.Element {
@@ -15,20 +14,22 @@ export function CategoriesSettings(): JSX.Element {
   const updateAutoCategoryRule = useCalendarStore((s) => s.updateAutoCategoryRule)
   const deleteAutoCategoryRule = useCalendarStore((s) => s.deleteAutoCategoryRule)
   const updateEvent = useCalendarStore((s) => s.updateEvent)
+  const events = useCalendarStore((s) => s.events)
 
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState(EVENT_COLORS[0])
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
-  const [editCategoryName, setEditCategoryName] = useState('')
-  const [editCategoryColor, setEditCategoryColor] = useState('')
+  const [showAddCategory, setShowAddCategory] = useState(false)
 
   const [newRuleKeywords, setNewRuleKeywords] = useState('')
   const [newRuleCategoryId, setNewRuleCategoryId] = useState('')
-  const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
-  const [editRuleKeywords, setEditRuleKeywords] = useState('')
+  const [showAddRule, setShowAddRule] = useState(false)
 
   const [showApplyModal, setShowApplyModal] = useState(false)
   const [pendingRule, setPendingRule] = useState<{ keywords: string[]; categoryId: string } | null>(null)
+
+  const getEventCountForCategory = (categoryName: string): number => {
+    return events.filter((e) => e.categories?.includes(categoryName)).length
+  }
 
   const handleAddCategory = (): void => {
     if (!newCategoryName.trim()) return
@@ -39,14 +40,7 @@ export function CategoriesSettings(): JSX.Element {
     })
     setNewCategoryName('')
     setNewCategoryColor(EVENT_COLORS[0])
-  }
-
-  const handleUpdateCategory = (id: string): void => {
-    if (!editCategoryName.trim()) return
-    updateCategory(id, { name: editCategoryName.trim(), color: editCategoryColor })
-    setEditingCategoryId(null)
-    setEditCategoryName('')
-    setEditCategoryColor('')
+    setShowAddCategory(false)
   }
 
   const handleDeleteCategory = (id: string): void => {
@@ -66,7 +60,7 @@ export function CategoriesSettings(): JSX.Element {
     if (!category) return
     const categoryName = category.name
     const lowerKeywords = rule.keywords.map((k) => k.toLowerCase())
-    useCalendarStore.getState().events.forEach((event) => {
+    events.forEach((event) => {
       const lowerTitle = event.title.toLowerCase()
       const matches = lowerKeywords.some((kw) => lowerTitle.includes(kw))
       if (matches) {
@@ -96,281 +90,81 @@ export function CategoriesSettings(): JSX.Element {
     setNewRuleCategoryId('')
   }
 
-  const handleUpdateRule = (id: string): void => {
-    if (!editRuleKeywords.trim()) return
-    const keywords = editRuleKeywords.split(',').map((k) => k.trim()).filter(Boolean)
-    if (keywords.length === 0) return
-    updateAutoCategoryRule(id, { keywords })
-    setEditingRuleId(null)
-    setEditRuleKeywords('')
-  }
-
-  const handleDeleteRule = (id: string): void => {
-    deleteAutoCategoryRule(id)
-  }
-
-  const getCategoryById = (id: string): Category | undefined => {
-    return categories.find((c) => c.id === id)
-  }
-
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Categories</h2>
-      <p className={styles.sectionDescription}>
-        Organize events with categories. Categories sync via iCalendar CATEGORIES property.
-      </p>
+    <section className={`${styles.section} ${styles.sectionActive}`}>
+      <h1 className={styles.pageTitle}>Categories</h1>
 
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Add Category</span>
-        </div>
-        <div className={styles.categoryAddRow}>
-          <input
-            type="text"
-            className={styles.textInput}
-            placeholder="Category name"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-          />
-          <div className={styles.colorPicker}>
-            {EVENT_COLORS.map((color) => (
-              <button
-                key={color}
-                className={`${styles.colorSwatch} ${newCategoryColor === color ? styles.selected : ''}`}
-                style={{ backgroundColor: color }}
-                onClick={() => setNewCategoryColor(color)}
-                aria-label={`Select color ${color}`}
-              />
-            ))}
-          </div>
-          <button className={styles.button} onClick={handleAddCategory}>
-            Add
-          </button>
-        </div>
-      </div>
-
-      {categories.length > 0 && (
-        <div className={styles.categoryList}>
+      <div className={styles.group}>
+        <div className={styles.catList}>
           {categories.map((category) => (
-            <div key={category.id} className={styles.categoryItem}>
-              {editingCategoryId === category.id ? (
-                <>
-                  <input
-                    type="text"
-                    className={styles.textInput}
-                    value={editCategoryName}
-                    onChange={(e) => setEditCategoryName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleUpdateCategory(category.id)}
-                    autoFocus
-                  />
-                  <div className={styles.colorPickerSmall}>
-                    {EVENT_COLORS.map((color) => (
-                      <button
-                        key={color}
-                        className={`${styles.colorSwatch} ${editCategoryColor === color ? styles.selected : ''}`}
-                        style={{ backgroundColor: color }}
-                        onClick={() => setEditCategoryColor(color)}
-                        aria-label={`Select color ${color}`}
-                      />
-                    ))}
-                  </div>
-                  <button
-                    className={styles.buttonSmall}
-                    onClick={() => handleUpdateCategory(category.id)}
-                  >
-                    Save
-                  </button>
-                  <button
-                    className={styles.buttonSmall}
-                    onClick={() => setEditingCategoryId(null)}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span
-                    className={styles.categoryColorDot}
-                    style={{ backgroundColor: category.color }}
-                  />
-                  <span className={styles.categoryName}>{category.name}</span>
-                  <button
-                    className={styles.buttonSmall}
-                    onClick={() => {
-                      setEditingCategoryId(category.id)
-                      setEditCategoryName(category.name)
-                      setEditCategoryColor(category.color)
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className={styles.buttonSmall}
-                    onClick={() => handleDeleteCategory(category.id)}
-                  >
-                    Delete
-                  </button>
-                </>
-              )}
+            <div key={category.id} className={styles.catRow}>
+              <div className={styles.catSwatch} style={{ '--cat-color': category.color } as React.CSSProperties} />
+              <span className={styles.catName}>{category.name}</span>
+              <span className={styles.catCount}>{getEventCountForCategory(category.name)} events</span>
+              <div className={styles.catActions}>
+                <button className={styles.catBtn} type="button">Rename</button>
+                <button className={styles.catBtn} type="button" style={{ padding: '0 8px' }} title="Change color">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+                    <circle cx="6.5" cy="6.5" r="5" />
+                    <path d="M6.5 4v5M4 6.5h5" />
+                  </svg>
+                </button>
+                <button className={`${styles.catBtn} ${styles.catBtnDanger}`} onClick={() => handleDeleteCategory(category.id)} type="button">Delete</button>
+              </div>
             </div>
           ))}
-        </div>
-      )}
 
-      {categories.length === 0 && (
-        <p className={styles.emptyText}>No categories yet. Add one above.</p>
-      )}
-
-      <div className={styles.divider} />
-
-      <h3 className={styles.subsectionTitle}>Auto-Apply Rules</h3>
-      <p className={styles.sectionDescription}>
-        Automatically apply categories based on keywords in event titles.
-      </p>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Add Rule</span>
-        </div>
-        <div className={styles.ruleAddRow}>
-          <input
-            type="text"
-            className={styles.textInput}
-            placeholder="Keywords (comma-separated)"
-            value={newRuleKeywords}
-            onChange={(e) => setNewRuleKeywords(e.target.value)}
-          />
-          <select
-            className={styles.select}
-            value={newRuleCategoryId}
-            onChange={(e) => setNewRuleCategoryId(e.target.value)}
-          >
-            <option value="">Select category...</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-          <button
-            className={styles.button}
-            onClick={handleAddRule}
-            disabled={!newRuleCategoryId || !newRuleKeywords.trim()}
-          >
-            Add Rule
-          </button>
+          {showAddCategory ? (
+            <div className={styles.catRow}>
+              <input
+                type="text"
+                placeholder="Category name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                autoFocus
+                style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--line)', fontSize: '14px', background: 'var(--canvas)', color: 'var(--ink)' }}
+              />
+              <div className={styles.swatches} style={{ gap: '4px' }}>
+                {EVENT_COLORS.slice(0, 6).map((color) => (
+                  <button
+                    key={color}
+                    className={`${styles.swatch} ${newCategoryColor === color ? styles.swatchActive : ''}`}
+                    style={{ '--swatch-color': color, width: '22px', height: '22px' } as React.CSSProperties}
+                    onClick={() => setNewCategoryColor(color)}
+                    type="button"
+                  />
+                ))}
+              </div>
+              <button className={styles.actionBtn} onClick={handleAddCategory} type="button">Add</button>
+              <button className={styles.actionBtn} onClick={() => setShowAddCategory(false)} type="button">Cancel</button>
+            </div>
+          ) : (
+            <button className={styles.catAdd} onClick={() => setShowAddCategory(true)} type="button">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                <path d="M8 2v12M2 8h12" />
+              </svg>
+              Add category
+            </button>
+          )}
         </div>
       </div>
 
-      {autoCategoryRules.length > 0 && (
-        <div className={styles.categoryList}>
-          {autoCategoryRules.map((rule) => {
-            const category = getCategoryById(rule.categoryId)
-            return (
-              <div key={rule.id} className={styles.categoryItem}>
-                {editingRuleId === rule.id ? (
-                  <>
-                    <input
-                      type="text"
-                      className={styles.textInput}
-                      value={editRuleKeywords}
-                      onChange={(e) => setEditRuleKeywords(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleUpdateRule(rule.id)}
-                      autoFocus
-                    />
-                    <button
-                      className={styles.buttonSmall}
-                      onClick={() => handleUpdateRule(rule.id)}
-                    >
-                      Save
-                    </button>
-                    <button
-                      className={styles.buttonSmall}
-                      onClick={() => setEditingRuleId(null)}
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <span className={styles.ruleKeywords}>
-                      {rule.keywords.join(', ')}
-                    </span>
-                    <span className={styles.ruleArrow}>→</span>
-                    <span
-                      className={styles.categoryColorDot}
-                      style={{ backgroundColor: category?.color || '#888' }}
-                    />
-                    <span className={styles.categoryName}>{category?.name || 'Unknown'}</span>
-                    <button
-                      className={styles.buttonSmall}
-                      onClick={() => {
-                        setEditingRuleId(rule.id)
-                        setEditRuleKeywords(rule.keywords.join(', '))
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className={styles.buttonSmall}
-                      onClick={() => handleDeleteRule(rule.id)}
-                    >
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {autoCategoryRules.length === 0 && (
-        <p className={styles.emptyText}>No auto-apply rules yet. Add one above.</p>
-      )}
-
       {showApplyModal && pendingRule && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Apply Rule to Existing Events?</h3>
-            </div>
-            <p className={styles.modalDescription}>
-              This rule will apply the category "{getCategoryById(pendingRule.categoryId)?.name}" to events
-              containing "{pendingRule.keywords.join(', ')}".
+        <div className={styles.modal} style={{ position: 'fixed', inset: 0, background: 'var(--modal-scrim)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className={styles.modalContent} style={{ background: 'var(--modal-bg)', border: '1px solid var(--modal-border)', boxShadow: 'var(--modal-shadow)', borderRadius: '18px', padding: '24px', maxWidth: '400px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ink)', marginBottom: '12px' }}>Apply Rule to Existing Events?</h3>
+            <p style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: '20px' }}>
+              This rule will apply the category to events matching your keywords. Would you like to apply it to existing events as well?
             </p>
-            <p className={styles.modalDescription}>
-              Would you like to apply this rule to existing events as well?
-            </p>
-            <div className={styles.modalFooter}>
-              <button
-                className={styles.buttonSecondary}
-                onClick={() => confirmAddRule(false)}
-              >
-                Future Events Only
-              </button>
-              <button
-                className={styles.buttonPrimary}
-                onClick={() => confirmAddRule(true)}
-              >
-                All Events
-              </button>
-              <button
-                className={styles.cancelButton}
-                onClick={() => {
-                  setShowApplyModal(false)
-                  setPendingRule(null)
-                  setNewRuleKeywords('')
-                  setNewRuleCategoryId('')
-                }}
-              >
-                Cancel
-              </button>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button className={styles.actionBtn} onClick={() => confirmAddRule(false)} type="button">Future Only</button>
+              <button className={styles.actionBtn} style={{ background: 'var(--accent)', color: '#fff', border: 'none' }} onClick={() => confirmAddRule(true)} type="button">All Events</button>
+              <button className={styles.actionBtn} onClick={() => { setShowApplyModal(false); setPendingRule(null) }} type="button">Cancel</button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </section>
   )
 }

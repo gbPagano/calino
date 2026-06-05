@@ -41,11 +41,10 @@ describe('DataSettings - ICS Import', () => {
     })
   })
 
-  it('renders import buttons', () => {
+  it('renders import button', () => {
     render(<DataSettings />)
 
-    expect(screen.getByRole('button', { name: /import json/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /import ics/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /choose file/i })).toBeInTheDocument()
   })
 
   it('imports ICS file and adds events to store', async () => {
@@ -77,7 +76,7 @@ describe('DataSettings - ICS Import', () => {
     await user.upload(input, file)
 
     await waitFor(() => {
-      expect(screen.getByText(/imported 2 events from ics/i)).toBeInTheDocument()
+      expect(screen.getByText(/imported 2 events/i)).toBeInTheDocument()
     })
   })
 

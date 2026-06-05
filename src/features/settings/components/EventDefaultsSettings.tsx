@@ -14,67 +14,75 @@ export function EventDefaultsSettings(): JSX.Element {
   const updateSettings = useSettingsStore((s) => s.updateSettings)
 
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Event Defaults</h2>
-      <p className={styles.sectionDescription}>Set default values for new events.</p>
+    <section className={`${styles.section} ${styles.sectionActive}`}>
+      <h1 className={styles.pageTitle}>Events</h1>
 
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Default Duration</span>
-          <span className={styles.settingLabelHint}>
-            Duration for events without a specified end time
-          </span>
+      <div className={styles.group}>
+        <div className={styles.groupLabel}>New Event Defaults</div>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Default Duration</div>
+            <div className={styles.rowDesc}>Length of a new event when created by clicking a day</div>
+          </div>
+          <div className={styles.rowControl}>
+            <select
+              className={styles.select}
+              value={defaultDuration}
+              onChange={(e) =>
+                updateSettings({ defaultDuration: Number(e.target.value) as 15 | 30 | 60 | 90 | 120 })
+              }
+            >
+              {DURATION_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <select
-          className={styles.select}
-          value={defaultDuration}
-          onChange={(e) =>
-            updateSettings({ defaultDuration: Number(e.target.value) as 15 | 30 | 60 | 90 | 120 })
-          }
-        >
-          {DURATION_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Default Calendar</div>
+            <div className={styles.rowDesc}>Which calendar new events are added to</div>
+          </div>
+          <div className={styles.rowControl}>
+            <select
+              className={styles.select}
+              value={defaultEventColor}
+              onChange={(e) => updateSettings({ defaultEventColor: e.target.value })}
+            >
+              {EVENT_COLORS.map((color) => (
+                <option key={color} value={color}>
+                  {color}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Default Reminder</span>
-          <span className={styles.settingLabelHint}>When to remind you about upcoming events</span>
-        </div>
-        <select
-          className={styles.select}
-          value={defaultReminderMinutes}
-          onChange={(e) => updateSettings({ defaultReminderMinutes: Number(e.target.value) })}
-        >
-          {REMINDER_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Default Event Color</span>
-          <span className={styles.settingLabelHint}>Color applied to new events by default</span>
-        </div>
-        <div className={styles.colorPicker}>
-          {EVENT_COLORS.map((color) => (
-            <button
-              key={color}
-              className={`${styles.colorSwatch} ${defaultEventColor === color ? styles.selected : ''}`}
-              style={{ backgroundColor: color }}
-              onClick={() => updateSettings({ defaultEventColor: color })}
-              aria-label={`Select color ${color}`}
-            />
-          ))}
+      <div className={styles.group}>
+        <div className={styles.groupLabel}>Display</div>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Default Reminder</div>
+            <div className={styles.rowDesc}>How far ahead to send the reminder</div>
+          </div>
+          <div className={styles.rowControl}>
+            <select
+              className={styles.select}
+              value={defaultReminderMinutes}
+              onChange={(e) => updateSettings({ defaultReminderMinutes: Number(e.target.value) })}
+            >
+              {REMINDER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   )
 }

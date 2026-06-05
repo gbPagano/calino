@@ -114,252 +114,131 @@ export function CalDAVSettings(): JSX.Element {
     await removeAccount(id)
   }
 
-  const handleSyncNow = async (accountId: string): Promise<void> => {
-    await syncAccount(accountId)
-  }
-
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>CalDAV Sync</h2>
-      <p className={styles.sectionDescription}>
-        Manage your CalDAV accounts and synchronization settings.
-      </p>
+    <section className={`${styles.section} ${styles.sectionActive}`}>
+      <h1 className={styles.pageTitle}>Sync</h1>
 
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Enable Sync</span>
-          <span className={styles.settingLabelHint}>
-            Automatically sync calendars with your server
-          </span>
-        </div>
-        <button
-          className={`${styles.toggle} ${syncEnabled ? styles.active : ''}`}
-          onClick={() => updateSettings({ syncEnabled: !syncEnabled })}
-          aria-pressed={syncEnabled}
-        >
-          <span className={styles.toggleKnob} />
-        </button>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Sync Interval</span>
-          <span className={styles.settingLabelHint}>How often to check for calendar updates</span>
-        </div>
-        <select
-          className={styles.select}
-          value={syncIntervalMinutes}
-          onChange={(e) => updateSettings({ syncIntervalMinutes: Number(e.target.value) })}
-          disabled={!syncEnabled}
-        >
-          {SYNC_INTERVAL_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Conflict Resolution</span>
-          <span className={styles.settingLabelHint}>
-            How to handle conflicts between local and server data
-          </span>
-        </div>
-        <select
-          className={styles.select}
-          value={conflictResolution}
-          onChange={(e) =>
-            updateSettings({
-              conflictResolution: e.target.value as 'server-wins' | 'local-wins' | 'ask',
-            })
-          }
-        >
-          {CONFLICT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Debug Mode</span>
-          <span className={styles.settingLabelHint}>Log CalDAV sync operations to console</span>
-        </div>
-        <button
-          className={`${styles.toggle} ${caldavDebugMode ? styles.active : ''}`}
-          onClick={() => updateSettings({ caldavDebugMode: !caldavDebugMode })}
-          aria-pressed={caldavDebugMode}
-        >
-          <span className={styles.toggleKnob} />
-        </button>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Connected Accounts</span>
-          <span className={styles.settingLabelHint}>Manage your CalDAV server connections</span>
-        </div>
-        <button
-          className={`${styles.button} ${styles.buttonPrimary}`}
-          onClick={() => setIsAddingAccount(true)}
-        >
-          Add Account
-        </button>
-      </div>
-
-      {accounts.length > 0 && (
-        <div className={styles.accountList}>
-          {accounts.map((account) => (
-            <div key={account.id} className={styles.accountCard}>
-              <div className={styles.accountInfo}>
-                <span className={styles.accountName}>{account.name}</span>
-                <span className={styles.accountUrl}>{account.serverUrl}</span>
-                {account.lastSyncAt && (
-                  <span className={styles.syncStatus}>
-                    Last synced: {new Date(account.lastSyncAt).toLocaleString()}
-                  </span>
-                )}
-              </div>
-              <div className={styles.accountActions}>
-                <button
-                  className={`${styles.button} ${styles.buttonSecondary}`}
-                  onClick={() => handleSyncNow(account.id)}
-                >
-                  Sync Now
-                </button>
-                <button
-                  className={`${styles.button} ${styles.buttonDanger}`}
-                  onClick={() => handleDeleteAccount(account.id)}
-                >
-                  Remove
-                </button>
+      <div className={styles.group}>
+        <div className={styles.groupLabel}>Connected Accounts</div>
+        {accounts.map((account) => (
+          <div key={account.id} className={styles.accountRow}>
+            <div
+              className={styles.accountIcon}
+              style={{ background: 'color-mix(in srgb, var(--accent) 10%, var(--canvas))' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <rect width="20" height="20" rx="5" fill="var(--accent)" opacity="0.8" />
+                <text x="10" y="14" textAnchor="middle" fontSize="11" fill="white" fontFamily="sans-serif">
+                  {account.name.charAt(0)}
+                </text>
+              </svg>
+            </div>
+            <div className={styles.accountInfo}>
+              <div className={styles.accountName}>{account.name}</div>
+              <div className={styles.accountStatus}>
+                <div className={`${styles.statusDot} ${styles.statusDotOk}`} />
+                {account.lastSyncAt
+                  ? `Synced · ${new Date(account.lastSyncAt).toLocaleDateString()}`
+                  : 'Connected'}
               </div>
             </div>
-          ))}
+            <button
+              className={styles.disconnect}
+              onClick={() => handleDeleteAccount(account.id)}
+              type="button"
+            >
+              Disconnect
+            </button>
+          </div>
+        ))}
+
+        <button className={styles.connectBtn} onClick={() => setIsAddingAccount(true)} type="button">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <path d="M8 2v12M2 8h12" />
+          </svg>
+          Add calendar account
+        </button>
+      </div>
+
+      <div className={styles.group}>
+        <div className={styles.groupLabel}>Sync Settings</div>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Sync Frequency</div>
+            <div className={styles.rowDesc}>How often to pull changes from connected accounts</div>
+          </div>
+          <div className={styles.rowControl}>
+            <select
+              className={styles.select}
+              value={syncIntervalMinutes}
+              onChange={(e) => updateSettings({ syncIntervalMinutes: Number(e.target.value) })}
+            >
+              {SYNC_INTERVAL_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      )}
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Sync on Launch</div>
+            <div className={styles.rowDesc}>Always refresh when you open the app</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={syncEnabled}
+                onChange={() => updateSettings({ syncEnabled: !syncEnabled })}
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
+        </div>
+      </div>
 
       {isAddingAccount && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Add CalDAV Account</h3>
+        <div className={styles.modal} style={{ position: 'fixed', inset: 0, background: 'var(--modal-scrim)', backdropFilter: 'var(--modal-blur)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className={styles.modalContent} style={{ background: 'var(--modal-bg)', border: '1px solid var(--modal-border)', boxShadow: 'var(--modal-shadow)', borderRadius: '18px', padding: '24px', width: '100%', maxWidth: '400px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Add CalDAV Account</h3>
               <button
-                className={styles.modalClose}
-                onClick={() => {
-                  setIsAddingAccount(false)
-                  setConnectionStatus('idle')
-                }}
+                onClick={() => { setIsAddingAccount(false); setConnectionStatus('idle') }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-2)', fontSize: '18px' }}
+                type="button"
               >
                 ✕
               </button>
             </div>
             <form onSubmit={handleAddAccount}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Account Name</label>
-                <input
-                  name="accountName"
-                  className={styles.input}
-                  placeholder="My Calendar Server"
-                />
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', display: 'block', marginBottom: '6px' }}>Account Name</label>
+                <input name="accountName" placeholder="My Calendar Server" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: '8px', fontSize: '14px', background: 'var(--canvas)', color: 'var(--ink)', boxSizing: 'border-box' }} />
               </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Server URL</label>
-                <input
-                  name="serverUrl"
-                  className={styles.input}
-                  placeholder="https://caldav.example.com/dav.php"
-                  required
-                />
-                <span className={styles.formHint}>Enter the full URL of your CalDAV server</span>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', display: 'block', marginBottom: '6px' }}>Server URL</label>
+                <input name="serverUrl" placeholder="https://caldav.example.com/dav.php" required style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: '8px', fontSize: '14px', background: 'var(--canvas)', color: 'var(--ink)', boxSizing: 'border-box' }} />
               </div>
-              <div className={styles.formGroup}>
-                <button
-                  type="button"
-                  className={styles.chevronLabel}
-                  onClick={() => setShowProxyField(!showProxyField)}
-                >
-                  <svg aria-hidden="true"
-                    className={styles.chevronIcon}
-                    style={{ transform: showProxyField ? 'rotate(0deg)' : 'rotate(-90deg)' }}
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M4 6L8 10L12 6"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span>Proxy URL (optional)</span>
-                </button>
-                {showProxyField && (
-                  <>
-                    <input
-                      name="proxyUrl"
-                      className={styles.input}
-                      placeholder="https://caldavproxy.cf-e13.workers.dev"
-                    />
-                    <span className={styles.proxyInfoText}>
-                      Using a proxy means your requests go through another server. Your CalDAV
-                      server, requests, and authorization credentials might be visible to the proxy
-                      provider, but not calendar data. It's recommended to either enable CORS
-                      headers on your CalDAV server or run your own proxy.
-                    </span>
-                  </>
-                )}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', display: 'block', marginBottom: '6px' }}>Username</label>
+                <input name="username" autoComplete="username" required style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: '8px', fontSize: '14px', background: 'var(--canvas)', color: 'var(--ink)', boxSizing: 'border-box' }} />
               </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Username</label>
-                <input name="username" autoComplete="username" className={styles.input} required />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Password</label>
-                <input
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  className={styles.input}
-                  required
-                />
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', display: 'block', marginBottom: '6px' }}>Password</label>
+                <input name="password" type="password" autoComplete="current-password" required style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: '8px', fontSize: '14px', background: 'var(--canvas)', color: 'var(--ink)', boxSizing: 'border-box' }} />
               </div>
               {connectionStatus === 'success' && (
-                <p style={{ color: '#34a853', fontSize: '14px', marginBottom: '16px' }}>
-                  ✓ Connection successful!
-                </p>
+                <p style={{ color: 'var(--color-success)', fontSize: '14px', marginBottom: '16px' }}>✓ Connection successful!</p>
               )}
               {connectionStatus === 'error' && (
-                <p style={{ color: '#ea4335', fontSize: '14px', marginBottom: '16px' }}>
-                  ✕{' '}
-                  {connectionError ||
-                    'Connection failed. Please check your credentials and server URL.'}
-                </p>
+                <p style={{ color: 'var(--color-error)', fontSize: '14px', marginBottom: '16px' }}>✕ {connectionError || 'Connection failed.'}</p>
               )}
-              <div className={styles.modalFooter}>
-                <button
-                  type="button"
-                  className={`${styles.button} ${styles.buttonSecondary}`}
-                  onClick={() => {
-                    setIsAddingAccount(false)
-                    setConnectionStatus('idle')
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={`${styles.button} ${styles.buttonPrimary}`}
-                  disabled={isTesting}
-                >
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <button type="button" className={styles.actionBtn} onClick={() => { setIsAddingAccount(false); setConnectionStatus('idle') }}>Cancel</button>
+                <button type="submit" className={styles.actionBtn} style={{ background: 'var(--accent)', color: '#fff', border: 'none' }} disabled={isTesting}>
                   {isTesting ? 'Testing...' : 'Add Account'}
                 </button>
               </div>
@@ -367,6 +246,6 @@ export function CalDAVSettings(): JSX.Element {
           </div>
         </div>
       )}
-    </div>
+    </section>
   )
 }

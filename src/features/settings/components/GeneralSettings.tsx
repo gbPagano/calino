@@ -16,91 +16,103 @@ export function GeneralSettings(): JSX.Element {
   const updateSettings = useSettingsStore((s) => s.updateSettings)
 
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>General</h2>
-      <p className={styles.sectionDescription}>
-        Configure how dates and times are displayed in your calendar.
-      </p>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Timezone</span>
-          <span className={styles.settingLabelHint}>
-            All events will be displayed in this timezone
-          </span>
+    <section className={`${styles.section} ${styles.sectionActive}`}>
+      <h1 className={styles.pageTitle}>General</h1>
+      <div className={styles.group}>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Timezone</div>
+            <div className={styles.rowDesc}>All events will be displayed in this timezone</div>
+          </div>
+          <div className={styles.rowControl}>
+            <select
+              className={styles.select}
+              value={timezone}
+              onChange={(e) => updateSettings({ timezone: e.target.value })}
+            >
+              {TIMEZONE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <select
-          className={styles.select}
-          value={timezone}
-          onChange={(e) => updateSettings({ timezone: e.target.value })}
-        >
-          {TIMEZONE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Date Format</span>
-          <span className={styles.settingLabelHint}>How dates appear throughout the app</span>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Date Format</div>
+            <div className={styles.rowDesc}>How dates appear throughout the app</div>
+          </div>
+          <div className={styles.rowControl}>
+            <select
+              className={styles.select}
+              value={dateFormat}
+              onChange={(e) =>
+                updateSettings({
+                  dateFormat: e.target.value as 'MM/dd/yyyy' | 'dd/MM/yyyy' | 'yyyy-MM-dd',
+                })
+              }
+            >
+              {DATE_FORMAT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <select
-          className={styles.select}
-          value={dateFormat}
-          onChange={(e) =>
-            updateSettings({
-              dateFormat: e.target.value as 'MM/dd/yyyy' | 'dd/MM/yyyy' | 'yyyy-MM-dd',
-            })
-          }
-        >
-          {DATE_FORMAT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Time Format</span>
-          <span className={styles.settingLabelHint}>12-hour or 24-hour time display</span>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Time Format</div>
+            <div className={styles.rowDesc}>12-hour or 24-hour time display</div>
+          </div>
+          <div className={styles.rowControl}>
+            <div className={styles.seg}>
+              {TIME_FORMAT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  className={`${styles.segTab} ${timeFormat === opt.value ? styles.segTabActive : ''}`}
+                  onClick={() => updateSettings({ timeFormat: opt.value as '12h' | '24h' })}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <select
-          className={styles.select}
-          value={timeFormat}
-          onChange={(e) => updateSettings({ timeFormat: e.target.value as '12h' | '24h' })}
-        >
-          {TIME_FORMAT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>First Day of Week</span>
-          <span className={styles.settingLabelHint}>Start of the week in week and day views</span>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>First Day of Week</div>
+            <div className={styles.rowDesc}>Start of the week in week and day views</div>
+          </div>
+          <div className={styles.rowControl}>
+            <div className={styles.seg}>
+              {FIRST_DAY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  className={`${styles.segTab} ${firstDayOfWeek === opt.value ? styles.segTabActive : ''}`}
+                  onClick={() =>
+                    updateSettings({ firstDayOfWeek: opt.value as 0 | 1 | 2 | 3 | 4 | 5 | 6 })
+                  }
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <select
-          className={styles.select}
-          value={firstDayOfWeek}
-          onChange={(e) =>
-            updateSettings({ firstDayOfWeek: Number(e.target.value) as 0 | 1 | 2 | 3 | 4 | 5 | 6 })
-          }
-        >
-          {FIRST_DAY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Language</div>
+            <div className={styles.rowDesc}>Interface language</div>
+          </div>
+          <div className={styles.rowControl}>
+            <select className={styles.select} defaultValue="en">
+              <option value="en">English</option>
+            </select>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   )
 }

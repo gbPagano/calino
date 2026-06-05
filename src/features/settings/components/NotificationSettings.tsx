@@ -36,70 +36,102 @@ export function NotificationSettings(): JSX.Element {
   }
 
   return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Notifications</h2>
-      <p className={styles.sectionDescription}>
-        Configure how you receive event reminders and alerts.
-      </p>
+    <section className={`${styles.section} ${styles.sectionActive}`}>
+      <h1 className={styles.pageTitle}>Notifications</h1>
 
-      {permissionStatus === 'denied' && (
-        <div className={styles.warning}>
-          Notifications are blocked. Please enable them in your browser settings.
+      <div className={styles.group}>
+        <div className={styles.groupLabel}>Events</div>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Event Reminders</div>
+            <div className={styles.rowDesc}>Get notified before events start</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={enableDesktopNotifications}
+                onChange={handleEnableNotifications}
+                disabled={permissionStatus === 'denied'}
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
         </div>
-      )}
-
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Browser Notifications</span>
-          <span className={styles.settingLabelHint}>
-            Show notifications for upcoming events and tasks
-          </span>
+        <div className={`${styles.row} ${!enableDesktopNotifications ? styles.rowDisabled : ''}`}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Sound Alerts</div>
+            <div className={styles.rowDesc}>Play a sound when events are about to start</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={enableSoundAlerts}
+                onChange={() => updateSettings({ enableSoundAlerts: !enableSoundAlerts })}
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
         </div>
-        <button
-          className={`${styles.toggle} ${enableDesktopNotifications ? styles.active : ''}`}
-          onClick={handleEnableNotifications}
-          aria-pressed={enableDesktopNotifications}
-          disabled={permissionStatus === 'denied'}
-        >
-          <span className={styles.toggleKnob} />
-        </button>
       </div>
 
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Sound Alerts</span>
-          <span className={styles.settingLabelHint}>
-            Play a sound when events are about to start
-          </span>
+      <div className={styles.group}>
+        <div className={styles.groupLabel}>Tasks</div>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Task Due Date Reminders</div>
+            <div className={styles.rowDesc}>Notify when a task's due date arrives</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle}>
+              <input type="checkbox" defaultChecked />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
         </div>
-        <button
-          className={`${styles.toggle} ${enableSoundAlerts ? styles.active : ''}`}
-          onClick={() => updateSettings({ enableSoundAlerts: !enableSoundAlerts })}
-          aria-pressed={enableSoundAlerts}
-        >
-          <span className={styles.toggleKnob} />
-        </button>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Overdue Task Badge</div>
+            <div className={styles.rowDesc}>Show a badge on the app icon for overdue tasks</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle}>
+              <input type="checkbox" />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
+        </div>
       </div>
 
-      <div className={styles.settingRow}>
-        <div className={styles.settingLabel}>
-          <span className={styles.settingLabelText}>Test Notification</span>
-          <span className={styles.settingLabelHint}>
-            {permissionStatus === 'default' 
-              ? 'Click to enable notifications and test' 
-              : permissionStatus === 'denied'
-                ? 'Notifications are blocked in browser settings'
-                : 'Send a test notification'}
-          </span>
+      <div className={styles.group}>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Test Notification</div>
+            <div className={styles.rowDesc}>
+              {permissionStatus === 'default'
+                ? 'Click to enable notifications and test'
+                : permissionStatus === 'denied'
+                  ? 'Notifications are blocked in browser settings'
+                  : 'Send a test notification'}
+            </div>
+          </div>
+          <div className={styles.rowControl}>
+            <button
+              className={styles.actionBtn}
+              onClick={handleTestNotification}
+              disabled={permissionStatus === 'denied'}
+              type="button"
+            >
+              {permissionStatus === 'default' ? 'Enable & Test' : 'Send Test'}
+            </button>
+          </div>
         </div>
-        <button
-          className={styles.button}
-          onClick={handleTestNotification}
-          disabled={permissionStatus === 'denied'}
-        >
-          {permissionStatus === 'default' ? 'Enable & Test' : 'Send Test'}
-        </button>
       </div>
-    </div>
+    </section>
   )
 }

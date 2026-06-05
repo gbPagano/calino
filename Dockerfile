@@ -24,28 +24,17 @@ COPY . .
 RUN pnpm build
 
 # ── Stage 2: Runtime ─────────────────────────────────────────────
-FROM nginx:1.27-alpine
+FROM caddy:2-alpine
 
-# Remove default content
-RUN rm -rf /usr/share/nginx/html/*
+# Copy Caddy config
+COPY Caddyfile /etc/caddy/Caddyfile
 
-# Copy our configs — main context replaces the default nginx.conf,
-# server block goes into conf.d alongside the security headers include.
-COPY nginx-main.conf /etc/nginx/nginx.conf
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY nginx-security-headers.conf /etc/nginx/conf.d/nginx-security-headers.conf
-
-# Copy built assets from build stage (owned by nginx user)
-COPY --from=build --chown=nginx:nginx /app/dist /usr/share/nginx/html
-
-# Run entirely as non-root (port 8080 > 1024, no root needed)
-USER nginx
+# Copy built assets from build stage
+COPY --from=build /app/dist /srv
 
 EXPOSE 8080
-
-STOPSIGNAL SIGQUIT
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget -qO- http://localhost:8080/ || exit 1
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

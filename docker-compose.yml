@@ -16,19 +16,13 @@ services:
     read_only: true
     cap_drop:
       - ALL
-    cap_add:
-      - CHOWN
-      - SETGID
-      - SETUID
     security_opt:
       - no-new-privileges:true
     pids_limit: 256
     mem_limit: 128m
     memswap_limit: 128m
     tmpfs:
-      - /var/cache/nginx:rw,noexec,nosuid,uid=101,gid=101
-      - /var/run:rw,noexec,nosuid,uid=101,gid=101
-      - /tmp:rw,noexec,nosuid,uid=101,gid=101
+      - /tmp:rw,noexec,nosuid
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/"]
       interval: 30s

@@ -62,7 +62,7 @@ export function CalendarSettings(): JSX.Element {
             </label>
           </div>
         </div>
-        <div className={styles.row}>
+        <div className={`${styles.row} ${styles.rowDisabled}`} title="Not available yet">
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Event Display Density</div>
             <div className={styles.rowDesc}>How compact event chips appear in the grid</div>

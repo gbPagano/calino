@@ -78,9 +78,9 @@ describe('EventCard', () => {
     expect(screen.getByText('Conference Room A')).toBeInTheDocument()
   })
 
-  it('shows time even in compact mode', () => {
+  it('does not show time in compact mode', () => {
     render(<EventCard event={mockEvent} compact />)
-    expect(screen.getByText(/10:00/)).toBeInTheDocument()
+    expect(screen.queryByText(/10:00/)).not.toBeInTheDocument()
   })
 
   it('calls onClick when clicked', async () => {

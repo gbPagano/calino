@@ -691,8 +691,6 @@ function DroppableDay({
   openModal,
 }: DroppableDayProps): JSX.Element {
   const { setNodeRef, isOver } = useDroppable({ id: dateKey })
-  const eventDensity = useSettingsStore((state) => state.eventDensity)
-  const isCompactDensity = eventDensity === 'compact'
   const [showPopup, setShowPopup] = useState(false)
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
@@ -751,7 +749,6 @@ function DroppableDay({
             {dayEvents.slice(0, monthViewEventLimit).map((event) => {
               const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
               const shouldCompact =
-                isCompactDensity ||
                 isPastWeek ||
                 (compactRecurringEvents && (!!event.rruleString || event.isAllDay || isMultiDay)) ||
                 event.isFragment

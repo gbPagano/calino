@@ -321,7 +321,7 @@ export function EventCard({
               {...attributes}
           >
             <div className={styles.title} title={event.title}>{event.title}</div>
-            {!event.isAllDay && (
+            {!compact && !event.isAllDay && (
                 <div className={styles.time}>
                   {isFragmentFirst
                     ? `${formatTime(event.start)} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`
@@ -333,13 +333,13 @@ export function EventCard({
                 </div>
               )}
               {event.isAllDay && <div className={styles.time}>All day</div>}
-              {event.travelDuration && !compact && (
+              {event.travelDuration && (
                 <div className={styles.travelTime}>
                   <TravelIcon />
                   <span>{formatTravelDuration(event.travelDuration)}</span>
                 </div>
               )}
-              {event.location && !compact && <div className={styles.location}>{event.location}</div>}
+              {event.location && <div className={styles.location}>{event.location}</div>}
             </div>
             {enableResize && (
               <div

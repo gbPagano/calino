@@ -58,7 +58,7 @@
 .monthTitle {
   font-family: var(--font-serif, 'Newsreader', Georgia, serif);
   font-weight: 400;
-  font-size: 40px;
+  font-size: 32px;
   letter-spacing: -0.018em;
   color: var(--ink);
   margin: 0;
@@ -68,7 +68,7 @@
 .yearTitle {
   font-family: var(--font-serif, 'Newsreader', Georgia, serif);
   font-weight: 400;
-  font-size: 27px;
+  font-size: 22px;
   color: var(--ink-3);
   letter-spacing: 0;
 }

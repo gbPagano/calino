@@ -80,7 +80,7 @@
   height: 22px;
   min-width: 22px;
   padding: 0 6px;
-  border: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  border: 1px solid var(--popover-border, var(--line, rgba(44, 40, 33, 0.09)));
   border-radius: 5px;
   border-bottom-width: 2px;
   background: var(--canvas, #faf8f3);
@@ -96,7 +96,7 @@
 
 .item.selected .kbd {
   border-color: color-mix(in srgb, var(--accent, #b07d4f) 30%, transparent);
-  background: color-mix(in srgb, var(--accent, #b07d4f) 6%, var(--panel, #fff));
+  background: color-mix(in srgb, var(--accent, #b07d4f) 6%, var(--popover-bg, var(--panel, #fff)));
   color: var(--accent, #b07d4f);
 }
 

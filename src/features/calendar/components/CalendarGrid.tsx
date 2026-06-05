@@ -74,8 +74,6 @@ export function CalendarGrid(): JSX.Element {
   const navigate = useNavigate()
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
   const compactRecurringEvents = useSettingsStore((state) => state.compactRecurringEvents ?? false)
-  const eventDensity = useSettingsStore((state) => state.eventDensity)
-  const isCompactDensity = eventDensity === 'compact'
   const compressPastWeeks = useSettingsStore((state) => state.compressPastWeeks ?? false)
   const monthViewEventLimit = useSettingsStore((state) => state.monthViewEventLimit ?? 3)
   const showWeekNumbers = useSettingsStore((state) => state.showWeekNumbers)

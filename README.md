@@ -25,6 +25,7 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 - Click week numbers to jump straight to that week
 - Click any date to see it in day view
 - Drag events to move them, drag edges to resize
+- **NEW:** Vertical split for vertical monitors! In tall windows, month view will share vertical space with day view and agenda
 
 ### Smart Input
 

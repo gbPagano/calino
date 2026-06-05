@@ -78,13 +78,14 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 
 - Swipe left/right to navigate between months/weeks/days
 - Touch-friendly interface
+- tbh this one is deprioritized, but tasks and agenda works.
 
 The only non-standard iCalendar feature, is the support for Apples travel time, so it plays well with iPhones and MacOS calendars. I chose to include that feature, as all edits will otherwise still be compatible with other CalDAV clients - although they'll naturally not show the travel time, if it's not supported.
 
 ### Security
 
-- CalDAV passwords are encrypted (AES-256-GCM) before storing in localStorage
-- All data stays on your device — no central server, no telemetry
+- CalDAV passwords are encrypted (AES-256-GCM) before storing in localStorage in your browser.
+- Unreasonably hardened Docker container
 - Open source — audit the code yourself
 
 ## Quick Start
@@ -240,7 +241,7 @@ React 19 + TypeScript + Vite, Zustand v5, date-fns, chrono-node, @dnd-kit, frame
 
 ---
 
-**Disclaimer:** This project is entirely vibe coded by [Minimax M2.7](https://minimax.io), but thoroughly tested. Issues may arise. Bug reports welcome.
+**Disclaimer:** This project is entirely vibe coded by [Minimax M2.7](https://minimax.io) and Xiaomi MiMo v2.5 (Pro), but thoroughly tested with real calendars. Issues may still arise. Bug reports are very welcome.
 
 ## License
 

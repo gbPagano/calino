@@ -9,6 +9,7 @@ export function CalDAVSettings(): JSX.Element {
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [connectionError, setConnectionError] = useState<string>('')
   const [isTesting, setIsTesting] = useState(false)
+  const [showProxyField, setShowProxyField] = useState(false)
 
   const syncEnabled = useSettingsStore((s) => s.syncEnabled)
   const syncIntervalMinutes = useSettingsStore((s) => s.syncIntervalMinutes)
@@ -218,6 +219,33 @@ export function CalDAVSettings(): JSX.Element {
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', display: 'block', marginBottom: '6px' }}>Server URL</label>
                 <input name="serverUrl" placeholder="https://caldav.example.com/dav.php" required style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: '8px', fontSize: '14px', background: 'var(--canvas)', color: 'var(--ink)', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowProxyField(!showProxyField)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '14px', fontWeight: 500, color: 'var(--ink)', fontFamily: 'inherit' }}
+                >
+                  <svg
+                    style={{ transform: showProxyField ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}
+                    width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  >
+                    <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Proxy URL (optional)
+                </button>
+                {showProxyField && (
+                  <>
+                    <input
+                      name="proxyUrl"
+                      placeholder="https://caldavproxy.example.com"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: '8px', fontSize: '14px', background: 'var(--canvas)', color: 'var(--ink)', boxSizing: 'border-box', marginTop: '8px' }}
+                    />
+                    <span style={{ fontSize: '12px', color: 'var(--ink-2)', lineHeight: 1.5, marginTop: '4px', display: 'block' }}>
+                      Using a proxy means your requests go through another server. Your CalDAV server, requests, and credentials might be visible to the proxy provider.
+                    </span>
+                  </>
+                )}
               </div>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', display: 'block', marginBottom: '6px' }}>Username</label>

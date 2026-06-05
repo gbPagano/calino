@@ -4,7 +4,6 @@ import {
   TIMEZONE_OPTIONS,
   DATE_FORMAT_OPTIONS,
   TIME_FORMAT_OPTIONS,
-  FIRST_DAY_OPTIONS,
 } from '@/store/settingsStore'
 import styles from './Settings.module.css'
 
@@ -87,12 +86,18 @@ export function GeneralSettings(): JSX.Element {
           </div>
           <div className={styles.rowControl}>
             <div className={styles.seg}>
-              {FIRST_DAY_OPTIONS.map((opt) => (
+              {(
+                [
+                  { value: 0 as const, label: 'Sunday' },
+                  { value: 1 as const, label: 'Monday' },
+                  { value: 6 as const, label: 'Saturday' },
+                ]
+              ).map((opt) => (
                 <button
                   key={opt.value}
                   className={`${styles.segTab} ${firstDayOfWeek === opt.value ? styles.segTabActive : ''}`}
                   onClick={() =>
-                    updateSettings({ firstDayOfWeek: opt.value as 0 | 1 | 2 | 3 | 4 | 5 | 6 })
+                    updateSettings({ firstDayOfWeek: opt.value })
                   }
                 >
                   {opt.label}

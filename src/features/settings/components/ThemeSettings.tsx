@@ -66,20 +66,21 @@ export function ThemeSettings(): JSX.Element {
           </div>
           <div className={styles.rowControl} style={{ alignItems: 'flex-start', paddingTop: '2px' }}>
             <div className={styles.themeCards} style={{ width: '420px' }}>
-              {(THEME_MODE_OPTIONS.filter((o) => o.value !== 'auto') as { value: ThemeMode; label: string }[]).map((opt) => {
-                const isActive = themeMode === opt.value || (themeMode === 'auto' && false)
+              {(THEME_MODE_OPTIONS as { value: ThemeMode; label: string }[]).map((opt) => {
+                const isActive = themeMode === opt.value
                 const isLight = opt.value === 'light'
                 const isDark = opt.value === 'dark'
+                const isSystem = opt.value === 'auto'
                 return (
                   <button
                     key={opt.value}
-                    className={`${styles.themeCard} ${themeMode === opt.value ? styles.themeCardActive : ''}`}
+                    className={`${styles.themeCard} ${isActive ? styles.themeCardActive : ''}`}
                     onClick={() => updateSettings({ themeMode: opt.value })}
                     type="button"
                   >
-                    <MiniCalendarPreview variant={isLight ? 'light' : isDark ? 'dark' : 'light'} />
+                    <MiniCalendarPreview variant={isLight ? 'light' : isDark ? 'dark' : 'system'} />
                     <div className={styles.themeCardLabel}>
-                      {opt.label}
+                      {isSystem ? 'System' : opt.label}
                       <div className={styles.tcCheck}>
                         <svg viewBox="0 0 9 9" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round">
                           <path d="M1.5 4.5l2 2L7.5 2" />
@@ -92,9 +93,7 @@ export function ThemeSettings(): JSX.Element {
             </div>
           </div>
         </div>
-        <div className={styles.row}>
-          <div className={styles.rowInfo}>
-            <div className={styles.rowLabel}>Accent Color</div>
+        <div className={`${styles.row} ${styles.rowDisabled}`}>
             <div className={styles.rowDesc}>Used for today, active states, and highlights</div>
           </div>
           <div className={styles.rowControl}>
@@ -111,9 +110,7 @@ export function ThemeSettings(): JSX.Element {
             </div>
           </div>
         </div>
-        <div className={styles.row}>
-          <div className={styles.rowInfo}>
-            <div className={styles.rowLabel}>Font Size</div>
+        <div className={`${styles.row} ${styles.rowDisabled}`}>
             <div className={styles.rowDesc}>Affects text density throughout the app</div>
           </div>
           <div className={styles.rowControl}>

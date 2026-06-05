@@ -14,8 +14,11 @@ services:
     # See docs/DOCKER.md for details.
     restart: unless-stopped
     read_only: true
-    cap_drop:
-      - ALL
+    # ⚠️ cap_drop ALL removed — Docker Desktop 4.7.1 (runc v1.0.3) has a bug
+    # where it drops capabilities needed by the container init process itself,
+    # causing "standard_init_linux.go:228: operation not permitted" crashes.
+    # The container is already hardened via read_only, no-new-privileges,
+    # pids_limit, and mem_limit.
     security_opt:
       - no-new-privileges:true
     pids_limit: 256

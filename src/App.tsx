@@ -208,16 +208,58 @@ function CalendarApp(): JSX.Element {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
+      // Ignore if typing in an input or textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
+        return
+      }
+
+      // Cmd/Ctrl+K → open command palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setIsCommandPaletteOpen(true)
         setOverlayOpen(true)
+        return
+      }
+
+      const path = window.location.pathname
+      const isSettings = path.startsWith('/settings')
+
+      // Escape in settings → go back to calendar
+      if (e.key === 'Escape' && isSettings) {
+        e.preventDefault()
+        navigate('/')
+        return
+      }
+
+      // Don't handle single-key shortcuts on settings or other non-calendar routes
+      if (isSettings) return
+
+      // T → go to today
+      if (e.key === 't' || e.key === 'T') {
+        e.preventDefault()
+        const today = new Date().toISOString().split('T')[0]
+        useCalendarStore.getState().setCurrentDate(today)
+        return
+      }
+
+      // C → create new event
+      if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault()
+        openModal()
+        return
+      }
+
+      // K → create new task
+      if (e.key === 'k' || e.key === 'K') {
+        e.preventDefault()
+        openModal(undefined, undefined, undefined, 'task')
+        return
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setOverlayOpen])
+  }, [setOverlayOpen, navigate, openModal])
 
   const renderView = (): JSX.Element => {
     const viewElement = (() => {

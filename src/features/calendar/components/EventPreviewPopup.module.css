@@ -37,7 +37,7 @@
 .title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-text, #202124);
+  color: var(--color-text-primary, #202124);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -57,9 +57,9 @@
   flex: 1;
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-text, #202124);
+  color: var(--color-text-primary, #202124);
   border: none;
-  border-bottom: 2px solid var(--color-primary, #4285f4);
+  border-bottom: 2px solid var(--color-accent, #4285f4);
   background: transparent;
   outline: none;
   padding: 2px 4px;
@@ -98,7 +98,7 @@
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: var(--color-text, #202124);
+  color: var(--color-text-primary, #202124);
   cursor: pointer;
   padding: 2px 4px;
   margin: -2px -4px;
@@ -156,9 +156,9 @@
 
 .inlineInput {
   font-size: 13px;
-  color: var(--color-text, #202124);
+  color: var(--color-text-primary, #202124);
   border: none;
-  border-bottom: 2px solid var(--color-primary, #4285f4);
+  border-bottom: 2px solid var(--color-accent, #4285f4);
   background: transparent;
   outline: none;
   padding: 2px 0;
@@ -192,7 +192,7 @@
 
 .descriptionText {
   font-size: 13px;
-  color: var(--color-text, #202124);
+  color: var(--color-text-primary, #202124);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 4;
@@ -212,9 +212,9 @@
 .descriptionInput {
   width: 100%;
   font-size: 13px;
-  color: var(--color-text, #202124);
+  color: var(--color-text-primary, #202124);
   border: none;
-  border-bottom: 2px solid var(--color-primary, #4285f4);
+  border-bottom: 2px solid var(--color-accent, #4285f4);
   background: transparent;
   outline: none;
   padding: 4px 0;
@@ -235,7 +235,7 @@
 
 .addDescription:hover {
   background: var(--color-border-subtle, #e8eaed);
-  color: var(--color-text, #202124);
+  color: var(--color-text-primary, #202124);
 }
 
 .footer {
@@ -300,5 +300,5 @@
 }
 
 .openBtn:hover {
-  background: var(--color-primary-hover, #3367d6);
+  background: var(--color-accent-hover, #3367d6);
 }

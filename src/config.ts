@@ -1,6 +1,7 @@
 export const config = {
   appName: 'Calino',
   appDescription: 'An easy, private, local web calendar with CalDAV sync. Your data on your terms.',
+  appVersion: __APP_VERSION__,
   githubRepo: import.meta.env.CALINO_GITHUB_REPO || 'ivan-malinovski/Calino',
   contactEmail: import.meta.env.CALINO_CONTACT_EMAIL || 'calendar@malinov.ski',
   websiteUrl: import.meta.env.VITE_SITE_URL || 'https://calino.io',

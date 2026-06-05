@@ -42,3 +42,4 @@ coverage/
 .parcel-cache/
 .vite/
 .eslintcache
+PLAN.md

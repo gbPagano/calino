@@ -22,6 +22,7 @@ import { config, TOAST_DURATION_MS } from '@/config'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
+import { useUpdateCheck } from '@/hooks/useUpdateCheck'
 import { AddCalendarModal } from './AddCalendarModal'
 import { MiniTasksSection } from './MiniTasksSection'
 import styles from './Sidebar.module.css'
@@ -541,14 +542,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
             <Link to="/privacy" className={styles.footerLink}>
               Privacy
             </Link>
-            <a
-              href={`https://github.com/${config.githubRepo}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.footerLink}
-            >
-              GitHub
-            </a>
+            <UpdateIndicator />
           </div>
         </div>
 
@@ -589,6 +583,111 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
             document.body
           )}
       </div>
+    </>
+  )
+}
+
+function UpdateIndicator(): JSX.Element {
+  const { hasUpdate, latestVersion, releaseUrl, dismiss } = useUpdateCheck()
+  const [showPopup, setShowPopup] = useState(false)
+  const [popupPos, setPopupPos] = useState<{ x: number; bottom: number } | null>(null)
+  const triggerRef = useRef<HTMLAnchorElement>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const clearHideTimeout = (): void => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+  }
+
+  const updatePosition = (): void => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setPopupPos({ x: rect.left, bottom: window.innerHeight - rect.top + 8 })
+    }
+  }
+
+  const handleMouseEnter = (): void => {
+    clearHideTimeout()
+    updatePosition()
+    setShowPopup(true)
+  }
+
+  const handleMouseLeave = (): void => {
+    timeoutRef.current = setTimeout(() => setShowPopup(false), 150)
+  }
+
+  if (!hasUpdate || !latestVersion) {
+    return (
+      <a
+        href={`https://github.com/${config.githubRepo}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={styles.footerLink}
+      >
+        GitHub
+      </a>
+    )
+  }
+
+  return (
+    <>
+      <a
+        ref={triggerRef}
+        href={releaseUrl ?? `https://github.com/${config.githubRepo}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`${styles.footerLink} ${styles.updateLink}`}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <span className={styles.updateDot} />
+        <span className={styles.updateShimmer}>GitHub</span>
+      </a>
+      {createPortal(
+        <AnimatePresence>
+          {showPopup && (
+            <motion.div
+              className={styles.updatePopup}
+              style={{
+                position: 'fixed',
+                left: popupPos?.x ?? 0,
+                bottom: popupPos?.bottom ?? 0,
+                width: 220,
+              }}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.15 }}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              <p className={styles.updatePopupText}>
+                <span className={styles.updatePopupVersion}>Calino {latestVersion}</span> is
+                available
+              </p>
+              <p className={styles.updatePopupCurrent}>
+                You have {config.appVersion}
+              </p>
+              <div className={styles.updatePopupActions}>
+                <button className={styles.updateDismissBtn} onClick={dismiss}>
+                  Dismiss
+                </button>
+                <a
+                  href={releaseUrl ?? `https://github.com/${config.githubRepo}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.updateViewBtn}
+                >
+                  View release
+                </a>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   )
 }

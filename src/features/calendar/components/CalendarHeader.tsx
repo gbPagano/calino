@@ -53,6 +53,7 @@ export function CalendarHeader({
   const setCurrentView = useCalendarStore((state) => state.setCurrentView)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
   const showWeekNumbers = useSettingsStore((state) => state.showWeekNumbers)
+  const themeMode = useSettingsStore((state) => state.themeMode)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
 
   const [isMobile, setIsMobile] = useState(
@@ -340,6 +341,16 @@ export function CalendarHeader({
                   className={`${styles.toggleSwitch} ${showWeekNumbers ? styles.toggleActive : ''}`}
                   onClick={() => updateSettings({ showWeekNumbers: !showWeekNumbers })}
                   aria-label="Toggle week numbers"
+                >
+                  <span className={styles.toggleThumb} />
+                </button>
+              </div>
+              <div className={styles.quickSettingsItem}>
+                <span className={styles.quickSettingsLabel}>Dark mode</span>
+                <button
+                  className={`${styles.toggleSwitch} ${themeMode === 'dark' ? styles.toggleActive : ''}`}
+                  onClick={() => updateSettings({ themeMode: themeMode === 'dark' ? 'light' : 'dark' })}
+                  aria-label="Toggle dark mode"
                 >
                   <span className={styles.toggleThumb} />
                 </button>

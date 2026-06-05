@@ -23,208 +23,217 @@ interface CommandFactoryDeps {
   ) => void
 }
 
-const createNavigationCommands = (deps: CommandFactoryDeps): Command[] => [
-  {
-    id: 'nav-today',
-    label: 'Go to Today',
-    description: 'Navigate to the current date',
-    category: 'navigation',
-    keywords: ['today', 'current', 'now', 'home'],
-    shortcut: 'T',
-    icon: '📅',
-    action: () => {
-      deps.setCurrentDate(format(new Date(), 'yyyy-MM-dd'))
-      return 'Navigated to today'
+// 16×16 stroke SVG icons
+const ICONS = {
+  calendar: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v2M10.5 1.5v2"/></svg>',
+  arrowRight: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>',
+  arrowLeft: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7 4L3 8l4 4"/></svg>',
+  skipForward: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4l6 4-6 4V4zM11 4l2 4-2 4"/></svg>',
+  skipBack: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4L7 8l6 4V4zM5 4L3 8l2 4"/></svg>',
+  chevronRight: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg>',
+  plus: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>',
+  circle: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/></svg>',
+  settings: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M13.5 10a1.3 1.3 0 00.26 1.45l.05.05a1.58 1.58 0 11-2.23 2.23l-.05-.05A1.3 1.3 0 0010 13.5a1.3 1.3 0 00-.8 1.2v.1a1.58 1.58 0 01-3.16 0v-.1A1.3 1.3 0 005.28 13.5a1.3 1.3 0 00-1.45.26l-.05.05a1.58 1.58 0 11-2.23-2.23l.05-.05A1.3 1.3 0 002.5 10a1.3 1.3 0 00-1.2-.8H1.2a1.58 1.58 0 010-3.16h.1A1.3 1.3 0 002.5 5.28a1.3 1.3 0 00-.26-1.45l-.05-.05a1.58 1.58 0 112.23-2.23l.05.05A1.3 1.3 0 005.28 2.5a1.3 1.3 0 00.8-1.2V1.2a1.58 1.58 0 013.16 0v.1a1.3 1.3 0 00.8 1.2 1.3 1.3 0 001.45-.26l.05-.05a1.58 1.58 0 112.23 2.23l-.05.05A1.3 1.3 0 0013.5 5.28a1.3 1.3 0 001.2.8h.1a1.58 1.58 0 010 3.16h-.1a1.3 1.3 0 00-1.2.8z"/></svg>',
+} as const
+
+const createNavigationCommands = (deps: CommandFactoryDeps): Command[] => {
+  const today = new Date()
+  return [
+    {
+      id: 'nav-today',
+      label: 'Go to Today',
+      description: format(today, 'EEEE, d MMMM yyyy'),
+      category: 'navigation',
+      keywords: ['today', 'current', 'now', 'home'],
+      shortcut: 'T',
+      icon: ICONS.calendar,
+      action: () => {
+        deps.setCurrentDate(format(today, 'yyyy-MM-dd'))
+        return 'Navigated to today'
+      },
     },
-  },
-  {
-    id: 'nav-tomorrow',
-    label: 'Go to Tomorrow',
-    description: 'Navigate to tomorrow',
-    category: 'navigation',
-    keywords: ['tomorrow', 'next day'],
-    icon: '➡️',
-    action: () => {
-      deps.setCurrentDate(format(addDays(new Date(), 1), 'yyyy-MM-dd'))
-      return 'Navigated to tomorrow'
+    {
+      id: 'nav-tomorrow',
+      label: 'Go to Tomorrow',
+      description: format(addDays(today, 1), 'EEEE, d MMMM yyyy'),
+      category: 'navigation',
+      keywords: ['tomorrow', 'next day'],
+      icon: ICONS.chevronRight,
+      action: () => {
+        deps.setCurrentDate(format(addDays(today, 1), 'yyyy-MM-dd'))
+        return 'Navigated to tomorrow'
+      },
     },
-  },
-  {
-    id: 'nav-next-week',
-    label: 'Next Week',
-    description: 'Go to next week',
-    category: 'navigation',
-    keywords: ['next week', 'forward'],
-    icon: '⏩',
-    action: () => {
-      deps.setCurrentDate(format(addWeeks(new Date(), 1), 'yyyy-MM-dd'))
-      return 'Navigated to next week'
+    {
+      id: 'nav-next-week',
+      label: 'Next Week',
+      description: `${format(addWeeks(today, 1), 'd MMM')} – ${format(addWeeks(today, 1), 'd MMM')}`,
+      category: 'navigation',
+      keywords: ['next week', 'forward'],
+      icon: ICONS.skipForward,
+      shortcut: ']',
+      action: () => {
+        deps.setCurrentDate(format(addWeeks(today, 1), 'yyyy-MM-dd'))
+        return 'Navigated to next week'
+      },
     },
-  },
-  {
-    id: 'nav-prev-week',
-    label: 'Previous Week',
-    description: 'Go to previous week',
-    category: 'navigation',
-    keywords: ['previous week', 'last week', 'back'],
-    icon: '⏪',
-    action: () => {
-      deps.setCurrentDate(format(subWeeks(new Date(), 1), 'yyyy-MM-dd'))
-      return 'Navigated to previous week'
+    {
+      id: 'nav-prev-week',
+      label: 'Previous Week',
+      description: `${format(subWeeks(today, 1), 'd MMM')} – ${format(subWeeks(today, 1), 'd MMM')}`,
+      category: 'navigation',
+      keywords: ['previous week', 'last week', 'back'],
+      icon: ICONS.skipBack,
+      shortcut: '[',
+      action: () => {
+        deps.setCurrentDate(format(subWeeks(today, 1), 'yyyy-MM-dd'))
+        return 'Navigated to previous week'
+      },
     },
-  },
-  {
-    id: 'nav-next-month',
-    label: 'Next Month',
-    description: 'Go to next month',
-    category: 'navigation',
-    keywords: ['next month'],
-    icon: '🗓️',
-    action: () => {
-      deps.setCurrentDate(format(addMonths(new Date(), 1), 'yyyy-MM-dd'))
-      return 'Navigated to next month'
+    {
+      id: 'nav-next-month',
+      label: 'Next Month',
+      description: format(addMonths(today, 1), 'MMMM yyyy'),
+      category: 'navigation',
+      keywords: ['next month'],
+      icon: ICONS.skipForward,
+      shortcut: '⇧]',
+      action: () => {
+        deps.setCurrentDate(format(addMonths(today, 1), 'yyyy-MM-dd'))
+        return 'Navigated to next month'
+      },
     },
-  },
-  {
-    id: 'nav-prev-month',
-    label: 'Previous Month',
-    description: 'Go to previous month',
-    category: 'navigation',
-    keywords: ['previous month', 'last month'],
-    icon: '🗓️',
-    action: () => {
-      deps.setCurrentDate(format(subMonths(new Date(), 1), 'yyyy-MM-dd'))
-      return 'Navigated to previous month'
+    {
+      id: 'nav-prev-month',
+      label: 'Previous Month',
+      description: format(subMonths(today, 1), 'MMMM yyyy'),
+      category: 'navigation',
+      keywords: ['previous month', 'last month'],
+      icon: ICONS.skipBack,
+      shortcut: '⇧[',
+      action: () => {
+        deps.setCurrentDate(format(subMonths(today, 1), 'yyyy-MM-dd'))
+        return 'Navigated to previous month'
+      },
     },
-  },
-  {
-    id: 'view-month',
-    label: 'Switch to Month View',
-    description: 'Change calendar view to month',
-    category: 'navigation',
-    keywords: ['month view', 'month', 'calendar'],
-    icon: '📆',
-    action: () => {
-      deps.setCurrentView('month')
-      deps.navigate('/month')
-      return 'Switched to month view'
+    {
+      id: 'view-month',
+      label: 'Month View',
+      category: 'navigation',
+      keywords: ['month view', 'month', 'calendar'],
+      icon: ICONS.calendar,
+      action: () => {
+        deps.setCurrentView('month')
+        deps.navigate('/month')
+        return 'Switched to month view'
+      },
     },
-  },
-  {
-    id: 'view-week',
-    label: 'Switch to Week View',
-    description: 'Change calendar view to week',
-    category: 'navigation',
-    keywords: ['week view', 'week'],
-    icon: '📅',
-    action: () => {
-      deps.setCurrentView('week')
-      deps.navigate('/week')
-      return 'Switched to week view'
+    {
+      id: 'view-week',
+      label: 'Week View',
+      category: 'navigation',
+      keywords: ['week view', 'week'],
+      icon: ICONS.calendar,
+      action: () => {
+        deps.setCurrentView('week')
+        deps.navigate('/week')
+        return 'Switched to week view'
+      },
     },
-  },
-  {
-    id: 'view-day',
-    label: 'Switch to Day View',
-    description: 'Change calendar view to day',
-    category: 'navigation',
-    keywords: ['day view', 'day', 'today'],
-    icon: '📋',
-    action: () => {
-      deps.setCurrentView('day')
-      deps.navigate('/day')
-      return 'Switched to day view'
+    {
+      id: 'view-day',
+      label: 'Day View',
+      category: 'navigation',
+      keywords: ['day view', 'day', 'today'],
+      icon: ICONS.calendar,
+      action: () => {
+        deps.setCurrentView('day')
+        deps.navigate('/day')
+        return 'Switched to day view'
+      },
     },
-  },
-  {
-    id: 'view-agenda',
-    label: 'Switch to Agenda View',
-    description: 'Change calendar view to agenda',
-    category: 'navigation',
-    keywords: ['agenda view', 'agenda', 'list'],
-    icon: '📝',
-    action: () => {
-      deps.setCurrentView('agenda')
-      deps.navigate('/agenda')
-      return 'Switched to agenda view'
+    {
+      id: 'view-agenda',
+      label: 'Agenda View',
+      category: 'navigation',
+      keywords: ['agenda view', 'agenda', 'list'],
+      icon: ICONS.calendar,
+      action: () => {
+        deps.setCurrentView('agenda')
+        deps.navigate('/agenda')
+        return 'Switched to agenda view'
+      },
     },
-  },
-]
+  ]
+}
 
 const createActionCommands = (deps: CommandFactoryDeps): Command[] => [
   {
     id: 'action-new-event',
-    label: 'Create New Event',
-    description: 'Open the event creation modal',
+    label: 'Create Event',
     category: 'actions',
     keywords: ['new event', 'create', 'add', 'event'],
-    shortcut: 'N',
-    icon: '➕',
+    shortcut: 'C',
+    icon: ICONS.plus,
     action: () => {
       deps.openModal()
       return 'Event modal opened'
     },
   },
   {
-    id: 'action-sync',
-    label: 'Sync Now',
-    description: 'Trigger CalDAV synchronization',
+    id: 'action-new-task',
+    label: 'New Task',
     category: 'actions',
-    keywords: ['sync', 'synchronize', 'refresh'],
-    icon: '🔄',
+    keywords: ['new task', 'task', 'todo'],
+    shortcut: 'K',
+    icon: ICONS.circle,
     action: () => {
-      deps.triggerSync?.()
-      return 'Sync started'
+      deps.openModal()
+      return 'Task modal opened'
     },
   },
   {
-    id: 'action-toggle-sidebar',
-    label: 'Toggle Sidebar',
-    description: 'Show or hide the sidebar',
+    id: 'settings-open',
+    label: 'Open Settings',
     category: 'actions',
-    keywords: ['sidebar', 'toggle', 'hide', 'show'],
-    shortcut: 'B',
-    icon: '📱',
+    keywords: ['settings', 'preferences', 'options', 'config'],
+    icon: ICONS.settings,
     action: () => {
-      deps.toggleSidebar?.()
-      return 'Sidebar toggled'
+      deps.navigate('/settings')
+      return 'Opened settings'
     },
   },
 ]
 
 const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
   {
-    id: 'settings-open',
-    label: 'Open Settings',
-    description: 'Go to application settings',
-    category: 'settings',
-    keywords: ['settings', 'preferences', 'options', 'config'],
-    shortcut: ',',
-    icon: '⚙️',
-    action: () => {
-      deps.navigate('/settings')
-      return 'Opened settings'
-    },
-  },
-  {
     id: 'settings-general',
     label: 'General Settings',
-    description: 'Change general preferences',
     category: 'settings',
     keywords: ['general', 'general settings'],
-    icon: '⚙️',
+    icon: ICONS.settings,
     action: () => {
       deps.navigate('/settings?tab=general')
       return 'Opened general settings'
     },
   },
   {
+    id: 'settings-theme',
+    label: 'Theme Settings',
+    category: 'settings',
+    keywords: ['theme', 'dark mode', 'light mode', 'appearance'],
+    icon: ICONS.settings,
+    action: () => {
+      deps.navigate('/settings?tab=theme')
+      return 'Opened theme settings'
+    },
+  },
+  {
     id: 'settings-calendars',
     label: 'Calendar Settings',
-    description: 'Manage calendars',
     category: 'settings',
     keywords: ['calendars', 'calendar settings'],
-    icon: '📅',
+    icon: ICONS.settings,
     action: () => {
       deps.navigate('/settings?tab=calendar')
       return 'Opened calendar settings'
@@ -232,35 +241,21 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
   },
   {
     id: 'settings-events',
-    label: 'Event Defaults Settings',
-    description: 'Configure default event settings',
+    label: 'Event Settings',
     category: 'settings',
-    keywords: ['event defaults', 'event settings', 'default duration'],
-    icon: '📝',
+    keywords: ['event defaults', 'event settings'],
+    icon: ICONS.settings,
     action: () => {
       deps.navigate('/settings?tab=events')
-      return 'Opened event defaults settings'
-    },
-  },
-  {
-    id: 'settings-notifications',
-    label: 'Notification Settings',
-    description: 'Configure notifications',
-    category: 'settings',
-    keywords: ['notifications', 'alerts', 'reminders'],
-    icon: '🔔',
-    action: () => {
-      deps.navigate('/settings?tab=notifications')
-      return 'Opened notification settings'
+      return 'Opened event settings'
     },
   },
   {
     id: 'settings-sync',
     label: 'Sync Settings',
-    description: 'Configure CalDAV sync',
     category: 'settings',
     keywords: ['sync settings', 'caldav', 'account'],
-    icon: '🔗',
+    icon: ICONS.settings,
     action: () => {
       deps.navigate('/settings?tab=caldav')
       return 'Opened sync settings'
@@ -269,62 +264,19 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
   {
     id: 'settings-data',
     label: 'Data Settings',
-    description: 'Import and export calendar data',
     category: 'settings',
     keywords: ['data', 'import', 'export', 'backup'],
-    icon: '💾',
+    icon: ICONS.settings,
     action: () => {
       deps.navigate('/settings?tab=data')
       return 'Opened data settings'
     },
   },
-  {
-    id: 'settings-theme',
-    label: 'Theme Settings',
-    description: 'Change theme and dark mode',
-    category: 'settings',
-    keywords: ['theme', 'dark mode', 'light mode', 'appearance'],
-    icon: '🎨',
-    action: () => {
-      deps.navigate('/settings?tab=theme')
-      return 'Opened theme settings'
-    },
-  },
-  {
-    id: 'theme-toggle-dark',
-    label: 'Toggle Dark Mode',
-    description: 'Switch between light and dark themes',
-    category: 'settings',
-    keywords: ['dark mode', 'light mode', 'theme', 'toggle'],
-    icon: '🌓',
-    action: () => {
-      const modes: ThemeMode[] = ['light', 'dark', 'auto']
-      const currentMode = deps.themeMode || 'auto'
-      const currentIndex = modes.indexOf(currentMode)
-      const nextMode = modes[(currentIndex + 1) % modes.length]
-      deps.updateSettings?.({ themeMode: nextMode })
-      const modeLabels = { light: 'Light', dark: 'Dark', auto: 'System' }
-      return `Switched to ${modeLabels[nextMode]} mode`
-    },
-  },
-  {
-    id: 'debug-toggle',
-    label: 'Toggle CalDAV Debug Mode',
-    description: 'Enable or disable CalDAV sync debug logging',
-    category: 'settings',
-    keywords: ['debug', 'caldav', 'sync', 'logging', 'console'],
-    icon: '🐛',
-    action: () => {
-      const newValue = !deps.caldavDebugMode
-      deps.updateSettings?.({ caldavDebugMode: newValue })
-      return newValue ? 'CalDAV debug mode enabled' : 'CalDAV debug mode disabled'
-    },
-  },
 ]
 
 export const createCommandRegistry = (deps: CommandFactoryDeps): Command[] => [
-  ...createNavigationCommands(deps),
   ...createActionCommands(deps),
+  ...createNavigationCommands(deps),
   ...createSettingsCommands(deps),
 ]
 

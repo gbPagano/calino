@@ -13,6 +13,11 @@ interface CommandItemProps {
   'data-index'?: number
 }
 
+function parseShortcut(shortcut: string): string[] {
+  // "⇧]" → ["⇧", "]"], "T" → ["T"]
+  return shortcut.split(/(?=[\[\]⇧])/).filter(Boolean)
+}
+
 export function CommandItem({
   item,
   type,
@@ -29,17 +34,34 @@ export function CommandItem({
     return format(date, timeFormat === '24h' ? 'HH:mm' : 'h:mm a')
   }
 
+  const renderKbd = (shortcut?: string): JSX.Element => {
+    if (!shortcut) return <div className={styles.kbdGroup} />
+    const keys = parseShortcut(shortcut)
+    return (
+      <div className={styles.kbdGroup}>
+        {keys.map((key, i) => (
+          <span key={i} className={styles.kbd}>{key}</span>
+        ))}
+      </div>
+    )
+  }
+
   const renderContent = (): JSX.Element => {
     if (type === 'command') {
       const cmd = item as Command
       return (
         <>
-          {cmd.icon && <span className={styles.icon}>{cmd.icon}</span>}
-          <div className={styles.content}>
-            <div className={styles.label}>{cmd.label}</div>
-            {cmd.description && <div className={styles.description}>{cmd.description}</div>}
+          {cmd.icon && (
+            <span
+              className={styles.icon}
+              dangerouslySetInnerHTML={{ __html: cmd.icon }}
+            />
+          )}
+          <div className={styles.body}>
+            <div className={styles.title}>{cmd.label}</div>
+            {cmd.description && <div className={styles.desc}>{cmd.description}</div>}
           </div>
-          {cmd.shortcut && <span className={styles.shortcut}>{cmd.shortcut}</span>}
+          {renderKbd(cmd.shortcut)}
         </>
       )
     }
@@ -50,9 +72,9 @@ export function CommandItem({
       return (
         <>
           <span className={styles.eventColor} style={{ backgroundColor: calendarColor }} />
-          <div className={styles.content}>
-            <div className={styles.label}>{event.title}</div>
-            <div className={styles.description}>{new Date(event.start).toLocaleString()}</div>
+          <div className={styles.body}>
+            <div className={styles.title}>{event.title}</div>
+            <div className={styles.desc}>{new Date(event.start).toLocaleString()}</div>
           </div>
         </>
       )
@@ -63,8 +85,8 @@ export function CommandItem({
       return (
         <>
           <span className={styles.eventColor} style={{ backgroundColor: cal.color }} />
-          <div className={styles.content}>
-            <div className={styles.label}>{cal.name}</div>
+          <div className={styles.body}>
+            <div className={styles.title}>{cal.name}</div>
           </div>
         </>
       )
@@ -76,15 +98,17 @@ export function CommandItem({
       const isTaskItem = qa.isTask
       return (
         <>
-          <span className={styles.icon}>{isTaskItem ? '📋' : '➕'}</span>
-          <div className={styles.content}>
-            <div className={styles.label}>
+          <span className={styles.icon}>
+            {isTaskItem ? '○' : '+'}
+          </span>
+          <div className={styles.body}>
+            <div className={styles.title}>
               {isTaskItem ? 'Task: ' : 'Create: '}
               {qa.title}
             </div>
-            <div className={styles.description}>
+            <div className={styles.desc}>
               {format(qa.startDate, 'EEEE, MMMM d')}
-              {qa.endDate && ` ${formatTime(qa.startDate)} - ${formatTime(qa.endDate)}`}
+              {qa.endDate && ` ${formatTime(qa.startDate)} – ${formatTime(qa.endDate)}`}
               {!qa.endDate && !qa.isAllDay && ` ${formatTime(qa.startDate)}`}
               {qa.isAllDay && ' (all day)'}
               {qa.location && ` at ${qa.location}`}
@@ -95,7 +119,7 @@ export function CommandItem({
       )
     }
 
-    return <div className={styles.label}>Unknown</div>
+    return <div className={styles.title}>Unknown</div>
   }
 
   return (

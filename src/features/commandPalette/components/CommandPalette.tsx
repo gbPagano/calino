@@ -87,8 +87,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
 
   const getCategoryLabel = (category: string): string => {
     const labels: Record<string, string> = {
-      navigation: 'Navigation',
       actions: 'Actions',
+      navigation: 'Navigation',
       settings: 'Settings',
       search: 'Search Results',
       event: 'Events',
@@ -96,6 +96,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
     }
     return labels[category] || category
   }
+
+  // Group order: actions first, then navigation, then settings
+  const GROUP_ORDER = ['actions', 'navigation', 'settings', 'event', 'quick-add', 'search']
 
   const groupedResults = results.reduce(
     (acc, result, index) => {
@@ -117,21 +120,22 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
     {} as Record<string, Array<{ type: string; item: unknown; score: number; index: number }>>
   )
 
+  const orderedCategories = GROUP_ORDER.filter((cat) => groupedResults[cat])
+
   return (
     <div className={styles.container} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.inputWrapper}>
-          <svg aria-hidden="true"
+          <svg
             className={styles.inputIcon}
-            viewBox="0 0 24 24"
+            viewBox="0 0 16 16"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.5"
             strokeLinecap="round"
-            strokeLinejoin="round"
           >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
+            <circle cx="7" cy="7" r="5" />
+            <path d="M11 11l3.5 3.5" />
           </svg>
           <input
             ref={inputRef}
@@ -140,9 +144,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search commands, events, or type to navigate..."
+            placeholder="Search commands, events, or type to navigate…"
           />
-          {!query && <span className={styles.shortcut}>Esc</span>}
+          {!query && <span className={styles.escBadge}>Esc</span>}
         </div>
 
         <div className={styles.results} ref={resultsRef}>
@@ -152,40 +156,45 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.El
           {results.length === 0 && !query && (
             <div className={styles.empty}>Type to search commands, events, or calendars.</div>
           )}
-          {Object.entries(groupedResults).map(([category, items]) => (
-            <div key={category}>
-              <div className={styles.categoryLabel}>{getCategoryLabel(category)}</div>
-              {items.map((result) => {
-                const item = result.item as { id?: string; title?: string }
-                const stableKey = item.id ?? `${category}-${item.title ?? result.index}`
-                return (
-                  <CommandItem
-                    key={stableKey}
-                    data-index={result.index}
-                    item={result.item as Parameters<typeof CommandItem>[0]['item']}
-                    type={result.type as 'command' | 'event' | 'calendar' | 'quick-add'}
-                    isSelected={selectedIndex === result.index}
-                    onClick={() => handleItemClick(result.index)}
-                    timeFormat={timeFormat}
-                  />
-                )
-              })}
-            </div>
-          ))}
+          {orderedCategories.map((category, catIndex) => {
+            const items = groupedResults[category]
+            return (
+              <div key={category}>
+                {catIndex > 0 && <div className={styles.separator} />}
+                <div className={styles.groupLabel}>{getCategoryLabel(category)}</div>
+                {items.map((result) => {
+                  const item = result.item as { id?: string; title?: string }
+                  const stableKey = item.id ?? `${category}-${item.title ?? result.index}`
+                  return (
+                    <CommandItem
+                      key={stableKey}
+                      data-index={result.index}
+                      item={result.item as Parameters<typeof CommandItem>[0]['item']}
+                      type={result.type as 'command' | 'event' | 'calendar' | 'quick-add'}
+                      isSelected={selectedIndex === result.index}
+                      onClick={() => handleItemClick(result.index)}
+                      timeFormat={timeFormat}
+                    />
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
 
         <div className={styles.footer}>
-          <div className={styles.footerHints}>
-            <span className={styles.hint}>
-              <kbd>↑↓</kbd> Navigate
-            </span>
-            <span className={styles.hint}>
-              <kbd>↵</kbd> Select
-            </span>
-            <span className={styles.hint}>
-              <kbd>Esc</kbd> Close
-            </span>
-          </div>
+          <span className={styles.hint}>
+            <span className={styles.hintKbd}>↑↓</span>
+            Navigate
+          </span>
+          <span className={styles.hint}>
+            <span className={styles.hintKbd}>↵</span>
+            Select
+          </span>
+          <span className={styles.hint}>
+            <span className={styles.hintKbd}>Esc</span>
+            Close
+          </span>
         </div>
       </div>
     </div>

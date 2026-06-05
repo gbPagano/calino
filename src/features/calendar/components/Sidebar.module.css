@@ -145,20 +145,22 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
+  color: var(--ink);
 }
 
 .miniMonthButton:hover {
   opacity: 0.8;
 }
 
-.miniMonthButton .month {
+/* Month button (first child of .miniMonth span) */
+.miniMonth > .miniMonthButton:first-of-type {
   font-family: var(--font-serif, 'Newsreader', Georgia, serif);
   font-weight: 500;
   font-size: 20px;
-  color: var(--ink);
 }
 
-.miniMonthButton .year {
+/* Year button (last child of .miniMonth span) */
+.miniMonth > .miniMonthButton:last-of-type {
   font-size: 16px;
   color: var(--ink-3);
   letter-spacing: 0.01em;

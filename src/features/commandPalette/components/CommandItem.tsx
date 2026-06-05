@@ -15,7 +15,7 @@ interface CommandItemProps {
 
 function parseShortcut(shortcut: string): string[] {
   // "⇧]" → ["⇧", "]"], "T" → ["T"]
-  return shortcut.split(/(?=[\[\]⇧])/).filter(Boolean)
+  return shortcut.split(/(?=[[\]⇧])/).filter(Boolean)
 }
 
 export function CommandItem({

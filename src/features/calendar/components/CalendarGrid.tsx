@@ -74,6 +74,8 @@ export function CalendarGrid(): JSX.Element {
   const navigate = useNavigate()
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
   const compactRecurringEvents = useSettingsStore((state) => state.compactRecurringEvents ?? false)
+  const eventDensity = useSettingsStore((state) => state.eventDensity)
+  const isCompactDensity = eventDensity === 'compact'
   const compressPastWeeks = useSettingsStore((state) => state.compressPastWeeks ?? false)
   const monthViewEventLimit = useSettingsStore((state) => state.monthViewEventLimit ?? 3)
   const showWeekNumbers = useSettingsStore((state) => state.showWeekNumbers)
@@ -749,6 +751,7 @@ function DroppableDay({
             {dayEvents.slice(0, monthViewEventLimit).map((event) => {
               const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
               const shouldCompact =
+                isCompactDensity ||
                 isPastWeek ||
                 (compactRecurringEvents && (!!event.rruleString || event.isAllDay || isMultiDay)) ||
                 event.isFragment

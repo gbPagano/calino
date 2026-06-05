@@ -753,11 +753,10 @@ function DroppableDay({
             {dayEvents.slice(0, monthViewEventLimit).map((event) => {
               const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
               const shouldCompact =
-                isCompactDensity && (
-                  isPastWeek ||
-                  (compactRecurringEvents && (!!event.rruleString || event.isAllDay || isMultiDay)) ||
-                  event.isFragment
-                )
+                isCompactDensity ||
+                isPastWeek ||
+                (compactRecurringEvents && (!!event.rruleString || event.isAllDay || isMultiDay)) ||
+                event.isFragment
               return (
                 <EventCard
                   key={event.id}

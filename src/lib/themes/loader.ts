@@ -145,6 +145,12 @@ export function getBuiltInThemeCSS(): string {
   --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 
+  /* Event card theming */
+  --ink-raw: 44, 40, 33;
+  --event-bg-mix: 9%;
+  --event-bg-mix-hover: 12%;
+  --color-error-muted: #c47068;
+
   /* Shadows */
   --shadow-event: 0 1px 2px rgba(44, 40, 33, 0.04);
   --shadow-event-hover: 0 4px 12px rgba(44, 40, 33, 0.08);
@@ -153,7 +159,7 @@ export function getBuiltInThemeCSS(): string {
   --shadow-topbar: none;
   --shadow-today: none;
   --shadow-glass: none;
-  --shadow-inset: none;
+  --shadow-inset: inset 0 1px 2px rgba(44, 40, 33, 0.06);
 
   /* Spacing */
   --sidebar-width: 300px;
@@ -203,5 +209,12 @@ export function getBuiltInThemeCSS(): string {
   --shadow-event: 0 1px 2px rgba(0, 0, 0, 0.12);
   --shadow-event-hover: 0 4px 12px rgba(0, 0, 0, 0.2);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.12), 0 6px 16px rgba(0, 0, 0, 0.08);
+
+  /* Event card theming */
+  --ink-raw: 240, 236, 230;
+  --event-bg-mix: 18%;
+  --event-bg-mix-hover: 22%;
+  --color-error-muted: #d4877f;
+  --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }`
 }

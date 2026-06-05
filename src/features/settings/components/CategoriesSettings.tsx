@@ -98,19 +98,65 @@ export function CategoriesSettings(): JSX.Element {
         <div className={styles.catList}>
           {categories.map((category) => (
             <div key={category.id} className={styles.catRow}>
-              <div className={styles.catSwatch} style={{ '--cat-color': category.color } as React.CSSProperties} />
-              <span className={styles.catName}>{category.name}</span>
-              <span className={styles.catCount}>{getEventCountForCategory(category.name)} events</span>
-              <div className={styles.catActions}>
-                <button className={styles.catBtn} type="button">Rename</button>
-                <button className={styles.catBtn} type="button" style={{ padding: '0 8px' }} title="Change color">
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-                    <circle cx="6.5" cy="6.5" r="5" />
-                    <path d="M6.5 4v5M4 6.5h5" />
-                  </svg>
-                </button>
-                <button className={`${styles.catBtn} ${styles.catBtnDanger}`} onClick={() => handleDeleteCategory(category.id)} type="button">Delete</button>
-              </div>
+              {editingCategoryId === category.id ? (
+                <>
+                  <div className={styles.swatches} style={{ gap: '4px' }}>
+                    {EVENT_COLORS.slice(0, 8).map((color) => (
+                      <button
+                        key={color}
+                        className={`${styles.swatch} ${editCategoryColor === color ? styles.swatchActive : ''}`}
+                        style={{ '--swatch-color': color, width: '20px', height: '20px' } as React.CSSProperties}
+                        onClick={() => setEditCategoryColor(color)}
+                        type="button"
+                      />
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={editCategoryName}
+                    onChange={(e) => setEditCategoryName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleUpdateCategory(category.id)}
+                    onBlur={() => handleUpdateCategory(category.id)}
+                    autoFocus
+                    style={{ flex: 1, padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--accent)', fontSize: '14px', fontWeight: 500, background: 'var(--canvas)', color: 'var(--ink)' }}
+                  />
+                  <span className={styles.catCount}>{getEventCountForCategory(category.name)} events</span>
+                </>
+              ) : (
+                <>
+                  <div
+                    className={styles.catSwatch}
+                    style={{ '--cat-color': category.color, cursor: 'pointer' } as React.CSSProperties}
+                    onClick={() => {
+                      setEditingCategoryId(category.id)
+                      setEditCategoryName(category.name)
+                      setEditCategoryColor(category.color)
+                    }}
+                    title="Click to change color"
+                  />
+                  <span
+                    className={styles.catName}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      setEditingCategoryId(category.id)
+                      setEditCategoryName(category.name)
+                      setEditCategoryColor(category.color)
+                    }}
+                  >
+                    {category.name}
+                  </span>
+                  <span className={styles.catCount}>{getEventCountForCategory(category.name)} events</span>
+                  <div className={styles.catActions}>
+                    <button
+                      className={`${styles.catBtn} ${styles.catBtnDanger}`}
+                      onClick={() => handleDeleteCategory(category.id)}
+                      type="button"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
 

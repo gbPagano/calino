@@ -310,12 +310,7 @@ export function CalendarHeader({
           </div>
         )}
 
-        {/* Display toggle (theme) */}
-        <button className={styles.iconButton} aria-label="Toggle display">
-          <DisplayIcon />
-        </button>
 
-        {/* Settings with quick dropdown */}
         <div
           className={styles.settingsWrapper}
           onMouseEnter={() => {
@@ -414,15 +409,6 @@ function SearchIcon(): JSX.Element {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21L16.65 16.65" />
-    </svg>
-  )
-}
-
-function DisplayIcon(): JSX.Element {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="3" width="20" height="14" rx="2" />
-      <path d="M8 21H16M12 17V21" />
     </svg>
   )
 }

@@ -14,9 +14,7 @@
 	}
 
 	# ── Gzip compression ─────────────────────────────────────────
-	encode gzip {
-		min_length 256
-	}
+	encode gzip
 
 	# ── Security headers ─────────────────────────────────────────
 	header {

@@ -1,9 +1,10 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
+import pkg from '../../package.json'
 
-// Provide the compile-time constant for tests
+// Provide the compile-time constant for tests (synced from package.json)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-;(globalThis as any).__APP_VERSION__ = '0.6.0'
+;(globalThis as any).__APP_VERSION__ = pkg.version
 
 const localStorageMock = {
   getItem: vi.fn(),

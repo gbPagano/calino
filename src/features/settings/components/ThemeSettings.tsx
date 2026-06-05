@@ -93,6 +93,8 @@ export function ThemeSettings(): JSX.Element {
           </div>
         </div>
         <div className={`${styles.row} ${styles.rowDisabled}`} title="Not available yet">
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Accent Color</div>
             <div className={styles.rowDesc}>Used for today, active states, and highlights</div>
           </div>
           <div className={styles.rowControl}>
@@ -110,6 +112,8 @@ export function ThemeSettings(): JSX.Element {
           </div>
         </div>
         <div className={`${styles.row} ${styles.rowDisabled}`} title="Not available yet">
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Font Size</div>
             <div className={styles.rowDesc}>Affects text density throughout the app</div>
           </div>
           <div className={styles.rowControl}>

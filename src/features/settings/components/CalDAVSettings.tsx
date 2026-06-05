@@ -160,7 +160,7 @@ export function CalDAVSettings(): JSX.Element {
 
       <div className={styles.group}>
         <div className={styles.groupLabel}>Sync Settings</div>
-        <div className={styles.row}>
+        <div className={`${styles.row} ${styles.rowDisabled}`} title="Not available yet">
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Sync Frequency</div>
             <div className={styles.rowDesc}>How often to pull changes from connected accounts</div>
@@ -179,7 +179,7 @@ export function CalDAVSettings(): JSX.Element {
             </select>
           </div>
         </div>
-        <div className={styles.row}>
+        <div className={`${styles.row} ${styles.rowDisabled}`} title="Not available yet">
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Sync on Launch</div>
             <div className={styles.rowDesc}>Always refresh when you open the app</div>

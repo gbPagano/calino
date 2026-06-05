@@ -196,6 +196,7 @@ function PreviewPopupWrapper(): JSX.Element | null {
 }
 
 function CalendarApp(): JSX.Element {
+  const navigate = useNavigate()
   const currentView = useCalendarStore((state) => state.currentView)
   const setOverlayOpen = useCalendarStore((state) => state.setOverlayOpen)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)

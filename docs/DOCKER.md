@@ -1,6 +1,6 @@
 # Self-Hosting with Docker
 
-Calino is a static React app. The Docker image bundles it with nginx for a production-ready setup.
+Calino is a static React app. The Docker image bundles it with Caddy for a production-ready setup.
 
 ## Quick Start
 
@@ -51,18 +51,30 @@ docker compose up -d
 ## Architecture
 
 ```
-┌──────────────────────────────────────┐
-│  nginx:1.27-alpine (~23 MB compressed)│
-│  ├── /usr/share/nginx/html           │  ← built React SPA (static files)
-│  └── nginx.conf                      │  ← SPA fallback, gzip, security headers
-│                                      │
-│  Runs as non-root (nginx user)       │
-│  Listen on port 8080                 │
-│  Read-only filesystem                │
-└──────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│  caddy:2-alpine (~15 MB compressed)      │
+│  ├── /srv                                │  ← built React SPA (static files)
+│  └── /etc/caddy/Caddyfile                │  ← SPA fallback, gzip, security headers
+│                                          │
+│  Runs as root (no privilege escalation)  │
+│  Listen on port 8080                     │
+│  Read-only filesystem                    │
+└──────────────────────────────────────────┘
 ```
 
 The container is **stateless** — all user data lives in the browser's `localStorage`. No volumes needed.
+
+### Why Caddy over nginx?
+
+| | nginx | Caddy |
+|-|-------|-------|
+| Config files | 3 (`nginx-main.conf`, `nginx.conf`, `nginx-security-headers.conf`) | 1 (`Caddyfile`) |
+| Security headers | Manual, shared via include (nginx inheritance gotcha) | Built-in `header` directive |
+| SPA fallback | `try_files` | `try_files` |
+| Gzip | Manual `gzip_types` list | `encode gzip` — auto-detects |
+| Server version hiding | `server_tokens off` (still sends `Server: nginx`) | `-Server` header (fully stripped) |
+| HTTPS | Manual cert config | Automatic (Let's Encrypt) if needed |
+| Image size | ~23 MB | ~15 MB |
 
 ## Multi-Arch Builds
 
@@ -77,14 +89,12 @@ Pre-built multi-arch images are published to GitHub Container Registry on every 
 docker pull ghcr.io/ivan-malinovski/calino:main
 
 # Specific version
-docker pull ghcr.io/ivan-malinovski/calino:0.6.0
+docker pull ghcr.io/ivan-malinovski/calino:0.7.0
 
-# Run directly (tmpfs mounts required for non-root nginx)
+# Run directly
 docker run -d -p 8080:8080 \
-  --tmpfs /var/cache/nginx:rw,noexec,nosuid,uid=101,gid=101 \
-  --tmpfs /var/run:rw,noexec,nosuid,uid=101,gid=101 \
-  --tmpfs /tmp:rw,noexec,nosuid,uid=101,gid=101 \
-  ghcr.io/ivan-malinovski/calino:main
+  --tmpfs /tmp:rw,noexec,nosuid \
+  ghcr.io/ivan-malinovski/calino:0.7.0
 ```
 
 Docker automatically pulls the correct architecture for your machine.
@@ -120,16 +130,14 @@ The Docker setup follows least-privilege principles:
 
 | Hardening | Status | Details |
 |-----------|:------:|---------|
-| Runs as non-root | ✅ | nginx master process runs as `nginx` user |
 | Read-only filesystem | ✅ | `read_only: true` + `tmpfs` for temp dirs |
 | All capabilities dropped | ✅ | `cap_drop: ALL` |
-| Only required capabilities added | ✅ | `CHOWN`, `SETGID`, `SETUID` (nginx worker process user switching) |
 | No new privileges | ✅ | `no-new-privileges` |
-| Graceful shutdown | ✅ | `STOPSIGNAL SIGQUIT` |
 | Process limit | ✅ | `pids_limit: 256` |
 | Memory limit | ✅ | `mem_limit: 128m` (static site needs very little) |
-| nginx version hidden | ✅ | `server_tokens off` |
+| Server header stripped | ✅ | `header -Server` in Caddyfile |
 | Security headers | ✅ | X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy |
+| Request body limit | ✅ | `max_size 1kb` (no uploads needed) |
 | Log rotation | ✅ | 3 × 10 MB max |
 
 ### Content Security Policy
@@ -235,11 +243,11 @@ docker compose logs calino
 
 Common causes:
 - Port 8080 already in use → change the left side of `ports` in compose
-- nginx config syntax error → rebuild after editing `nginx.conf`
+- Caddyfile syntax error → rebuild after editing `Caddyfile`
 
 ### Blank page on refresh
 
-Ensure your reverse proxy rewrites all paths to `index.html`. The included nginx config handles this internally, but if you're proxying through another nginx instance, add SPA fallback there too.
+Ensure your reverse proxy rewrites all paths to `index.html`. The included Caddyfile handles this internally (`try_files`), but if you're proxying through another server, add SPA fallback there too.
 
 ### CalDAV CORS errors
 

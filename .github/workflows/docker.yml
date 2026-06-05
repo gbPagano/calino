@@ -85,9 +85,7 @@ jobs:
         run: |
           docker run -d --name calino-test \
             -p 8080:8080 \
-            --tmpfs /var/cache/nginx:rw,noexec,nosuid,uid=101,gid=101 \
-            --tmpfs /var/run:rw,noexec,nosuid,uid=101,gid=101 \
-            --tmpfs /tmp:rw,noexec,nosuid,uid=101,gid=101 \
+            --tmpfs /tmp:rw,noexec,nosuid \
             --health-cmd 'wget -qO- http://localhost:8080/ || exit 1' \
             --health-interval 5s \
             --health-timeout 3s \
@@ -114,7 +112,7 @@ jobs:
           fi
           echo "✅ Root returns 200"
 
-          # SPA route should also return 200 (nginx fallback)
+          # SPA route should also return 200 (Caddy fallback)
           STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/week || echo '000')
           if [ "$STATUS" != "200" ]; then
             echo "❌ /week returned $STATUS, expected 200"
@@ -133,12 +131,12 @@ jobs:
             fi
           done
 
-          # Verify server version is hidden (server_tokens off strips version, keeps name)
-          if echo "$HEADERS" | grep -iE 'Server:.*/'; then
-            echo "❌ nginx version exposed in Server header"
+          # Verify server header is stripped (Caddy config removes it)
+          if echo "$HEADERS" | grep -qi '^Server:'; then
+            echo "❌ Server header present — should be stripped"
             exit 1
           fi
-          echo "✅ Server version hidden"
+          echo "✅ Server header stripped"
 
       - name: Dump logs on failure
         if: failure()

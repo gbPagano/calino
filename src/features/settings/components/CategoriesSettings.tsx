@@ -6,26 +6,17 @@ import styles from './Settings.module.css'
 
 export function CategoriesSettings(): JSX.Element {
   const categories = useCalendarStore((s) => s.categories)
-  const autoCategoryRules = useCalendarStore((s) => s.autoCategoryRules)
   const addCategory = useCalendarStore((s) => s.addCategory)
   const updateCategory = useCalendarStore((s) => s.updateCategory)
   const deleteCategory = useCalendarStore((s) => s.deleteCategory)
-  const addAutoCategoryRule = useCalendarStore((s) => s.addAutoCategoryRule)
-  const updateAutoCategoryRule = useCalendarStore((s) => s.updateAutoCategoryRule)
-  const deleteAutoCategoryRule = useCalendarStore((s) => s.deleteAutoCategoryRule)
-  const updateEvent = useCalendarStore((s) => s.updateEvent)
   const events = useCalendarStore((s) => s.events)
 
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState(EVENT_COLORS[0])
   const [showAddCategory, setShowAddCategory] = useState(false)
-
-  const [newRuleKeywords, setNewRuleKeywords] = useState('')
-  const [newRuleCategoryId, setNewRuleCategoryId] = useState('')
-  const [showAddRule, setShowAddRule] = useState(false)
-
-  const [showApplyModal, setShowApplyModal] = useState(false)
-  const [pendingRule, setPendingRule] = useState<{ keywords: string[]; categoryId: string } | null>(null)
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
+  const [editCategoryName, setEditCategoryName] = useState('')
+  const [editCategoryColor, setEditCategoryColor] = useState('')
 
   const getEventCountForCategory = (categoryName: string): number => {
     return events.filter((e) => e.categories?.includes(categoryName)).length
@@ -43,51 +34,16 @@ export function CategoriesSettings(): JSX.Element {
     setShowAddCategory(false)
   }
 
+  const handleUpdateCategory = (id: string): void => {
+    if (!editCategoryName.trim()) return
+    updateCategory(id, { name: editCategoryName.trim(), color: editCategoryColor })
+    setEditingCategoryId(null)
+    setEditCategoryName('')
+    setEditCategoryColor('')
+  }
+
   const handleDeleteCategory = (id: string): void => {
     deleteCategory(id)
-  }
-
-  const handleAddRule = (): void => {
-    if (!newRuleKeywords.trim() || !newRuleCategoryId) return
-    const keywords = newRuleKeywords.split(',').map((k) => k.trim()).filter(Boolean)
-    if (keywords.length === 0) return
-    setPendingRule({ keywords, categoryId: newRuleCategoryId })
-    setShowApplyModal(true)
-  }
-
-  const applyRuleToExistingEvents = (rule: { keywords: string[]; categoryId: string }): void => {
-    const category = categories.find((c) => c.id === rule.categoryId)
-    if (!category) return
-    const categoryName = category.name
-    const lowerKeywords = rule.keywords.map((k) => k.toLowerCase())
-    events.forEach((event) => {
-      const lowerTitle = event.title.toLowerCase()
-      const matches = lowerKeywords.some((kw) => lowerTitle.includes(kw))
-      if (matches) {
-        const currentCategories = event.categories || []
-        if (!currentCategories.includes(categoryName)) {
-          updateEvent(event.id, {
-            categories: [...currentCategories, categoryName],
-          })
-        }
-      }
-    })
-  }
-
-  const confirmAddRule = (applyToExisting: boolean): void => {
-    if (!pendingRule) return
-    addAutoCategoryRule({
-      id: crypto.randomUUID(),
-      keywords: pendingRule.keywords,
-      categoryId: pendingRule.categoryId,
-    })
-    if (applyToExisting) {
-      applyRuleToExistingEvents(pendingRule)
-    }
-    setShowApplyModal(false)
-    setPendingRule(null)
-    setNewRuleKeywords('')
-    setNewRuleCategoryId('')
   }
 
   return (
@@ -195,22 +151,6 @@ export function CategoriesSettings(): JSX.Element {
           )}
         </div>
       </div>
-
-      {showApplyModal && pendingRule && (
-        <div className={styles.modal} style={{ position: 'fixed', inset: 0, background: 'var(--modal-scrim)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className={styles.modalContent} style={{ background: 'var(--modal-bg)', border: '1px solid var(--modal-border)', boxShadow: 'var(--modal-shadow)', borderRadius: '18px', padding: '24px', maxWidth: '400px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ink)', marginBottom: '12px' }}>Apply Rule to Existing Events?</h3>
-            <p style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: '20px' }}>
-              This rule will apply the category to events matching your keywords. Would you like to apply it to existing events as well?
-            </p>
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button className={styles.actionBtn} onClick={() => confirmAddRule(false)} type="button">Future Only</button>
-              <button className={styles.actionBtn} style={{ background: 'var(--accent)', color: '#fff', border: 'none' }} onClick={() => confirmAddRule(true)} type="button">All Events</button>
-              <button className={styles.actionBtn} onClick={() => { setShowApplyModal(false); setPendingRule(null) }} type="button">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   )
 }

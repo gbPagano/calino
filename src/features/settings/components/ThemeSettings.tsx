@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import type { JSX } from 'react'
 import { useSettingsStore, THEME_MODE_OPTIONS } from '@/store/settingsStore'
 import { useTheme } from '@/components/ThemeContext'
@@ -14,13 +14,12 @@ const ACCENT_COLORS = [
 ]
 
 function MiniCalendarPreview({ variant }: { variant: 'light' | 'dark' | 'system' }): JSX.Element {
-  const bg = variant === 'dark' ? '#1a1815' : variant === 'system' ? undefined : '#faf8f3'
   const cellBg = variant === 'dark' ? '#252218' : '#f0ece5'
   const eventBg = variant === 'dark' ? 'color-mix(in srgb, #b07d4f 20%, #1a1815)' : 'color-mix(in srgb, #b07d4f 12%, #faf8f3)'
 
   const previewStyle = variant === 'system'
     ? { background: 'linear-gradient(135deg, #faf8f3 50%, #1a1815 50%)' }
-    : { background: bg }
+    : { background: variant === 'dark' ? '#1a1815' : '#faf8f3' }
 
   const cellStyle = variant === 'system'
     ? { background: 'linear-gradient(135deg, #f0ece5 50%, #252218 50%)' }
@@ -94,6 +93,8 @@ export function ThemeSettings(): JSX.Element {
           </div>
         </div>
         <div className={`${styles.row} ${styles.rowDisabled}`}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Accent Color</div>
             <div className={styles.rowDesc}>Used for today, active states, and highlights</div>
           </div>
           <div className={styles.rowControl}>
@@ -111,6 +112,8 @@ export function ThemeSettings(): JSX.Element {
           </div>
         </div>
         <div className={`${styles.row} ${styles.rowDisabled}`}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Font Size</div>
             <div className={styles.rowDesc}>Affects text density throughout the app</div>
           </div>
           <div className={styles.rowControl}>

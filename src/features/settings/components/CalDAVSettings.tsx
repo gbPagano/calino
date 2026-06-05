@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import { useState } from 'react'
-import { useSettingsStore, SYNC_INTERVAL_OPTIONS, CONFLICT_OPTIONS } from '@/store/settingsStore'
+import { useSettingsStore, SYNC_INTERVAL_OPTIONS } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import styles from './Settings.module.css'
 
@@ -9,15 +9,12 @@ export function CalDAVSettings(): JSX.Element {
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [connectionError, setConnectionError] = useState<string>('')
   const [isTesting, setIsTesting] = useState(false)
-  const [showProxyField, setShowProxyField] = useState(false)
 
   const syncEnabled = useSettingsStore((s) => s.syncEnabled)
   const syncIntervalMinutes = useSettingsStore((s) => s.syncIntervalMinutes)
-  const conflictResolution = useSettingsStore((s) => s.conflictResolution)
-  const caldavDebugMode = useSettingsStore((s) => s.caldavDebugMode)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
 
-  const { accounts, syncAccount, addAccount, removeAccount } = useCalDAV()
+  const { accounts, addAccount, removeAccount } = useCalDAV()
 
   const handleTestConnection = async (
     serverUrl: string,

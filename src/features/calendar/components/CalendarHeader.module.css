@@ -53,6 +53,7 @@
   align-items: baseline;
   gap: 6px;
   white-space: nowrap;
+  padding-top: 2px;
 }
 
 .monthTitle {

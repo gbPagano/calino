@@ -8,6 +8,11 @@ Despite Calino being a web app, it acts as a desktop client, in the sense that i
 
 > **⚠️ Active Project:** Calino is under active development. Expect breaking changes, evolving UI, and frequent updates. Use at your own risk — but report bugs, we'd love the feedback!
 
+<img width="1469" height="843" alt="Screenshot 2026-06-06 at 00 05 11" src="https://github.com/user-attachments/assets/17767336-2bd0-4732-a385-a7e44a79e7be" />
+<img width="1470" height="839" alt="Screenshot 2026-06-06 at 00 05 34" src="https://github.com/user-attachments/assets/f3368480-8598-4e3c-8e0d-00d1c987cff3" />
+
+
+
 ### CalDAV Proxy
 
 Due to the browser based nature of Calino, if your CalDAV server doesn't support CORS, you can use Calino's hosted proxy URL during setup: https://proxy.calino.io
@@ -86,8 +91,14 @@ The only non-standard iCalendar feature, is the support for Apples travel time, 
 ### Security
 
 - CalDAV passwords are encrypted (AES-256-GCM) before storing in localStorage in your browser.
-- Unreasonably hardened Docker container
+- Hardened Docker container
 - Open source — audit the code yourself
+
+### Limitations
+
+- No enterprise features
+- No invitation functionality
+- No sharing functionality
 
 ## Quick Start
 

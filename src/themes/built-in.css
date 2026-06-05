@@ -50,4 +50,67 @@
   --shadow-today: inset 0 0 0 1.5px rgba(66, 133, 244, 0.4);
   --shadow-glass: 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+
+  /* Event card theming */
+  --ink-raw: 0, 0, 0;
+  --event-bg-mix: 9%;
+  --event-bg-mix-hover: 12%;
+  --color-error-muted: #c47068;
+}
+
+/* Theme: Default Dark */
+[data-theme='dark'] {
+  /* Backgrounds */
+  --color-bg-primary: #1a1816;
+  --color-bg-secondary: #242220;
+  --color-bg-tertiary: #2a2826;
+  --color-bg-hover: rgba(240, 236, 230, 0.06);
+
+  /* Text */
+  --color-text-primary: #f0ece6;
+  --color-text-secondary: #a39d93;
+  --color-text-muted: #6f6a62;
+
+  /* Borders */
+  --color-border: rgba(240, 236, 230, 0.09);
+  --color-border-light: rgba(240, 236, 230, 0.05);
+
+  /* Accent */
+  --color-accent: #c9956a;
+  --color-accent-hover: #d4a575;
+  --color-accent-light: rgba(201, 149, 106, 0.12);
+
+  /* Status */
+  --color-success: #6aaa85;
+  --color-warning: #d4a54f;
+  --color-error: #d4877f;
+  --color-info: #7b9fd4;
+
+  /* Overlay */
+  --color-overlay: rgba(0, 0, 0, 0.6);
+
+  /* Surfaces */
+  --color-surface: #242220;
+  --color-surface-raised: #2a2826;
+  --color-surface-glass: rgba(36, 34, 32, 0.8);
+
+  /* Scrollbar */
+  --color-scrollbar: #3a3836;
+  --color-scrollbar-hover: #4a4846;
+
+  /* Shadows */
+  --shadow-event: 0 1px 2px rgba(0, 0, 0, 0.12);
+  --shadow-event-hover: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.12), 0 6px 16px rgba(0, 0, 0, 0.08);
+  --shadow-sidebar: none;
+  --shadow-topbar: none;
+  --shadow-today: none;
+  --shadow-glass: none;
+  --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+
+  /* Event card theming */
+  --ink-raw: 240, 236, 230;
+  --event-bg-mix: 18%;
+  --event-bg-mix-hover: 22%;
+  --color-error-muted: #d4877f;
 }

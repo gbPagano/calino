@@ -693,6 +693,8 @@ function DroppableDay({
   openModal,
 }: DroppableDayProps): JSX.Element {
   const { setNodeRef, isOver } = useDroppable({ id: dateKey })
+  const eventDensity = useSettingsStore((state) => state.eventDensity)
+  const isCompactDensity = eventDensity === 'compact'
   const [showPopup, setShowPopup] = useState(false)
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)

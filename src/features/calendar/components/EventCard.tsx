@@ -321,7 +321,7 @@ export function EventCard({
               {...attributes}
           >
             <div className={styles.title} title={event.title}>{event.title}</div>
-            {!compact && !event.isAllDay && (
+            {!event.isAllDay && (
                 <div className={styles.time}>
                   {isFragmentFirst
                     ? `${formatTime(event.start)} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`

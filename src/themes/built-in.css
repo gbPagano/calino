@@ -56,6 +56,15 @@
   --event-bg-mix: 9%;
   --event-bg-mix-hover: 12%;
   --color-error-muted: #c47068;
+
+  /* Modal / popover tokens */
+  --modal-bg: var(--color-bg-secondary);
+  --popover-bg: var(--color-bg-secondary);
+  --modal-scrim: rgba(0, 0, 0, 0.5);
+  --modal-blur: blur(3px);
+  --modal-border: transparent;
+  --popover-border: var(--color-border);
+  --modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.18), 0 6px 20px rgba(0, 0, 0, 0.10);
 }
 
 /* Theme: Default Dark */
@@ -113,4 +122,13 @@
   --event-bg-mix: 18%;
   --event-bg-mix-hover: 22%;
   --color-error-muted: #d4877f;
+
+  /* Modal / popover tokens */
+  --modal-bg: #2d2a24;
+  --popover-bg: #383229;
+  --modal-scrim: rgba(0, 0, 0, 0.60);
+  --modal-blur: blur(4px);
+  --modal-border: rgba(255, 247, 235, 0.10);
+  --popover-border: rgba(255, 247, 235, 0.14);
+  --modal-shadow: 0 2px 4px rgba(0, 0, 0, 0.40), 0 20px 60px rgba(0, 0, 0, 0.65);
 }

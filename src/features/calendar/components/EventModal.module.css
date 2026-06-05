@@ -5,8 +5,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-overlay, rgba(26, 26, 26, 0.25));
-  backdrop-filter: blur(3px);
+  background: var(--modal-scrim, rgba(26, 26, 26, 0.25));
+  backdrop-filter: var(--modal-blur, blur(3px));
   transition: background 0.18s, backdrop-filter 0.18s;
 }
 
@@ -14,12 +14,10 @@
   width: 520px;
   max-height: 90vh;
   border-radius: 18px;
-  background: var(--color-bg-secondary, #faf9f7);
+  background: var(--modal-bg, #faf9f7);
   overflow-y: auto;
-  box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.18),
-    0 6px 20px rgba(0, 0, 0, 0.10),
-    0 0 0 1px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--modal-shadow, 0 24px 80px rgba(0, 0, 0, 0.18), 0 6px 20px rgba(0, 0, 0, 0.10));
+  border: 1px solid var(--modal-border, transparent);
   font-family: var(--font-sans, 'Inter', sans-serif);
   animation: modalIn 0.18s ease forwards;
 }
@@ -651,10 +649,10 @@
   left: 0;
   right: 0;
   z-index: 300;
-  background: var(--color-surface-raised, #fff);
-  border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
+  background: var(--popover-bg, #fff);
+  border: 1px solid var(--popover-border, rgba(0, 0, 0, 0.08));
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--modal-shadow, 0 8px 24px rgba(0, 0, 0, 0.14));
   overflow: hidden;
   animation: slideDown 0.15s ease-out;
 }

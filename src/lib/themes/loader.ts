@@ -151,6 +151,15 @@ export function getBuiltInThemeCSS(): string {
   --event-bg-mix-hover: 12%;
   --color-error-muted: #c47068;
 
+  /* Modal / popover tokens */
+  --modal-bg: var(--color-bg-secondary);
+  --popover-bg: var(--color-surface-raised);
+  --modal-scrim: rgba(26, 26, 26, 0.25);
+  --modal-blur: blur(3px);
+  --modal-border: rgba(0, 0, 0, 0.06);
+  --popover-border: rgba(0, 0, 0, 0.08);
+  --modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.18), 0 6px 20px rgba(0, 0, 0, 0.10);
+
   /* Shadows */
   --shadow-event: 0 1px 2px rgba(44, 40, 33, 0.04);
   --shadow-event-hover: 0 4px 12px rgba(44, 40, 33, 0.08);
@@ -215,6 +224,15 @@ export function getBuiltInThemeCSS(): string {
   --event-bg-mix: 18%;
   --event-bg-mix-hover: 22%;
   --color-error-muted: #d4877f;
+
+  /* Modal / popover tokens */
+  --modal-bg: #2d2a24;
+  --popover-bg: #383229;
+  --modal-scrim: rgba(0, 0, 0, 0.60);
+  --modal-blur: blur(4px);
+  --modal-border: rgba(255, 247, 235, 0.10);
+  --popover-border: rgba(255, 247, 235, 0.14);
+  --modal-shadow: 0 2px 4px rgba(0, 0, 0, 0.40), 0 20px 60px rgba(0, 0, 0, 0.65);
   --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }`
 }

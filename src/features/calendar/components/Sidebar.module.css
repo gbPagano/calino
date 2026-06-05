@@ -962,7 +962,7 @@
   margin-top: auto;
   padding: 22px 16px;
   display: flex;
-  gap: 20px;
+  justify-content: space-between;
   font-size: 13px;
 }
 

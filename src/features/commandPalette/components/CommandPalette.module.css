@@ -71,6 +71,11 @@
   font-family: inherit;
 }
 
+.input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
 .input::placeholder {
   color: var(--ink-3, #a39d93);
 }

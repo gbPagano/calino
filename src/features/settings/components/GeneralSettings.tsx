@@ -88,9 +88,9 @@ export function GeneralSettings(): JSX.Element {
             <div className={styles.seg}>
               {(
                 [
-                  { value: 0 as const, label: 'Sunday' },
                   { value: 1 as const, label: 'Monday' },
                   { value: 6 as const, label: 'Saturday' },
+                  { value: 0 as const, label: 'Sunday' },
                 ]
               ).map((opt) => (
                 <button

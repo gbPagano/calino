@@ -7,6 +7,7 @@ import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { showToast } from '@/lib/toast'
 import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
 import type { CalendarEvent, CalendarAttachment, RecurrenceRule, TaskPriority, Reminder } from '@/types'
+import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
 import { TaskFormFields } from './TaskFormFields'
 import { EventFormFields } from './EventFormFields'
 import { RecurrenceDialog } from './RecurrenceDialog'
@@ -293,7 +294,31 @@ export function EventModal(): JSX.Element | null {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showDescription, setShowDescription] = useState(!!initialState.description)
-  const [attachments, setAttachments] = useState<CalendarAttachment[]>(initialState.attachments || [])
+  const [attachments, setAttachments] = useState<CalendarAttachment[]>([])
+
+  // Load attachments from IndexedDB when modal opens with existing event
+  useEffect(() => {
+    if (!isModalOpen || !initialState.attachments || initialState.attachments.length === 0) {
+      setAttachments([])
+      return
+    }
+    if (!selectedEventId) {
+      setAttachments(initialState.attachments)
+      return
+    }
+    getAttachments(selectedEventId)
+      .then((loaded) => {
+        if (loaded.length > 0) {
+          setAttachments(loaded)
+        } else {
+          // No IndexedDB data yet (migrated from localStorage), use zustand metadata
+          setAttachments(initialState.attachments!)
+        }
+      })
+      .catch(() => {
+        setAttachments(initialState.attachments!)
+      })
+  }, [isModalOpen, selectedEventId])
 
   // Close on Escape
   useEffect(() => {
@@ -715,6 +740,11 @@ export function EventModal(): JSX.Element | null {
         attachments: attachments.length > 0 ? attachments : undefined,
       }
       addEvent(newEvent)
+      // Move attachments from temp 'new' key to actual event ID
+      if (attachments.length > 0) {
+        deleteAttachments('new').catch(() => {})
+        putAttachments(newEvent.id, attachments).catch(() => {})
+      }
       await safeCalDAVUpdate(
         createCalDAVEvent,
         calendarId,
@@ -1017,7 +1047,15 @@ export function EventModal(): JSX.Element | null {
                       title="Remove attachment"
                       onClick={() => {
                         if (window.confirm(`Remove “${att.filename || 'attachment'}” from this event? It will be deleted from the server when you save.`)) {
-                          setAttachments(attachments.filter((_, i) => i !== index))
+                          const remaining = attachments.filter((_, i) => i !== index)
+                          setAttachments(remaining)
+                          // Update IndexedDB
+                          const eventId = selectedEventId || 'new'
+                          if (remaining.length > 0) {
+                            putAttachments(eventId, remaining).catch(() => {})
+                          } else {
+                            deleteAttachments(eventId).catch(() => {})
+                          }
                         }
                       }}
                     >
@@ -1067,6 +1105,11 @@ export function EventModal(): JSX.Element | null {
                   Promise.all(readPromises)
                     .then((newAttachments) => {
                       setAttachments((prev) => [...prev, ...newAttachments])
+                      // Store in IndexedDB for the current event (use a temp key if new event)
+                      const eventId = selectedEventId || 'new'
+                      putAttachments(eventId, [...attachments, ...newAttachments]).catch(() => {
+                        showToast('Failed to save attachments locally')
+                      })
                     })
                     .catch((err) => {
                       showToast(err instanceof Error ? err.message : 'Failed to read files')

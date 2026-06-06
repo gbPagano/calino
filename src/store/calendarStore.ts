@@ -7,10 +7,12 @@ import type { CalendarStore, CalendarEvent, Calendar, ViewType, EventType } from
 import type { Category, AutoCategoryRule } from '@/types/categories'
 import { config, DEFAULT_CALENDAR_COLOR } from '@/config'
 import { DAY_NUM_TO_CODE, FREQ_MAP } from '@/lib/recurrence'
+import { deleteAttachments } from '@/lib/attachmentStore'
 
 export const selectOpenModal = (state: CalendarStore) => state.openModal
 export const selectAddEvent = (state: CalendarStore) => state.addEvent
 export const selectUpdateEvent = (state: CalendarStore) => state.updateEvent
+
 export const selectDeleteEvent = (state: CalendarStore) => state.deleteEvent
 export const selectAddCalendar = (state: CalendarStore) => state.addCalendar
 export const selectDeleteCalendar = (state: CalendarStore) => state.deleteCalendar
@@ -109,6 +111,8 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       deleteEvent: (id: string): void => {
+        // Clean up attachments from IndexedDB (fire and forget)
+        deleteAttachments(id).catch(() => {})
         set((state) => ({
           events: state.events.filter((e) => e.id !== id),
         }))
@@ -154,10 +158,18 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       deleteCalendar: (id: string): void => {
-        set((state) => ({
-          calendars: state.calendars.filter((c) => c.id !== id),
-          events: state.events.filter((e) => e.calendarId !== id),
-        }))
+        set((state) => {
+          // Clean up attachments for all events in this calendar
+          for (const event of state.events) {
+            if (event.calendarId === id) {
+              deleteAttachments(event.id).catch(() => {})
+            }
+          }
+          return {
+            calendars: state.calendars.filter((c) => c.id !== id),
+            events: state.events.filter((e) => e.calendarId !== id),
+          }
+        })
       },
 
       toggleCalendarVisibility: (id: string): void => {
@@ -539,7 +551,18 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
       partialize: (state) => ({
-        events: state.events,
+        // Strip base64 data from attachments — actual data lives in IndexedDB
+        events: state.events.map((event) => {
+          if (!event.attachments || event.attachments.length === 0) return event
+          return {
+            ...event,
+            attachments: event.attachments.map((att) => ({
+              ...att,
+              // Keep href for external URLs, clear for inline (data is in IndexedDB)
+              href: att.href.startsWith('data:') ? '' : att.href,
+            })),
+          }
+        }),
         calendars: state.calendars,
         categories: state.categories,
         autoCategoryRules: state.autoCategoryRules,

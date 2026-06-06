@@ -1,6 +1,6 @@
 import ICAL from 'ical.js'
 import { v4 as uuidv4 } from 'uuid'
-import type { CalendarEvent, RecurrenceRule, Reminder, TaskPriority } from '@/types'
+import type { CalendarEvent, CalendarAttachment, RecurrenceRule, Reminder, TaskPriority } from '@/types'
 import { addDays } from 'date-fns'
 import { DAY_NUM_TO_CODE } from '@/lib/recurrence'
 
@@ -383,6 +383,38 @@ export function icalEventToCalendarEvent(
   const sequenceProp = vevent.getFirstProperty('sequence')
   const sequence = sequenceProp ? parseInt(sequenceProp.getFirstValue() as string, 10) : undefined
 
+  // Parse attachments
+  const attachments: CalendarAttachment[] = []
+  const attachProps = vevent.getAllProperties('attach')
+  for (const attachProp of attachProps) {
+    const attachValue = attachProp.getFirstValue()
+    if (typeof attachValue === 'string') {
+      // Check if it's a data URI (inline) or URL
+      if (attachValue.startsWith('data:')) {
+        // Inline attachment - parse data URI
+        const match = attachValue.match(/^data:([^;]+);base64,(.+)$/)
+        if (match) {
+          const filename = attachProp.getParameter('filename')
+          attachments.push({
+            href: attachValue,
+            contentType: match[1],
+            size: Math.round((match[2].length * 3) / 4), // Approximate base64 size
+            filename: typeof filename === 'string' ? filename : 'attachment',
+          })
+        }
+      } else {
+        // External URL attachment
+        const fmttype = attachProp.getParameter('fmttype')
+        const filename = attachProp.getParameter('filename')
+        attachments.push({
+          href: attachValue,
+          contentType: typeof fmttype === 'string' ? fmttype : 'application/octet-stream',
+          filename: typeof filename === 'string' ? filename : attachValue.split('/').pop() || 'attachment',
+        })
+      }
+    }
+  }
+
   return {
     id: event.uid || uuidv4(),
     calendarId,
@@ -401,6 +433,7 @@ export function icalEventToCalendarEvent(
     sequence,
     excludedDates: excludedDates.length > 0 ? excludedDates : undefined,
     recurrenceId,
+    attachments: attachments.length > 0 ? attachments : undefined,
   }
 }
 
@@ -567,6 +600,21 @@ export function calendarEventToIcalComponent(event: CalendarEvent): ICAL.Compone
       valarm.updatePropertyWithValue('action', 'DISPLAY')
       valarm.updatePropertyWithValue('trigger', `-PT${reminder.minutesBefore}M`)
       vevent.addSubcomponent(valarm)
+    }
+  }
+
+  // Serialize attachments
+  if (event.attachments && event.attachments.length > 0) {
+    for (const attachment of event.attachments) {
+      const attachProp = new ICAL.Property('attach')
+      attachProp.setValue(attachment.href)
+      if (attachment.contentType) {
+        attachProp.setParameter('fmttype', attachment.contentType)
+      }
+      if (attachment.filename) {
+        attachProp.setParameter('filename', attachment.filename)
+      }
+      vevent.addProperty(attachProp)
     }
   }
 

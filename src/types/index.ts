@@ -23,6 +23,13 @@ export type EventType = 'event' | 'task'
 export type SyncStatus = 'synced' | 'pending' | 'failed'
 export type TaskPriority = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
+export interface CalendarAttachment {
+  href: string        // URL or data URI for inline attachments
+  contentType: string // MIME type
+  size?: number       // bytes
+  filename?: string   // display name
+}
+
 export interface CalendarEvent {
   id: string
   calendarId: string
@@ -54,6 +61,7 @@ export interface CalendarEvent {
   originalStart?: string
   originalEnd?: string
   syncStatus?: SyncStatus
+  attachments?: CalendarAttachment[]
 }
 
 export interface Calendar {

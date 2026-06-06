@@ -3,8 +3,8 @@ import { renderHook, waitFor, act } from '@testing-library/react'
 import { useUpdateCheck } from '../useUpdateCheck'
 
 const MOCK_RELEASE_RESPONSE = {
-  tag_name: 'v0.9.0',
-  html_url: 'https://github.com/ivan-malinovski/Calino/releases/tag/v0.9.0',
+  tag_name: 'v0.10.0',
+  html_url: 'https://github.com/ivan-malinovski/Calino/releases/tag/v0.10.0',
 }
 
 // In-memory storage for mocking safeLocalStorage
@@ -84,7 +84,7 @@ describe('useUpdateCheck', () => {
     })
 
     expect(result.current.hasUpdate).toBe(true)
-    expect(result.current.latestVersion).toBe('v0.9.0')
+    expect(result.current.latestVersion).toBe('v0.10.0')
     expect(result.current.releaseUrl).toBe(MOCK_RELEASE_RESPONSE.html_url)
   })
 
@@ -126,11 +126,11 @@ describe('useUpdateCheck', () => {
     })
 
     expect(result.current.hasUpdate).toBe(false)
-    expect(memoryStore.get('calino-dismissed-version')).toBe('v0.9.0')
+    expect(memoryStore.get('calino-dismissed-version')).toBe('v0.10.0')
   })
 
   it('does not show dismissed version on re-check', async () => {
-    memoryStore.set('calino-dismissed-version', 'v0.9.0')
+    memoryStore.set('calino-dismissed-version', 'v0.10.0')
 
     mockFetchSuccess()
 
@@ -144,11 +144,11 @@ describe('useUpdateCheck', () => {
   })
 
   it('shows update again when a newer version appears after dismissal', async () => {
-    memoryStore.set('calino-dismissed-version', 'v0.9.0')
+    memoryStore.set('calino-dismissed-version', 'v0.10.0')
     vi.mocked(globalThis.fetch).mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ tag_name: 'v0.9.1', html_url: 'https://example.com/v0.9.1' }),
+      json: async () => ({ tag_name: 'v0.10.1', html_url: 'https://example.com/v0.10.1' }),
     } as Response)
 
     const { result } = renderHook(() => useUpdateCheck())
@@ -158,7 +158,7 @@ describe('useUpdateCheck', () => {
     })
 
     expect(result.current.hasUpdate).toBe(true)
-    expect(result.current.latestVersion).toBe('v0.9.1')
+    expect(result.current.latestVersion).toBe('v0.10.1')
   })
 
   it('handles 404 (no releases) gracefully', async () => {

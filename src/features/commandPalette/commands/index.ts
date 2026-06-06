@@ -8,7 +8,7 @@ interface CommandFactoryDeps {
   navigate: (path: string) => void
   setCurrentView: (view: 'month' | 'week' | 'day' | 'agenda') => void
   setCurrentDate: (date: string) => void
-  openModal: (date?: string, endDate?: string) => void
+  openModal: (date?: string, endDate?: string, eventId?: string, mode?: 'event' | 'task') => void
   toggleSidebar?: () => void
   triggerSync?: () => void
   themeMode?: ThemeMode

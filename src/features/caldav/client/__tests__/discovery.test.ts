@@ -113,14 +113,15 @@ describe('discovery', () => {
   describe('well-known probe: direct 200 response', () => {
     it('uses the response URL path', async () => {
       const responseUrl = 'https://caldav.example.com/.well-known/caldav'
+      const mockResponse = {
+        status: 200,
+        ok: true,
+        url: responseUrl,
+        headers: new Headers(),
+      } as unknown as Response
       vi.stubGlobal(
         'fetch',
-        vi.fn().mockResolvedValue(
-          new Response(null, {
-            status: 200,
-            url: responseUrl,
-          })
-        )
+        vi.fn().mockResolvedValue(mockResponse)
       )
 
       const result = await discoverServerUrl('https://caldav.example.com')
@@ -195,14 +196,15 @@ describe('discovery', () => {
       // Simulates the proxy following the redirect internally and
       // returning 200 at .well-known/caldav (no Location header).
       vi.spyOn(console, 'log').mockImplementation(() => {})
+      const mockResponse = {
+        status: 200,
+        ok: true,
+        url: 'https://proxy.example.com/https%3A%2F%2Fradicale.example.com%2F.well-known%2Fcaldav',
+        headers: new Headers(),
+      } as unknown as Response
       vi.stubGlobal(
         'fetch',
-        vi.fn().mockResolvedValue(
-          new Response(null, {
-            status: 200,
-            url: 'https://proxy.example.com/https%3A%2F%2Fradicale.example.com%2F.well-known%2Fcaldav',
-          })
-        )
+        vi.fn().mockResolvedValue(mockResponse)
       )
 
       const result = await discoverServerUrl(

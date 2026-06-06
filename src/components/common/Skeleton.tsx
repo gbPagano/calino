@@ -2,6 +2,9 @@ import type { JSX } from 'react'
 import type { ViewType } from '@/types'
 import './Skeleton.css'
 
+// Deterministic "random" based on index — avoids Math.random() in render
+const show = (i: number, threshold: number): boolean => ((i * 7 + 3) % 10) / 10 > threshold
+
 interface CalendarSkeletonProps {
   view?: ViewType
 }
@@ -29,16 +32,19 @@ function MonthSkeleton(): JSX.Element {
       <div className="skeleton-grid-body">
         {Array.from({ length: 5 }).map((_, row) => (
           <div key={row} className="skeleton-grid-row">
-            {Array.from({ length: 7 }).map((_, col) => (
-              <div key={col} className="skeleton-cell">
-                {Math.random() > 0.6 && (
-                  <div className="skeleton-bar skeleton-bar--event" />
-                )}
-                {Math.random() > 0.8 && (
-                  <div className="skeleton-bar skeleton-bar--event skeleton-bar--event-short" />
-                )}
-              </div>
-            ))}
+            {Array.from({ length: 7 }).map((_, col) => {
+              const idx = row * 7 + col
+              return (
+                <div key={col} className="skeleton-cell">
+                  {show(idx, 0.6) && (
+                    <div className="skeleton-bar skeleton-bar--event" />
+                  )}
+                  {show(idx, 0.8) && (
+                    <div className="skeleton-bar skeleton-bar--event skeleton-bar--event-short" />
+                  )}
+                </div>
+              )
+            })}
           </div>
         ))}
       </div>
@@ -64,7 +70,7 @@ function WeekSkeleton(): JSX.Element {
             <div className="skeleton-bar skeleton-bar--hour-label" />
             {Array.from({ length: 7 }).map((_, col) => (
               <div key={col} className="skeleton-week-cell">
-                {Math.random() > 0.7 && (
+                {show(h * 7 + col, 0.7) && (
                   <div className="skeleton-bar skeleton-bar--week-event" />
                 )}
               </div>
@@ -88,7 +94,7 @@ function DaySkeleton(): JSX.Element {
           <div key={h} className="skeleton-day-row">
             <div className="skeleton-bar skeleton-bar--hour-label" />
             <div className="skeleton-day-cell">
-              {Math.random() > 0.65 && (
+              {show(h, 0.65) && (
                 <div className="skeleton-bar skeleton-bar--day-event" />
               )}
             </div>
@@ -123,7 +129,7 @@ function TodoSkeleton(): JSX.Element {
           <div className="skeleton-bar skeleton-bar--todo-check" />
           <div className="skeleton-todo-item-content">
             <div className="skeleton-bar skeleton-bar--todo-title" />
-            {Math.random() > 0.5 && (
+            {show(i, 0.5) && (
               <div className="skeleton-bar skeleton-bar--todo-due" />
             )}
           </div>

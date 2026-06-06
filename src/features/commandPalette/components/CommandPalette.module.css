@@ -70,6 +70,8 @@
   background: transparent;
   color: var(--ink, #2c2823);
   font-family: inherit;
+  position: relative;
+  z-index: 1;
 }
 
 .input:focus {
@@ -79,6 +81,31 @@
 
 .input::placeholder {
   color: var(--ink-3, #a39d93);
+}
+
+.inputContainer {
+  flex: 1;
+  position: relative;
+}
+
+.placeholder {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 15px;
+  color: var(--ink-3, #a39d93);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  transition: opacity 0.2s ease;
+  opacity: 1;
+}
+
+.placeholderFading {
+  opacity: 0;
 }
 
 .escBadge {

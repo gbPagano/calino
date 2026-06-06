@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCommandPalette } from '../hooks/useCommandPalette'
 import { CommandItem } from './CommandItem'
@@ -13,13 +13,49 @@ interface CommandPaletteProps {
   sidebarOpen?: boolean
 }
 
+const PLACEHOLDERS = [
+  'Hang out with Batman tomorrow at 9',
+  'Toggle dark mode',
+  'Sync calendars',
+  'Go to next week',
+  'Toggle sidebar',
+  'New event',
+]
+
+const PLACEHOLDER_INTERVAL = 2500
+
 export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: CommandPaletteProps): JSX.Element | null {
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
+  const [placeholderIndex, setPlaceholderIndex] = useState(0)
+  const [placeholderFading, setPlaceholderFading] = useState(false)
   const { query, setQuery, results, selectedIndex, setSelectedIndex, executeSelected } =
     useCommandPalette({ isOpen, toggleSidebar, sidebarOpen })
 
   const timeFormat = useSettingsStore((state) => state.timeFormat)
+
+  // Rotate placeholders with crossfade
+  useEffect(() => {
+    if (!isOpen || query) return
+
+    const interval = setInterval(() => {
+      setPlaceholderFading(true)
+      setTimeout(() => {
+        setPlaceholderIndex((i) => (i + 1) % PLACEHOLDERS.length)
+        setPlaceholderFading(false)
+      }, 200) // Fade out duration
+    }, PLACEHOLDER_INTERVAL)
+
+    return () => clearInterval(interval)
+  }, [isOpen, query])
+
+  // Reset placeholder index when opened
+  useEffect(() => {
+    if (isOpen) {
+      setPlaceholderIndex(0)
+      setPlaceholderFading(false)
+    }
+  }, [isOpen])
 
   const handleKeyDown = useCallback(
     async (e: React.KeyboardEvent) => {
@@ -139,15 +175,23 @@ export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: 
             <circle cx="7" cy="7" r="5" />
             <path d="M11 11l3.5 3.5" />
           </svg>
-          <input
-            ref={inputRef}
-            type="text"
-            className={styles.input}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Search commands, events, or type to navigate…"
-          />
+          <div className={styles.inputContainer}>
+            {!query && (
+              <span
+                className={`${styles.placeholder} ${placeholderFading ? styles.placeholderFading : ''}`}
+              >
+                {PLACEHOLDERS[placeholderIndex]}
+              </span>
+            )}
+            <input
+              ref={inputRef}
+              type="text"
+              className={styles.input}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
           {!query && <span className={styles.escBadge}>Esc</span>}
         </div>
 

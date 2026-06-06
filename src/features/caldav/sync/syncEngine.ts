@@ -146,6 +146,8 @@ export class SyncEngine {
 
     const enriched = await withInlineAttachments(event)
     const iCalString = enriched.type === 'task' ? taskToICAL(enriched) : eventToICAL(enriched)
+    console.log('[SyncEngine] updateEvent iCal:', iCalString)
+    console.log('[SyncEngine] updateEvent attachments:', JSON.stringify(enriched.attachments))
     const eventUrl = `${calendar.url}${event.id}.ics`
 
     return this.client.updateEvent(calendar.url, eventUrl, iCalString, etag)

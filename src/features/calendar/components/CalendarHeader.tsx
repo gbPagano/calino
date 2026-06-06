@@ -277,7 +277,7 @@ export function CalendarHeader({
           ))}
         </div>
         <div
-          className={`${styles.viewDropdown} ${!isTablet || isMobile ? styles.viewDropdownHidden : ''}`}
+          className={`${styles.viewDropdown} ${!isTablet ? styles.viewDropdownHidden : ''}`}
           ref={viewDropdownRef}
           onMouseEnter={() => {
             if (viewDropdownCloseTimer.current) {

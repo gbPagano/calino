@@ -276,7 +276,7 @@ export class CalDAVClient {
     if (options.color) {
       // Try standard calendar-color first, fall back to Apple extension
       colorXml = `
-        <C:calendar-color>${options.color}</C:calendar-color>`
+        <C:calendar-color>${escapeXml(options.color)}</C:calendar-color>`
     }
 
     let descriptionXml = ''
@@ -464,7 +464,7 @@ export class CalDAVClient {
       propXml += `\n      <C:calendar-description xmlns:C="urn:ietf:params:xml:ns:caldav">${escapeXml(options.description)}</C:calendar-description>`
     }
     if (options.color !== undefined) {
-      propXml += `\n      <C:calendar-color xmlns:C="urn:ietf:params:xml:ns:caldav">${options.color}</C:calendar-color>`
+      propXml += `\n      <C:calendar-color xmlns:C="urn:ietf:params:xml:ns:caldav">${escapeXml(options.color)}</C:calendar-color>`
     }
     propXml += '\n    </prop>'
 

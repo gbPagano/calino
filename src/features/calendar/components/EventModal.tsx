@@ -629,6 +629,10 @@ export function EventModal(): JSX.Element | null {
         }
 
         addEvent(exceptionEvent)
+        // Sync IndexedDB for exception event
+        if (attachments.length > 0) {
+          putAttachments(exceptionEvent.id, attachments).catch(() => {})
+        }
         try {
           await createCalDAVEvent(masterEvent.calendarId, exceptionEvent)
         } catch {
@@ -662,6 +666,12 @@ export function EventModal(): JSX.Element | null {
           categories: selectedCategories,
           attachments: attachments.length > 0 ? attachments : undefined,
         })
+        // Sync IndexedDB with current attachments
+        if (attachments.length > 0) {
+          putAttachments(eventId!, attachments).catch(() => {})
+        } else {
+          deleteAttachments(eventId!).catch(() => {})
+        }
         const existingEvent = events.find((e) => e.id === eventId)
         if (existingEvent) {
           await safeCalDAVUpdate(

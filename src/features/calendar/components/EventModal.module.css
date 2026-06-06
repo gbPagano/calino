@@ -179,7 +179,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--color-text-primary, #202124);
+  color: var(--color-accent, #1a73e8);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+}
+
+.attachmentName:hover {
+  text-decoration: underline;
 }
 
 .attachmentSize {

@@ -96,7 +96,25 @@ export function AttachmentSection({
           {attachments.map((att, index) => (
             <div key={index} className={styles.attachmentItem}>
               <span className={styles.attachmentIcon}>📎</span>
-              <span className={styles.attachmentName}>{att.filename || 'attachment'}</span>
+              <button
+                type="button"
+                className={styles.attachmentName}
+                title="Click to download"
+                onClick={() => {
+                  if (att.href) {
+                    const a = document.createElement('a')
+                    a.href = att.href
+                    a.download = att.filename || 'attachment'
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+                  } else {
+                    showToast('Attachment data not available. Try reopening the event.')
+                  }
+                }}
+              >
+                {att.filename || 'attachment'}
+              </button>
               {att.size && (
                 <span className={styles.attachmentSize}>
                   {att.size > 1024 * 1024

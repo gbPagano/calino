@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { format, parseISO, isSameDay } from 'date-fns'
 import { useDraggable } from '@dnd-kit/core'
@@ -34,7 +34,7 @@ interface EventCardProps {
   hourHeight?: number
 }
 
-export function EventCard({
+export const EventCard = React.memo(function EventCard({
   event,
   onClick,
   compact = false,
@@ -462,7 +462,7 @@ export function EventCard({
         )}
     </>
   )
-}
+})
 
 function DeleteIcon(): JSX.Element {
   return (

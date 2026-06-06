@@ -18,10 +18,22 @@ export function useWindowHeight(): number {
 /**
  * Returns true when the window height exceeds the given threshold.
  * Default threshold 1400px activates the agenda split panel on tall screens.
+ * Uses matchMedia to only re-render when the breakpoint is actually crossed.
  */
 export function useIsTallWindow(threshold = 1400): boolean {
-  const height = useWindowHeight()
-  return height > threshold
+  const [isTall, setIsTall] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.innerHeight > threshold
+  })
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(min-height: ${threshold + 1}px)`)
+    const handler = (e: MediaQueryListEvent) => setIsTall(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [threshold])
+
+  return isTall
 }
 
 /** Returns the current window inner width, updated on resize. */
@@ -42,8 +54,20 @@ export function useWindowWidth(): number {
 /**
  * Returns true when the window width exceeds the given threshold.
  * Default threshold 1200px activates the day+agenda split in the bottom panel.
+ * Uses matchMedia to only re-render when the breakpoint is actually crossed.
  */
 export function useIsWideWindow(threshold = 1200): boolean {
-  const width = useWindowWidth()
-  return width > threshold
+  const [isWide, setIsWide] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.innerWidth > threshold
+  })
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(min-width: ${threshold + 1}px)`)
+    const handler = (e: MediaQueryListEvent) => setIsWide(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [threshold])
+
+  return isWide
 }

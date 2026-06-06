@@ -538,18 +538,25 @@ function applyAutoCategories(
   rules: AutoCategoryRule[],
   categories: Category[]
 ): string[] {
+  if (rules.length === 0 || categories.length === 0) return []
+
   const lowerTitle = title.toLowerCase()
   const matchingCategoryNames: string[] = []
 
+  // Pre-build keyword → category name map for O(1) lookups
+  const keywordMap = new Map<string, string>()
   for (const rule of rules) {
+    const category = categories.find((c) => c.id === rule.categoryId)
+    if (!category) continue
     for (const keyword of rule.keywords) {
-      if (lowerTitle.includes(keyword.toLowerCase())) {
-        const category = categories.find((c) => c.id === rule.categoryId)
-        if (category && !matchingCategoryNames.includes(category.name)) {
-          matchingCategoryNames.push(category.name)
-        }
-        break
-      }
+      keywordMap.set(keyword.toLowerCase(), category.name)
+    }
+  }
+
+  // Check if any keyword matches the title
+  for (const [keyword, categoryName] of keywordMap) {
+    if (lowerTitle.includes(keyword) && !matchingCategoryNames.includes(categoryName)) {
+      matchingCategoryNames.push(categoryName)
     }
   }
 

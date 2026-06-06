@@ -259,7 +259,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     [commands]
   )
 
-  const results = ((): CommandResult[] => {
+  const results = useMemo((): CommandResult[] => {
     if (!query.trim()) {
       const defaultCommands = filterCommands('')
       return defaultCommands.map((cmd) => ({
@@ -348,7 +348,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     }))
 
     return [...commandResults, ...calendarResults, ...eventResults]
-  })()
+  }, [query, filterCommands, parseInput, nlpResult, searchEvents, searchCalendars, setCurrentDate, setCurrentView])
 
   const preview = useMemo((): NLPParseResult | null => {
     return nlpResult

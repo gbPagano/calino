@@ -11,82 +11,130 @@ describe('discovery', () => {
   })
 
   // -----------------------------------------------------------------------
-  // Bug 30: Discovery errors silently swallowed
+  // Well-known probe — Baikal (redirect to /dav.php)
   // -----------------------------------------------------------------------
-  describe('Bug 30: Discovery errors are logged, not silently swallowed', () => {
-    it('logs a warning with all errors when all paths fail', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-
-      // Make all fetch calls throw
+  describe('well-known probe: Baikal (redirects to /dav.php)', () => {
+    it('follows 301 redirect to /dav.php', async () => {
       vi.stubGlobal(
         'fetch',
-        vi.fn().mockRejectedValue(new Error('Network failure'))
-      )
-
-      await discoverServerUrl('https://caldav.example.com')
-
-      // Should have logged a warning with all errors
-      expect(warnSpy).toHaveBeenCalledTimes(1)
-      const warnCall = warnSpy.mock.calls[0]
-      expect(warnCall[0]).toContain('[CalDAV] Discovery')
-      expect(warnCall[0]).toContain('all')
-      expect(warnCall[0]).toContain('paths failed')
-
-      // The second argument should be an array of error objects
-      const errorDetails = warnCall[1] as Array<{ path: string; message: string }>
-      expect(Array.isArray(errorDetails)).toBe(true)
-      expect(errorDetails.length).toBeGreaterThan(0)
-      for (const detail of errorDetails) {
-        expect(detail).toHaveProperty('path')
-        expect(detail).toHaveProperty('message')
-        expect(detail.message).toBe('Network failure')
-      }
-
-      warnSpy.mockRestore()
-    })
-
-    it('does not log when at least one path succeeds', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-
-      let callCount = 0
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockImplementation(() => {
-          callCount++
-          // Fail on first few paths, succeed on a later one
-          if (callCount <= 3) {
-            return Promise.reject(new Error('Network failure'))
-          }
-          return Promise.resolve(new Response(null, { status: 200 }))
-        })
+        vi.fn().mockResolvedValue(
+          new Response(null, {
+            status: 301,
+            headers: { Location: '/dav.php' },
+          })
+        )
       )
 
       const result = await discoverServerUrl('https://caldav.example.com')
 
-      // Should NOT have logged a warning since a path succeeded
-      expect(warnSpy).not.toHaveBeenCalled()
-      expect(result).toBeTruthy()
-
-      warnSpy.mockRestore()
+      expect(result).toBe('https://caldav.example.com/dav.php')
     })
 
-    it('includes the base URL in the warning message', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-
+    it('follows 302 redirect to /dav.php', async () => {
       vi.stubGlobal(
         'fetch',
-        vi.fn().mockRejectedValue(new Error('timeout'))
+        vi.fn().mockResolvedValue(
+          new Response(null, {
+            status: 302,
+            headers: { Location: '/dav.php' },
+          })
+        )
       )
 
-      await discoverServerUrl('https://myserver.com')
+      const result = await discoverServerUrl('https://caldav.example.com')
 
-      const warnCall = warnSpy.mock.calls[0]
-      expect(warnCall[0]).toContain('https://myserver.com')
-
-      warnSpy.mockRestore()
+      expect(result).toBe('https://caldav.example.com/dav.php')
     })
+  })
 
-    it('returns the normalized base URL when all paths fail', async () => {
+  // -----------------------------------------------------------------------
+  // Well-known probe — Radicale (redirect to /)
+  // -----------------------------------------------------------------------
+  describe('well-known probe: Radicale (redirects to /)', () => {
+    it('follows 301 redirect to /', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(null, {
+            status: 301,
+            headers: { Location: '/' },
+          })
+        )
+      )
+
+      const result = await discoverServerUrl('https://radicale.example.com')
+
+      expect(result).toBe('https://radicale.example.com')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Well-known probe — Nextcloud (redirect to /remote.php/dav)
+  // -----------------------------------------------------------------------
+  describe('well-known probe: Nextcloud (redirects to /remote.php/dav)', () => {
+    it('follows 301 redirect to /remote.php/dav', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(null, {
+            status: 301,
+            headers: { Location: '/remote.php/dav' },
+          })
+        )
+      )
+
+      const result = await discoverServerUrl('https://nextcloud.example.com')
+
+      expect(result).toBe('https://nextcloud.example.com/remote.php/dav')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Well-known probe — server doesn't support well-known (404)
+  // -----------------------------------------------------------------------
+  describe('well-known probe: server returns 404', () => {
+    it('falls back to base URL', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(null, { status: 404 })
+        )
+      )
+
+      const result = await discoverServerUrl('https://caldav.example.com')
+
+      expect(result).toBe('https://caldav.example.com')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Well-known probe — direct 200 response (no redirect)
+  // -----------------------------------------------------------------------
+  describe('well-known probe: direct 200 response', () => {
+    it('uses the response URL path', async () => {
+      const responseUrl = 'https://caldav.example.com/.well-known/caldav'
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(null, {
+            status: 200,
+            url: responseUrl,
+          })
+        )
+      )
+
+      const result = await discoverServerUrl('https://caldav.example.com')
+
+      // 200 at .well-known/caldav means the server responds directly at the origin
+      expect(result).toBe('https://caldav.example.com')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Well-known probe — network failure
+  // -----------------------------------------------------------------------
+  describe('well-known probe: network failure', () => {
+    it('falls back to base URL', async () => {
       vi.spyOn(console, 'warn').mockImplementation(() => {})
 
       vi.stubGlobal(
@@ -95,50 +143,150 @@ describe('discovery', () => {
       )
 
       const result = await discoverServerUrl('https://caldav.example.com')
+
       expect(result).toBe('https://caldav.example.com')
     })
+  })
 
-    it('collects errors from multiple failed paths', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  // -----------------------------------------------------------------------
+  // Proxy support
+  // -----------------------------------------------------------------------
+  describe('proxy support', () => {
+    it('probes well-known through proxy', async () => {
+      const fetchSpy = vi.fn().mockResolvedValue(
+        new Response(null, {
+          status: 301,
+          headers: { Location: '/dav.php' },
+        })
+      )
+      vi.stubGlobal('fetch', fetchSpy)
 
-      let callCount = 0
+      const proxyUrl = 'https://proxy.example.com'
+      const target = 'https://caldav.example.com'
+      await discoverServerUrl(target, proxyUrl)
+
+      // Should have fetched through the proxy
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      const callUrl = fetchSpy.mock.calls[0][0] as string
+      expect(callUrl).toContain('proxy.example.com')
+      expect(callUrl).toContain(encodeURIComponent('https://caldav.example.com/.well-known/caldav'))
+    })
+
+    it('follows redirect manually through proxy', async () => {
       vi.stubGlobal(
         'fetch',
-        vi.fn().mockImplementation(() => {
-          callCount++
-          // Succeed on last path only
-          if (callCount < 7) {
-            const errors = ['timeout', 'ECONNREFUSED', '403 Forbidden']
-            return Promise.reject(new Error(errors[callCount % 3]))
-          }
-          return Promise.resolve(new Response(null, { status: 401 }))
-        })
+        vi.fn().mockResolvedValue(
+          new Response(null, {
+            status: 301,
+            headers: { Location: '/dav.php' },
+          })
+        )
+      )
+
+      const result = await discoverServerUrl(
+        'https://caldav.example.com',
+        'https://proxy.example.com'
+      )
+
+      expect(result).toBe('https://caldav.example.com/dav.php')
+    })
+
+    it('falls back when proxy followed redirect (returned 200 at .well-known)', async () => {
+      // Simulates the proxy following the redirect internally and
+      // returning 200 at .well-known/caldav (no Location header).
+      vi.spyOn(console, 'log').mockImplementation(() => {})
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(null, {
+            status: 200,
+            url: 'https://proxy.example.com/https%3A%2F%2Fradicale.example.com%2F.well-known%2Fcaldav',
+          })
+        )
+      )
+
+      const result = await discoverServerUrl(
+        'https://radicale.example.com',
+        'https://proxy.example.com'
+      )
+
+      // Should fall back to base URL, NOT return .well-known/caldav
+      expect(result).toBe('https://radicale.example.com')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // URL normalization
+  // -----------------------------------------------------------------------
+  describe('URL normalization', () => {
+    it('adds https:// if missing', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(null, {
+            status: 301,
+            headers: { Location: '/dav.php' },
+          })
+        )
+      )
+
+      const result = await discoverServerUrl('caldav.example.com')
+
+      expect(result).toBe('https://caldav.example.com/dav.php')
+    })
+
+    it('preserves existing protocol', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(null, {
+            status: 301,
+            headers: { Location: '/dav.php' },
+          })
+        )
+      )
+
+      const result = await discoverServerUrl('http://localhost:5233')
+
+      expect(result).toBe('http://localhost:5233/dav.php')
+    })
+
+    it('strips trailing slash from base URL before well-known probe', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(null, {
+            status: 301,
+            headers: { Location: '/dav.php' },
+          })
+        )
+      )
+
+      const result = await discoverServerUrl('https://caldav.example.com/')
+
+      expect(result).toBe('https://caldav.example.com/dav.php')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Fallback behavior
+  // -----------------------------------------------------------------------
+  describe('fallback behavior', () => {
+    it('falls back to base URL when all probes fail', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn()
+          // First call: well-known probe fails
+          .mockRejectedValueOnce(new Error('Connection refused'))
+          // Should not be called again, but just in case
+          .mockRejectedValue(new Error('Connection refused'))
       )
 
       const result = await discoverServerUrl('https://caldav.example.com')
 
-      // Should succeed and not log
-      expect(warnSpy).not.toHaveBeenCalled()
-      expect(result).toContain('caldav.example.com')
-
-      warnSpy.mockRestore()
-    })
-
-    it('includes error count in the warning', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockRejectedValue(new Error('fail'))
-      )
-
-      await discoverServerUrl('https://test.com')
-
-      const warnCall = warnSpy.mock.calls[0]
-      // Should mention the number of paths that failed
-      expect(warnCall[0]).toMatch(/\d+ paths failed/)
-
-      warnSpy.mockRestore()
+      expect(result).toBe('https://caldav.example.com')
     })
   })
 })

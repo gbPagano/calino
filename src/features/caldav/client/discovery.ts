@@ -1,62 +1,155 @@
 import { createDAVClient } from 'tsdav'
 
-const COMMON_PATHS = [
-  '/dav.php',
-  '/caldav.php',
-  '/caldav',
-  '/dav/calendars',
-  '/dav/caldav',
-  '/calendar/dav',
-  '/principals/users',
-]
+const DISCOVERY_TIMEOUT_MS = 8_000
 
+/**
+ * Discover the CalDAV base URL by probing /.well-known/caldav (RFC 6749 §3.1).
+ *
+ * The server responds with a redirect (301/302) to its actual CalDAV endpoint:
+ *   - Baikal:  → /dav.php
+ *   - Radicale: → /
+ *   - Nextcloud: → /remote.php/dav
+ *
+ * When a proxy is used, redirects are followed manually because the Location
+ * header is relative to the target server, not the proxy.
+ */
 export async function discoverServerUrl(baseUrl: string, proxyUrl?: string): Promise<string> {
   const normalizedUrl = normalizeUrl(baseUrl)
-  const DISCOVERY_TIMEOUT_MS = 5_000
-  const errors: Array<{ path: string; error: unknown }> = []
 
-  for (const path of COMMON_PATHS) {
-    const tryUrl = new URL(path, normalizedUrl).href
-    try {
-      let fetchUrl = tryUrl
-      if (proxyUrl) {
-        const encodedTarget = encodeURIComponent(tryUrl)
-        const proxyBase = proxyUrl.replace(/\/$/, '')
-        fetchUrl = `${proxyBase}/${encodedTarget}`
+  try {
+    const discovered = await probeWellKnown(normalizedUrl, proxyUrl)
+    if (discovered) {
+      // Sanity check: the base must NOT be the .well-known/caldav URL itself.
+      // If it is, the proxy followed the redirect internally and we never saw
+      // the real Location header — discard and fall back to the base URL.
+      const wellKnownPath = '/.well-known/caldav'
+      if (discovered.endsWith(wellKnownPath) || discovered.endsWith(wellKnownPath + '/')) {
+        console.log('[CalDAV] Discovery: probe returned .well-known/caldav as base — proxy likely followed redirect. Falling back.')
+      } else {
+        console.log('[CalDAV] Discovery: well-known probe succeeded:', discovered)
+        return discovered
       }
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), DISCOVERY_TIMEOUT_MS)
-      let response: Response
-      try {
-        response = await fetch(fetchUrl, {
-          method: 'OPTIONS',
-          signal: controller.signal,
-        })
-      } finally {
-        clearTimeout(timer)
-      }
-      if (response.ok || response.status === 401) {
-        return tryUrl.replace(/\/$/, '')
-      }
-    } catch (error) {
-      // Bug 30 fix: collect errors instead of silently swallowing them
-      errors.push({ path, error })
-      continue
     }
-  }
-
-  // Bug 30 fix: log all discovery errors after the loop completes
-  if (errors.length > 0) {
+  } catch (error) {
     console.warn(
-      `[CalDAV] Discovery: all ${errors.length} paths failed for ${baseUrl}. Errors:`,
-      errors.map((e) => ({
-        path: e.path,
-        message: e.error instanceof Error ? e.error.message : String(e.error),
-      }))
+      '[CalDAV] Discovery: well-known probe failed:',
+      error instanceof Error ? error.message : String(error)
     )
   }
 
+  console.log('[CalDAV] Discovery: falling back to base URL:', normalizedUrl)
   return normalizedUrl.replace(/\/$/, '')
+}
+
+/**
+ * Probe /.well-known/caldav and follow the redirect to the real CalDAV base.
+ * Returns null if the server doesn't support well-known (e.g. returns 404).
+ */
+async function probeWellKnown(
+  baseUrl: string,
+  proxyUrl?: string
+): Promise<string | null> {
+  const wellKnownUrl = new URL('/.well-known/caldav', baseUrl).href
+
+  if (proxyUrl) {
+    return probeWellKnownViaProxy(wellKnownUrl, baseUrl, proxyUrl)
+  }
+
+  return probeWellKnownDirect(wellKnownUrl, baseUrl)
+}
+
+/** Direct fetch (no probe): use redirect: 'manual' and resolve Location ourselves. */
+async function probeWellKnownDirect(
+  wellKnownUrl: string,
+  baseUrl: string
+): Promise<string | null> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), DISCOVERY_TIMEOUT_MS)
+  try {
+    const response = await fetch(wellKnownUrl, {
+      method: 'GET',
+      redirect: 'manual',
+      signal: controller.signal,
+    })
+
+    // 3xx redirect — extract Location and resolve against the target server
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('Location')
+      if (location) {
+        const resolved = new URL(location, baseUrl)
+        const path = resolved.pathname
+        return buildBaseUrl(baseUrl, path)
+      }
+    }
+
+    // 200 direct response at .well-known (no redirect needed)
+    if (response.ok) {
+      const finalUrl = new URL(response.url)
+      const path = finalUrl.pathname
+      return buildBaseUrl(baseUrl, path)
+    }
+
+    // 404/405 — server doesn't support well-known
+    if (response.status === 404 || response.status === 405) {
+      return null
+    }
+
+    // Other non-redirect status — treat as unsupported
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Proxy fetch: follow redirects manually since Location is relative to target. */
+async function probeWellKnownViaProxy(
+  wellKnownUrl: string,
+  baseUrl: string,
+  proxyUrl: string
+): Promise<string | null> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), DISCOVERY_TIMEOUT_MS)
+  try {
+    const response = await proxyFetch(proxyUrl, wellKnownUrl, {
+      method: 'GET',
+      redirect: 'manual', // don't follow — Location is relative to target
+      signal: controller.signal,
+    })
+
+    // 3xx redirect — extract Location and resolve against the target server
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('Location')
+      if (location) {
+        const resolved = new URL(location, baseUrl)
+        const path = resolved.pathname
+        return buildBaseUrl(baseUrl, path)
+      }
+    }
+
+    // 200 direct response at .well-known (no redirect needed)
+    if (response.ok) {
+      const path = new URL(wellKnownUrl).pathname
+      return buildBaseUrl(baseUrl, path)
+    }
+
+    // 404/405 — server doesn't support well-known
+    if (response.status === 404 || response.status === 405) {
+      return null
+    }
+
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Build a normalized base URL from the server's origin + discovered path. */
+function buildBaseUrl(serverBaseUrl: string, discoveredPath: string): string {
+  const origin = new URL(serverBaseUrl).origin
+  // CalDAV base URLs should not end with / (tsdav appends paths like /principals/...)
+  const path = discoveredPath.endsWith('/') ? discoveredPath.slice(0, -1) : discoveredPath
+  // Root path becomes just the origin (e.g. https://radicale.example.com)
+  return path === '' ? origin : `${origin}${path}`
 }
 
 export async function testConnection(
@@ -95,11 +188,19 @@ function createProxyFetch(proxyUrl: string): typeof fetch {
     } else {
       url = input.toString()
     }
-    const encodedTarget = encodeURIComponent(url)
-    const proxyBase = proxyUrl.replace(/\/$/, '')
-    const proxiedUrl = `${proxyBase}/${encodedTarget}`
-    return fetch(proxiedUrl, init)
+    return proxyFetch(proxyUrl, url, init)
   }
+}
+
+async function proxyFetch(
+  proxyUrl: string,
+  targetUrl: string,
+  init?: RequestInit
+): Promise<Response> {
+  const encodedTarget = encodeURIComponent(targetUrl)
+  const proxyBase = proxyUrl.replace(/\/$/, '')
+  const proxiedUrl = `${proxyBase}/${encodedTarget}`
+  return fetch(proxiedUrl, init)
 }
 
 function normalizeUrl(url: string): string {

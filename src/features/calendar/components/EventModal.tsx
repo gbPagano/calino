@@ -121,7 +121,7 @@ function getInitialFormState(
         const endM = endMins % 60
         endTimeVal = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
       } else {
-        // No specific time — smart default only applies for TODAY
+        // No specific time - smart default only applies for TODAY
         const todayStr = format(new Date(), 'yyyy-MM-dd')
         if (dateStr === todayStr) {
           // Round up to next hour, then add 1 hour
@@ -362,7 +362,7 @@ export function EventModal(): JSX.Element | null {
       lastSelectedDate.current = selectedDate
 
       // Read fresh state via getState() so the form only resets when
-      // selectedEventId or selectedDate actually change — not when
+      // selectedEventId or selectedDate actually change - not when
       // events/calendars change in the background (e.g. during CalDAV sync).
       const state = useCalendarStore.getState()
       const currentEvents = state.events
@@ -725,7 +725,7 @@ export function EventModal(): JSX.Element | null {
 
   const performDelete = async (mode: RecurrenceEditMode): Promise<void> => {
     if (mode === 'this' && originalEventId) {
-      // Add the occurrence's date to excludedDates on the master — do not delete the series
+      // Add the occurrence's date to excludedDates on the master - do not delete the series
       if (!selectedEventId) return
       const occurrenceStartISO = selectedEventId.slice(originalEventId.length + 1)
       const occurrenceDate = occurrenceStartISO.split('T')[0]
@@ -965,7 +965,7 @@ export function EventModal(): JSX.Element | null {
               <label className={styles.label}>Attachments</label>
               <span className={styles.attachmentCount}>{attachments.length}</span>
             </div>
-            
+
             {attachments.length > 0 && (
               <div className={styles.attachmentList}>
                 {attachments.map((att, index) => (
@@ -974,7 +974,7 @@ export function EventModal(): JSX.Element | null {
                     <span className={styles.attachmentName}>{att.filename || 'attachment'}</span>
                     {att.size && (
                       <span className={styles.attachmentSize}>
-                        {att.size > 1024 * 1024 
+                        {att.size > 1024 * 1024
                           ? `${(att.size / (1024 * 1024)).toFixed(1)} MB`
                           : `${Math.round(att.size / 1024)} KB`}
                       </span>
@@ -990,7 +990,7 @@ export function EventModal(): JSX.Element | null {
                 ))}
               </div>
             )}
-            
+
             <label className={styles.addAttachmentButton}>
               <span>+ Add attachment</span>
               <input
@@ -1003,7 +1003,8 @@ export function EventModal(): JSX.Element | null {
                   
                   for (const file of files) {
                     if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
-                      showToast(`File "${file.name}" is larger than ${MAX_ATTACHMENT_SIZE_MB}MB and may not sync properly`)
+                      showToast(`File “${file.name}” is larger than ${MAX_ATTACHMENT_SIZE_MB}MB and may not sync properly`)
+                      continue
                     }
                     const reader = new FileReader()
                     reader.onload = () => {
@@ -1015,7 +1016,7 @@ export function EventModal(): JSX.Element | null {
                         filename: file.name,
                       })
                       if (newAttachments.length === files.length) {
-                        setAttachments([...attachments, ...newAttachments])
+                        setAttachments((prev) => [...prev, ...newAttachments])
                       }
                     }
                     reader.readAsDataURL(file)

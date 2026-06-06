@@ -290,6 +290,9 @@ export class CalDAVClient {
   <set>
     <prop>
       <displayname>${escapeXml(options.name)}</displayname>${descriptionXml}${colorXml}
+      <C:resourcetype>
+        <C:calendar/>
+      </C:resourcetype>
       <C:supported-calendar-component-set>
           ${componentXml}
       </C:supported-calendar-component-set>

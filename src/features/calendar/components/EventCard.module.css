@@ -126,11 +126,6 @@
 
 /* ---- Recurring Icon ---- */
 .recurringIcon {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  color: var(--ink-3);
-  opacity: 0.7;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -141,12 +136,18 @@
   height: 12px;
 }
 
-.attachmentIcon {
+.iconGroup {
   position: absolute;
   top: 4px;
-  right: 20px;
+  right: 6px;
   color: var(--ink-3);
   opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.attachmentIcon {
   display: flex;
   align-items: center;
   justify-content: center;

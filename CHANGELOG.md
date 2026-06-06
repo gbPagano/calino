@@ -12,18 +12,14 @@ All notable changes to Calino will be documented in this file.
 
 ### Improvements
 - **Command palette** now has a typewriter animation and supports partial matching (e.g. "jan" for January)
-- **Quick toggles** in the command palette for sidebar, dark mode, time format, and sync
+- **More quick toggles** in the command palette for sidebar, dark mode, time format, and sync
 - **Category color toggle** — option to disable category colors
-- **Sidebar state** persists across page reloads
 - **Animated header** — smooth transitions when resizing between desktop, tablet, and mobile
-- **Year fades out** on very narrow screens to make more room for navigation
 
 ### Notable Fixes
 - Attachment deletion now syncs correctly to the CalDAV server
-- Fixed delete race condition that could lose events
 - Fixed command palette input being cut off
-- Mobile header layout — view switcher no longer disappears on small screens
 
-## [0.9.0] - 2026-06-06
+## [0.9.5] - 2026-06-06
 
 _Breaking version bump — see previous entries for details._

@@ -43,3 +43,11 @@ coverage/
 .vite/
 .eslintcache
 PLAN.md
+PERF_AUDIT.md
+
+# Media files
+*.mp4
+*.mp3
+*.avi
+*.mov
+*.pdf

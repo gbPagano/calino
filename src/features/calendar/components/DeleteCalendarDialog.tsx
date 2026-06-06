@@ -72,18 +72,18 @@ export function DeleteCalendarDialog({
         </div>
 
         <div className={styles.content}>
-          <p style={{ marginBottom: '12px', color: '#202124' }}>
-            You are about to delete the calendar <strong>"{calendarName}"</strong>.
+          <p className={styles.calendarName}>
+            You are about to delete the calendar <strong>“{calendarName}”</strong>.
           </p>
 
           {eventCount > 0 && (
-            <p style={{ marginBottom: '12px', color: '#ea4335' }}>
+            <p className={styles.warning}>
               This will permanently delete <strong>{eventCount} event{eventCount !== 1 ? 's' : ''}</strong>{' '}
               from both Calino and the server. This action cannot be undone.
             </p>
           )}
 
-          <p style={{ marginBottom: '8px', fontSize: '14px', color: '#5f6368' }}>
+          <p className={styles.confirmLabel}>
             Type the calendar name to confirm:
           </p>
           <input
@@ -92,14 +92,7 @@ export function DeleteCalendarDialog({
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder={calendarName}
             autoFocus
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid #dadce0',
-              borderRadius: '6px',
-              fontSize: '14px',
-              boxSizing: 'border-box',
-            }}
+            className={styles.confirmInput}
           />
         </div>
 

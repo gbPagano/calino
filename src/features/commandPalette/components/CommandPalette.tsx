@@ -22,38 +22,62 @@ const PLACEHOLDERS = [
   'New event',
 ]
 
-const PLACEHOLDER_INTERVAL = 2500
+const TYPING_SPEED = 45
+const PAUSE_AFTER_TYPING = 2000
+const ERASING_SPEED = 25
 
 export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: CommandPaletteProps): JSX.Element | null {
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
-  const [placeholderFading, setPlaceholderFading] = useState(false)
+  const [displayedText, setDisplayedText] = useState('')
+  const [isTyping, setIsTyping] = useState(true)
   const { query, setQuery, results, selectedIndex, setSelectedIndex, executeSelected } =
     useCommandPalette({ isOpen, toggleSidebar, sidebarOpen })
 
   const timeFormat = useSettingsStore((state) => state.timeFormat)
 
-  // Rotate placeholders with crossfade
+  // Typewriter animation
   useEffect(() => {
     if (!isOpen || query) return
 
-    const interval = setInterval(() => {
-      setPlaceholderFading(true)
-      setTimeout(() => {
+    const target = PLACEHOLDERS[placeholderIndex]
+    let timeout: ReturnType<typeof setTimeout>
+
+    if (isTyping) {
+      // Typing phase
+      if (displayedText.length < target.length) {
+        timeout = setTimeout(() => {
+          setDisplayedText(target.slice(0, displayedText.length + 1))
+        }, TYPING_SPEED)
+      } else {
+        // Done typing, pause then start erasing
+        timeout = setTimeout(() => {
+          setIsTyping(false)
+        }, PAUSE_AFTER_TYPING)
+      }
+    } else {
+      // Erasing phase
+      if (displayedText.length > 0) {
+        timeout = setTimeout(() => {
+          setDisplayedText(displayedText.slice(0, -1))
+        }, ERASING_SPEED)
+      } else {
+        // Done erasing, move to next placeholder
         setPlaceholderIndex((i) => (i + 1) % PLACEHOLDERS.length)
-        setPlaceholderFading(false)
-      }, 200) // Fade out duration
-    }, PLACEHOLDER_INTERVAL)
+        setIsTyping(true)
+      }
+    }
 
-    return () => clearInterval(interval)
-  }, [isOpen, query])
+    return () => clearTimeout(timeout)
+  }, [isOpen, query, displayedText, isTyping, placeholderIndex])
 
-  // Reset placeholder index when opened
+  // Reset animation when opened
   useEffect(() => {
     if (isOpen) {
       setPlaceholderIndex(0)
-      setPlaceholderFading(false)
+      setDisplayedText('')
+      setIsTyping(true)
     }
   }, [isOpen])
 
@@ -176,11 +200,10 @@ export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: 
             <path d="M11 11l3.5 3.5" />
           </svg>
           <div className={styles.inputContainer}>
-            {!query && (
-              <span
-                className={`${styles.placeholder} ${placeholderFading ? styles.placeholderFading : ''}`}
-              >
-                {PLACEHOLDERS[placeholderIndex]}
+            {!query && displayedText && (
+              <span className={styles.placeholder}>
+                {displayedText}
+                <span className={styles.cursor} />
               </span>
             )}
             <input

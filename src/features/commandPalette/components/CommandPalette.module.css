@@ -100,12 +100,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  transition: opacity 0.2s ease;
-  opacity: 1;
 }
 
-.placeholderFading {
-  opacity: 0;
+.cursor {
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  background: var(--ink-3, #a39d93);
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 .escBadge {

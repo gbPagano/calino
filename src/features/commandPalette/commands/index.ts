@@ -204,11 +204,14 @@ const createActionCommands = (deps: CommandFactoryDeps): Command[] => [
       return 'Opened settings'
     },
   },
+]
+
+const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
   {
     id: 'debug-toggle',
     label: 'Toggle CalDAV Debug Mode',
     description: 'Enable or disable CalDAV sync debug logging',
-    category: 'actions',
+    category: 'settings',
     keywords: ['debug', 'caldav', 'sync', 'logging', 'console'],
     icon: ICONS.bug,
     action: () => {
@@ -217,9 +220,6 @@ const createActionCommands = (deps: CommandFactoryDeps): Command[] => [
       return newValue ? 'CalDAV debug mode enabled' : 'CalDAV debug mode disabled'
     },
   },
-]
-
-const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
   {
     id: 'settings-general',
     label: 'General Settings',

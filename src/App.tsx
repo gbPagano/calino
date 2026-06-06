@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useCalendarStore } from './store/calendarStore'
+import { useSettingsStore } from './store/settingsStore'
 import {
   CalendarHeader,
   Sidebar,
@@ -204,7 +205,8 @@ function CalendarApp(): JSX.Element {
   const openModal = useCalendarStore((state) => state.openModal)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed)
+  const updateSettings = useSettingsStore((state) => state.updateSettings)
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false)
 
   useViewManager()
@@ -288,9 +290,9 @@ function CalendarApp(): JSX.Element {
     if (window.innerWidth <= 950) {
       setIsSidebarOpen((prev) => !prev)
     } else {
-      setIsSidebarCollapsed((prev) => !prev)
+      updateSettings({ sidebarCollapsed: !sidebarCollapsed })
     }
-  }, [])
+  }, [sidebarCollapsed, updateSettings])
 
   const handleCloseSidebar = useCallback(() => {
     setIsSidebarOpen(false)
@@ -316,7 +318,7 @@ function CalendarApp(): JSX.Element {
         onOpenCommandPalette={handleOpenCommandPalette}
       />
       <div className="appContent">
-        <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} isCollapsed={isSidebarCollapsed} onCollapsedChange={setIsSidebarCollapsed} />
+        <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} isCollapsed={sidebarCollapsed} onCollapsedChange={(v) => updateSettings({ sidebarCollapsed: v })} />
         <main className="main">{renderView()}</main>
       </div>
       <MobileFAB
@@ -333,7 +335,7 @@ function CalendarApp(): JSX.Element {
           setOverlayOpen(false)
         }}
         toggleSidebar={handleToggleSidebar}
-        sidebarOpen={window.innerWidth <= 950 ? isSidebarOpen : !isSidebarCollapsed}
+        sidebarOpen={window.innerWidth <= 950 ? isSidebarOpen : !sidebarCollapsed}
       />
       <OnboardingModal onAddCalendar={() => setShowAddCalendar(true)} />
     </div>

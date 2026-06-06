@@ -118,6 +118,7 @@ vi.mock('@/store/settingsStore', () => ({
       hideCompletedTasksInMonthView: true,
       monthViewEventLimit: 3,
       sidebarWidth: 300,
+      sidebarCollapsed: false,
       updateSettings: vi.fn(),
       resetSettings: vi.fn(),
     }

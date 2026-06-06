@@ -152,6 +152,7 @@ export interface UserSettings {
   caldavDebugMode: boolean
   hideCompletedTasksInMonthView: boolean
   sidebarWidth: number
+  sidebarCollapsed: boolean
 }
 
 export type SettingsState = UserSettings

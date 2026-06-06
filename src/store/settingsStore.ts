@@ -124,6 +124,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   caldavDebugMode: false,
   hideCompletedTasksInMonthView: true,
   sidebarWidth: 300,
+  sidebarCollapsed: false,
 }
 
 export const useSettingsStore = create<SettingsStore>()(

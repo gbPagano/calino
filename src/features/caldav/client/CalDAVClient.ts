@@ -305,10 +305,13 @@ export class CalDAVClient {
     const calendarHomeUrl = await this.findCalendarHome()
 
     // Create a new calendar collection under the calendar home
-    const calendarUri = options.name
+    const baseUri = options.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
+    // Append short random suffix to prevent URI collisions
+    const randomSuffix = uuidv4().substring(0, 8)
+    const calendarUri = `${baseUri}-${randomSuffix}`
     const calendarUrl = `${calendarHomeUrl}${calendarUri}/`
 
     const headers: Record<string, string> = {

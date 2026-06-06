@@ -111,7 +111,7 @@ export class CalDAVClient {
     return davCalendars.map((cal, index) => ({
       id: cal.url || `cal-${index}-${uuidv4()}`,
       accountId: this.credentials.id,
-      // Store the raw server URL — proxy prefix is applied only at HTTP request time
+      // Store the raw server URL - proxy prefix is applied only at HTTP request time
       url: cal.url || '',
       name: typeof cal.displayName === 'string' ? cal.displayName : 'Unnamed Calendar',
       color: '#4285F4',
@@ -190,7 +190,7 @@ export class CalDAVClient {
 
     const allItems = [...eventObjects, ...todoObjects]
 
-    // Remove duplicates by URL — store raw server URLs consistently
+    // Remove duplicates by URL - store raw server URLs consistently
     const uniqueByUrl = new Map<string, { url: string; data: string; etag?: string }>()
     for (const obj of allItems) {
       if (!uniqueByUrl.has(obj.url)) {
@@ -345,63 +345,110 @@ export class CalDAVClient {
   }
 
   private async findCalendarHome(): Promise<string> {
-    // For Baikal/SabreDAV, derive calendar home from existing calendar URLs
-    // Calendar URLs are typically: /dav.php/calendars/user/calname/
-    // Calendar home is: /dav.php/calendars/user/
-    
-    const client = this.getClient()
-    const calendars = await client.fetchCalendars()
-    
-    if (calendars.length > 0 && calendars[0].url) {
-      // Extract the calendar home from the first calendar's URL
-      // Remove the last path segment (calendar name) to get the home
-      const calendarUrl = new URL(calendars[0].url, this.serverUrl)
-      const pathParts = calendarUrl.pathname.split('/').filter(Boolean)
-      
-      // Remove the last part (calendar name) to get the calendar home
-      if (pathParts.length >= 2) {
-        pathParts.pop() // Remove calendar name
-        const homePath = '/' + pathParts.join('/') + '/'
-        console.log('[CalDAV] Derived calendar home from existing calendar:', homePath)
-        // Return the full URL using the calendar URL's origin
-        return calendarUrl.origin + homePath
+    // Method 1: Try to find calendar-home-set from principal
+    try {
+      const homeUrl = await this.findCalendarHomeFromPrincipal()
+      if (homeUrl) {
+        console.log('[CalDAV] Found calendar home from principal:', homeUrl)
+        return homeUrl
       }
+    } catch (e) {
+      console.log('[CalDAV] Principal method failed, trying fallback:', e)
     }
-    
-    // Fallback: try common Baikal paths
-    const commonPaths = [
-      '/dav.php/calendars/',
-      '/calendars/',
-      '/dav/calendars/',
+
+    // Method 2: Derive from existing calendar URLs
+    try {
+      const homeUrl = await this.findCalendarHomeFromCalendars()
+      if (homeUrl) {
+        console.log('[CalDAV] Derived calendar home from existing calendars:', homeUrl)
+        return homeUrl
+      }
+    } catch (e) {
+      console.log('[CalDAV] Calendar derivation failed:', e)
+    }
+
+    throw new Error('Could not determine calendar home URL. Please check your CalDAV server configuration.')
+  }
+
+  private async findCalendarHomeFromPrincipal(): Promise<string | null> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
+      Depth: '0',
+    }
+
+    // Try to find the current user's principal
+    const principalXml = `<?xml version="1.0" encoding="UTF-8" ?>
+<d:propfind xmlns:d="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <d:prop>
+    <C:calendar-home-set/>
+  </d:prop>
+</d:propfind>`
+
+    // Try common principal URLs
+    const principalPaths = [
+      '/dav.php/principals/',
+      '/principals/',
+      '/remote.php/dav/principals/',
+      '/dav/',
     ]
-    
-    for (const path of commonPaths) {
-      const testUrl = `${this.serverUrl.replace(/\/$/, '')}${path}`
+
+    for (const path of principalPaths) {
+      const baseUrl = this.serverUrl.replace(/\/$/, '')
+      const testUrl = `${baseUrl}${path}${this.credentials.username}/`
+      
       try {
         const response = await fetchWithTimeout(testUrl, {
           method: 'PROPFIND',
-          headers: {
-            'Content-Type': 'application/xml; charset=utf-8',
-            Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
-            Depth: '0',
-          },
-          body: `<?xml version="1.0" encoding="UTF-8" ?>
-<d:propfind xmlns:d="DAV:">
-  <d:prop>
-    <d:resourcetype/>
-  </d:prop>
-</d:propfind>`,
+          headers,
+          body: principalXml,
         })
+        
         if (response.ok || response.status === 207) {
-          console.log('[CalDAV] Found calendar home at:', testUrl)
-          return testUrl
+          const text = await response.text()
+          const match = text.match(/<C:calendar-home-set>\s*<d:href>([^<]+)<\/d:href>/)
+          if (match?.[1]) {
+            return match[1].startsWith('http') ? match[1] : `${baseUrl}${match[1]}`
+          }
         }
       } catch {
         // Try next path
       }
     }
     
-    throw new Error('Could not determine calendar home URL')
+    return null
+  }
+
+  private async findCalendarHomeFromCalendars(): Promise<string | null> {
+    const client = this.getClient()
+    const calendars = await client.fetchCalendars()
+    
+    if (calendars.length === 0 || !calendars[0].url) {
+      return null
+    }
+
+    // Parse the first calendar's URL to derive the home
+    const calendarUrlStr = calendars[0].url
+    
+    // Handle both absolute and relative URLs
+    let calendarUrl: URL
+    try {
+      calendarUrl = new URL(calendarUrlStr)
+    } catch {
+      calendarUrl = new URL(calendarUrlStr, this.serverUrl)
+    }
+    
+    const pathParts = calendarUrl.pathname.split('/').filter(Boolean)
+    
+    if (pathParts.length < 2) {
+      return null
+    }
+    
+    // Remove the last part (calendar name) to get the home
+    pathParts.pop()
+    const homePath = '/' + pathParts.join('/') + '/'
+    
+    return calendarUrl.origin + homePath
   }
 
   async updateCalendar(calendarUrl: string, options: UpdateCalendarOptions): Promise<void> {

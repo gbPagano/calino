@@ -671,7 +671,8 @@ export function useCalDAV(): UseCalDAVReturn {
           JSON.stringify(existingEvent.categories ?? []) !== JSON.stringify(event.categories ?? []) ||
           JSON.stringify(existingEvent.recurrence) !== JSON.stringify(event.recurrence) ||
           JSON.stringify(existingEvent.reminders) !== JSON.stringify(event.reminders) ||
-          JSON.stringify(existingEvent.excludedDates) !== JSON.stringify(event.excludedDates)
+          JSON.stringify(existingEvent.excludedDates) !== JSON.stringify(event.excludedDates) ||
+          JSON.stringify(existingEvent.attachments ?? []) !== JSON.stringify(event.attachments ?? [])
         )
 
         const currentSequence = event.sequence ?? 0

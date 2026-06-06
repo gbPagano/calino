@@ -713,6 +713,7 @@ export function EventModal(): JSX.Element | null {
               reminders: isTaskMode ? undefined : reminders,
               transparency: isTaskMode ? undefined : transparency,
               categories: selectedCategories,
+              attachments: attachments.length > 0 ? attachments : undefined,
             }
           )
         }

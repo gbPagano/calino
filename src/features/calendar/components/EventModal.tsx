@@ -16,6 +16,8 @@ import { isUUID } from '@/lib/uuid'
 
 const MAX_ATTACHMENT_SIZE_MB = 5
 const MAX_ATTACHMENT_SIZE_BYTES = MAX_ATTACHMENT_SIZE_MB * 1024 * 1024
+const MAX_ATTACHMENT_HARD_LIMIT_MB = 25
+const MAX_ATTACHMENT_HARD_LIMIT_BYTES = MAX_ATTACHMENT_HARD_LIMIT_MB * 1024 * 1024
 import styles from './EventModal.module.css'
 
 type RecurrenceEditMode = 'all' | 'future' | 'this'
@@ -1002,9 +1004,12 @@ export function EventModal(): JSX.Element | null {
                   const newAttachments: CalendarAttachment[] = []
                   
                   for (const file of files) {
+                    if (file.size > MAX_ATTACHMENT_HARD_LIMIT_BYTES) {
+                      showToast(`File “${file.name}” exceeds the ${MAX_ATTACHMENT_HARD_LIMIT_MB}MB limit`)
+                      continue
+                    }
                     if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
                       showToast(`File “${file.name}” is larger than ${MAX_ATTACHMENT_SIZE_MB}MB and may not sync properly`)
-                      continue
                     }
                     const reader = new FileReader()
                     reader.onload = () => {

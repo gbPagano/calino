@@ -13,7 +13,7 @@ describe('calendarStore', () => {
     const state = useCalendarStore.getState()
     state.categories.forEach((c) => state.deleteCategory(c.id))
     state.autoCategoryRules.forEach((r) => state.deleteAutoCategoryRule(r.id))
-    state.toggleCategoryFilter(null)
+    useCalendarStore.setState({ selectedCategoryIds: [] })
   })
 
   describe('addEvent', () => {

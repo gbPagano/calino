@@ -33,7 +33,7 @@ vi.mock('@/store/calendarStore', () => ({
       calendars: mockCalendars,
       categories: [],
       autoCategoryRules: [],
-      selectedCategoryId: null,
+      selectedCategoryIds: [],
       currentDate: '2024-03-15',
       currentView: 'month',
       selectedEventId: null,

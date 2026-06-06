@@ -85,7 +85,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
   const setCurrentDate = useCalendarStore((state) => state.setCurrentDate)
   const calendars = useCalendarStore((state) => state.calendars)
   const categories = useCalendarStore((state) => state.categories)
-  const selectedCategoryId = useCalendarStore((state) => state.selectedCategoryId)
+  const selectedCategoryIds = useCalendarStore((state) => state.selectedCategoryIds)
   const toggleCategoryFilter = useCalendarStore((state) => state.toggleCategoryFilter)
   const toggleCalendarVisibility = useCalendarStore((state) => state.toggleCalendarVisibility)
   const updateCalendar = useCalendarStore((state) => state.updateCalendar)
@@ -570,7 +570,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
                       {categories.map((category) => (
                         <button
                           key={category.id}
-                          className={`${styles.categoryItem} ${selectedCategoryId === category.id ? styles.categoryItemSelected : ''}`}
+                          className={`${styles.categoryItem} ${selectedCategoryIds.includes(category.id) ? styles.categoryItemSelected : ''}`}
                           onClick={() => toggleCategoryFilter(category.id)}
                         >
                           <span

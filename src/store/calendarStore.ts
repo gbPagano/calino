@@ -38,7 +38,7 @@ export const useCalendarStore = create<CalendarStore>()(
       calendars: [DEFAULT_CALENDAR],
       categories: [],
       autoCategoryRules: [],
-      selectedCategoryId: null,
+      selectedCategoryIds: [],
       currentDate: format(new Date(), 'yyyy-MM-dd'),
       currentView: config.defaultView,
       selectedEventId: null,
@@ -254,10 +254,13 @@ export const useCalendarStore = create<CalendarStore>()(
         }))
       },
 
-      toggleCategoryFilter: (categoryId: string | null): void => {
-        const current = get().selectedCategoryId
-        const newValue = current === categoryId ? null : categoryId
-        set({ selectedCategoryId: newValue })
+      toggleCategoryFilter: (categoryId: string): void => {
+        const current = get().selectedCategoryIds
+        const index = current.indexOf(categoryId)
+        const newValue = index === -1
+          ? [...current, categoryId]
+          : current.filter((id) => id !== categoryId)
+        set({ selectedCategoryIds: newValue })
       },
 
       setCurrentDate: (date: string): void => {
@@ -311,11 +314,12 @@ export const useCalendarStore = create<CalendarStore>()(
       getEventsForDateRange: (start: string, end: string): CalendarEvent[] => {
         const state = get()
         const visibleCalendarIds = state.calendars.filter((c) => c.isVisible).map((c) => c.id)
-        const selectedCategoryId = state.selectedCategoryId
-        const selectedCategory = selectedCategoryId
-          ? state.categories.find((c) => c.id === selectedCategoryId)
-          : null
-        const selectedCategoryName = selectedCategory?.name || null
+        const selectedCategoryIds = state.selectedCategoryIds
+        const selectedCategoryNames = selectedCategoryIds.length > 0
+          ? state.categories
+              .filter((c) => selectedCategoryIds.includes(c.id))
+              .map((c) => c.name)
+          : []
 
         const parseDate = parseISO(start)
         const parseDateEnd = parseISO(end)
@@ -369,7 +373,7 @@ export const useCalendarStore = create<CalendarStore>()(
           if (!visibleCalendarIds.includes(event.calendarId)) {
             continue
           }
-          if (selectedCategoryName && !event.categories?.includes(selectedCategoryName)) {
+          if (selectedCategoryNames.length > 0 && !event.categories?.some((c) => selectedCategoryNames.includes(c))) {
             continue
           }
 

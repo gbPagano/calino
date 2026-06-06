@@ -73,7 +73,7 @@ export interface CalendarState {
   calendars: Calendar[]
   categories: Category[]
   autoCategoryRules: AutoCategoryRule[]
-  selectedCategoryId: string | null
+  selectedCategoryIds: string[]
   currentDate: string
   currentView: ViewType
   selectedEventId: string | null
@@ -103,7 +103,7 @@ export interface CalendarActions {
   addAutoCategoryRule: (rule: AutoCategoryRule) => void
   updateAutoCategoryRule: (id: string, updates: Partial<AutoCategoryRule>) => void
   deleteAutoCategoryRule: (id: string) => void
-  toggleCategoryFilter: (categoryId: string | null) => void
+  toggleCategoryFilter: (categoryId: string) => void
   setCurrentDate: (date: string) => void
   setCurrentView: (view: ViewType) => void
   setSelectedEventId: (id: string | null) => void

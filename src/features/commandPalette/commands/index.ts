@@ -189,7 +189,7 @@ const createActionCommands = (deps: CommandFactoryDeps): Command[] => [
     shortcut: 'K',
     icon: ICONS.circle,
     action: () => {
-      deps.openModal()
+      deps.openModal(undefined, undefined, undefined, 'task')
       return 'Task modal opened'
     },
   },

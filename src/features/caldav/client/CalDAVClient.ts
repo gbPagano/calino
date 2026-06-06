@@ -363,7 +363,8 @@ export class CalDAVClient {
         pathParts.pop() // Remove calendar name
         const homePath = '/' + pathParts.join('/') + '/'
         console.log('[CalDAV] Derived calendar home from existing calendar:', homePath)
-        return homePath.startsWith('http') ? homePath : `${this.serverUrl.replace(/\/$/, '')}${homePath}`
+        // Return the full URL using the calendar URL's origin
+        return calendarUrl.origin + homePath
       }
     }
     

@@ -13,6 +13,9 @@ import { RecurrenceDialog } from './RecurrenceDialog'
 import { DeleteDialog } from './DeleteDialog'
 import { extractOriginalEventId } from '@/lib/events'
 import { isUUID } from '@/lib/uuid'
+
+const MAX_ATTACHMENT_SIZE_MB = 5
+const MAX_ATTACHMENT_SIZE_BYTES = MAX_ATTACHMENT_SIZE_MB * 1024 * 1024
 import styles from './EventModal.module.css'
 
 type RecurrenceEditMode = 'all' | 'future' | 'this'
@@ -999,6 +1002,9 @@ export function EventModal(): JSX.Element | null {
                   const newAttachments: CalendarAttachment[] = []
                   
                   for (const file of files) {
+                    if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+                      showToast(`File "${file.name}" is larger than ${MAX_ATTACHMENT_SIZE_MB}MB and may not sync properly`)
+                    }
                     const reader = new FileReader()
                     reader.onload = () => {
                       const dataUrl = reader.result as string

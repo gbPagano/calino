@@ -72,6 +72,10 @@ export class CalDAVClient {
   private serverUrl: string
   private proxyUrl: string | null
   private credentials: CalDAVCredentials
+  // Cached base64 auth header — avoids re-encoding on every request
+  private authHeader: string
+  // Cached calendar home URL — avoids re-discovery on every createCalendar
+  private cachedCalendarHomeUrl: string | null = null
   // Proxy-aware fetch function (applied to all direct fetch calls)
   private proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>
 
@@ -79,6 +83,7 @@ export class CalDAVClient {
     this.serverUrl = serverUrl
     this.proxyUrl = proxyUrl
     this.credentials = credentials
+    this.authHeader = `Basic ${btoa(`${credentials.username}:${credentials.password}`)}`
     this.proxyFetch = proxyUrl ? createProxyFetch(proxyUrl) : fetchWithTimeout
   }
 
@@ -319,7 +324,7 @@ export class CalDAVClient {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/xml; charset=utf-8',
-      Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
+      Authorization: this.authHeader,
     }
 
     const response = await this.proxyFetch(calendarUrl, {
@@ -348,20 +353,27 @@ export class CalDAVClient {
   }
 
   private async findCalendarHome(): Promise<string> {
-    // Method 1: Try to find calendar-home-set from principal
+    // Return cached result if available
+    if (this.cachedCalendarHomeUrl) {
+      return this.cachedCalendarHomeUrl
+    }
+
+    // Method 1 (cheap): Derive from existing calendar URLs — no extra network calls
     try {
-      const homeUrl = await this.findCalendarHomeFromPrincipal()
+      const homeUrl = await this.findCalendarHomeFromCalendars()
       if (homeUrl) {
+        this.cachedCalendarHomeUrl = homeUrl
         return homeUrl
       }
     } catch {
       // Method 1 failed, try fallback
     }
 
-    // Method 2: Derive from existing calendar URLs
+    // Method 2 (expensive): Try to find calendar-home-set from principal
     try {
-      const homeUrl = await this.findCalendarHomeFromCalendars()
+      const homeUrl = await this.findCalendarHomeFromPrincipal()
       if (homeUrl) {
+        this.cachedCalendarHomeUrl = homeUrl
         return homeUrl
       }
     } catch {
@@ -374,7 +386,7 @@ export class CalDAVClient {
   private async findCalendarHomeFromPrincipal(): Promise<string | null> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/xml; charset=utf-8',
-      Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
+      Authorization: this.authHeader,
       Depth: '0',
     }
 
@@ -480,7 +492,7 @@ export class CalDAVClient {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/xml; charset=utf-8',
-      Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
+      Authorization: this.authHeader,
     }
 
     const response = await this.proxyFetch(calendarUrl, {
@@ -501,7 +513,7 @@ export class CalDAVClient {
     }
 
     const headers: Record<string, string> = {
-      Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
+      Authorization: this.authHeader,
     }
 
     const response = await this.proxyFetch(calendarUrl, {

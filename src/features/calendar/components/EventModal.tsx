@@ -49,6 +49,31 @@ function getInitialFormState(
   calendars: { id: string; isDefault: boolean }[],
   allCategories: { id: string; name: string }[]
 ): InitialFormState & { isRecurringInstance: boolean; originalEventId: string | null } {
+  // Early return when modal is closed — skip all computation
+  if (!isModalOpen) {
+    const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
+    const today = format(new Date(), 'yyyy-MM-dd')
+    return {
+      title: '',
+      description: '',
+      location: '',
+      startDate: today,
+      startTime: '09:00',
+      endDate: today,
+      endTime: '10:00',
+      isAllDay: false,
+      calendarId: defaultCalendar?.id || '',
+      recurrence: 'none',
+      travelDuration: undefined,
+      reminders: [],
+      transparency: 'opaque',
+      categories: [],
+      attachments: [],
+      isRecurringInstance: false,
+      originalEventId: null,
+    }
+  }
+
   const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
 
   const isEditing = selectedEventId !== null

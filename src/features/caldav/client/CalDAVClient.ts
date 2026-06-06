@@ -456,6 +456,9 @@ export class CalDAVClient {
       throw new Error('No network connection. Please check your internet connection.')
     }
 
+    console.log('[CalDAV] updateCalendar called with URL:', calendarUrl)
+    console.log('[CalDAV] updateCalendar options:', options)
+
     // Build PROPPATCH XML
     let propXml = '<prop>'
     if (options.name !== undefined) {
@@ -497,6 +500,8 @@ export class CalDAVClient {
     if (!navigator.onLine) {
       throw new Error('No network connection. Please check your internet connection.')
     }
+
+    console.log('[CalDAV] deleteCalendar called with URL:', calendarUrl)
 
     const headers: Record<string, string> = {
       Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,

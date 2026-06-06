@@ -286,7 +286,7 @@ export class CalDAVClient {
     }
 
     const xmlBody = `<?xml version="1.0" encoding="UTF-8" ?>
-<mkcalendar xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+<C:mkcalendar xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
   <set>
     <prop>
       <displayname>${escapeXml(options.name)}</displayname>${descriptionXml}${colorXml}
@@ -295,7 +295,7 @@ export class CalDAVClient {
       </C:supported-calendar-component-set>
     </prop>
   </set>
-</mkcalendar>`
+</C:mkcalendar>`
 
     // Use raw fetch for MKCALENDAR since tsdav doesn't have a direct method
     const baseUrl = this.serverUrl.replace(/\/$/, '')

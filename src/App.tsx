@@ -327,6 +327,8 @@ function CalendarApp(): JSX.Element {
           setIsCommandPaletteOpen(false)
           setOverlayOpen(false)
         }}
+        toggleSidebar={handleToggleSidebar}
+        sidebarOpen={isSidebarOpen}
       />
       <OnboardingModal onAddCalendar={() => setShowAddCalendar(true)} />
     </div>

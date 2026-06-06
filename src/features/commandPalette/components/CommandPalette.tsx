@@ -9,13 +9,15 @@ import styles from './CommandPalette.module.css'
 interface CommandPaletteProps {
   isOpen: boolean
   onClose: () => void
+  toggleSidebar?: () => void
+  sidebarOpen?: boolean
 }
 
-export function CommandPalette({ isOpen, onClose }: CommandPaletteProps): JSX.Element | null {
+export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: CommandPaletteProps): JSX.Element | null {
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
   const { query, setQuery, results, selectedIndex, setSelectedIndex, executeSelected } =
-    useCommandPalette({ isOpen })
+    useCommandPalette({ isOpen, toggleSidebar, sidebarOpen })
 
   const timeFormat = useSettingsStore((state) => state.timeFormat)
 

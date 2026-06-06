@@ -24,6 +24,8 @@ import type {
 
 interface UseCommandPaletteProps {
   isOpen: boolean
+  toggleSidebar?: () => void
+  sidebarOpen?: boolean
 }
 
 export interface ExecuteResult {
@@ -31,7 +33,7 @@ export interface ExecuteResult {
   message: string
 }
 
-export function useCommandPalette({ isOpen }: UseCommandPaletteProps): {
+export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCommandPaletteProps): {
   query: string
   setQuery: (q: string) => void
   results: CommandResult[]
@@ -63,6 +65,8 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps): {
 
   const { syncAll, createEvent: createCalDAVEvent } = useCalDAV()
 
+  const timeFormat = useSettingsStore((state) => state.timeFormat)
+
   const commands = useMemo(() => {
     return createCommandRegistry({
       navigate,
@@ -71,6 +75,9 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps): {
       openModal,
       themeMode,
       caldavDebugMode,
+      timeFormat,
+      sidebarOpen,
+      toggleSidebar,
       updateSettings,
       triggerSync: syncAll,
     })
@@ -81,6 +88,9 @@ export function useCommandPalette({ isOpen }: UseCommandPaletteProps): {
     openModal,
     themeMode,
     caldavDebugMode,
+    timeFormat,
+    sidebarOpen,
+    toggleSidebar,
     updateSettings,
     syncAll,
   ])

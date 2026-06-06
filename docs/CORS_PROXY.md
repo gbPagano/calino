@@ -46,12 +46,7 @@ export default {
     }
 
     const targetBase = decodeURIComponent(pathParts[0])
-    let targetPath = '/' + pathParts.slice(1).join('/')
-
-    // Redirect .well-known/caldav to dav.php
-    if (targetPath === '/.well-known/caldav') {
-      targetPath = '/dav.php'
-    }
+    const targetPath = '/' + pathParts.slice(1).join('/')
 
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
@@ -75,6 +70,7 @@ export default {
         method: request.method,
         headers,
         body: request.body,
+        redirect: 'manual',
       })
 
       const corsHeaders = new Headers(response.headers)

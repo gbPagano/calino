@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDrag, usePinch } from '@use-gesture/react'
 
 export interface UseGesturesOptions {
@@ -299,7 +299,7 @@ export function useGestures({
     [pinchBind]
   )
 
-  return {
+  return useMemo(() => ({
     bind: {
       onPointerDown: handlePointerDown,
       onPointerMove: handlePointerMove,
@@ -307,5 +307,5 @@ export function useGestures({
       onWheel: handleWheel,
     },
     gestureState,
-  }
+  }), [handlePointerDown, handlePointerMove, handlePointerUp, handleWheel, gestureState])
 }

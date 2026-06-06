@@ -369,6 +369,27 @@ export const useCalendarStore = create<CalendarStore>()(
           }
         }
 
+        // Pre-parse all event dates once to avoid repeated parseISO calls
+        const eventStartDates = new Map<string, Date>()
+        const eventEndDates = new Map<string, Date>()
+        for (const event of state.events) {
+          eventStartDates.set(event.id, parseISO(event.start))
+          eventEndDates.set(event.id, parseISO(event.end))
+        }
+
+        // Cache RRule objects keyed by rrule string to avoid re-parsing
+        const rruleCache = new Map<string, RRule>()
+        const getOrCreateRRule = (rruleStr: string, eventStart: Date): RRule => {
+          const cacheKey = `${rruleStr}|${eventStart.toISOString()}`
+          let rule = rruleCache.get(cacheKey)
+          if (!rule) {
+            const options = RRule.parseString(rruleStr)
+            rule = new RRule({ ...options, dtstart: eventStart })
+            rruleCache.set(cacheKey, rule)
+          }
+          return rule
+        }
+
         for (const event of state.events) {
           if (!visibleCalendarIds.includes(event.calendarId)) {
             continue
@@ -418,14 +439,10 @@ export const useCalendarStore = create<CalendarStore>()(
               if (!rruleString) {
                 throw new Error('No rrule string')
               }
-              const options = RRule.parseString(rruleString)
-              const eventStart = parseISO(event.start)
-              const eventEnd = parseISO(event.end)
+              const eventStart = eventStartDates.get(event.id)!
+              const eventEnd = eventEndDates.get(event.id)!
 
-              const rule = new RRule({
-                ...options,
-                dtstart: eventStart,
-              })
+              const rule = getOrCreateRRule(rruleString, eventStart)
 
               const occurrences = rule.between(startDate, endDate, true)
               const excludedDates = event.excludedDates || []
@@ -465,8 +482,8 @@ export const useCalendarStore = create<CalendarStore>()(
                 })
               }
             } catch {
-              const eventStart = parseISO(event.start)
-              const eventEnd = parseISO(event.end)
+              const eventStart = eventStartDates.get(event.id)!
+              const eventEnd = eventEndDates.get(event.id)!
               if (
                 isWithinInterval(eventStart, { start: startDate, end: endDate }) ||
                 isWithinInterval(eventEnd, { start: startDate, end: endDate }) ||
@@ -482,8 +499,8 @@ export const useCalendarStore = create<CalendarStore>()(
             if (event.recurrenceId) {
               continue
             }
-            const eventStart = parseISO(event.start)
-            const eventEnd = parseISO(event.end)
+            const eventStart = eventStartDates.get(event.id)!
+            const eventEnd = eventEndDates.get(event.id)!
 
             if (
               isWithinInterval(eventStart, { start: startDate, end: endDate }) ||

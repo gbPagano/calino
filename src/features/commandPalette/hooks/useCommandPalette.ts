@@ -102,17 +102,20 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
       return { type: 'empty', raw: input }
     }
 
+    // Explicit command prefix
     if (trimmed.startsWith('>')) {
       const cmd = trimmed.slice(1).trim()
       return { type: 'command', raw: input, command: cmd }
     }
 
+    // Explicit navigation prefix
     if (trimmed.startsWith('@')) {
       const ref = trimmed.slice(1).trim()
       return { type: 'navigation', raw: input, dateRef: ref }
     }
 
-    const dateKeywords = [
+    // Pure date navigation keywords (no event title, just a date reference)
+    const pureDateKeywords = [
       'today',
       'tomorrow',
       'yesterday',
@@ -120,6 +123,14 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
       'last week',
       'next month',
       'last month',
+      'next year',
+      'last year',
+      'this weekend',
+      'next weekend',
+    ]
+
+    // Day names - navigate to that day
+    const dayNames = [
       'monday',
       'tuesday',
       'wednesday',
@@ -129,21 +140,52 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
       'sunday',
     ]
 
-    for (const keyword of dateKeywords) {
-      if (trimmed.includes(keyword)) {
-        const result = parseNaturalLanguage(input)
-        if (result.confidence > 0.5) {
-          return { type: 'quick-add', raw: input }
-        }
+    // Month names - navigate to that month
+    const monthNames = [
+      'january', 'february', 'march', 'april', 'may', 'june',
+      'july', 'august', 'september', 'october', 'november', 'december',
+    ]
+
+    // Check for pure date navigation (exact or starts with date keyword)
+    for (const keyword of pureDateKeywords) {
+      if (trimmed === keyword || trimmed.startsWith(keyword)) {
         return { type: 'navigation', raw: input, dateRef: trimmed }
       }
     }
 
-    const result = parseNaturalLanguage(input)
-    if (result.confidence > 0.7 && result.title) {
-      return { type: 'quick-add', raw: input }
+    // Check for day names ("monday", "next monday", "this friday")
+    for (const day of dayNames) {
+      if (trimmed === day || trimmed.endsWith(day)) {
+        return { type: 'navigation', raw: input, dateRef: trimmed }
+      }
     }
 
+    // Check for month names ("march", "march 2024", "show march")
+    for (const month of monthNames) {
+      if (trimmed.includes(month)) {
+        return { type: 'navigation', raw: input, dateRef: trimmed }
+      }
+    }
+
+    // Check for year patterns ("2024", "2025")
+    if (/^\d{4}$/.test(trimmed)) {
+      return { type: 'navigation', raw: input, dateRef: trimmed }
+    }
+
+    // Check for event creation intent (has time or duration indicators)
+    const hasTimeIndicator = /\bat\s+\d|\bat\s+noon|\bat\s+midnight|\bat\s+lunch|\bat\s+dinner|\d{1,2}\s*(am|pm)|\d{1,2}:\d{2}/.test(trimmed)
+    const hasDurationIndicator = /for\s+\d+\s*(min|hour|hr)/.test(trimmed)
+    const hasLocationIndicator = /\bat\s+(?!\d|noon|midnight|lunch|dinner)/.test(trimmed)
+
+    // If has time/duration/location, try quick-add
+    if (hasTimeIndicator || hasDurationIndicator || hasLocationIndicator) {
+      const result = parseNaturalLanguage(input)
+      if (result.confidence > 0.6 && result.title) {
+        return { type: 'quick-add', raw: input }
+      }
+    }
+
+    // Default: search
     return { type: 'search', raw: input }
   }, [])
 
@@ -225,15 +267,39 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
 
     const parsed = parseInput(query)
 
-    if (parsed.type === 'command' || parsed.type === 'navigation') {
-      const filtered = filterCommands(parsed.command || parsed.dateRef || query)
+    // Direct navigation - navigate to date
+    if (parsed.type === 'navigation') {
+      const dateRef = parsed.dateRef || query
+      const parsedDate = parseNaturalLanguage(dateRef)
+      
+      // Create a navigation command on the fly
+      const navCmd = {
+        id: 'nav-quick',
+        label: `Go to ${dateRef}`,
+        description: format(parsedDate.startDate, 'EEEE, d MMMM yyyy'),
+        category: 'navigation' as const,
+        keywords: ['navigate', 'go', 'date'],
+        icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v2M10.5 1.5v2"/></svg>',
+        action: () => {
+          setCurrentDate(format(parsedDate.startDate, 'yyyy-MM-dd'))
+          if (parsedDate.startDate.getMonth() !== new Date().getMonth() ||
+              parsedDate.startDate.getFullYear() !== new Date().getFullYear()) {
+            setCurrentView('month')
+          }
+          return `Navigated to ${format(parsedDate.startDate, 'EEEE, d MMMM yyyy')}`
+        },
+      }
+      return [{ type: 'command' as const, item: navCmd, score: 1 }]
+    }
+
+    // Explicit command prefix
+    if (parsed.type === 'command') {
+      const filtered = filterCommands(parsed.command || query)
       return filtered.map((cmd) => ({
         type: 'command' as const,
         item: cmd,
         score:
-          cmd.label.toLowerCase() === (parsed.command || parsed.dateRef || query).toLowerCase()
-            ? 1
-            : 0.5,
+          cmd.label.toLowerCase() === (parsed.command || query).toLowerCase() ? 1 : 0.5,
       }))
     }
 

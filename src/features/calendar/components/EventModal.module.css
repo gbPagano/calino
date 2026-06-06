@@ -146,6 +146,13 @@
   border-radius: 10px;
 }
 
+.attachmentSyncNote {
+  font-size: 11px;
+  color: var(--color-text-secondary, #5f6368);
+  margin: 0 0 8px 0;
+  font-style: italic;
+}
+
 .attachmentList {
   display: flex;
   flex-direction: column;

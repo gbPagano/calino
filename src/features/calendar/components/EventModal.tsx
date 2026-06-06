@@ -967,6 +967,11 @@ export function EventModal(): JSX.Element | null {
               <label className={styles.label}>Attachments</label>
               <span className={styles.attachmentCount}>{attachments.length}</span>
             </div>
+            {attachments.length > 0 && (
+              <p className={styles.attachmentSyncNote}>
+                Attachments will be synced to the CalDAV server when you save.
+              </p>
+            )}
 
             {attachments.length > 0 && (
               <div className={styles.attachmentList}>
@@ -984,7 +989,12 @@ export function EventModal(): JSX.Element | null {
                     <button
                       type="button"
                       className={styles.removeAttachment}
-                      onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}
+                      title="Remove attachment"
+                      onClick={() => {
+                        if (window.confirm(`Remove “${att.filename || 'attachment'}” from this event? It will be deleted from the server when you save.`)) {
+                          setAttachments(attachments.filter((_, i) => i !== index))
+                        }
+                      }}
                     >
                       ×
                     </button>

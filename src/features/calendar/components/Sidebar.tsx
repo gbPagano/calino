@@ -104,7 +104,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
   const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
   const showAddCalendar = useCalendarStore((state) => state.showAddCalendar)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)
-  const { syncAccount, deleteCalendarFromServer } = useCalDAV()
+  const { syncAccount, updateCalendar: updateCalDAVCalendar, deleteCalendarFromServer } = useCalDAV()
   const navigate = useNavigate()
 
   // Initialize miniDate from the store on first render
@@ -229,9 +229,20 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
     setTimeout(() => inputRef.current?.select(), 0)
   }
 
-  const handleFinishRename = (): void => {
+  const handleFinishRename = async (): Promise<void> => {
     if (editingId && editName.trim()) {
+      // Update local store
       updateCalendar(editingId, { name: editName.trim() })
+      
+      // If it's a CalDAV calendar, also update on server
+      const calendar = calendars.find((c) => c.id === editingId)
+      if (calendar?.accountId) {
+        try {
+          await updateCalDAVCalendar(editingId, { name: editName.trim() })
+        } catch (error) {
+          console.error('[CalDAV] Failed to rename calendar on server:', error)
+        }
+      }
     }
     setEditingId(null)
     setEditName('')
@@ -681,6 +692,17 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
                 // CalDAV calendar options
                 ...calendars.find((c) => c.id === contextMenu.calendarId)?.accountId
                   ? [
+                      {
+                        label: 'Rename',
+                        onClick: () => {
+                          const calendar = calendars.find((c) => c.id === contextMenu.calendarId)
+                          if (calendar) {
+                            setEditingId(calendar.id)
+                            setEditName(calendar.name)
+                          }
+                          closeContextMenu()
+                        },
+                      },
                       {
                         label: 'Create Calendar Here',
                         onClick: () => {

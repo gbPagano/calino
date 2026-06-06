@@ -153,16 +153,16 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
       }
     }
 
-    // Check for day names ("monday", "next monday", "this friday")
+    // Check for day names ("monday", "next monday", "this friday", "thu" for thursday)
     for (const day of dayNames) {
-      if (trimmed === day || trimmed.endsWith(day)) {
+      if (trimmed === day || trimmed.endsWith(day) || day.startsWith(trimmed)) {
         return { type: 'navigation', raw: input, dateRef: trimmed }
       }
     }
 
-    // Check for month names ("march", "march 2024", "show march")
+    // Check for month names ("march", "march 2024", "show march", "dece" for december)
     for (const month of monthNames) {
-      if (trimmed.includes(month)) {
+      if (trimmed.includes(month) || month.startsWith(trimmed)) {
         return { type: 'navigation', raw: input, dateRef: trimmed }
       }
     }

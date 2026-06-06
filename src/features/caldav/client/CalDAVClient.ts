@@ -303,7 +303,6 @@ export class CalDAVClient {
 
     // Find the calendar home set by querying the principal
     const calendarHomeUrl = await this.findCalendarHome()
-    console.log('[CalDAV] Calendar home URL:', calendarHomeUrl)
 
     // Create a new calendar collection under the calendar home
     const calendarUri = options.name
@@ -311,8 +310,6 @@ export class CalDAVClient {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
     const calendarUrl = `${calendarHomeUrl}${calendarUri}/`
-    console.log('[CalDAV] Creating calendar at:', calendarUrl)
-    console.log('[CalDAV] MKCOL XML:', xmlBody)
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/xml; charset=utf-8',
@@ -349,18 +346,15 @@ export class CalDAVClient {
     try {
       const homeUrl = await this.findCalendarHomeFromPrincipal()
       if (homeUrl) {
-        console.log('[CalDAV] Found calendar home from principal:', homeUrl)
         return homeUrl
       }
     } catch (e) {
-      console.log('[CalDAV] Principal method failed, trying fallback:', e)
     }
 
     // Method 2: Derive from existing calendar URLs
     try {
       const homeUrl = await this.findCalendarHomeFromCalendars()
       if (homeUrl) {
-        console.log('[CalDAV] Derived calendar home from existing calendars:', homeUrl)
         return homeUrl
       }
     } catch (e) {
@@ -456,8 +450,6 @@ export class CalDAVClient {
       throw new Error('No network connection. Please check your internet connection.')
     }
 
-    console.log('[CalDAV] updateCalendar called with URL:', calendarUrl)
-    console.log('[CalDAV] updateCalendar options:', options)
 
     // Build PROPPATCH XML
     let propXml = '<prop>'

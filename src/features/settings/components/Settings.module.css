@@ -328,7 +328,7 @@
 
 /* ── Segmented Control ──────────────────────────────────────────────────── */
 .seg {
-  background: rgba(44, 40, 33, 0.045);
+  background: var(--color-bg-tertiary, rgba(44, 40, 33, 0.045));
   padding: 4px;
   border-radius: 12px;
   display: inline-flex;
@@ -747,5 +747,10 @@
 /* ── Notification dependency ────────────────────────────────────────────── */
 .rowDisabled {
   opacity: 0.45;
+}
+
+.rowDisabled .swatch,
+.rowDisabled .segTab,
+.rowDisabled button {
   pointer-events: none;
 }

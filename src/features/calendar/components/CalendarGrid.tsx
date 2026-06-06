@@ -722,6 +722,7 @@ function DroppableDay({
       className={`${styles.day} ${!isCurrentMonth ? styles.otherMonth : ''} ${isTodayDate ? styles.today : ''} ${isWeekend ? styles.weekend : ''} ${isOver ? styles.dropTarget : ''}`}
       role="button"
       tabIndex={0}
+      title={!isCurrentMonth ? 'Not available yet' : undefined}
       onClick={() => onDayClick(day)}
       onDoubleClick={() => onDayDoubleClick(day)}
       onKeyDown={(e) => {

@@ -85,6 +85,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const toggleCategoryFilter = useCalendarStore((state) => state.toggleCategoryFilter)
   const toggleCalendarVisibility = useCalendarStore((state) => state.toggleCalendarVisibility)
   const updateCalendar = useCalendarStore((state) => state.updateCalendar)
+  const deleteCalendar = useCalendarStore((state) => state.deleteCalendar)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
   const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
@@ -576,6 +577,17 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
                     closeContextMenu()
                   },
                 },
+                ...(!calendars.find((c) => c.id === contextMenu.calendarId)?.accountId
+                  ? [
+                      {
+                        label: 'Remove',
+                        onClick: () => {
+                          deleteCalendar(contextMenu.calendarId)
+                          closeContextMenu()
+                        },
+                      },
+                    ]
+                  : []),
               ]}
               onClose={closeContextMenu}
               menuId="calendar-context"

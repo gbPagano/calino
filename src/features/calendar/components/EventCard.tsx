@@ -103,6 +103,7 @@ export function EventCard({
   })
 
   const calendar = calendars.find((c) => c.id === event.calendarId)
+  const useCategoryColors = useSettingsStore((state) => state.useCategoryColors)
   const firstCategory = event.categories && event.categories.length > 0
     ? categories.find((cat) => {
         const catValue = event.categories![0]
@@ -113,7 +114,7 @@ export function EventCard({
         return cat.name === catValue
       })
     : undefined
-  const eventColor = event.color || firstCategory?.color || calendar?.color || DEFAULT_CALENDAR_COLOR
+  const eventColor = event.color || (useCategoryColors && firstCategory?.color) || calendar?.color || DEFAULT_CALENDAR_COLOR
   const isTask = event.type === 'task'
   const isRecurring = !!event.recurrence || !!event.rruleString
   const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))

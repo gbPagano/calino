@@ -119,6 +119,7 @@ vi.mock('@/store/settingsStore', () => ({
       monthViewEventLimit: 3,
       sidebarWidth: 300,
       sidebarCollapsed: false,
+      useCategoryColors: true,
       updateSettings: vi.fn(),
       resetSettings: vi.fn(),
     }

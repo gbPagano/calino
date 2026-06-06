@@ -90,10 +90,11 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
   const toggleCalendarVisibility = useCalendarStore((state) => state.toggleCalendarVisibility)
   const updateCalendar = useCalendarStore((state) => state.updateCalendar)
   const deleteCalendar = useCalendarStore((state) => state.deleteCalendar)
+  const useCategoryColors = useSettingsStore((state) => state.useCategoryColors)
+  const updateSettings = useSettingsStore((state) => state.updateSettings)
   const sidebarWidth = useSettingsStore((state) => state.sidebarWidth)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
   const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
-  const updateSettings = useSettingsStore((state) => state.updateSettings)
   const showAddCalendar = useCalendarStore((state) => state.showAddCalendar)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)
   const { syncAccount } = useCalDAV()
@@ -585,6 +586,17 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
                           <span className={styles.categoryName}>{category.name}</span>
                         </button>
                       ))}
+                    </div>
+                    <div className={styles.categoryToggle}>
+                      <span className={styles.categoryToggleLabel}>Use category colors</span>
+                      <label className={styles.categoryToggleSwitch}>
+                        <input
+                          type="checkbox"
+                          checked={useCategoryColors}
+                          onChange={() => updateSettings({ useCategoryColors: !useCategoryColors })}
+                        />
+                        <span className={styles.categoryTogglePill} />
+                      </label>
                     </div>
                   </motion.div>
                 )}

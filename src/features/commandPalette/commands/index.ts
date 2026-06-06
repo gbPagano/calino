@@ -15,6 +15,7 @@ interface CommandFactoryDeps {
   caldavDebugMode?: boolean
   timeFormat?: '12h' | '24h'
   sidebarOpen?: boolean
+  useCategoryColors?: boolean
   updateSettings?: (
     settings: Partial<{
       themeMode: ThemeMode
@@ -22,6 +23,7 @@ interface CommandFactoryDeps {
       darkTheme: string
       caldavDebugMode: boolean
       timeFormat: '12h' | '24h'
+      useCategoryColors: boolean
     }>
   ) => void
 }
@@ -44,6 +46,7 @@ const ICONS = {
   clock: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l2.5 2.5"/></svg>',
   system: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="9" rx="2"/><path d="M5 15h6M8 12v3"/></svg>',
   sync: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8a5.5 5.5 0 019.86-3.36M13.5 8a5.5 5.5 0 01-9.86 3.36"/><path d="M12.36 1v3.36H9M3.64 15v-3.36H7"/></svg>',
+  palette: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="5" r="1" fill="currentColor"/><circle cx="5.5" cy="7.5" r="1" fill="currentColor"/><circle cx="10.5" cy="7.5" r="1" fill="currentColor"/><circle cx="8" cy="10.5" r="1" fill="currentColor"/></svg>',
 } as const
 
 const createNavigationCommands = (deps: CommandFactoryDeps): Command[] => {
@@ -262,6 +265,17 @@ const createActionCommands = (deps: CommandFactoryDeps): Command[] => [
       const newFormat = deps.timeFormat === '24h' ? '12h' : '24h'
       deps.updateSettings?.({ timeFormat: newFormat })
       return `Time format set to ${newFormat}`
+    },
+  },
+  {
+    id: 'toggle-category-colors',
+    label: deps.useCategoryColors ? 'Disable Category Colors' : 'Enable Category Colors',
+    category: 'actions',
+    keywords: ['category', 'colors', 'toggle', 'calendar color'],
+    icon: ICONS.palette,
+    action: () => {
+      deps.updateSettings?.({ useCategoryColors: !deps.useCategoryColors })
+      return deps.useCategoryColors ? 'Category colors disabled' : 'Category colors enabled'
     },
   },
   {

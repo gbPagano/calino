@@ -151,6 +151,7 @@ export interface UserSettings {
   darkTheme: string
   caldavDebugMode: boolean
   hideCompletedTasksInMonthView: boolean
+  useCategoryColors: boolean
   sidebarWidth: number
   sidebarCollapsed: boolean
 }

@@ -123,6 +123,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   darkTheme: config.defaultDarkTheme,
   caldavDebugMode: false,
   hideCompletedTasksInMonthView: true,
+  useCategoryColors: true,
   sidebarWidth: 300,
   sidebarCollapsed: false,
 }

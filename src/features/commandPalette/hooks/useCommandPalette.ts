@@ -66,6 +66,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
   const { syncAll, createEvent: createCalDAVEvent } = useCalDAV()
 
   const timeFormat = useSettingsStore((state) => state.timeFormat)
+  const useCategoryColors = useSettingsStore((state) => state.useCategoryColors)
 
   const commands = useMemo(() => {
     return createCommandRegistry({
@@ -76,6 +77,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
       themeMode,
       caldavDebugMode,
       timeFormat,
+      useCategoryColors,
       sidebarOpen,
       toggleSidebar,
       updateSettings,
@@ -89,6 +91,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     themeMode,
     caldavDebugMode,
     timeFormat,
+    useCategoryColors,
     sidebarOpen,
     toggleSidebar,
     updateSettings,

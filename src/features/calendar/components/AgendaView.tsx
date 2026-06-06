@@ -56,6 +56,7 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
   }, [calendars])
 
   const getEventBarColor = (event: CalendarEvent): string => {
+    const useCategoryColors = useSettingsStore.getState().useCategoryColors
     const firstCategory = event.categories && event.categories.length > 0
       ? categories.find((cat) => {
           const catValue = event.categories![0]
@@ -65,7 +66,7 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
           return cat.name === catValue
         })
       : undefined
-    return event.color || firstCategory?.color || calendarColorMap.get(event.calendarId) || DEFAULT_CALENDAR_COLOR
+    return event.color || (useCategoryColors && firstCategory?.color) || calendarColorMap.get(event.calendarId) || DEFAULT_CALENDAR_COLOR
   }
 
   const date = parseISO(currentDate)

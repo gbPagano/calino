@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { useState } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useSettingsStore } from '@/store/settingsStore'
 import { EVENT_COLORS } from '@/store/settingsStore'
 import styles from './Settings.module.css'
 
@@ -10,6 +11,8 @@ export function CategoriesSettings(): JSX.Element {
   const updateCategory = useCalendarStore((s) => s.updateCategory)
   const deleteCategory = useCalendarStore((s) => s.deleteCategory)
   const events = useCalendarStore((s) => s.events)
+  const useCategoryColors = useSettingsStore((s) => s.useCategoryColors)
+  const updateSettings = useSettingsStore((s) => s.updateSettings)
 
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState(EVENT_COLORS[0])
@@ -49,6 +52,24 @@ export function CategoriesSettings(): JSX.Element {
   return (
     <section className={`${styles.section} ${styles.sectionActive}`}>
       <h1 className={styles.pageTitle}>Categories</h1>
+
+      <div className={styles.group}>
+        <div className={styles.row}>
+          <div>
+            <div className={styles.label}>Use category colors for events</div>
+            <div className={styles.hint}>When disabled, events use their calendar color</div>
+          </div>
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={useCategoryColors}
+              onChange={() => updateSettings({ useCategoryColors: !useCategoryColors })}
+            />
+            <span className={styles.pill} />
+            <span className={styles.knob} />
+          </label>
+        </div>
+      </div>
 
       <div className={styles.group}>
         <div className={styles.catList}>

@@ -141,6 +141,22 @@
   height: 12px;
 }
 
+.attachmentIcon {
+  position: absolute;
+  top: 4px;
+  right: 20px;
+  color: var(--ink-3);
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attachmentIcon svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* ---- Sync Failed Icon ---- */
 .syncFailedIcon {
   position: absolute;

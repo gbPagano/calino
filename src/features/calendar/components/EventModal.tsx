@@ -12,13 +12,10 @@ import { TaskFormFields } from './TaskFormFields'
 import { EventFormFields } from './EventFormFields'
 import { RecurrenceDialog } from './RecurrenceDialog'
 import { DeleteDialog } from './DeleteDialog'
+import { AttachmentSection } from './AttachmentSection'
 import { extractOriginalEventId } from '@/lib/events'
 import { isUUID } from '@/lib/uuid'
 
-const MAX_ATTACHMENT_SIZE_MB = 5
-const MAX_ATTACHMENT_SIZE_BYTES = MAX_ATTACHMENT_SIZE_MB * 1024 * 1024
-const MAX_ATTACHMENT_HARD_LIMIT_MB = 25
-const MAX_ATTACHMENT_HARD_LIMIT_BYTES = MAX_ATTACHMENT_HARD_LIMIT_MB * 1024 * 1024
 import styles from './EventModal.module.css'
 
 type RecurrenceEditMode = 'all' | 'future' | 'this'
@@ -1016,110 +1013,11 @@ export function EventModal(): JSX.Element | null {
             </div>
           )}
 
-          {/* Attachments Section */}
-          <div className={styles.modalField}>
-            <div className={styles.fieldHeader}>
-              <label className={styles.label}>Attachments</label>
-              <span className={styles.attachmentCount}>{attachments.length}</span>
-            </div>
-            {attachments.length > 0 && (
-              <p className={styles.attachmentSyncNote}>
-                Attachments will be synced to the CalDAV server when you save.
-              </p>
-            )}
-
-            {attachments.length > 0 && (
-              <div className={styles.attachmentList}>
-                {attachments.map((att, index) => (
-                  <div key={index} className={styles.attachmentItem}>
-                    <span className={styles.attachmentIcon}>📎</span>
-                    <span className={styles.attachmentName}>{att.filename || 'attachment'}</span>
-                    {att.size && (
-                      <span className={styles.attachmentSize}>
-                        {att.size > 1024 * 1024
-                          ? `${(att.size / (1024 * 1024)).toFixed(1)} MB`
-                          : `${Math.round(att.size / 1024)} KB`}
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      className={styles.removeAttachment}
-                      title="Remove attachment"
-                      onClick={() => {
-                        if (window.confirm(`Remove “${att.filename || 'attachment'}” from this event? It will be deleted from the server when you save.`)) {
-                          const remaining = attachments.filter((_, i) => i !== index)
-                          setAttachments(remaining)
-                          // Update IndexedDB
-                          const eventId = selectedEventId || 'new'
-                          if (remaining.length > 0) {
-                            putAttachments(eventId, remaining).catch(() => {})
-                          } else {
-                            deleteAttachments(eventId).catch(() => {})
-                          }
-                        }
-                      }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <label className={styles.addAttachmentButton}>
-              <span>+ Add attachment</span>
-              <input
-                type="file"
-                className={styles.hiddenFileInput}
-                multiple
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || [])
-                  const filtered = files.filter((file) => {
-                    if (file.size > MAX_ATTACHMENT_HARD_LIMIT_BYTES) {
-                      showToast(`File “${file.name}” exceeds the ${MAX_ATTACHMENT_HARD_LIMIT_MB}MB limit`)
-                      return false
-                    }
-                    if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
-                      showToast(`File “${file.name}” is larger than ${MAX_ATTACHMENT_SIZE_MB}MB and may not sync properly`)
-                    }
-                    return true
-                  })
-
-                  // Read all files as data URLs, preserving order
-                  const readPromises = filtered.map((file) =>
-                    new Promise<CalendarAttachment>((resolve, reject) => {
-                      const reader = new FileReader()
-                      reader.onload = () => {
-                        resolve({
-                          href: reader.result as string,
-                          contentType: file.type || 'application/octet-stream',
-                          size: file.size,
-                          filename: file.name,
-                        })
-                      }
-                      reader.onerror = () => reject(new Error(`Failed to read ${file.name}`))
-                      reader.readAsDataURL(file)
-                    })
-                  )
-
-                  Promise.all(readPromises)
-                    .then((newAttachments) => {
-                      setAttachments((prev) => [...prev, ...newAttachments])
-                      // Store in IndexedDB for the current event (use a temp key if new event)
-                      const eventId = selectedEventId || 'new'
-                      putAttachments(eventId, [...attachments, ...newAttachments]).catch(() => {
-                        showToast('Failed to save attachments locally')
-                      })
-                    })
-                    .catch((err) => {
-                      showToast(err instanceof Error ? err.message : 'Failed to read files')
-                    })
-
-                  e.target.value = ''
-                }}
-              />
-            </label>
-          </div>
+          <AttachmentSection
+            attachments={attachments}
+            onAttachmentsChange={setAttachments}
+            eventId={selectedEventId}
+          />
 
           <hr className={styles.modalDivider} />
           <div className={styles.modalFooter}>

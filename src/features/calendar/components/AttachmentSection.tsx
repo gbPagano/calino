@@ -1,0 +1,131 @@
+import type { JSX } from 'react'
+import type { CalendarAttachment } from '@/types'
+import { putAttachments, deleteAttachments } from '@/lib/attachmentStore'
+import { showToast } from '@/lib/toast'
+import styles from './EventModal.module.css'
+
+const MAX_ATTACHMENT_SIZE_MB = 5
+const MAX_ATTACHMENT_SIZE_BYTES = MAX_ATTACHMENT_SIZE_MB * 1024 * 1024
+const MAX_ATTACHMENT_HARD_LIMIT_MB = 25
+const MAX_ATTACHMENT_HARD_LIMIT_BYTES = MAX_ATTACHMENT_HARD_LIMIT_MB * 1024 * 1024
+
+interface AttachmentSectionProps {
+  attachments: CalendarAttachment[]
+  onAttachmentsChange: (attachments: CalendarAttachment[]) => void
+  eventId: string | null
+}
+
+export function AttachmentSection({
+  attachments,
+  onAttachmentsChange,
+  eventId,
+}: AttachmentSectionProps): JSX.Element {
+  const storageKey = eventId || 'new'
+
+  const handleRemove = (index: number): void => {
+    const att = attachments[index]
+    if (window.confirm(`Remove "${att.filename || 'attachment'}" from this event? It will be deleted from the server when you save.`)) {
+      const remaining = attachments.filter((_, i) => i !== index)
+      onAttachmentsChange(remaining)
+      if (remaining.length > 0) {
+        putAttachments(storageKey, remaining).catch(() => {})
+      } else {
+        deleteAttachments(storageKey).catch(() => {})
+      }
+    }
+  }
+
+  const handleAdd = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const files = Array.from(e.target.files || [])
+    const filtered = files.filter((file) => {
+      if (file.size > MAX_ATTACHMENT_HARD_LIMIT_BYTES) {
+        showToast(`File "${file.name}" exceeds the ${MAX_ATTACHMENT_HARD_LIMIT_MB}MB limit`)
+        return false
+      }
+      if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+        showToast(`File "${file.name}" is larger than ${MAX_ATTACHMENT_SIZE_MB}MB and may not sync properly`)
+      }
+      return true
+    })
+
+    const readPromises = filtered.map((file) =>
+      new Promise<CalendarAttachment>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          resolve({
+            href: reader.result as string,
+            contentType: file.type || 'application/octet-stream',
+            size: file.size,
+            filename: file.name,
+          })
+        }
+        reader.onerror = () => reject(new Error(`Failed to read ${file.name}`))
+        reader.readAsDataURL(file)
+      })
+    )
+
+    Promise.all(readPromises)
+      .then((newAttachments) => {
+        const all = [...attachments, ...newAttachments]
+        onAttachmentsChange(all)
+        putAttachments(storageKey, all).catch(() => {
+          showToast('Failed to save attachments locally')
+        })
+      })
+      .catch((err) => {
+        showToast(err instanceof Error ? err.message : 'Failed to read files')
+      })
+
+    e.target.value = ''
+  }
+
+  return (
+    <div className={styles.modalField}>
+      <div className={styles.fieldHeader}>
+        <label className={styles.label}>Attachments</label>
+        <span className={styles.attachmentCount}>{attachments.length}</span>
+      </div>
+      {attachments.length > 0 && (
+        <p className={styles.attachmentSyncNote}>
+          Attachments will be synced to the CalDAV server when you save.
+        </p>
+      )}
+
+      {attachments.length > 0 && (
+        <div className={styles.attachmentList}>
+          {attachments.map((att, index) => (
+            <div key={index} className={styles.attachmentItem}>
+              <span className={styles.attachmentIcon}>📎</span>
+              <span className={styles.attachmentName}>{att.filename || 'attachment'}</span>
+              {att.size && (
+                <span className={styles.attachmentSize}>
+                  {att.size > 1024 * 1024
+                    ? `${(att.size / (1024 * 1024)).toFixed(1)} MB`
+                    : `${Math.round(att.size / 1024)} KB`}
+                </span>
+              )}
+              <button
+                type="button"
+                className={styles.removeAttachment}
+                title="Remove attachment"
+                onClick={() => handleRemove(index)}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <label className={styles.addAttachmentButton}>
+        <span>+ Add attachment</span>
+        <input
+          type="file"
+          className={styles.hiddenFileInput}
+          multiple
+          onChange={handleAdd}
+        />
+      </label>
+    </div>
+  )
+}

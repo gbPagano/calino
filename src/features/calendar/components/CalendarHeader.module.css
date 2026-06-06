@@ -30,13 +30,14 @@
   gap: 11px;
   padding-left: 36px;
   transition: opacity 0.2s ease, visibility 0.2s ease;
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .brandHidden {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  position: absolute;
 }
 
 .brandDiamond {
@@ -301,6 +302,8 @@
   padding: 4px;
   border-radius: 12px;
   transition: opacity 0.2s ease, visibility 0.2s ease;
+  grid-column: 5;
+  grid-row: 1;
 }
 
 .viewTab {
@@ -338,7 +341,6 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  position: absolute;
 }
 
 @media (max-width: 1220px) {
@@ -346,7 +348,6 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    position: absolute;
   }
 }
 
@@ -362,6 +363,8 @@
   display: flex;
   align-items: center;
   transition: opacity 0.2s ease, visibility 0.2s ease;
+  grid-column: 5;
+  grid-row: 1;
 }
 
 .viewDropdownHidden {
@@ -469,6 +472,8 @@
   cursor: pointer;
   transition: background 0.14s, color 0.14s, opacity 0.2s ease, visibility 0.2s ease;
   margin-left: 12px;
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .hamburger:hover {
@@ -480,7 +485,6 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  position: absolute;
 }
 
 @media (min-width: 950px) {
@@ -488,7 +492,6 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    position: absolute;
   }
 }
 

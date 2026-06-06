@@ -117,6 +117,7 @@ vi.mock('@/store/settingsStore', () => ({
       caldavDebugMode: false,
       hideCompletedTasksInMonthView: true,
       monthViewEventLimit: 3,
+      sidebarWidth: 300,
       updateSettings: vi.fn(),
       resetSettings: vi.fn(),
     }

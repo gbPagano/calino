@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useMemo, useState, useRef, useEffect } from 'react'
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -86,6 +86,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   const toggleCalendarVisibility = useCalendarStore((state) => state.toggleCalendarVisibility)
   const updateCalendar = useCalendarStore((state) => state.updateCalendar)
   const deleteCalendar = useCalendarStore((state) => state.deleteCalendar)
+  const sidebarWidth = useSettingsStore((state) => state.sidebarWidth)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
   const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
@@ -238,6 +239,27 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
     updateCalendar(calendarId, { color: nextColor })
   }
 
+  const handleSidebarResizeStart = useCallback((e: React.MouseEvent): void => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = sidebarWidth
+    const onMove = (ev: MouseEvent): void => {
+      const delta = ev.clientX - startX
+      const newWidth = Math.min(500, Math.max(220, startWidth + delta))
+      updateSettings({ sidebarWidth: newWidth })
+    }
+    const onUp = (): void => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }, [sidebarWidth, updateSettings])
+
   const miniCalendarDays = useMemo(() => {
     const monthStart = startOfMonth(effectiveMiniDate)
     const monthEnd = endOfMonth(effectiveMiniDate)
@@ -315,7 +337,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
   return (
     <>
       {isOpen && <div className={styles.overlay} onClick={onClose} />}
-      <div className={sidebarClass}>
+      <div className={sidebarClass} style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
         <div className={styles.miniCalendar}>
           <div className={styles.miniHeader}>
             <button onClick={handlePrevMonth} className={styles.miniNavBtn} aria-label="Previous month">
@@ -594,6 +616,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
             />,
             document.body
           )}
+      {!isCompact && !isCollapsed && (
+        <div
+          className={styles.resizer}
+          onMouseDown={handleSidebarResizeStart}
+        />
+      )}
       </div>
     </>
   )

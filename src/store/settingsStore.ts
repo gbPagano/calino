@@ -123,6 +123,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   darkTheme: config.defaultDarkTheme,
   caldavDebugMode: false,
   hideCompletedTasksInMonthView: true,
+  sidebarWidth: 300,
 }
 
 export const useSettingsStore = create<SettingsStore>()(

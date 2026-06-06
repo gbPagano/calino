@@ -151,6 +151,7 @@ export interface UserSettings {
   darkTheme: string
   caldavDebugMode: boolean
   hideCompletedTasksInMonthView: boolean
+  sidebarWidth: number
 }
 
 export type SettingsState = UserSettings

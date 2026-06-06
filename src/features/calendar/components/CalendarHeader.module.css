@@ -11,6 +11,7 @@
   position: relative;
   z-index: 100;
   gap: 22px;
+  transition: padding 0.25s ease;
 }
 
 @media (max-width: 768px) {
@@ -28,6 +29,14 @@
   align-items: center;
   gap: 11px;
   padding-left: 36px;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.brandHidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
 }
 
 .brandDiamond {
@@ -291,6 +300,7 @@
   background: rgba(var(--ink-raw, 44, 40, 33), 0.045);
   padding: 4px;
   border-radius: 12px;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
 .viewTab {
@@ -324,9 +334,19 @@
   flex-shrink: 0;
 }
 
+.viewTabsHidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
+}
+
 @media (max-width: 1220px) {
   .viewTabs {
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    position: absolute;
   }
 }
 
@@ -341,6 +361,13 @@
   position: relative;
   display: flex;
   align-items: center;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.viewDropdownHidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .viewDropdownButton {
@@ -440,7 +467,7 @@
   border: none;
   color: var(--ink-2);
   cursor: pointer;
-  transition: background 0.14s, color 0.14s;
+  transition: background 0.14s, color 0.14s, opacity 0.2s ease, visibility 0.2s ease;
   margin-left: 12px;
 }
 
@@ -449,9 +476,19 @@
   color: var(--ink);
 }
 
+.hamburgerHidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
+}
+
 @media (min-width: 950px) {
   .hamburger {
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    position: absolute;
   }
 }
 

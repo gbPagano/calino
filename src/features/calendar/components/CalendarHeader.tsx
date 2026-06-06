@@ -196,19 +196,18 @@ export function CalendarHeader({
 
   return (
     <div className={styles.header} {...bind}>
-      {/* Brand Mark - only on desktop */}
-      {/* Brand + hamburger — brand hides in compact mode, hamburger takes its place */}
-      {!isMobile && !isCompact && (
-        <div className={styles.brand}>
-          <div className={styles.brandDiamond} />
-          <span className={styles.brandName}>Calino</span>
-        </div>
-      )}
-      {(isMobile || isCompact) && (
-        <button className={styles.hamburger} onClick={onToggleSidebar} aria-label="Toggle menu">
-          <HamburgerIcon />
-        </button>
-      )}
+      {/* Brand + Hamburger — both always rendered, CSS handles visibility */}
+      <div className={`${styles.brand} ${isMobile || isCompact ? styles.brandHidden : ''}`}>
+        <div className={styles.brandDiamond} />
+        <span className={styles.brandName}>Calino</span>
+      </div>
+      <button
+        className={`${styles.hamburger} ${!isMobile && !isCompact ? styles.hamburgerHidden : ''}`}
+        onClick={onToggleSidebar}
+        aria-label="Toggle menu"
+      >
+        <HamburgerIcon />
+      </button>
 
       {/* Navigator - prev/today/next */}
       {currentView !== 'todo' ? (
@@ -263,69 +262,65 @@ export function CalendarHeader({
           <SearchIcon />
         </button>
 
-        {/* View Tabs - segmented control or dropdown */}
-        {!isMobile && !isTablet && (
-          <div className={styles.viewTabs}>
-            {VIEWS.map((view, index) => (
-              <React.Fragment key={view.value}>
-                {index === 3 && <div className={styles.viewTabDivider} />}
-                <button
-                  className={`${styles.viewTab} ${currentView === view.value ? styles.viewTabActive : ''}`}
-                  onClick={() => handleViewChange(view.value)}
-                >
-                  {view.label}
-                </button>
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-        {isTablet && (
-          <div
-            className={styles.viewDropdown}
-            ref={viewDropdownRef}
-            onMouseEnter={() => {
-              if (viewDropdownCloseTimer.current) {
-                clearTimeout(viewDropdownCloseTimer.current)
-                viewDropdownCloseTimer.current = null
-              }
-              setIsViewDropdownOpen(true)
-            }}
-            onMouseLeave={() => {
-              viewDropdownCloseTimer.current = setTimeout(() => {
-                setIsViewDropdownOpen(false)
-                viewDropdownCloseTimer.current = null
-              }, 150)
-            }}
+        {/* View Tabs - always rendered, CSS handles visibility */}
+        <div className={`${styles.viewTabs} ${isMobile || isTablet ? styles.viewTabsHidden : ''}`}>
+          {VIEWS.map((view, index) => (
+            <React.Fragment key={view.value}>
+              {index === 3 && <div className={styles.viewTabDivider} />}
+              <button
+                className={`${styles.viewTab} ${currentView === view.value ? styles.viewTabActive : ''}`}
+                onClick={() => handleViewChange(view.value)}
+              >
+                {view.label}
+              </button>
+            </React.Fragment>
+          ))}
+        </div>
+        <div
+          className={`${styles.viewDropdown} ${!isTablet || isMobile ? styles.viewDropdownHidden : ''}`}
+          ref={viewDropdownRef}
+          onMouseEnter={() => {
+            if (viewDropdownCloseTimer.current) {
+              clearTimeout(viewDropdownCloseTimer.current)
+              viewDropdownCloseTimer.current = null
+            }
+            setIsViewDropdownOpen(true)
+          }}
+          onMouseLeave={() => {
+            viewDropdownCloseTimer.current = setTimeout(() => {
+              setIsViewDropdownOpen(false)
+              viewDropdownCloseTimer.current = null
+            }, 150)
+          }}
+        >
+          <button
+            className={styles.viewDropdownButton}
+            onClick={() => setIsViewDropdownOpen((prev) => !prev)}
           >
-            <button
-              className={styles.viewDropdownButton}
-              onClick={() => setIsViewDropdownOpen((prev) => !prev)}
-            >
-              {VIEWS.find((v) => v.value === currentView)?.label}
-              <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" className={`${styles.viewDropdownArrow} ${isViewDropdownOpen ? styles.viewDropdownArrowOpen : ''}`}>
-                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            {isViewDropdownOpen && (
-              <div className={styles.viewDropdownMenu}>
-                {VIEWS.map((view, index) => (
-                  <React.Fragment key={view.value}>
-                    {index === 3 && <div className={styles.viewDropdownDivider} />}
-                    <button
-                      className={`${styles.viewDropdownItem} ${currentView === view.value ? styles.viewDropdownItemActive : ''}`}
-                      onClick={() => {
-                        handleViewChange(view.value)
-                        setIsViewDropdownOpen(false)
-                      }}
-                    >
-                      {view.label}
-                    </button>
-                  </React.Fragment>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+            {VIEWS.find((v) => v.value === currentView)?.label}
+            <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" className={`${styles.viewDropdownArrow} ${isViewDropdownOpen ? styles.viewDropdownArrowOpen : ''}`}>
+              <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {isViewDropdownOpen && (
+            <div className={styles.viewDropdownMenu}>
+              {VIEWS.map((view, index) => (
+                <React.Fragment key={view.value}>
+                  {index === 3 && <div className={styles.viewDropdownDivider} />}
+                  <button
+                    className={`${styles.viewDropdownItem} ${currentView === view.value ? styles.viewDropdownItemActive : ''}`}
+                    onClick={() => {
+                      handleViewChange(view.value)
+                      setIsViewDropdownOpen(false)
+                    }}
+                  >
+                    {view.label}
+                  </button>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </div>
 
 
         <div

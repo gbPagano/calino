@@ -4,7 +4,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--modal-scrim, rgba(0, 0, 0, 0.5));
+  backdrop-filter: var(--modal-blur, blur(3px));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12,8 +13,10 @@
 }
 
 .modalContent {
-  background: #ffffff;
-  border-radius: 12px;
+  background: var(--modal-bg, #ffffff);
+  border: 1px solid var(--modal-border, transparent);
+  box-shadow: var(--modal-shadow, 0 24px 80px rgba(0, 0, 0, 0.18), 0 6px 20px rgba(0, 0, 0, 0.10));
+  border-radius: 18px;
   padding: 32px;
   width: 100%;
   max-width: 440px;
@@ -31,14 +34,14 @@
 .title {
   font-size: 22px;
   font-weight: 600;
-  color: #202124;
+  color: var(--color-text-primary, #202124);
   margin: 0 0 16px 0;
 }
 
 .description {
   font-size: 14px;
   line-height: 1.6;
-  color: #5f6368;
+  color: var(--color-text-secondary, #5f6368);
   margin: 0 0 12px 0;
   text-align: left;
 }
@@ -61,12 +64,12 @@
   cursor: pointer;
   transition: all 0.15s ease;
   border: none;
-  background: #1a73e8;
+  background: var(--color-accent, #1a73e8);
   color: #ffffff;
 }
 
 .addButton:hover {
-  background: #1557b0;
+  background: var(--color-accent-hover, #1557b0);
 }
 
 .skipButton {
@@ -76,14 +79,14 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
-  border: 1px solid #dadce0;
-  background: #ffffff;
-  color: #5f6368;
+  border: 1px solid var(--color-border-visible, #dadce0);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-secondary, #5f6368);
 }
 
 .skipButton:hover {
-  background: #f1f3f4;
-  color: #202124;
+  background: var(--color-bg-hover, #f1f3f4);
+  color: var(--color-text-primary, #202124);
 }
 
 .demoButton {
@@ -93,13 +96,13 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
-  border: 1px solid #34a853;
-  background: #ffffff;
-  color: #34a853;
+  border: 1px solid var(--color-success, #34a853);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-success, #34a853);
 }
 
 .demoButton:hover:not(:disabled) {
-  background: #e8f5e9;
+  background: var(--color-success-light, #e8f5e9);
 }
 
 .demoButton:disabled {
@@ -108,7 +111,7 @@
 }
 
 .errorMessage {
-  color: #ea4335;
+  color: var(--color-error, #ea4335);
   font-size: 14px;
   margin: 0 0 16px 0;
   text-align: center;

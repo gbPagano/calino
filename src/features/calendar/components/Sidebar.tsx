@@ -50,10 +50,14 @@ function getNextColor(currentColor: string): string {
 interface SidebarProps {
   isOpen?: boolean
   onClose?: () => void
+  isCollapsed?: boolean
+  onCollapsedChange?: (collapsed: boolean) => void
 }
 
-export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element {
-  const [isCollapsed, setIsCollapsed] = useState(false)
+export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollapsed, onCollapsedChange }: SidebarProps): JSX.Element {
+  const [internalCollapsed, setInternalCollapsed] = useState(false)
+  const isCollapsed = controlledCollapsed ?? internalCollapsed
+  const setIsCollapsed = onCollapsedChange ?? setInternalCollapsed
   const [isCompact, setIsCompact] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 950 : false
   )

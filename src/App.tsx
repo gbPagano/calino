@@ -204,6 +204,7 @@ function CalendarApp(): JSX.Element {
   const openModal = useCalendarStore((state) => state.openModal)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false)
 
   useViewManager()
@@ -284,7 +285,11 @@ function CalendarApp(): JSX.Element {
   }
 
   const handleToggleSidebar = useCallback(() => {
-    setIsSidebarOpen((prev) => !prev)
+    if (window.innerWidth <= 950) {
+      setIsSidebarOpen((prev) => !prev)
+    } else {
+      setIsSidebarCollapsed((prev) => !prev)
+    }
   }, [])
 
   const handleCloseSidebar = useCallback(() => {
@@ -311,7 +316,7 @@ function CalendarApp(): JSX.Element {
         onOpenCommandPalette={handleOpenCommandPalette}
       />
       <div className="appContent">
-        <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
+        <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} isCollapsed={isSidebarCollapsed} onCollapsedChange={setIsSidebarCollapsed} />
         <main className="main">{renderView()}</main>
       </div>
       <MobileFAB
@@ -328,7 +333,7 @@ function CalendarApp(): JSX.Element {
           setOverlayOpen(false)
         }}
         toggleSidebar={handleToggleSidebar}
-        sidebarOpen={isSidebarOpen}
+        sidebarOpen={window.innerWidth <= 950 ? isSidebarOpen : !isSidebarCollapsed}
       />
       <OnboardingModal onAddCalendar={() => setShowAddCalendar(true)} />
     </div>

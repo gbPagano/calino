@@ -221,7 +221,7 @@ const createActionCommands = (deps: CommandFactoryDeps): Command[] => [
     icon: ICONS.sidebar,
     action: () => {
       deps.toggleSidebar?.()
-      return deps.sidebarOpen ? 'Sidebar hidden' : 'Sidebar shown'
+      return deps.sidebarOpen ? 'Sidebar shown' : 'Sidebar hidden'
     },
   },
   {

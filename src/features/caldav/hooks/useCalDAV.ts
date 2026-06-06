@@ -896,6 +896,9 @@ export function useCalDAV(): UseCalDAVReturn {
       const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
       const newCalendar = await client.createCalendar(options)
 
+      // Set the correct accountId before saving
+      newCalendar.accountId = accountId
+
       // Save to local storage
       storage.saveCalendar(newCalendar)
       storeAddCalendar({

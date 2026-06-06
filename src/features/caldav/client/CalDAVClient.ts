@@ -330,10 +330,10 @@ export class CalDAVClient {
       throw new Error(`Failed to create calendar: ${response.status} ${errorText}`)
     }
 
-    // Return the created calendar
+    // Return the created calendar (accountId is NOT set here - the caller provides it)
     return {
       id: calendarUrl,
-      accountId: this.credentials.id,
+      accountId: '', // Will be set by caller
       url: calendarUrl,
       name: options.name,
       color: options.color || '#4285F4',

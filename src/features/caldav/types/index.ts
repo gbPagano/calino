@@ -11,7 +11,7 @@ export interface CalDAVAccount {
 
 export interface CalDAVCalendar {
   id: string
-  accountId?: string
+  accountId?: string // Set by caller, not by CalDAV client
   url: string
   name: string
   color: string

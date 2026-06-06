@@ -81,6 +81,18 @@
     </script>
   </head>
   <body>
+    <script>
+      // Apply theme background before React loads to prevent white flash
+      (function() {
+        try {
+          var stored = JSON.parse(localStorage.getItem('calino-settings') || '{}');
+          var mode = (stored.state && stored.state.themeMode) || 'auto';
+          var isDark = mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.body.style.background = isDark ? '#1a1816' : '#fafafa';
+          document.body.style.transition = 'background 0.3s ease';
+        } catch(e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

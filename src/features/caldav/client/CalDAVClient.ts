@@ -297,15 +297,15 @@ export class CalDAVClient {
   </set>
 </C:mkcalendar>`
 
-    // Use raw fetch for MKCALENDAR since tsdav doesn't have a direct method
-    const baseUrl = this.serverUrl.replace(/\/$/, '')
-    // Create a new calendar collection under the principal's calendar home
-    // We'll use a sanitized version of the calendar name as the URL
+    // Find the calendar home set by querying the principal
+    const calendarHomeUrl = await this.findCalendarHome()
+
+    // Create a new calendar collection under the calendar home
     const calendarUri = options.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
-    const calendarUrl = `${baseUrl}/${calendarUri}/`
+    const calendarUrl = `${calendarHomeUrl}${calendarUri}/`
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/xml; charset=utf-8',
@@ -335,6 +335,72 @@ export class CalDAVClient {
       isVisible: true,
       isDefault: false,
     }
+  }
+
+  private async findCalendarHome(): Promise<string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
+      Depth: '0',
+    }
+
+    // First, try to find the principal URL
+    const principalXml = `<?xml version="1.0" encoding="UTF-8" ?>
+<d:propfind xmlns:d="DAV:">
+  <d:prop>
+    <d:principal-URL/>
+  </d:prop>
+</d:propfind>`
+
+    const principalResponse = await fetchWithTimeout(this.serverUrl, {
+      method: 'PROPFIND',
+      headers,
+      body: principalXml,
+    })
+
+    if (!principalResponse.ok) {
+      throw new Error('Failed to find principal URL')
+    }
+
+    const principalText = await principalResponse.text()
+    const principalMatch = principalText.match(/<d:principal-URL>\s*<d:href>([^<]+)<\/d:href>/)
+    const principalUrl = principalMatch?.[1]
+
+    if (!principalUrl) {
+      throw new Error('Could not determine principal URL')
+    }
+
+    // Now find the calendar home set from the principal
+    const homeXml = `<?xml version="1.0" encoding="UTF-8" ?>
+<d:propfind xmlns:d="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <d:prop>
+    <C:calendar-home-set/>
+  </d:prop>
+</d:propfind>`
+
+    const principalUrlFull = principalUrl.startsWith('http') 
+      ? principalUrl 
+      : `${this.serverUrl.replace(/\/$/, '')}${principalUrl}`
+
+    const homeResponse = await fetchWithTimeout(principalUrlFull, {
+      method: 'PROPFIND',
+      headers,
+      body: homeXml,
+    })
+
+    if (!homeResponse.ok) {
+      throw new Error('Failed to find calendar home')
+    }
+
+    const homeText = await homeResponse.text()
+    const homeMatch = homeText.match(/<C:calendar-home-set>\s*<d:href>([^<]+)<\/d:href>/)
+    const homeUrl = homeMatch?.[1]
+
+    if (!homeUrl) {
+      throw new Error('Could not determine calendar home URL')
+    }
+
+    return homeUrl.startsWith('http') ? homeUrl : `${this.serverUrl.replace(/\/$/, '')}${homeUrl}`
   }
 
   async updateCalendar(calendarUrl: string, options: UpdateCalendarOptions): Promise<void> {

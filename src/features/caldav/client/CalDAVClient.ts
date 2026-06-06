@@ -110,8 +110,8 @@ export class CalDAVClient {
 
     return davCalendars.map((cal, index) => ({
       id: cal.url || `cal-${index}-${uuidv4()}`,
-      accountId: this.credentials.id,
-      // Store the raw server URL - proxy prefix is applied only at HTTP request time
+      // Note: accountId is NOT set here - the caller must set it
+      // this.credentials.id is the credential ID, not the account ID
       url: cal.url || '',
       name: typeof cal.displayName === 'string' ? cal.displayName : 'Unnamed Calendar',
       color: '#4285F4',

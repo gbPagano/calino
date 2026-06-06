@@ -3,6 +3,11 @@ name: Docker
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
     tags: ['v*']
   pull_request:
     branches: [main]

@@ -29,6 +29,8 @@
   animation: shimmer 1.8s ease-in-out infinite;
 }
 
+/* ── Month ─────────────────────────────────── */
+
 .skeleton-grid {
   flex: 1;
   display: flex;
@@ -82,4 +84,206 @@
 
 .skeleton-bar--event-short {
   width: 60%;
+}
+
+/* ── Week ──────────────────────────────────── */
+
+.skeleton-week {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  gap: 0;
+  min-width: 0;
+}
+
+.skeleton-week-header {
+  display: grid;
+  grid-template-columns: 48px repeat(7, 1fr);
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.06));
+}
+
+.skeleton-week-day-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.skeleton-bar--week-day-label {
+  width: 28px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.skeleton-bar--week-date {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.skeleton-week-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.skeleton-week-row {
+  display: grid;
+  grid-template-columns: 48px repeat(7, 1fr);
+  gap: 8px;
+  flex: 1;
+  border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
+}
+
+.skeleton-bar--hour-label {
+  width: 36px;
+  height: 12px;
+  border-radius: 3px;
+  align-self: start;
+  margin-top: -6px;
+}
+
+.skeleton-week-cell {
+  border-radius: 4px;
+}
+
+.skeleton-bar--week-event {
+  height: 100%;
+  min-height: 20px;
+  border-radius: 4px;
+}
+
+/* ── Day ───────────────────────────────────── */
+
+.skeleton-day {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 24px;
+  gap: 0;
+  min-width: 0;
+}
+
+.skeleton-day-header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.06));
+}
+
+.skeleton-bar--day-title {
+  width: 140px;
+  height: 22px;
+  border-radius: 4px;
+}
+
+.skeleton-day-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.skeleton-day-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 16px;
+  flex: 1;
+  border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
+}
+
+.skeleton-day-cell {
+  border-radius: 6px;
+}
+
+.skeleton-bar--day-event {
+  height: 100%;
+  min-height: 28px;
+  border-radius: 6px;
+}
+
+/* ── Agenda ────────────────────────────────── */
+
+.skeleton-agenda {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 24px;
+  gap: 16px;
+  min-width: 0;
+}
+
+.skeleton-agenda-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.skeleton-bar--agenda-date {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.skeleton-agenda-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-bar--agenda-title {
+  width: 70%;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.skeleton-bar--agenda-time {
+  width: 40%;
+  height: 12px;
+  border-radius: 4px;
+}
+
+/* ── Todo ──────────────────────────────────── */
+
+.skeleton-todo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 24px;
+  gap: 12px;
+  min-width: 0;
+}
+
+.skeleton-todo-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.skeleton-bar--todo-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.skeleton-todo-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-bar--todo-title {
+  width: 60%;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.skeleton-bar--todo-due {
+  width: 30%;
+  height: 12px;
+  border-radius: 4px;
 }

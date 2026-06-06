@@ -40,7 +40,7 @@ function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: Vie
         transition={{ duration: 0.15 }}
         style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
       >
-        <Suspense fallback={<CalendarSkeleton />}>
+        <Suspense fallback={<CalendarSkeleton view={viewKey} />}>
           {children}
         </Suspense>
       </motion.div>

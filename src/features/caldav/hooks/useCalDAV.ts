@@ -948,10 +948,14 @@ export function useCalDAV(): UseCalDAVReturn {
 
   const deleteCalDAVCalendar = useCallback(
     async (calendarId: string): Promise<void> => {
+      console.log('[CalDAV] deleteCalDAVCalendar called with calendarId:', calendarId)
       const allCalendars = storage.getAllCalendars()
+      console.log('[CalDAV] All calendars in storage:', allCalendars.map(c => ({ id: c.id, name: c.name })))
       const allAccounts = storage.getAllAccounts()
       const calendar = allCalendars.find((c) => c.id === calendarId)
+      console.log('[CalDAV] Found calendar:', calendar)
       const account = allAccounts.find((a) => a.id === calendar?.accountId)
+      console.log('[CalDAV] Found account:', account)
 
       if (!calendar || !account) {
         throw new Error('Calendar or account not found')

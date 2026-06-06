@@ -1001,31 +1001,42 @@ export function EventModal(): JSX.Element | null {
                 multiple
                 onChange={(e) => {
                   const files = Array.from(e.target.files || [])
-                  const newAttachments: CalendarAttachment[] = []
-                  
-                  for (const file of files) {
+                  const filtered = files.filter((file) => {
                     if (file.size > MAX_ATTACHMENT_HARD_LIMIT_BYTES) {
                       showToast(`File “${file.name}” exceeds the ${MAX_ATTACHMENT_HARD_LIMIT_MB}MB limit`)
-                      continue
+                      return false
                     }
                     if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
                       showToast(`File “${file.name}” is larger than ${MAX_ATTACHMENT_SIZE_MB}MB and may not sync properly`)
                     }
-                    const reader = new FileReader()
-                    reader.onload = () => {
-                      const dataUrl = reader.result as string
-                      newAttachments.push({
-                        href: dataUrl,
-                        contentType: file.type || 'application/octet-stream',
-                        size: file.size,
-                        filename: file.name,
-                      })
-                      if (newAttachments.length === files.length) {
-                        setAttachments((prev) => [...prev, ...newAttachments])
+                    return true
+                  })
+
+                  // Read all files as data URLs, preserving order
+                  const readPromises = filtered.map((file) =>
+                    new Promise<CalendarAttachment>((resolve, reject) => {
+                      const reader = new FileReader()
+                      reader.onload = () => {
+                        resolve({
+                          href: reader.result as string,
+                          contentType: file.type || 'application/octet-stream',
+                          size: file.size,
+                          filename: file.name,
+                        })
                       }
-                    }
-                    reader.readAsDataURL(file)
-                  }
+                      reader.onerror = () => reject(new Error(`Failed to read ${file.name}`))
+                      reader.readAsDataURL(file)
+                    })
+                  )
+
+                  Promise.all(readPromises)
+                    .then((newAttachments) => {
+                      setAttachments((prev) => [...prev, ...newAttachments])
+                    })
+                    .catch((err) => {
+                      showToast(err instanceof Error ? err.message : 'Failed to read files')
+                    })
+
                   e.target.value = ''
                 }}
               />

@@ -2,7 +2,7 @@
 
 All notable changes to Calino will be documented in this file.
 
-## [Unreleased]
+## [0.9.5] - 2026-06-06
 
 ### New Features
 - **Resizable sidebar** — drag the edge to resize, auto-collapses when too small
@@ -19,7 +19,3 @@ All notable changes to Calino will be documented in this file.
 ### Notable Fixes
 - Attachment deletion now syncs correctly to the CalDAV server
 - Fixed command palette input being cut off
-
-## [0.9.5] - 2026-06-06
-
-_Breaking version bump — see previous entries for details._

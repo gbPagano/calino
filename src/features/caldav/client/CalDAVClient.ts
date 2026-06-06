@@ -72,11 +72,14 @@ export class CalDAVClient {
   private serverUrl: string
   private proxyUrl: string | null
   private credentials: CalDAVCredentials
+  // Proxy-aware fetch function (applied to all direct fetch calls)
+  private proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>
 
   constructor(serverUrl: string, credentials: CalDAVCredentials, proxyUrl: string | null = null) {
     this.serverUrl = serverUrl
     this.proxyUrl = proxyUrl
     this.credentials = credentials
+    this.proxyFetch = proxyUrl ? createProxyFetch(proxyUrl) : fetchWithTimeout
   }
 
   async connect(): Promise<void> {
@@ -319,7 +322,7 @@ export class CalDAVClient {
       Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
     }
 
-    const response = await fetchWithTimeout(calendarUrl, {
+    const response = await this.proxyFetch(calendarUrl, {
       method: 'MKCOL',
       headers,
       body: xmlBody,
@@ -396,7 +399,7 @@ export class CalDAVClient {
       const testUrl = `${baseUrl}${path}${this.credentials.username}/`
       
       try {
-        const response = await fetchWithTimeout(testUrl, {
+        const response = await this.proxyFetch(testUrl, {
           method: 'PROPFIND',
           headers,
           body: principalXml,
@@ -480,7 +483,7 @@ export class CalDAVClient {
       Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
     }
 
-    const response = await fetchWithTimeout(calendarUrl, {
+    const response = await this.proxyFetch(calendarUrl, {
       method: 'PROPPATCH',
       headers,
       body: xmlBody,
@@ -501,7 +504,7 @@ export class CalDAVClient {
       Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
     }
 
-    const response = await fetchWithTimeout(calendarUrl, {
+    const response = await this.proxyFetch(calendarUrl, {
       method: 'DELETE',
       headers,
     })

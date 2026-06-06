@@ -232,15 +232,22 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
 
   const handleFinishRename = async (): Promise<void> => {
     if (editingId && editName.trim()) {
-      // Update local store
-      updateCalendar(editingId, { name: editName.trim() })
+      const oldName = calendars.find((c) => c.id === editingId)?.name
+      const newName = editName.trim()
+      
+      // Update local store immediately
+      updateCalendar(editingId, { name: newName })
       
       // If it's a CalDAV calendar, also update on server
       const calendar = calendars.find((c) => c.id === editingId)
       if (calendar?.accountId) {
         try {
-          await updateCalDAVCalendar(editingId, { name: editName.trim() })
+          await updateCalDAVCalendar(editingId, { name: newName })
         } catch (error) {
+          // Rollback local rename on server failure
+          if (oldName) {
+            updateCalendar(editingId, { name: oldName })
+          }
           showToast(error instanceof Error ? error.message : 'Failed to rename calendar')
         }
       }

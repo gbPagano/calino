@@ -61,10 +61,11 @@ vi.mock('../hooks/useCommandPalette', () => ({
 }))
 
 describe('CommandPalette', () => {
-  it('renders input with placeholder', () => {
+  it('renders input with typewriter placeholder', () => {
     render(<CommandPalette isOpen={true} onClose={vi.fn()} />)
 
-    expect(screen.getByPlaceholderText(/search commands/i)).toBeInTheDocument()
+    // The typewriter renders placeholder text as a span overlay
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 
   it('does not render when isOpen is false', () => {

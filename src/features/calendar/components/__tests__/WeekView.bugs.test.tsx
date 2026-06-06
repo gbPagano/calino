@@ -34,6 +34,10 @@ describe('Bug #88: Timed tasks invisible in WeekView', () => {
       createEvent: vi.fn(),
       updateEvent: vi.fn(),
       deleteEvent: vi.fn(),
+      retryAllFailedSyncs: vi.fn().mockResolvedValue({ succeeded: 0, failed: 0 }),
+      createCalendar: vi.fn(),
+      updateCalendar: vi.fn(),
+      deleteCalendarFromServer: vi.fn(),
     } as unknown as ReturnType<typeof useCalDAV>)
 
     mockUseGestures.mockReturnValue({

@@ -222,7 +222,7 @@ export function WeekView(): JSX.Element {
 
       if (event.type !== 'task' && event.isAllDay) {
         allDay.set(startKey, [...(allDay.get(startKey) || []), event])
-      } else if (event.type !== 'task' ? !event.isAllDay : !event.isAllDay && event.start && event.dueDate) {
+      } else if (event.type !== 'task' ? !event.isAllDay : !event.isAllDay && event.start) {
         if (startKey === endKey) {
           timed.set(startKey, [...(timed.get(startKey) || []), event])
         } else {

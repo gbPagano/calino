@@ -23,6 +23,7 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { useUpdateCheck } from '@/hooks/useUpdateCheck'
+import { showToast } from '@/lib/toast'
 import { AddCalendarModal } from './AddCalendarModal'
 import { CreateCalendarModal } from './CreateCalendarModal'
 import { DeleteCalendarDialog } from './DeleteCalendarDialog'
@@ -240,7 +241,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
         try {
           await updateCalDAVCalendar(editingId, { name: editName.trim() })
         } catch (error) {
-          console.error('[CalDAV] Failed to rename calendar on server:', error)
+          showToast(error instanceof Error ? error.message : 'Failed to rename calendar')
         }
       }
     }
@@ -655,7 +656,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
               try {
                 await deleteCalendarFromServer(deleteCalendarId)
               } catch (error) {
-                console.error('Failed to delete calendar:', error)
+                showToast(error instanceof Error ? error.message : 'Failed to delete calendar')
               }
             }
           }}

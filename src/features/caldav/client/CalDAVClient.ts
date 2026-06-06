@@ -348,7 +348,8 @@ export class CalDAVClient {
       if (homeUrl) {
         return homeUrl
       }
-    } catch (e) {
+    } catch {
+      // Method 1 failed, try fallback
     }
 
     // Method 2: Derive from existing calendar URLs
@@ -357,8 +358,8 @@ export class CalDAVClient {
       if (homeUrl) {
         return homeUrl
       }
-    } catch (e) {
-      console.log('[CalDAV] Calendar derivation failed:', e)
+    } catch {
+      // Method 2 failed too
     }
 
     throw new Error('Could not determine calendar home URL. Please check your CalDAV server configuration.')
@@ -492,8 +493,6 @@ export class CalDAVClient {
     if (!navigator.onLine) {
       throw new Error('No network connection. Please check your internet connection.')
     }
-
-    console.log('[CalDAV] deleteCalendar called with URL:', calendarUrl)
 
     const headers: Record<string, string> = {
       Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,

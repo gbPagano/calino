@@ -73,3 +73,16 @@ export interface ConflictInfo {
   serverVersion: unknown
   resolution: ConflictResolution
 }
+
+export interface CreateCalendarOptions {
+  name: string
+  description?: string
+  color?: string
+  components?: ('VEVENT' | 'VTODO' | 'VJOURNAL')[]
+}
+
+export interface UpdateCalendarOptions {
+  name?: string
+  description?: string
+  color?: string
+}

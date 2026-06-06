@@ -1,8 +1,17 @@
 import { createDAVClient } from 'tsdav'
-import type { CalDAVCredentials, CalDAVCalendar } from '../types'
+import type { CalDAVCredentials, CalDAVCalendar, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 
 const NETWORK_TIMEOUT_MS = 15_000
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
 
 export function buildProxyUrl(proxyBase: string, targetUrl: string): string {
   const encodedTarget = encodeURIComponent(targetUrl)
@@ -250,6 +259,144 @@ export class CalDAVClient {
     await client.deleteCalendarObject({
       calendarObject: { url: eventUrl, etag },
     })
+  }
+
+  async createCalendar(options: CreateCalendarOptions): Promise<CalDAVCalendar> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+
+    // Build the MKCALENDAR XML body
+    const components = options.components || ['VEVENT', 'VTODO']
+    const componentXml = components
+      .map((comp) => `<C:comp name="${comp}"/>`)
+      .join('\n          ')
+
+    let colorXml = ''
+    if (options.color) {
+      // Try standard calendar-color first, fall back to Apple extension
+      colorXml = `
+        <C:calendar-color>${options.color}</C:calendar-color>`
+    }
+
+    let descriptionXml = ''
+    if (options.description) {
+      descriptionXml = `
+        <C:calendar-description>${escapeXml(options.description)}</C:calendar-description>`
+    }
+
+    const xmlBody = `<?xml version="1.0" encoding="UTF-8" ?>
+<mkcalendar xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <set>
+    <prop>
+      <displayname>${escapeXml(options.name)}</displayname>${descriptionXml}${colorXml}
+      <C:supported-calendar-component-set>
+          ${componentXml}
+      </C:supported-calendar-component-set>
+    </prop>
+  </set>
+</mkcalendar>`
+
+    // Use raw fetch for MKCALENDAR since tsdav doesn't have a direct method
+    const baseUrl = this.serverUrl.replace(/\/$/, '')
+    // Create a new calendar collection under the principal's calendar home
+    // We'll use a sanitized version of the calendar name as the URL
+    const calendarUri = options.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+    const calendarUrl = `${baseUrl}/${calendarUri}/`
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
+    }
+
+    const response = await fetchWithTimeout(calendarUrl, {
+      method: 'MKCALENDAR',
+      headers,
+      body: xmlBody,
+    })
+
+    if (!response.ok && response.status !== 201 && response.status !== 204) {
+      const errorText = await response.text()
+      throw new Error(`Failed to create calendar: ${response.status} ${errorText}`)
+    }
+
+    // Return the created calendar
+    return {
+      id: calendarUrl,
+      accountId: this.credentials.id,
+      url: calendarUrl,
+      name: options.name,
+      color: options.color || '#4285F4',
+      ctag: null,
+      syncToken: null,
+      isVisible: true,
+      isDefault: false,
+    }
+  }
+
+  async updateCalendar(calendarUrl: string, options: UpdateCalendarOptions): Promise<void> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+
+    // Build PROPPATCH XML
+    let propXml = '<prop>'
+    if (options.name !== undefined) {
+      propXml += `\n      <displayname>${escapeXml(options.name)}</displayname>`
+    }
+    if (options.description !== undefined) {
+      propXml += `\n      <C:calendar-description xmlns:C="urn:ietf:params:xml:ns:caldav">${escapeXml(options.description)}</C:calendar-description>`
+    }
+    if (options.color !== undefined) {
+      propXml += `\n      <C:calendar-color xmlns:C="urn:ietf:params:xml:ns:caldav">${options.color}</C:calendar-color>`
+    }
+    propXml += '\n    </prop>'
+
+    const xmlBody = `<?xml version="1.0" encoding="UTF-8" ?>
+<propertyupdate xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <set>
+    ${propXml}
+  </set>
+</propertyupdate>`
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
+    }
+
+    const response = await fetchWithTimeout(calendarUrl, {
+      method: 'PROPPATCH',
+      headers,
+      body: xmlBody,
+    })
+
+    if (!response.ok && response.status !== 207) {
+      const errorText = await response.text()
+      throw new Error(`Failed to update calendar: ${response.status} ${errorText}`)
+    }
+  }
+
+  async deleteCalendar(calendarUrl: string): Promise<void> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+
+    const headers: Record<string, string> = {
+      Authorization: `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
+    }
+
+    const response = await fetchWithTimeout(calendarUrl, {
+      method: 'DELETE',
+      headers,
+    })
+
+    if (!response.ok && response.status !== 204 && response.status !== 200) {
+      const errorText = await response.text()
+      throw new Error(`Failed to delete calendar: ${response.status} ${errorText}`)
+    }
   }
 
   getServerUrl(): string {

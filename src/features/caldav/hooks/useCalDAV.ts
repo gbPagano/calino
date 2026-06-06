@@ -952,11 +952,12 @@ export function useCalDAV(): UseCalDAVReturn {
       const allCalendars = storage.getAllCalendars()
       console.log('[CalDAV] All calendars in storage:', allCalendars.map(c => ({ id: c.id, name: c.name })))
       const allAccounts = storage.getAllAccounts()
-      console.log('[CalDAV] All accounts in storage:', allAccounts.map(a => ({ id: a.id, name: a.name })))
+      console.log('[CalDAV] All accounts in storage:', allAccounts.map(a => ({ id: a.id, name: a.name, serverUrl: a.serverUrl })))
       const calendar = allCalendars.find((c) => c.id === calendarId)
-      console.log('[CalDAV] Found calendar:', calendar)
+      console.log('[CalDAV] Found calendar:', calendar?.name, 'accountId:', calendar?.accountId)
       const account = allAccounts.find((a) => a.id === calendar?.accountId)
-      console.log('[CalDAV] Found account:', account)
+      console.log('[CalDAV] Looking for account with ID:', calendar?.accountId)
+      console.log('[CalDAV] Found account:', account?.name)
 
       if (!calendar || !account) {
         throw new Error('Calendar or account not found')

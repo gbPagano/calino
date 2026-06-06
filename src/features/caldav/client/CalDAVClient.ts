@@ -286,19 +286,20 @@ export class CalDAVClient {
     }
 
     const xmlBody = `<?xml version="1.0" encoding="UTF-8" ?>
-<C:mkcalendar xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
-  <set>
-    <prop>
-      <displayname>${escapeXml(options.name)}</displayname>${descriptionXml}${colorXml}
-      <C:resourcetype>
+<D:mkcol xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <D:set>
+    <D:prop>
+      <D:resourcetype>
+        <D:collection/>
         <C:calendar/>
-      </C:resourcetype>
+      </D:resourcetype>
+      <D:displayname>${escapeXml(options.name)}</D:displayname>${descriptionXml}${colorXml}
       <C:supported-calendar-component-set>
           ${componentXml}
       </C:supported-calendar-component-set>
-    </prop>
-  </set>
-</C:mkcalendar>`
+    </D:prop>
+  </D:set>
+</D:mkcol>`
 
     // Find the calendar home set by querying the principal
     const calendarHomeUrl = await this.findCalendarHome()
@@ -316,7 +317,7 @@ export class CalDAVClient {
     }
 
     const response = await fetchWithTimeout(calendarUrl, {
-      method: 'MKCALENDAR',
+      method: 'MKCOL',
       headers,
       body: xmlBody,
     })

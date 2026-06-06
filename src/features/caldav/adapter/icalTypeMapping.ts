@@ -392,7 +392,8 @@ export function icalEventToCalendarEvent(
     // RFC 5545 §3.3.1: VALUE=BINARY with ENCODING=BASE64 → ical.js returns ICAL.Binary
     if (attachValue instanceof ICAL.Binary) {
       const base64Data = attachValue.decodeValue()
-      const contentType = attachProp.getParameter('fmttype') || 'application/octet-stream'
+      const rawFmtType = attachProp.getParameter('fmttype')
+      const contentType = (typeof rawFmtType === 'string' ? rawFmtType : undefined) || 'application/octet-stream'
       const filename = attachProp.getParameter('filename')
       attachments.push({
         href: `data:${contentType};base64,${base64Data}`,

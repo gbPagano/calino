@@ -245,7 +245,6 @@ export function EventModal(): JSX.Element | null {
   const categories = useCalendarStore((state) => state.categories)
   const addEvent = useCalendarStore((state) => state.addEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
-  const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const closeModal = useCalendarStore((state) => state.closeModal)
   const {
     createEvent: createCalDAVEvent,

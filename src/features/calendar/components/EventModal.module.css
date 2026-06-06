@@ -158,9 +158,11 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.modalInput:focus {
+.modalInput:focus,
+.modalInput:focus-visible {
   border-color: var(--color-accent);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 2px var(--color-accent-light);
+  outline: none;
+  box-shadow: none;
 }
 
 .modalInput::placeholder {
@@ -423,10 +425,14 @@
 }
 
 .input:focus,
+.input:focus-visible,
 .select:focus,
-.textarea:focus {
+.select:focus-visible,
+.textarea:focus,
+.textarea:focus-visible {
   border-color: var(--color-accent);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 2px var(--color-accent-light);
+  outline: none;
+  box-shadow: none;
 }
 
 .input,

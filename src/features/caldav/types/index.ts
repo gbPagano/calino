@@ -78,7 +78,7 @@ export interface CreateCalendarOptions {
   name: string
   description?: string
   color?: string
-  components?: ('VEVENT' | 'VTODO' | 'VJOURNAL')[]
+  components?: ('VEVENT' | 'VTODO')[]
 }
 
 export interface UpdateCalendarOptions {

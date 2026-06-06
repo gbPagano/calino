@@ -573,6 +573,11 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
                           className={`${styles.categoryItem} ${selectedCategoryIds.includes(category.id) ? styles.categoryItemSelected : ''}`}
                           onClick={() => toggleCategoryFilter(category.id)}
                         >
+                          <span className={styles.categoryCheck}>
+                            <svg className={styles.categoryCheckSvg} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M2 6l3 3 5-5" />
+                            </svg>
+                          </span>
                           <span
                             className={styles.categoryDot}
                             style={{ backgroundColor: category.color }}

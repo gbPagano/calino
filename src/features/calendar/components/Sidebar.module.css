@@ -946,6 +946,39 @@
   background: var(--accent-soft);
 }
 
+.categoryItemSelected .categoryDot {
+  box-shadow: 0 0 0 2px var(--popover-bg, var(--panel, #fff));
+}
+
+.categoryCheck {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1.5px solid var(--ink-3, #a39d93);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+
+.categoryItemSelected .categoryCheck {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.categoryCheckSvg {
+  width: 10px;
+  height: 10px;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.categoryItemSelected .categoryCheckSvg {
+  opacity: 1;
+}
+
 .categoryDot {
   width: 10px;
   height: 10px;

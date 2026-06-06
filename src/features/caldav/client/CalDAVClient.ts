@@ -303,6 +303,7 @@ export class CalDAVClient {
 
     // Find the calendar home set by querying the principal
     const calendarHomeUrl = await this.findCalendarHome()
+    console.log('[CalDAV] Calendar home URL:', calendarHomeUrl)
 
     // Create a new calendar collection under the calendar home
     const calendarUri = options.name
@@ -310,6 +311,8 @@ export class CalDAVClient {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
     const calendarUrl = `${calendarHomeUrl}${calendarUri}/`
+    console.log('[CalDAV] Creating calendar at:', calendarUrl)
+    console.log('[CalDAV] MKCOL XML:', xmlBody)
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/xml; charset=utf-8',
@@ -367,12 +370,14 @@ export class CalDAVClient {
     }
 
     const principalText = await principalResponse.text()
+    console.log('[CalDAV] Principal response:', principalText)
     const principalMatch = principalText.match(/<d:principal-URL>\s*<d:href>([^<]+)<\/d:href>/)
     const principalUrl = principalMatch?.[1]
 
     if (!principalUrl) {
       throw new Error('Could not determine principal URL')
     }
+    console.log('[CalDAV] Principal URL:', principalUrl)
 
     // Now find the calendar home set from the principal
     const homeXml = `<?xml version="1.0" encoding="UTF-8" ?>
@@ -397,12 +402,14 @@ export class CalDAVClient {
     }
 
     const homeText = await homeResponse.text()
+    console.log('[CalDAV] Calendar home response:', homeText)
     const homeMatch = homeText.match(/<C:calendar-home-set>\s*<d:href>([^<]+)<\/d:href>/)
     const homeUrl = homeMatch?.[1]
 
     if (!homeUrl) {
       throw new Error('Could not determine calendar home URL')
     }
+    console.log('[CalDAV] Calendar home URL:', homeUrl)
 
     return homeUrl.startsWith('http') ? homeUrl : `${this.serverUrl.replace(/\/$/, '')}${homeUrl}`
   }

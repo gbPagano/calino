@@ -6,7 +6,7 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { showToast } from '@/lib/toast'
 import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
-import type { CalendarEvent, RecurrenceRule, TaskPriority, Reminder } from '@/types'
+import type { CalendarEvent, CalendarAttachment, RecurrenceRule, TaskPriority, Reminder } from '@/types'
 import { TaskFormFields } from './TaskFormFields'
 import { EventFormFields } from './EventFormFields'
 import { RecurrenceDialog } from './RecurrenceDialog'
@@ -32,6 +32,7 @@ interface InitialFormState {
   reminders: Reminder[]
   transparency: 'opaque' | 'transparent'
   categories: string[]
+  attachments: CalendarAttachment[]
 }
 
 function getInitialFormState(
@@ -95,6 +96,7 @@ function getInitialFormState(
         reminders: existingEvent.reminders || [],
         transparency: existingEvent.transparency || 'opaque',
         categories: categoryNames,
+        attachments: existingEvent.attachments || [],
         isRecurringInstance,
         originalEventId,
       }
@@ -153,6 +155,7 @@ function getInitialFormState(
             reminders: [],
             transparency: 'opaque',
             categories: [],
+            attachments: [],
             isRecurringInstance: false,
             originalEventId: null,
           }
@@ -174,6 +177,7 @@ function getInitialFormState(
         reminders: [],
         transparency: 'opaque',
         categories: [],
+        attachments: [],
         isRecurringInstance: false,
         originalEventId: null,
       }
@@ -196,6 +200,7 @@ function getInitialFormState(
     reminders: [],
     transparency: 'opaque',
     categories: [],
+    attachments: [],
     isRecurringInstance: false,
     originalEventId: null,
   }
@@ -258,6 +263,7 @@ export function EventModal(): JSX.Element | null {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showDescription, setShowDescription] = useState(!!initialState.description)
+  const [attachments, setAttachments] = useState<CalendarAttachment[]>(initialState.attachments || [])
 
   // Close on Escape
   useEffect(() => {
@@ -567,6 +573,7 @@ export function EventModal(): JSX.Element | null {
           reminders,
           transparency,
           sequence: 0,
+          attachments: attachments.length > 0 ? attachments : undefined,
         }
 
         addEvent(exceptionEvent)
@@ -601,6 +608,7 @@ export function EventModal(): JSX.Element | null {
           reminders: isTaskMode ? undefined : reminders,
           transparency: isTaskMode ? undefined : transparency,
           categories: selectedCategories,
+          attachments: attachments.length > 0 ? attachments : undefined,
         })
         const existingEvent = events.find((e) => e.id === eventId)
         if (existingEvent) {
@@ -674,6 +682,7 @@ export function EventModal(): JSX.Element | null {
         reminders: isTaskMode ? undefined : reminders,
         transparency: isTaskMode ? undefined : transparency,
         categories: selectedCategories,
+        attachments: attachments.length > 0 ? attachments : undefined,
       }
       addEvent(newEvent)
       await safeCalDAVUpdate(
@@ -946,6 +955,70 @@ export function EventModal(): JSX.Element | null {
               />
             </div>
           )}
+
+          {/* Attachments Section */}
+          <div className={styles.modalField}>
+            <div className={styles.fieldHeader}>
+              <label className={styles.label}>Attachments</label>
+              <span className={styles.attachmentCount}>{attachments.length}</span>
+            </div>
+            
+            {attachments.length > 0 && (
+              <div className={styles.attachmentList}>
+                {attachments.map((att, index) => (
+                  <div key={index} className={styles.attachmentItem}>
+                    <span className={styles.attachmentIcon}>📎</span>
+                    <span className={styles.attachmentName}>{att.filename || 'attachment'}</span>
+                    {att.size && (
+                      <span className={styles.attachmentSize}>
+                        {att.size > 1024 * 1024 
+                          ? `${(att.size / (1024 * 1024)).toFixed(1)} MB`
+                          : `${Math.round(att.size / 1024)} KB`}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className={styles.removeAttachment}
+                      onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <label className={styles.addAttachmentButton}>
+              <span>+ Add attachment</span>
+              <input
+                type="file"
+                className={styles.hiddenFileInput}
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || [])
+                  const newAttachments: CalendarAttachment[] = []
+                  
+                  for (const file of files) {
+                    const reader = new FileReader()
+                    reader.onload = () => {
+                      const dataUrl = reader.result as string
+                      newAttachments.push({
+                        href: dataUrl,
+                        contentType: file.type || 'application/octet-stream',
+                        size: file.size,
+                        filename: file.name,
+                      })
+                      if (newAttachments.length === files.length) {
+                        setAttachments([...attachments, ...newAttachments])
+                      }
+                    }
+                    reader.readAsDataURL(file)
+                  }
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          </div>
 
           <hr className={styles.modalDivider} />
           <div className={styles.modalFooter}>

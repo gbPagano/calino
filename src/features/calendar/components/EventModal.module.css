@@ -137,6 +137,90 @@
   margin: 0 22px;
 }
 
+/* Attachments */
+.attachmentCount {
+  font-size: 12px;
+  color: var(--color-text-secondary, #5f6368);
+  background: var(--color-bg-tertiary, #f3f2f0);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.attachmentList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.attachmentItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-bg-tertiary, #f3f2f0);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.attachmentIcon {
+  flex-shrink: 0;
+}
+
+.attachmentName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary, #202124);
+}
+
+.attachmentSize {
+  color: var(--color-text-secondary, #5f6368);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.removeAttachment {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary, #5f6368);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.removeAttachment:hover {
+  background: var(--color-bg-hover, #f1f3f4);
+  color: var(--color-text-primary, #202124);
+}
+
+.addAttachmentButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: none;
+  border: 1px dashed var(--color-border-visible, #dadce0);
+  border-radius: 8px;
+  color: var(--color-text-secondary, #5f6368);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.addAttachmentButton:hover {
+  border-color: var(--color-accent, #1a73e8);
+  color: var(--color-accent, #1a73e8);
+  background: var(--color-accent-light, rgba(26, 115, 232, 0.04));
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
 .modalBody {
   padding: 14px 22px;
   display: flex;

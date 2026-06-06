@@ -80,10 +80,23 @@ export function useNotifications(): void {
     }
 
     checkReminders()
-    const intervalId = setInterval(checkReminders, CHECK_INTERVAL_MS)
+    let intervalId = setInterval(checkReminders, CHECK_INTERVAL_MS)
+
+    // Pause polling when tab is hidden to save CPU
+    const handleVisibilityChange = (): void => {
+      if (document.hidden) {
+        clearInterval(intervalId)
+      } else {
+        // Resume and check immediately when tab becomes visible
+        checkReminders()
+        intervalId = setInterval(checkReminders, CHECK_INTERVAL_MS)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
       clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [events, enableNotifications, defaultReminderMinutes])
 }

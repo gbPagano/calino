@@ -1,8 +1,17 @@
 import { createDAVClient } from 'tsdav'
-import type { CalDAVCredentials, CalDAVCalendar } from '../types'
+import type { CalDAVCredentials, CalDAVCalendar, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 
 const NETWORK_TIMEOUT_MS = 15_000
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
 
 export function buildProxyUrl(proxyBase: string, targetUrl: string): string {
   const encodedTarget = encodeURIComponent(targetUrl)
@@ -63,11 +72,19 @@ export class CalDAVClient {
   private serverUrl: string
   private proxyUrl: string | null
   private credentials: CalDAVCredentials
+  // Cached base64 auth header — avoids re-encoding on every request
+  private authHeader: string
+  // Cached calendar home URL — avoids re-discovery on every createCalendar
+  private cachedCalendarHomeUrl: string | null = null
+  // Proxy-aware fetch function (applied to all direct fetch calls)
+  private proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>
 
   constructor(serverUrl: string, credentials: CalDAVCredentials, proxyUrl: string | null = null) {
     this.serverUrl = serverUrl
     this.proxyUrl = proxyUrl
     this.credentials = credentials
+    this.authHeader = `Basic ${btoa(`${credentials.username}:${credentials.password}`)}`
+    this.proxyFetch = proxyUrl ? createProxyFetch(proxyUrl) : fetchWithTimeout
   }
 
   async connect(): Promise<void> {
@@ -101,8 +118,8 @@ export class CalDAVClient {
 
     return davCalendars.map((cal, index) => ({
       id: cal.url || `cal-${index}-${uuidv4()}`,
-      accountId: this.credentials.id,
-      // Store the raw server URL — proxy prefix is applied only at HTTP request time
+      // Note: accountId is NOT set here - the caller must set it
+      // this.credentials.id is the credential ID, not the account ID
       url: cal.url || '',
       name: typeof cal.displayName === 'string' ? cal.displayName : 'Unnamed Calendar',
       color: '#4285F4',
@@ -181,7 +198,7 @@ export class CalDAVClient {
 
     const allItems = [...eventObjects, ...todoObjects]
 
-    // Remove duplicates by URL — store raw server URLs consistently
+    // Remove duplicates by URL - store raw server URLs consistently
     const uniqueByUrl = new Map<string, { url: string; data: string; etag?: string }>()
     for (const obj of allItems) {
       if (!uniqueByUrl.has(obj.url)) {
@@ -250,6 +267,264 @@ export class CalDAVClient {
     await client.deleteCalendarObject({
       calendarObject: { url: eventUrl, etag },
     })
+  }
+
+  async createCalendar(options: CreateCalendarOptions): Promise<CalDAVCalendar> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+
+    // Build the MKCALENDAR XML body
+    const components = options.components || ['VEVENT', 'VTODO']
+    const componentXml = components
+      .map((comp) => `<C:comp name="${comp}"/>`)
+      .join('\n          ')
+
+    let colorXml = ''
+    if (options.color) {
+      // Try standard calendar-color first, fall back to Apple extension
+      colorXml = `
+        <C:calendar-color>${escapeXml(options.color)}</C:calendar-color>`
+    }
+
+    let descriptionXml = ''
+    if (options.description) {
+      descriptionXml = `
+        <C:calendar-description>${escapeXml(options.description)}</C:calendar-description>`
+    }
+
+    const xmlBody = `<?xml version="1.0" encoding="UTF-8" ?>
+<D:mkcol xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <D:set>
+    <D:prop>
+      <D:resourcetype>
+        <D:collection/>
+        <C:calendar/>
+      </D:resourcetype>
+      <D:displayname>${escapeXml(options.name)}</D:displayname>${descriptionXml}${colorXml}
+      <C:supported-calendar-component-set>
+          ${componentXml}
+      </C:supported-calendar-component-set>
+    </D:prop>
+  </D:set>
+</D:mkcol>`
+
+    // Find the calendar home set by querying the principal
+    const calendarHomeUrl = await this.findCalendarHome()
+
+    // Create a new calendar collection under the calendar home
+    const baseUri = options.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+    // Append short random suffix to prevent URI collisions
+    const randomSuffix = uuidv4().substring(0, 8)
+    const calendarUri = `${baseUri}-${randomSuffix}`
+    const calendarUrl = `${calendarHomeUrl}${calendarUri}/`
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: this.authHeader,
+    }
+
+    const response = await this.proxyFetch(calendarUrl, {
+      method: 'MKCOL',
+      headers,
+      body: xmlBody,
+    })
+
+    if (!response.ok && response.status !== 201 && response.status !== 204) {
+      const errorText = await response.text()
+      throw new Error(`Failed to create calendar: ${response.status} ${errorText}`)
+    }
+
+    // Return the created calendar (accountId is NOT set here - the caller provides it)
+    return {
+      id: calendarUrl,
+      accountId: '', // Will be set by caller
+      url: calendarUrl,
+      name: options.name,
+      color: options.color || '#4285F4',
+      ctag: null,
+      syncToken: null,
+      isVisible: true,
+      isDefault: false,
+    }
+  }
+
+  private async findCalendarHome(): Promise<string> {
+    // Return cached result if available
+    if (this.cachedCalendarHomeUrl) {
+      return this.cachedCalendarHomeUrl
+    }
+
+    // Method 1 (cheap): Derive from existing calendar URLs — no extra network calls
+    try {
+      const homeUrl = await this.findCalendarHomeFromCalendars()
+      if (homeUrl) {
+        this.cachedCalendarHomeUrl = homeUrl
+        return homeUrl
+      }
+    } catch {
+      // Method 1 failed, try fallback
+    }
+
+    // Method 2 (expensive): Try to find calendar-home-set from principal
+    try {
+      const homeUrl = await this.findCalendarHomeFromPrincipal()
+      if (homeUrl) {
+        this.cachedCalendarHomeUrl = homeUrl
+        return homeUrl
+      }
+    } catch {
+      // Method 2 failed too
+    }
+
+    throw new Error('Could not determine calendar home URL. Please check your CalDAV server configuration.')
+  }
+
+  private async findCalendarHomeFromPrincipal(): Promise<string | null> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: this.authHeader,
+      Depth: '0',
+    }
+
+    // Try to find the current user's principal
+    const principalXml = `<?xml version="1.0" encoding="UTF-8" ?>
+<d:propfind xmlns:d="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <d:prop>
+    <C:calendar-home-set/>
+  </d:prop>
+</d:propfind>`
+
+    // Try common principal URLs
+    const principalPaths = [
+      '/dav.php/principals/',
+      '/principals/',
+      '/remote.php/dav/principals/',
+      '/dav/',
+    ]
+
+    for (const path of principalPaths) {
+      const baseUrl = this.serverUrl.replace(/\/$/, '')
+      const testUrl = `${baseUrl}${path}${this.credentials.username}/`
+      
+      try {
+        const response = await this.proxyFetch(testUrl, {
+          method: 'PROPFIND',
+          headers,
+          body: principalXml,
+        })
+        
+        if (response.ok || response.status === 207) {
+          const text = await response.text()
+          const match = text.match(/<C:calendar-home-set>\s*<d:href>([^<]+)<\/d:href>/)
+          if (match?.[1]) {
+            return match[1].startsWith('http') ? match[1] : `${baseUrl}${match[1]}`
+          }
+        }
+      } catch {
+        // Try next path
+      }
+    }
+    
+    return null
+  }
+
+  private async findCalendarHomeFromCalendars(): Promise<string | null> {
+    const client = this.getClient()
+    const calendars = await client.fetchCalendars()
+    
+    if (calendars.length === 0 || !calendars[0].url) {
+      return null
+    }
+
+    // Parse the first calendar's URL to derive the home
+    const calendarUrlStr = calendars[0].url
+    
+    // Handle both absolute and relative URLs
+    let calendarUrl: URL
+    try {
+      calendarUrl = new URL(calendarUrlStr)
+    } catch {
+      calendarUrl = new URL(calendarUrlStr, this.serverUrl)
+    }
+    
+    const pathParts = calendarUrl.pathname.split('/').filter(Boolean)
+    
+    if (pathParts.length < 2) {
+      return null
+    }
+    
+    // Remove the last part (calendar name) to get the home
+    pathParts.pop()
+    const homePath = '/' + pathParts.join('/') + '/'
+    
+    return calendarUrl.origin + homePath
+  }
+
+  async updateCalendar(calendarUrl: string, options: UpdateCalendarOptions): Promise<void> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+
+
+    // Build PROPPATCH XML
+    let propXml = '<prop>'
+    if (options.name !== undefined) {
+      propXml += `\n      <displayname>${escapeXml(options.name)}</displayname>`
+    }
+    if (options.description !== undefined) {
+      propXml += `\n      <C:calendar-description xmlns:C="urn:ietf:params:xml:ns:caldav">${escapeXml(options.description)}</C:calendar-description>`
+    }
+    if (options.color !== undefined) {
+      propXml += `\n      <C:calendar-color xmlns:C="urn:ietf:params:xml:ns:caldav">${escapeXml(options.color)}</C:calendar-color>`
+    }
+    propXml += '\n    </prop>'
+
+    const xmlBody = `<?xml version="1.0" encoding="UTF-8" ?>
+<propertyupdate xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <set>
+    ${propXml}
+  </set>
+</propertyupdate>`
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: this.authHeader,
+    }
+
+    const response = await this.proxyFetch(calendarUrl, {
+      method: 'PROPPATCH',
+      headers,
+      body: xmlBody,
+    })
+
+    if (!response.ok && response.status !== 207) {
+      const errorText = await response.text()
+      throw new Error(`Failed to update calendar: ${response.status} ${errorText}`)
+    }
+  }
+
+  async deleteCalendar(calendarUrl: string): Promise<void> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+
+    const headers: Record<string, string> = {
+      Authorization: this.authHeader,
+    }
+
+    const response = await this.proxyFetch(calendarUrl, {
+      method: 'DELETE',
+      headers,
+    })
+
+    if (!response.ok && response.status !== 204 && response.status !== 200) {
+      const errorText = await response.text()
+      throw new Error(`Failed to delete calendar: ${response.status} ${errorText}`)
+    }
   }
 
   getServerUrl(): string {

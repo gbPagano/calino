@@ -23,7 +23,10 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { useUpdateCheck } from '@/hooks/useUpdateCheck'
+import { showToast } from '@/lib/toast'
 import { AddCalendarModal } from './AddCalendarModal'
+import { CreateCalendarModal } from './CreateCalendarModal'
+import { DeleteCalendarDialog } from './DeleteCalendarDialog'
 import { MiniTasksSection } from './MiniTasksSection'
 import styles from './Sidebar.module.css'
 
@@ -79,6 +82,11 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
     y: number
     calendarId: string
   } | null>(null)
+  const [showCreateCalendar, setShowCreateCalendar] = useState(false)
+  const [createCalendarAccountId, setCreateCalendarAccountId] = useState<string | null>(null)
+  const [showDeleteCalendar, setShowDeleteCalendar] = useState(false)
+  const [deleteCalendarId, setDeleteCalendarId] = useState<string | null>(null)
+  const [deleteCalendarName, setDeleteCalendarName] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const currentDate = useCalendarStore((state) => state.currentDate)
@@ -97,7 +105,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
   const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
   const showAddCalendar = useCalendarStore((state) => state.showAddCalendar)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)
-  const { syncAccount } = useCalDAV()
+  const { syncAccount, updateCalendar: updateCalDAVCalendar, deleteCalendarFromServer } = useCalDAV()
   const navigate = useNavigate()
 
   // Initialize miniDate from the store on first render
@@ -222,9 +230,27 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
     setTimeout(() => inputRef.current?.select(), 0)
   }
 
-  const handleFinishRename = (): void => {
+  const handleFinishRename = async (): Promise<void> => {
     if (editingId && editName.trim()) {
-      updateCalendar(editingId, { name: editName.trim() })
+      const oldName = calendars.find((c) => c.id === editingId)?.name
+      const newName = editName.trim()
+      
+      // Update local store immediately
+      updateCalendar(editingId, { name: newName })
+      
+      // If it's a CalDAV calendar, also update on server
+      const calendar = calendars.find((c) => c.id === editingId)
+      if (calendar?.accountId) {
+        try {
+          await updateCalDAVCalendar(editingId, { name: newName })
+        } catch (error) {
+          // Rollback local rename on server failure
+          if (oldName) {
+            updateCalendar(editingId, { name: oldName })
+          }
+          showToast(error instanceof Error ? error.message : 'Failed to rename calendar')
+        }
+      }
     }
     setEditingId(null)
     setEditName('')
@@ -448,13 +474,15 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
         <div className={styles.calendars}>
           <div className={styles.sectionTitleRow}>
             <span className={styles.sectionTitle}>Calendars</span>
-            <button
-              className={styles.addCalendarButton}
-              onClick={() => setShowAddCalendar(true)}
-              title="Add calendar"
-            >
-              <PlusIcon />
-            </button>
+            <div className={styles.addCalendarDropdown}>
+              <button
+                className={styles.addCalendarButton}
+                onClick={() => setShowAddCalendar(true)}
+                title="Add CalDAV account"
+              >
+                <PlusIcon />
+              </button>
+            </div>
           </div>
           {calendars.map((calendar) => (
             <label
@@ -613,6 +641,33 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
         </div>
 
         <AddCalendarModal isOpen={showAddCalendar} onClose={() => setShowAddCalendar(false)} />
+        <CreateCalendarModal
+          isOpen={showCreateCalendar}
+          onClose={() => {
+            setShowCreateCalendar(false)
+            setCreateCalendarAccountId(null)
+          }}
+          accountId={createCalendarAccountId}
+        />
+        <DeleteCalendarDialog
+          isOpen={showDeleteCalendar}
+          calendarId={deleteCalendarId}
+          calendarName={deleteCalendarName}
+          onClose={() => {
+            setShowDeleteCalendar(false)
+            setDeleteCalendarId(null)
+            setDeleteCalendarName('')
+          }}
+          onConfirm={async () => {
+            if (deleteCalendarId) {
+              try {
+                await deleteCalendarFromServer(deleteCalendarId)
+              } catch (error) {
+                showToast(error instanceof Error ? error.message : 'Failed to delete calendar')
+              }
+            }
+          }}
+        />
         {contextMenu &&
           createPortal(
             <ContextMenu
@@ -642,8 +697,45 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
                     closeContextMenu()
                   },
                 },
-                ...(!calendars.find((c) => c.id === contextMenu.calendarId)?.accountId
+                // CalDAV calendar options
+                ...calendars.find((c) => c.id === contextMenu.calendarId)?.accountId
                   ? [
+                      {
+                        label: 'Rename',
+                        onClick: () => {
+                          const calendar = calendars.find((c) => c.id === contextMenu.calendarId)
+                          if (calendar) {
+                            setEditingId(calendar.id)
+                            setEditName(calendar.name)
+                          }
+                          closeContextMenu()
+                        },
+                      },
+                      {
+                        label: 'Create Calendar Here',
+                        onClick: () => {
+                          const calendar = calendars.find((c) => c.id === contextMenu.calendarId)
+                          if (calendar?.accountId) {
+                            setCreateCalendarAccountId(calendar.accountId)
+                            setShowCreateCalendar(true)
+                          }
+                          closeContextMenu()
+                        },
+                      },
+                      {
+                        label: 'Delete',
+                        onClick: () => {
+                          const calendar = calendars.find((c) => c.id === contextMenu.calendarId)
+                          if (calendar) {
+                            setDeleteCalendarId(calendar.id)
+                            setDeleteCalendarName(calendar.name)
+                            setShowDeleteCalendar(true)
+                          }
+                          closeContextMenu()
+                        },
+                      },
+                    ]
+                  : [
                       {
                         label: 'Remove',
                         onClick: () => {
@@ -651,8 +743,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
                           closeContextMenu()
                         },
                       },
-                    ]
-                  : []),
+                    ],
               ]}
               onClose={closeContextMenu}
               menuId="calendar-context"

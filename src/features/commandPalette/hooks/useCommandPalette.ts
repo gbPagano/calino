@@ -22,6 +22,28 @@ import type {
   QuickAddResult,
 } from '../types'
 
+// Static lookup data — moved outside component to avoid re-creation on every render
+const PURE_DATE_KEYWORDS = [
+  'today',
+  'tomorrow',
+  'yesterday',
+  'next week',
+  'last week',
+  'next month',
+  'last month',
+  'next year',
+  'last year',
+  'this weekend',
+  'next weekend',
+]
+
+const DAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+const MONTH_NAMES = [
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
+]
+
 interface UseCommandPaletteProps {
   isOpen: boolean
   toggleSidebar?: () => void
@@ -117,54 +139,22 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
       return { type: 'navigation', raw: input, dateRef: ref }
     }
 
-    // Pure date navigation keywords (no event title, just a date reference)
-    const pureDateKeywords = [
-      'today',
-      'tomorrow',
-      'yesterday',
-      'next week',
-      'last week',
-      'next month',
-      'last month',
-      'next year',
-      'last year',
-      'this weekend',
-      'next weekend',
-    ]
-
-    // Day names - navigate to that day
-    const dayNames = [
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'saturday',
-      'sunday',
-    ]
-
-    // Month names - navigate to that month
-    const monthNames = [
-      'january', 'february', 'march', 'april', 'may', 'june',
-      'july', 'august', 'september', 'october', 'november', 'december',
-    ]
-
     // Check for pure date navigation (exact or starts with date keyword)
-    for (const keyword of pureDateKeywords) {
+    for (const keyword of PURE_DATE_KEYWORDS) {
       if (trimmed === keyword || trimmed.startsWith(keyword)) {
         return { type: 'navigation', raw: input, dateRef: trimmed }
       }
     }
 
     // Check for day names ("monday", "next monday", "this friday", "thu" for thursday)
-    for (const day of dayNames) {
+    for (const day of DAY_NAMES) {
       if (trimmed === day || trimmed.endsWith(day) || day.startsWith(trimmed)) {
         return { type: 'navigation', raw: input, dateRef: trimmed }
       }
     }
 
     // Check for month names ("march", "march 2024", "show march", "dece" for december)
-    for (const month of monthNames) {
+    for (const month of MONTH_NAMES) {
       if (trimmed.includes(month) || month.startsWith(trimmed)) {
         return { type: 'navigation', raw: input, dateRef: trimmed }
       }
@@ -191,6 +181,17 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     // Default: search
     return { type: 'search', raw: input }
   }, [])
+
+  // Memoize NLP result once per query to avoid double-parsing in results + preview
+  const nlpResult = useMemo(() => {
+    if (!query.trim()) return null
+    const parsed = parseInput(query)
+    if (parsed.type === 'quick-add') {
+      const result = parseNaturalLanguage(query)
+      return result.confidence > 0.5 ? result : null
+    }
+    return null
+  }, [query, parseInput])
 
   const searchEvents = useCallback(
     (searchQuery: string): EventResult[] => {
@@ -258,7 +259,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     [commands]
   )
 
-  const results = ((): CommandResult[] => {
+  const results = useMemo((): CommandResult[] => {
     if (!query.trim()) {
       const defaultCommands = filterCommands('')
       return defaultCommands.map((cmd) => ({
@@ -307,8 +308,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     }
 
     if (parsed.type === 'quick-add') {
-      const nlpResult = parseNaturalLanguage(query)
-      if (nlpResult.confidence > 0.5 && nlpResult.title) {
+      if (nlpResult && nlpResult.title) {
         const quickAddItem: QuickAddResult = {
           title: nlpResult.title,
           startDate: nlpResult.startDate,
@@ -348,18 +348,11 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     }))
 
     return [...commandResults, ...calendarResults, ...eventResults]
-  })()
+  }, [query, filterCommands, parseInput, nlpResult, searchEvents, searchCalendars, setCurrentDate, setCurrentView])
 
   const preview = useMemo((): NLPParseResult | null => {
-    const parsed = parseInput(query)
-    if (parsed.type === 'quick-add') {
-      const nlpResult = parseNaturalLanguage(query)
-      if (nlpResult.confidence > 0.5) {
-        return nlpResult
-      }
-    }
-    return null
-  }, [query, parseInput])
+    return nlpResult
+  }, [nlpResult])
 
   const executeSelected = useCallback(
     async (index?: number) => {

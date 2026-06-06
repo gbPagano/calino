@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDrag, usePinch } from '@use-gesture/react'
 
 export interface UseGesturesOptions {
@@ -52,33 +52,18 @@ export function useGestures({
   const swipeThresholdRef = useRef(swipeThreshold)
   const pinchScaleRangeRef = useRef(pinchScaleRange)
 
+  // Sync all refs in a single effect (avoids 9 separate subscriptions)
   useEffect(() => {
     onLongPressRef.current = onLongPress
-  }, [onLongPress])
-  useEffect(() => {
     onSwipeRef.current = onSwipe
-  }, [onSwipe])
-  useEffect(() => {
     onPinchRef.current = onPinch
-  }, [onPinch])
-  useEffect(() => {
     onTapRef.current = onTap
-  }, [onTap])
-  useEffect(() => {
     onDragStartRef.current = onDragStart
-  }, [onDragStart])
-  useEffect(() => {
     onDragEndRef.current = onDragEnd
-  }, [onDragEnd])
-  useEffect(() => {
     longPressDelayRef.current = longPressDelay
-  }, [longPressDelay])
-  useEffect(() => {
     swipeThresholdRef.current = swipeThreshold
-  }, [swipeThreshold])
-  useEffect(() => {
     pinchScaleRangeRef.current = pinchScaleRange
-  }, [pinchScaleRange])
+  }, [onLongPress, onSwipe, onPinch, onTap, onDragStart, onDragEnd, longPressDelay, swipeThreshold, pinchScaleRange])
 
   // Cleanup long press timer on unmount
   useEffect(() => {
@@ -314,7 +299,7 @@ export function useGestures({
     [pinchBind]
   )
 
-  return {
+  return useMemo(() => ({
     bind: {
       onPointerDown: handlePointerDown,
       onPointerMove: handlePointerMove,
@@ -322,5 +307,5 @@ export function useGestures({
       onWheel: handleWheel,
     },
     gestureState,
-  }
+  }), [handlePointerDown, handlePointerMove, handlePointerUp, handleWheel, gestureState])
 }

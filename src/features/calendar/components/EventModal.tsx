@@ -6,13 +6,16 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { showToast } from '@/lib/toast'
 import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
-import type { CalendarEvent, RecurrenceRule, TaskPriority, Reminder } from '@/types'
+import type { CalendarEvent, CalendarAttachment, RecurrenceRule, TaskPriority, Reminder } from '@/types'
+import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
 import { TaskFormFields } from './TaskFormFields'
 import { EventFormFields } from './EventFormFields'
 import { RecurrenceDialog } from './RecurrenceDialog'
 import { DeleteDialog } from './DeleteDialog'
+import { AttachmentSection } from './AttachmentSection'
 import { extractOriginalEventId } from '@/lib/events'
 import { isUUID } from '@/lib/uuid'
+
 import styles from './EventModal.module.css'
 
 type RecurrenceEditMode = 'all' | 'future' | 'this'
@@ -32,6 +35,7 @@ interface InitialFormState {
   reminders: Reminder[]
   transparency: 'opaque' | 'transparent'
   categories: string[]
+  attachments: CalendarAttachment[]
 }
 
 function getInitialFormState(
@@ -43,6 +47,31 @@ function getInitialFormState(
   calendars: { id: string; isDefault: boolean }[],
   allCategories: { id: string; name: string }[]
 ): InitialFormState & { isRecurringInstance: boolean; originalEventId: string | null } {
+  // Early return when modal is closed — skip all computation
+  if (!isModalOpen) {
+    const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
+    const today = format(new Date(), 'yyyy-MM-dd')
+    return {
+      title: '',
+      description: '',
+      location: '',
+      startDate: today,
+      startTime: '09:00',
+      endDate: today,
+      endTime: '10:00',
+      isAllDay: false,
+      calendarId: defaultCalendar?.id || '',
+      recurrence: 'none',
+      travelDuration: undefined,
+      reminders: [],
+      transparency: 'opaque',
+      categories: [],
+      attachments: [],
+      isRecurringInstance: false,
+      originalEventId: null,
+    }
+  }
+
   const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
 
   const isEditing = selectedEventId !== null
@@ -95,6 +124,7 @@ function getInitialFormState(
         reminders: existingEvent.reminders || [],
         transparency: existingEvent.transparency || 'opaque',
         categories: categoryNames,
+        attachments: existingEvent.attachments || [],
         isRecurringInstance,
         originalEventId,
       }
@@ -116,7 +146,7 @@ function getInitialFormState(
         const endM = endMins % 60
         endTimeVal = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
       } else {
-        // No specific time — smart default only applies for TODAY
+        // No specific time - smart default only applies for TODAY
         const todayStr = format(new Date(), 'yyyy-MM-dd')
         if (dateStr === todayStr) {
           // Round up to next hour, then add 1 hour
@@ -153,6 +183,7 @@ function getInitialFormState(
             reminders: [],
             transparency: 'opaque',
             categories: [],
+            attachments: [],
             isRecurringInstance: false,
             originalEventId: null,
           }
@@ -174,6 +205,7 @@ function getInitialFormState(
         reminders: [],
         transparency: 'opaque',
         categories: [],
+        attachments: [],
         isRecurringInstance: false,
         originalEventId: null,
       }
@@ -196,6 +228,7 @@ function getInitialFormState(
     reminders: [],
     transparency: 'opaque',
     categories: [],
+    attachments: [],
     isRecurringInstance: false,
     originalEventId: null,
   }
@@ -212,7 +245,6 @@ export function EventModal(): JSX.Element | null {
   const categories = useCalendarStore((state) => state.categories)
   const addEvent = useCalendarStore((state) => state.addEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
-  const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const closeModal = useCalendarStore((state) => state.closeModal)
   const {
     createEvent: createCalDAVEvent,
@@ -258,6 +290,31 @@ export function EventModal(): JSX.Element | null {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showDescription, setShowDescription] = useState(!!initialState.description)
+  const [attachments, setAttachments] = useState<CalendarAttachment[]>([])
+
+  // Load attachments from IndexedDB when modal opens with existing event
+  useEffect(() => {
+    if (!isModalOpen || !initialState.attachments || initialState.attachments.length === 0) {
+      setAttachments([])
+      return
+    }
+    if (!selectedEventId) {
+      setAttachments(initialState.attachments)
+      return
+    }
+    getAttachments(selectedEventId)
+      .then((loaded) => {
+        if (loaded.length > 0) {
+          setAttachments(loaded)
+        } else {
+          // No IndexedDB data yet (migrated from localStorage), use zustand metadata
+          setAttachments(initialState.attachments!)
+        }
+      })
+      .catch(() => {
+        setAttachments(initialState.attachments!)
+      })
+  }, [isModalOpen, selectedEventId])
 
   // Close on Escape
   useEffect(() => {
@@ -353,7 +410,7 @@ export function EventModal(): JSX.Element | null {
       lastSelectedDate.current = selectedDate
 
       // Read fresh state via getState() so the form only resets when
-      // selectedEventId or selectedDate actually change — not when
+      // selectedEventId or selectedDate actually change - not when
       // events/calendars change in the background (e.g. during CalDAV sync).
       const state = useCalendarStore.getState()
       const currentEvents = state.events
@@ -437,6 +494,9 @@ export function EventModal(): JSX.Element | null {
   const hasChanges = useMemo(() => {
     if (!existingEventForMode) return true
 
+    const existingAttachments = existingEventForMode.attachments || []
+    const attachmentsChanged = JSON.stringify(attachments) !== JSON.stringify(existingAttachments)
+
     if (isTaskMode) {
       const taskDueDate = dueDate || format(parseISO(existingEventForMode.start), 'yyyy-MM-dd')
       const taskTime = dueAllDay ? '00:00:00' : `${dueTime}:00`
@@ -450,7 +510,8 @@ export function EventModal(): JSX.Element | null {
         completed !== (existingEventForMode.completed || false) ||
         priority !== existingEventForMode.priority ||
         calendarId !== existingEventForMode.calendarId ||
-        JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || [])
+        JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || []) ||
+        attachmentsChanged
       )
     }
 
@@ -469,7 +530,8 @@ export function EventModal(): JSX.Element | null {
       recurrence !== (existingEventForMode.recurrence?.frequency || 'none') ||
       travelDuration !== existingEventForMode.travelDuration ||
       calendarId !== existingEventForMode.calendarId ||
-      JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || [])
+      JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || []) ||
+      attachmentsChanged
     )
   }, [
     existingEventForMode,
@@ -491,6 +553,7 @@ export function EventModal(): JSX.Element | null {
     travelDuration,
     calendarId,
     selectedCategories,
+    attachments,
   ])
 
   const handleSubmit = (e: React.FormEvent): void => {
@@ -567,9 +630,14 @@ export function EventModal(): JSX.Element | null {
           reminders,
           transparency,
           sequence: 0,
+          attachments: attachments.length > 0 ? attachments : undefined,
         }
 
         addEvent(exceptionEvent)
+        // Sync IndexedDB for exception event
+        if (attachments.length > 0) {
+          putAttachments(exceptionEvent.id, attachments).catch(() => {})
+        }
         try {
           await createCalDAVEvent(masterEvent.calendarId, exceptionEvent)
         } catch {
@@ -601,9 +669,18 @@ export function EventModal(): JSX.Element | null {
           reminders: isTaskMode ? undefined : reminders,
           transparency: isTaskMode ? undefined : transparency,
           categories: selectedCategories,
+          attachments: attachments.length > 0 ? attachments : undefined,
         })
+        // Sync IndexedDB with current attachments
+        if (attachments.length > 0) {
+          putAttachments(eventId!, attachments).catch(() => {})
+        } else {
+          deleteAttachments(eventId!).catch(() => {})
+        }
         const existingEvent = events.find((e) => e.id === eventId)
         if (existingEvent) {
+          console.log('[EventModal] Saving event. attachments state:', JSON.stringify(attachments))
+          console.log('[EventModal] existingEvent.attachments:', JSON.stringify(existingEvent.attachments))
           await safeCalDAVUpdate(
             updateCalDAVEvent,
             calendarId,
@@ -643,6 +720,7 @@ export function EventModal(): JSX.Element | null {
               reminders: isTaskMode ? undefined : reminders,
               transparency: isTaskMode ? undefined : transparency,
               categories: selectedCategories,
+              attachments: attachments.length > 0 ? attachments : undefined,
             }
           )
         }
@@ -674,8 +752,14 @@ export function EventModal(): JSX.Element | null {
         reminders: isTaskMode ? undefined : reminders,
         transparency: isTaskMode ? undefined : transparency,
         categories: selectedCategories,
+        attachments: attachments.length > 0 ? attachments : undefined,
       }
       addEvent(newEvent)
+      // Move attachments from temp 'new' key to actual event ID
+      if (attachments.length > 0) {
+        deleteAttachments('new').catch(() => {})
+        putAttachments(newEvent.id, attachments).catch(() => {})
+      }
       await safeCalDAVUpdate(
         createCalDAVEvent,
         calendarId,
@@ -713,7 +797,7 @@ export function EventModal(): JSX.Element | null {
 
   const performDelete = async (mode: RecurrenceEditMode): Promise<void> => {
     if (mode === 'this' && originalEventId) {
-      // Add the occurrence's date to excludedDates on the master — do not delete the series
+      // Add the occurrence's date to excludedDates on the master - do not delete the series
       if (!selectedEventId) return
       const occurrenceStartISO = selectedEventId.slice(originalEventId.length + 1)
       const occurrenceDate = occurrenceStartISO.split('T')[0]
@@ -734,7 +818,6 @@ export function EventModal(): JSX.Element | null {
     } else {
       const eventIdToDelete = originalEventId || selectedEventId
       if (eventIdToDelete) {
-        deleteEvent(eventIdToDelete)
         await safeCalDAVDelete(deleteCalDAVEvent, calendarId, eventIdToDelete)
       }
     }
@@ -946,6 +1029,12 @@ export function EventModal(): JSX.Element | null {
               />
             </div>
           )}
+
+          <AttachmentSection
+            attachments={attachments}
+            onAttachmentsChange={setAttachments}
+            eventId={selectedEventId}
+          />
 
           <hr className={styles.modalDivider} />
           <div className={styles.modalFooter}>

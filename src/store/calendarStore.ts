@@ -7,10 +7,12 @@ import type { CalendarStore, CalendarEvent, Calendar, ViewType, EventType } from
 import type { Category, AutoCategoryRule } from '@/types/categories'
 import { config, DEFAULT_CALENDAR_COLOR } from '@/config'
 import { DAY_NUM_TO_CODE, FREQ_MAP } from '@/lib/recurrence'
+import { deleteAttachments } from '@/lib/attachmentStore'
 
 export const selectOpenModal = (state: CalendarStore) => state.openModal
 export const selectAddEvent = (state: CalendarStore) => state.addEvent
 export const selectUpdateEvent = (state: CalendarStore) => state.updateEvent
+
 export const selectDeleteEvent = (state: CalendarStore) => state.deleteEvent
 export const selectAddCalendar = (state: CalendarStore) => state.addCalendar
 export const selectDeleteCalendar = (state: CalendarStore) => state.deleteCalendar
@@ -109,6 +111,8 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       deleteEvent: (id: string): void => {
+        // Clean up attachments from IndexedDB (fire and forget)
+        deleteAttachments(id).catch(() => {})
         set((state) => ({
           events: state.events.filter((e) => e.id !== id),
         }))
@@ -154,10 +158,18 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       deleteCalendar: (id: string): void => {
-        set((state) => ({
-          calendars: state.calendars.filter((c) => c.id !== id),
-          events: state.events.filter((e) => e.calendarId !== id),
-        }))
+        set((state) => {
+          // Clean up attachments for all events in this calendar
+          for (const event of state.events) {
+            if (event.calendarId === id) {
+              deleteAttachments(event.id).catch(() => {})
+            }
+          }
+          return {
+            calendars: state.calendars.filter((c) => c.id !== id),
+            events: state.events.filter((e) => e.calendarId !== id),
+          }
+        })
       },
 
       toggleCalendarVisibility: (id: string): void => {
@@ -369,6 +381,27 @@ export const useCalendarStore = create<CalendarStore>()(
           }
         }
 
+        // Pre-parse all event dates once to avoid repeated parseISO calls
+        const eventStartDates = new Map<string, Date>()
+        const eventEndDates = new Map<string, Date>()
+        for (const event of state.events) {
+          eventStartDates.set(event.id, parseISO(event.start))
+          eventEndDates.set(event.id, parseISO(event.end))
+        }
+
+        // Cache RRule objects keyed by rrule string to avoid re-parsing
+        const rruleCache = new Map<string, RRule>()
+        const getOrCreateRRule = (rruleStr: string, eventStart: Date): RRule => {
+          const cacheKey = `${rruleStr}|${eventStart.toISOString()}`
+          let rule = rruleCache.get(cacheKey)
+          if (!rule) {
+            const options = RRule.parseString(rruleStr)
+            rule = new RRule({ ...options, dtstart: eventStart })
+            rruleCache.set(cacheKey, rule)
+          }
+          return rule
+        }
+
         for (const event of state.events) {
           if (!visibleCalendarIds.includes(event.calendarId)) {
             continue
@@ -418,14 +451,10 @@ export const useCalendarStore = create<CalendarStore>()(
               if (!rruleString) {
                 throw new Error('No rrule string')
               }
-              const options = RRule.parseString(rruleString)
-              const eventStart = parseISO(event.start)
-              const eventEnd = parseISO(event.end)
+              const eventStart = eventStartDates.get(event.id)!
+              const eventEnd = eventEndDates.get(event.id)!
 
-              const rule = new RRule({
-                ...options,
-                dtstart: eventStart,
-              })
+              const rule = getOrCreateRRule(rruleString, eventStart)
 
               const occurrences = rule.between(startDate, endDate, true)
               const excludedDates = event.excludedDates || []
@@ -465,8 +494,8 @@ export const useCalendarStore = create<CalendarStore>()(
                 })
               }
             } catch {
-              const eventStart = parseISO(event.start)
-              const eventEnd = parseISO(event.end)
+              const eventStart = eventStartDates.get(event.id)!
+              const eventEnd = eventEndDates.get(event.id)!
               if (
                 isWithinInterval(eventStart, { start: startDate, end: endDate }) ||
                 isWithinInterval(eventEnd, { start: startDate, end: endDate }) ||
@@ -482,8 +511,8 @@ export const useCalendarStore = create<CalendarStore>()(
             if (event.recurrenceId) {
               continue
             }
-            const eventStart = parseISO(event.start)
-            const eventEnd = parseISO(event.end)
+            const eventStart = eventStartDates.get(event.id)!
+            const eventEnd = eventEndDates.get(event.id)!
 
             if (
               isWithinInterval(eventStart, { start: startDate, end: endDate }) ||
@@ -522,7 +551,18 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
       partialize: (state) => ({
-        events: state.events,
+        // Strip base64 data from attachments — actual data lives in IndexedDB
+        events: state.events.map((event) => {
+          if (!event.attachments || event.attachments.length === 0) return event
+          return {
+            ...event,
+            attachments: event.attachments.map((att) => ({
+              ...att,
+              // Keep href for external URLs, clear for inline (data is in IndexedDB)
+              href: att.href.startsWith('data:') ? '' : att.href,
+            })),
+          }
+        }),
         calendars: state.calendars,
         categories: state.categories,
         autoCategoryRules: state.autoCategoryRules,
@@ -538,18 +578,25 @@ function applyAutoCategories(
   rules: AutoCategoryRule[],
   categories: Category[]
 ): string[] {
+  if (rules.length === 0 || categories.length === 0) return []
+
   const lowerTitle = title.toLowerCase()
   const matchingCategoryNames: string[] = []
 
+  // Pre-build keyword → category name map for O(1) lookups
+  const keywordMap = new Map<string, string>()
   for (const rule of rules) {
+    const category = categories.find((c) => c.id === rule.categoryId)
+    if (!category) continue
     for (const keyword of rule.keywords) {
-      if (lowerTitle.includes(keyword.toLowerCase())) {
-        const category = categories.find((c) => c.id === rule.categoryId)
-        if (category && !matchingCategoryNames.includes(category.name)) {
-          matchingCategoryNames.push(category.name)
-        }
-        break
-      }
+      keywordMap.set(keyword.toLowerCase(), category.name)
+    }
+  }
+
+  // Check if any keyword matches the title
+  for (const [keyword, categoryName] of keywordMap) {
+    if (lowerTitle.includes(keyword) && !matchingCategoryNames.includes(categoryName)) {
+      matchingCategoryNames.push(categoryName)
     }
   }
 

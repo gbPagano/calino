@@ -11,7 +11,7 @@ export interface CalDAVAccount {
 
 export interface CalDAVCalendar {
   id: string
-  accountId: string
+  accountId?: string // Set by caller, not by CalDAV client
   url: string
   name: string
   color: string
@@ -72,4 +72,17 @@ export interface ConflictInfo {
   localVersion: unknown
   serverVersion: unknown
   resolution: ConflictResolution
+}
+
+export interface CreateCalendarOptions {
+  name: string
+  description?: string
+  color?: string
+  components?: ('VEVENT' | 'VTODO')[]
+}
+
+export interface UpdateCalendarOptions {
+  name?: string
+  description?: string
+  color?: string
 }

@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect } from 'react'
 import { addDays } from 'date-fns'
 import type { CalendarEvent } from '@/types'
-import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo } from '../types'
+import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
 import { createCalDAVClient } from '../client/CalDAVClient'
 import { testConnection, discoverServerUrl } from '../client/discovery'
 import { saveCredentials, getCredentialById, deleteCredential } from '../client/credentials'
 import { parseICALData } from '../adapter/iCalendarAdapter'
+import { putAttachments } from '@/lib/attachmentStore'
 import * as storage from '../sync/accountStorage'
 import { SyncEngine } from '../sync/syncEngine'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -52,6 +53,9 @@ interface UseCalDAVReturn {
   updateEvent: (calendarId: string, event: CalendarEvent) => Promise<void>
   deleteEvent: (calendarId: string, eventId: string) => Promise<void>
   retryAllFailedSyncs: () => Promise<{ succeeded: number; failed: number }>
+  createCalendar: (accountId: string, options: CreateCalendarOptions) => Promise<CalDAVCalendar>
+  updateCalendar: (calendarId: string, options: UpdateCalendarOptions) => Promise<void>
+  deleteCalendarFromServer: (calendarId: string) => Promise<void>
 }
 
 export function useCalDAV(): UseCalDAVReturn {
@@ -307,7 +311,22 @@ export function useCalDAV(): UseCalDAVReturn {
             if (eventData.data) {
               const parsedEvents = parseICALData(eventData.data, cal.id)
 
-              for (const parsedEvent of parsedEvents) {
+              for (let parsedEvent of parsedEvents) {
+                // Cache inline attachments in IndexedDB, keep only metadata in store
+                if (parsedEvent.attachments && parsedEvent.attachments.length > 0) {
+                  const hasInline = parsedEvent.attachments.some((att) => att.href.startsWith('data:'))
+                  if (hasInline) {
+                    await putAttachments(parsedEvent.id, parsedEvent.attachments)
+                    parsedEvent = {
+                      ...parsedEvent,
+                      attachments: parsedEvent.attachments.map((att) => ({
+                        ...att,
+                        href: att.href.startsWith('data:') ? '' : att.href,
+                      })),
+                    }
+                  }
+                }
+
                 // Bug 31 fix: do not filter categories by UUID pattern.
                 // Let users see all categories from their CalDAV server.
                 if (parsedEvent.categories) {
@@ -417,7 +436,22 @@ export function useCalDAV(): UseCalDAVReturn {
             if (eventData.data) {
               const parsedEvents = parseICALData(eventData.data, cal.id)
 
-              for (const parsedEvent of parsedEvents) {
+              for (let parsedEvent of parsedEvents) {
+                // Cache inline attachments in IndexedDB, keep only metadata in store
+                if (parsedEvent.attachments && parsedEvent.attachments.length > 0) {
+                  const hasInline = parsedEvent.attachments.some((att) => att.href.startsWith('data:'))
+                  if (hasInline) {
+                    await putAttachments(parsedEvent.id, parsedEvent.attachments)
+                    parsedEvent = {
+                      ...parsedEvent,
+                      attachments: parsedEvent.attachments.map((att) => ({
+                        ...att,
+                        href: att.href.startsWith('data:') ? '' : att.href,
+                      })),
+                    }
+                  }
+                }
+
                 serverEventIds.add(parsedEvent.id)
 
                 // Collect category names for auto-creation
@@ -668,7 +702,8 @@ export function useCalDAV(): UseCalDAVReturn {
           JSON.stringify(existingEvent.categories ?? []) !== JSON.stringify(event.categories ?? []) ||
           JSON.stringify(existingEvent.recurrence) !== JSON.stringify(event.recurrence) ||
           JSON.stringify(existingEvent.reminders) !== JSON.stringify(event.reminders) ||
-          JSON.stringify(existingEvent.excludedDates) !== JSON.stringify(event.excludedDates)
+          JSON.stringify(existingEvent.excludedDates) !== JSON.stringify(event.excludedDates) ||
+          JSON.stringify(existingEvent.attachments ?? []) !== JSON.stringify(event.attachments ?? [])
         )
 
         const currentSequence = event.sequence ?? 0
@@ -877,6 +912,103 @@ export function useCalDAV(): UseCalDAVReturn {
     return { succeeded, failed }
   }, [caldavDebugMode, storeUpdateEvent, processPendingChanges])
 
+  // Calendar management methods
+  const createCalDAVCalendar = useCallback(
+    async (accountId: string, options: CreateCalendarOptions): Promise<CalDAVCalendar> => {
+      const account = storage.getAccountById(accountId)
+      if (!account) {
+        throw new Error('Account not found')
+      }
+
+      const credential = await getCredentialById(account.credentialId)
+      if (!credential) {
+        throw new Error('Credentials not found')
+      }
+
+      const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
+      const newCalendar = await client.createCalendar(options)
+
+      // Set the correct accountId before saving
+      newCalendar.accountId = accountId
+
+      // Save to local storage
+      storage.saveCalendar(newCalendar)
+      storeAddCalendar({
+        id: newCalendar.id,
+        name: newCalendar.name,
+        color: newCalendar.color,
+        isVisible: true,
+        isDefault: false,
+        accountId,
+        showTasksInViews: true,
+      })
+
+      setCalendars(storage.getAllCalendars())
+
+      return newCalendar
+    },
+    [storeAddCalendar]
+  )
+
+  const updateCalDAVCalendar = useCallback(
+    async (calendarId: string, options: UpdateCalendarOptions): Promise<void> => {
+      const allCalendars = storage.getAllCalendars()
+      const allAccounts = storage.getAllAccounts()
+      const calendar = allCalendars.find((c) => c.id === calendarId)
+      const account = allAccounts.find((a) => a.id === calendar?.accountId)
+
+      if (!calendar || !account) {
+        throw new Error('Calendar or account not found')
+      }
+
+      const credential = await getCredentialById(account.credentialId)
+      if (!credential) {
+        throw new Error('Credentials not found')
+      }
+
+      const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
+      await client.updateCalendar(calendar.url, options)
+
+      // Update local storage
+      const updates: Partial<CalDAVCalendar> = {}
+      if (options.name !== undefined) updates.name = options.name
+      if (options.color !== undefined) updates.color = options.color
+      storage.updateCalendar(calendarId, updates)
+      storeUpdateCalendar(calendarId, updates)
+
+      setCalendars(storage.getAllCalendars())
+    },
+    [storeUpdateCalendar]
+  )
+
+  const deleteCalDAVCalendar = useCallback(
+    async (calendarId: string): Promise<void> => {
+      const allCalendars = storage.getAllCalendars()
+      const allAccounts = storage.getAllAccounts()
+      const calendar = allCalendars.find((c) => c.id === calendarId)
+      const account = allAccounts.find((a) => a.id === calendar?.accountId)
+
+      if (!calendar || !account) {
+        throw new Error('Calendar or account not found')
+      }
+
+      const credential = await getCredentialById(account.credentialId)
+      if (!credential) {
+        throw new Error('Credentials not found')
+      }
+
+      const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
+      await client.deleteCalendar(calendar.url)
+
+      // Remove from local storage
+      storage.deleteCalendar(calendarId)
+      storeDeleteCalendar(calendarId)
+
+      setCalendars(storage.getAllCalendars())
+    },
+    [storeDeleteCalendar]
+  )
+
   return {
     accounts,
     calendars,
@@ -889,5 +1021,8 @@ export function useCalDAV(): UseCalDAVReturn {
     updateEvent: updateEventFn,
     deleteEvent: deleteEventFn,
     retryAllFailedSyncs,
+    createCalendar: createCalDAVCalendar,
+    updateCalendar: updateCalDAVCalendar,
+    deleteCalendarFromServer: deleteCalDAVCalendar,
   }
 }

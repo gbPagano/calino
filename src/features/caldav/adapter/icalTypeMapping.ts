@@ -1,6 +1,6 @@
 import ICAL from 'ical.js'
 import { v4 as uuidv4 } from 'uuid'
-import type { CalendarEvent, RecurrenceRule, Reminder, TaskPriority } from '@/types'
+import type { CalendarEvent, CalendarAttachment, RecurrenceRule, Reminder, TaskPriority } from '@/types'
 import { addDays } from 'date-fns'
 import { DAY_NUM_TO_CODE } from '@/lib/recurrence'
 
@@ -383,6 +383,51 @@ export function icalEventToCalendarEvent(
   const sequenceProp = vevent.getFirstProperty('sequence')
   const sequence = sequenceProp ? parseInt(sequenceProp.getFirstValue() as string, 10) : undefined
 
+  // Parse attachments
+  const attachments: CalendarAttachment[] = []
+  const attachProps = vevent.getAllProperties('attach')
+  for (const attachProp of attachProps) {
+    const attachValue = attachProp.getFirstValue()
+
+    // RFC 5545 §3.3.1: VALUE=BINARY with ENCODING=BASE64 → ical.js returns ICAL.Binary
+    if (attachValue instanceof ICAL.Binary) {
+      const base64Data = attachValue.decodeValue()
+      const rawFmtType = attachProp.getParameter('fmttype')
+      const contentType = (typeof rawFmtType === 'string' ? rawFmtType : undefined) || 'application/octet-stream'
+      const filename = attachProp.getParameter('filename')
+      attachments.push({
+        href: `data:${contentType};base64,${base64Data}`,
+        contentType,
+        size: Math.round((base64Data.length * 3) / 4),
+        filename: typeof filename === 'string' ? filename : 'attachment',
+      })
+    } else if (typeof attachValue === 'string') {
+      // URI value type: could be a data: URI (legacy) or external URL
+      if (attachValue.startsWith('data:')) {
+        // Legacy data: URI format (backward compat)
+        const match = attachValue.match(/^data:([^;]+);base64,(.+)$/)
+        if (match) {
+          const filename = attachProp.getParameter('filename')
+          attachments.push({
+            href: attachValue,
+            contentType: match[1],
+            size: Math.round((match[2].length * 3) / 4),
+            filename: typeof filename === 'string' ? filename : 'attachment',
+          })
+        }
+      } else {
+        // External URL attachment
+        const fmttype = attachProp.getParameter('fmttype')
+        const filename = attachProp.getParameter('filename')
+        attachments.push({
+          href: attachValue,
+          contentType: typeof fmttype === 'string' ? fmttype : 'application/octet-stream',
+          filename: typeof filename === 'string' ? filename : attachValue.split('/').pop() || 'attachment',
+        })
+      }
+    }
+  }
+
   return {
     id: event.uid || uuidv4(),
     calendarId,
@@ -401,6 +446,7 @@ export function icalEventToCalendarEvent(
     sequence,
     excludedDates: excludedDates.length > 0 ? excludedDates : undefined,
     recurrenceId,
+    attachments: attachments.length > 0 ? attachments : undefined,
   }
 }
 
@@ -567,6 +613,40 @@ export function calendarEventToIcalComponent(event: CalendarEvent): ICAL.Compone
       valarm.updatePropertyWithValue('action', 'DISPLAY')
       valarm.updatePropertyWithValue('trigger', `-PT${reminder.minutesBefore}M`)
       vevent.addSubcomponent(valarm)
+    }
+  }
+
+  // Serialize attachments
+  if (event.attachments && event.attachments.length > 0) {
+    for (const attachment of event.attachments) {
+      if (attachment.href.startsWith('data:')) {
+        // Inline binary: extract base64 from data URI, write per RFC 5545 §3.8.1.1
+        const match = attachment.href.match(/^data:([^;]+);base64,(.+)$/)
+        if (match) {
+          const attachProp = new ICAL.Property('attach')
+          attachProp.setParameter('value', 'BINARY')
+          attachProp.setParameter('encoding', 'BASE64')
+          if (attachment.contentType) {
+            attachProp.setParameter('fmttype', attachment.contentType)
+          }
+          if (attachment.filename) {
+            attachProp.setParameter('filename', attachment.filename)
+          }
+          attachProp.setValue(new ICAL.Binary(match[2]))
+          vevent.addProperty(attachProp)
+        }
+      } else {
+        // External URL: write as URI (default value type)
+        const attachProp = new ICAL.Property('attach')
+        attachProp.setValue(attachment.href)
+        if (attachment.contentType) {
+          attachProp.setParameter('fmttype', attachment.contentType)
+        }
+        if (attachment.filename) {
+          attachProp.setParameter('filename', attachment.filename)
+        }
+        vevent.addProperty(attachProp)
+      }
     }
   }
 

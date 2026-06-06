@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useMemo, useState, useRef, useCallback, useEffect } from 'react'
+import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
@@ -62,11 +62,14 @@ export function CalendarGrid(): JSX.Element {
   const calendars = useCalendarStore((state) => state.calendars)
   const categories = useCalendarStore((state) => state.categories)
   const selectedCategoryIds = useCalendarStore((state) => state.selectedCategoryIds)
-  const selectedCategoryNames = selectedCategoryIds.length > 0
-    ? categories
-        .filter((c) => selectedCategoryIds.includes(c.id))
-        .map((c) => c.name)
-    : []
+  const selectedCategoryNames = useMemo(() =>
+    selectedCategoryIds.length > 0
+      ? categories
+          .filter((c) => selectedCategoryIds.includes(c.id))
+          .map((c) => c.name)
+      : [],
+    [selectedCategoryIds, categories]
+  )
   const getEventsForDateRange = useCalendarStore((state) => state.getEventsForDateRange)
   const openModal = useCalendarStore((state) => state.openModal)
   const storeUpdateEvent = useCalendarStore((state) => state.updateEvent)
@@ -99,6 +102,7 @@ export function CalendarGrid(): JSX.Element {
   })
 
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null)
+  const draggedEventRef = useRef<CalendarEvent | null>(null)
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null)
   const [scale, setScale] = useState(1)
   const isMobile = useIsMobile()
@@ -111,6 +115,8 @@ export function CalendarGrid(): JSX.Element {
   const scrollCooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentDateRef = useRef(currentDate)
   const containerRef = useRef<HTMLDivElement>(null)
+  // Track active resize listeners for cleanup on unmount
+  const resizeCleanupRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     currentDateRef.current = currentDate
@@ -123,6 +129,13 @@ export function CalendarGrid(): JSX.Element {
       },
     })
   )
+
+  // Clean up resize listeners on unmount
+  useEffect(() => {
+    return () => {
+      resizeCleanupRef.current?.()
+    }
+  }, [])
 
   const changeMonth = useCallback(
     (direction: 'up' | 'down') => {
@@ -213,6 +226,7 @@ export function CalendarGrid(): JSX.Element {
     hapticIfEnabled('light')
     const eventId = String(event.active.id)
     const draggedEvent = events.find((e) => e.id === eventId)
+    draggedEventRef.current = draggedEvent || null
     setActiveEvent(draggedEvent || null)
   }
 
@@ -227,7 +241,8 @@ export function CalendarGrid(): JSX.Element {
 
     if (!dayStr) return
 
-    const originalEvent = events.find((e) => e.id === active.id)
+    const originalEvent = draggedEventRef.current
+    draggedEventRef.current = null
     if (!originalEvent) return
 
     const originalStart = parseISO(originalEvent.start)
@@ -379,6 +394,8 @@ export function CalendarGrid(): JSX.Element {
 
   const handleGridResizeStart = (e: React.MouseEvent): void => {
     e.preventDefault()
+    // Clean up any previous resize
+    resizeCleanupRef.current?.()
     const startY = e.clientY
     const startRatio = gridRatio
     const containerHeight = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect().height
@@ -389,13 +406,17 @@ export function CalendarGrid(): JSX.Element {
     const onUp = (): void => {
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
+      resizeCleanupRef.current = null
     }
+    resizeCleanupRef.current = onUp
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
   }
 
   const handleResizeStart = (e: React.MouseEvent): void => {
     e.preventDefault()
+    // Clean up any previous resize
+    resizeCleanupRef.current?.()
     const startX = e.clientX
     const startRatio = splitRatio
     const containerWidth = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect().width
@@ -406,7 +427,9 @@ export function CalendarGrid(): JSX.Element {
     const onUp = (): void => {
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
+      resizeCleanupRef.current = null
     }
+    resizeCleanupRef.current = onUp
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
   }
@@ -675,7 +698,7 @@ interface DroppableDayProps {
   openModal: (date?: string, endDate?: string, eventId?: string, mode?: 'event' | 'task') => void
 }
 
-function DroppableDay({
+const DroppableDay = React.memo(function DroppableDay({
   dateKey,
   day,
   dayEvents,
@@ -822,4 +845,4 @@ function DroppableDay({
       )}
     </div>
   )
-}
+})

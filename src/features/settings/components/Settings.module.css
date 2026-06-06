@@ -17,6 +17,12 @@
   min-height: 0;
 }
 
+@media (max-width: 768px) {
+  .body {
+    flex-direction: column;
+  }
+}
+
 /* ── Back Button (toolbar) ──────────────────────────────────────────────── */
 .back {
   display: inline-flex;

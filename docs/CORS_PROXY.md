@@ -54,7 +54,7 @@ export default {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods':
-            'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS',
+            'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, MKCOL, OPTIONS',
           'Access-Control-Allow-Headers':
             'Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match',
         },
@@ -77,7 +77,7 @@ export default {
       corsHeaders.set('Access-Control-Allow-Origin', '*')
       corsHeaders.set(
         'Access-Control-Allow-Methods',
-        'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS'
+        'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, MKCOL, OPTIONS'
       )
       corsHeaders.set(
         'Access-Control-Allow-Headers',

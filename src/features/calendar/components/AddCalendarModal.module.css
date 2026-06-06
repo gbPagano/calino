@@ -178,6 +178,30 @@
   background: var(--color-bg-hover, #f1f3f4);
 }
 
+.colorGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.colorOption {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.colorOption:hover {
+  transform: scale(1.1);
+}
+
+.colorSelected {
+  border-color: var(--color-text-primary, #202124);
+  box-shadow: 0 0 0 2px var(--color-bg, #ffffff);
+}
+
 @media (max-width: 768px) {
   .modalContent {
     margin: 16px;

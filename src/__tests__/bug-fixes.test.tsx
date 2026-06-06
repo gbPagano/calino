@@ -86,7 +86,7 @@ describe('Bug 9: CommandPalette onClose before async', () => {
     const onClose = vi.fn()
 
     render(<CommandPalette isOpen={true} onClose={onClose} />)
-    const input = screen.getByPlaceholderText(/Search commands/)
+    const input = screen.getByRole('textbox')
 
     await act(async () => {
       fireEvent.keyDown(input, { key: 'Enter' })
@@ -100,7 +100,7 @@ describe('Bug 9: CommandPalette onClose before async', () => {
     const onClose = vi.fn()
 
     render(<CommandPalette isOpen={true} onClose={onClose} />)
-    const input = screen.getByPlaceholderText(/Search commands/)
+    const input = screen.getByRole('textbox')
 
     await act(async () => {
       fireEvent.keyDown(input, { key: 'Enter' })

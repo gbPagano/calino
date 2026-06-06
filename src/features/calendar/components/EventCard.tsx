@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { format, parseISO, isSameDay } from 'date-fns'
 import { useDraggable } from '@dnd-kit/core'
@@ -34,7 +34,7 @@ interface EventCardProps {
   hourHeight?: number
 }
 
-export function EventCard({
+export const EventCard = React.memo(function EventCard({
   event,
   onClick,
   compact = false,
@@ -261,9 +261,20 @@ export function EventCard({
             <SyncWarningIcon />
           </div>
         )}
-        {isRecurring && (
-          <div className={styles.recurringIcon}>
-            <RecurringIcon />
+        {(isRecurring || (event.attachments && event.attachments.length > 0)) && (
+          <div className={styles.iconGroup}>
+            {event.attachments && event.attachments.length > 0 && (
+              <div className={styles.attachmentIcon} title={`${event.attachments.length} attachment${event.attachments.length !== 1 ? 's' : ''}`}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+            )}
+            {isRecurring && (
+              <div className={styles.recurringIcon}>
+                <RecurringIcon />
+              </div>
+            )}
           </div>
         )}
         {isTask && (
@@ -451,7 +462,7 @@ export function EventCard({
         )}
     </>
   )
-}
+})
 
 function DeleteIcon(): JSX.Element {
   return (

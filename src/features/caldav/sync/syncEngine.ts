@@ -3,6 +3,27 @@ import type { SyncResult, ConflictResolution } from '../types'
 import { CalDAVClient } from '../client/CalDAVClient'
 import { eventToICAL, parseICALData, taskToICAL, isUUID } from '../adapter/iCalendarAdapter'
 import * as storage from './accountStorage'
+import { getAttachments, putAttachments } from '@/lib/attachmentStore'
+
+/** Enrich an event with attachment data from IndexedDB before serializing. */
+async function withInlineAttachments(event: CalendarEvent): Promise<CalendarEvent> {
+  if (!event.attachments || event.attachments.length === 0) return event
+  const needsInline = event.attachments.some((att) => !att.href)
+  if (!needsInline) return event
+
+  const stored = await getAttachments(event.id)
+  if (stored.length === 0) return event
+
+  return {
+    ...event,
+    attachments: event.attachments.map((att, i) => {
+      if (!att.href && stored[i]) {
+        return { ...att, href: stored[i].href }
+      }
+      return att
+    }),
+  }
+}
 
 export class SyncEngine {
   private client: CalDAVClient
@@ -30,7 +51,22 @@ export class SyncEngine {
     const allCategoryNames = new Set<string>()
     for (const serverEvent of serverEventsRaw) {
       const events = parseICALData(serverEvent.data, this.calendarId)
-      for (const event of events) {
+      for (let event of events) {
+        // Store inline attachments in IndexedDB, keep only metadata in zustand
+        if (event.attachments && event.attachments.length > 0) {
+          const hasInline = event.attachments.some((att) => att.href.startsWith('data:'))
+          if (hasInline) {
+            await putAttachments(event.id, event.attachments)
+            // Strip base64 data from the event object
+            event = {
+              ...event,
+              attachments: event.attachments.map((att) => ({
+                ...att,
+                href: att.href.startsWith('data:') ? '' : att.href,
+              })),
+            }
+          }
+        }
         parsedEvents.push({
           ...event,
           etag: serverEvent.etag,
@@ -94,7 +130,8 @@ export class SyncEngine {
       throw new Error(`Calendar not found: ${this.calendarId}`)
     }
 
-    const iCalString = event.type === 'task' ? taskToICAL(event) : eventToICAL(event)
+    const enriched = await withInlineAttachments(event)
+    const iCalString = enriched.type === 'task' ? taskToICAL(enriched) : eventToICAL(enriched)
     const filename = `${event.id}.ics`
 
     return this.client.createEvent(calendar.url, iCalString, filename)
@@ -107,7 +144,10 @@ export class SyncEngine {
       throw new Error(`Calendar not found: ${this.calendarId}`)
     }
 
-    const iCalString = event.type === 'task' ? taskToICAL(event) : eventToICAL(event)
+    const enriched = await withInlineAttachments(event)
+    const iCalString = enriched.type === 'task' ? taskToICAL(enriched) : eventToICAL(enriched)
+    console.log('[SyncEngine] updateEvent iCal:', iCalString)
+    console.log('[SyncEngine] updateEvent attachments:', JSON.stringify(enriched.attachments))
     const eventUrl = `${calendar.url}${event.id}.ics`
 
     return this.client.updateEvent(calendar.url, eventUrl, iCalString, etag)

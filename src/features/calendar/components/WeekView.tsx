@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useMemo, useState, useCallback, useRef, useLayoutEffect, useEffect } from 'react'
+import React, { useMemo, useState, useCallback, useRef, useLayoutEffect, useEffect } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -50,7 +50,7 @@ interface DroppableCellProps {
   onMouseDown: (e: React.MouseEvent) => void
 }
 
-function DroppableCell({ day, hour, onClick, onMouseDown }: DroppableCellProps): JSX.Element {
+const DroppableCell = React.memo(function DroppableCell({ day, hour, onClick, onMouseDown }: DroppableCellProps): JSX.Element {
   const droppableId = `${format(day, 'yyyy-MM-dd')}-${format(hour, 'HH:mm')}`
   const { setNodeRef, isOver } = useDroppable({ id: droppableId })
 
@@ -62,7 +62,7 @@ function DroppableCell({ day, hour, onClick, onMouseDown }: DroppableCellProps):
       onMouseDown={onMouseDown}
     />
   )
-}
+})
 
 export function WeekView(): JSX.Element {
   const currentDate = useCalendarStore((state) => state.currentDate)
@@ -222,7 +222,7 @@ export function WeekView(): JSX.Element {
 
       if (event.type !== 'task' && event.isAllDay) {
         allDay.set(startKey, [...(allDay.get(startKey) || []), event])
-      } else if (event.type !== 'task' ? !event.isAllDay : !event.isAllDay && event.start && event.dueDate) {
+      } else if (event.type !== 'task' ? !event.isAllDay : !event.isAllDay && event.start) {
         if (startKey === endKey) {
           timed.set(startKey, [...(timed.get(startKey) || []), event])
         } else {

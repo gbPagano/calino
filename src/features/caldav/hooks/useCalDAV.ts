@@ -6,6 +6,7 @@ import { createCalDAVClient } from '../client/CalDAVClient'
 import { testConnection, discoverServerUrl } from '../client/discovery'
 import { saveCredentials, getCredentialById, deleteCredential } from '../client/credentials'
 import { parseICALData } from '../adapter/iCalendarAdapter'
+import { putAttachments } from '@/lib/attachmentStore'
 import * as storage from '../sync/accountStorage'
 import { SyncEngine } from '../sync/syncEngine'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -310,7 +311,22 @@ export function useCalDAV(): UseCalDAVReturn {
             if (eventData.data) {
               const parsedEvents = parseICALData(eventData.data, cal.id)
 
-              for (const parsedEvent of parsedEvents) {
+              for (let parsedEvent of parsedEvents) {
+                // Cache inline attachments in IndexedDB, keep only metadata in store
+                if (parsedEvent.attachments && parsedEvent.attachments.length > 0) {
+                  const hasInline = parsedEvent.attachments.some((att) => att.href.startsWith('data:'))
+                  if (hasInline) {
+                    await putAttachments(parsedEvent.id, parsedEvent.attachments)
+                    parsedEvent = {
+                      ...parsedEvent,
+                      attachments: parsedEvent.attachments.map((att) => ({
+                        ...att,
+                        href: att.href.startsWith('data:') ? '' : att.href,
+                      })),
+                    }
+                  }
+                }
+
                 // Bug 31 fix: do not filter categories by UUID pattern.
                 // Let users see all categories from their CalDAV server.
                 if (parsedEvent.categories) {
@@ -420,7 +436,22 @@ export function useCalDAV(): UseCalDAVReturn {
             if (eventData.data) {
               const parsedEvents = parseICALData(eventData.data, cal.id)
 
-              for (const parsedEvent of parsedEvents) {
+              for (let parsedEvent of parsedEvents) {
+                // Cache inline attachments in IndexedDB, keep only metadata in store
+                if (parsedEvent.attachments && parsedEvent.attachments.length > 0) {
+                  const hasInline = parsedEvent.attachments.some((att) => att.href.startsWith('data:'))
+                  if (hasInline) {
+                    await putAttachments(parsedEvent.id, parsedEvent.attachments)
+                    parsedEvent = {
+                      ...parsedEvent,
+                      attachments: parsedEvent.attachments.map((att) => ({
+                        ...att,
+                        href: att.href.startsWith('data:') ? '' : att.href,
+                      })),
+                    }
+                  }
+                }
+
                 serverEventIds.add(parsedEvent.id)
 
                 // Collect category names for auto-creation

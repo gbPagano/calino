@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import {
   format,
   addMonths,
@@ -83,6 +83,17 @@ export function CalendarHeader({
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  useEffect(() => {
+    if (!isViewDropdownOpen) return
+    const handleClickOutside = (e: MouseEvent): void => {
+      if (viewDropdownRef.current && !viewDropdownRef.current.contains(e.target as Node)) {
+        setIsViewDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isViewDropdownOpen])
 
   const date = parseISO(currentDate)
   const year = format(date, 'yyyy')
@@ -255,14 +266,16 @@ export function CalendarHeader({
         {/* View Tabs - segmented control or dropdown */}
         {!isMobile && !isTablet && (
           <div className={styles.viewTabs}>
-            {VIEWS.map((view) => (
-              <button
-                key={view.value}
-                className={`${styles.viewTab} ${currentView === view.value ? styles.viewTabActive : ''}`}
-                onClick={() => handleViewChange(view.value)}
-              >
-                {view.label}
-              </button>
+            {VIEWS.map((view, index) => (
+              <React.Fragment key={view.value}>
+                {index === 3 && <div className={styles.viewTabDivider} />}
+                <button
+                  className={`${styles.viewTab} ${currentView === view.value ? styles.viewTabActive : ''}`}
+                  onClick={() => handleViewChange(view.value)}
+                >
+                  {view.label}
+                </button>
+              </React.Fragment>
             ))}
           </div>
         )}
@@ -286,6 +299,7 @@ export function CalendarHeader({
           >
             <button
               className={styles.viewDropdownButton}
+              onClick={() => setIsViewDropdownOpen((prev) => !prev)}
             >
               {VIEWS.find((v) => v.value === currentView)?.label}
               <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" className={`${styles.viewDropdownArrow} ${isViewDropdownOpen ? styles.viewDropdownArrowOpen : ''}`}>
@@ -294,17 +308,19 @@ export function CalendarHeader({
             </button>
             {isViewDropdownOpen && (
               <div className={styles.viewDropdownMenu}>
-                {VIEWS.map((view) => (
-                  <button
-                    key={view.value}
-                    className={`${styles.viewDropdownItem} ${currentView === view.value ? styles.viewDropdownItemActive : ''}`}
-                    onClick={() => {
-                      handleViewChange(view.value)
-                      setIsViewDropdownOpen(false)
-                    }}
-                  >
-                    {view.label}
-                  </button>
+                {VIEWS.map((view, index) => (
+                  <React.Fragment key={view.value}>
+                    {index === 3 && <div className={styles.viewDropdownDivider} />}
+                    <button
+                      className={`${styles.viewDropdownItem} ${currentView === view.value ? styles.viewDropdownItemActive : ''}`}
+                      onClick={() => {
+                        handleViewChange(view.value)
+                        setIsViewDropdownOpen(false)
+                      }}
+                    >
+                      {view.label}
+                    </button>
+                  </React.Fragment>
                 ))}
               </div>
             )}

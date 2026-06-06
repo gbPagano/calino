@@ -495,6 +495,9 @@ export function EventModal(): JSX.Element | null {
   const hasChanges = useMemo(() => {
     if (!existingEventForMode) return true
 
+    const existingAttachments = existingEventForMode.attachments || []
+    const attachmentsChanged = JSON.stringify(attachments) !== JSON.stringify(existingAttachments)
+
     if (isTaskMode) {
       const taskDueDate = dueDate || format(parseISO(existingEventForMode.start), 'yyyy-MM-dd')
       const taskTime = dueAllDay ? '00:00:00' : `${dueTime}:00`
@@ -508,7 +511,8 @@ export function EventModal(): JSX.Element | null {
         completed !== (existingEventForMode.completed || false) ||
         priority !== existingEventForMode.priority ||
         calendarId !== existingEventForMode.calendarId ||
-        JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || [])
+        JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || []) ||
+        attachmentsChanged
       )
     }
 
@@ -527,7 +531,8 @@ export function EventModal(): JSX.Element | null {
       recurrence !== (existingEventForMode.recurrence?.frequency || 'none') ||
       travelDuration !== existingEventForMode.travelDuration ||
       calendarId !== existingEventForMode.calendarId ||
-      JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || [])
+      JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || []) ||
+      attachmentsChanged
     )
   }, [
     existingEventForMode,
@@ -549,6 +554,7 @@ export function EventModal(): JSX.Element | null {
     travelDuration,
     calendarId,
     selectedCategories,
+    attachments,
   ])
 
   const handleSubmit = (e: React.FormEvent): void => {
@@ -674,6 +680,8 @@ export function EventModal(): JSX.Element | null {
         }
         const existingEvent = events.find((e) => e.id === eventId)
         if (existingEvent) {
+          console.log('[EventModal] Saving event. attachments state:', JSON.stringify(attachments))
+          console.log('[EventModal] existingEvent.attachments:', JSON.stringify(existingEvent.attachments))
           await safeCalDAVUpdate(
             updateCalDAVEvent,
             calendarId,
@@ -811,7 +819,6 @@ export function EventModal(): JSX.Element | null {
     } else {
       const eventIdToDelete = originalEventId || selectedEventId
       if (eventIdToDelete) {
-        deleteEvent(eventIdToDelete)
         await safeCalDAVDelete(deleteCalDAVEvent, calendarId, eventIdToDelete)
       }
     }

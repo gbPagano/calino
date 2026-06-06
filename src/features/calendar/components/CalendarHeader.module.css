@@ -316,6 +316,14 @@
   box-shadow: 0 1px 2px rgba(var(--ink-raw, 44, 40, 33), 0.08), 0 0 0 1px var(--line);
 }
 
+.viewTabDivider {
+  width: 1px;
+  height: 18px;
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.18);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
 @media (max-width: 1220px) {
   .viewTabs {
     display: none;
@@ -414,6 +422,12 @@
   font-weight: 500;
 }
 
+.viewDropdownDivider {
+  height: 1px;
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.12);
+  margin: 4px 12px;
+}
+
 /* ---- Mobile Hamburger ---- */
 .hamburger {
   display: flex;
@@ -427,6 +441,7 @@
   color: var(--ink-2);
   cursor: pointer;
   transition: background 0.14s, color 0.14s;
+  margin-left: 12px;
 }
 
 .hamburger:hover {
@@ -434,7 +449,7 @@
   color: var(--ink);
 }
 
-@media (min-width: 951px) {
+@media (min-width: 950px) {
   .hamburger {
     display: none;
   }

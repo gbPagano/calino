@@ -12,6 +12,7 @@ import {
 import { SettingsPage, PrivacyPolicy } from './features/settings'
 import { CommandPalette } from './features/commandPalette'
 import { CookieConsent, ErrorBoundary } from './components/common'
+import { CalendarSkeleton } from './components/common/Skeleton'
 import { OnboardingModal } from './features/onboarding/OnboardingModal'
 import { ThemeProvider } from './components/ThemeProvider'
 import type { ViewType } from './types'
@@ -39,7 +40,7 @@ function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: Vie
         transition={{ duration: 0.15 }}
         style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
       >
-        <Suspense fallback={<div className="viewLoading" />}>
+        <Suspense fallback={<CalendarSkeleton />}>
           {children}
         </Suspense>
       </motion.div>

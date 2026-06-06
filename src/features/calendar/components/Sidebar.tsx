@@ -239,13 +239,23 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
     updateCalendar(calendarId, { color: nextColor })
   }
 
+  const COLLAPSE_THRESHOLD = 240
+
   const handleSidebarResizeStart = useCallback((e: React.MouseEvent): void => {
     e.preventDefault()
     const startX = e.clientX
     const startWidth = sidebarWidth
     const onMove = (ev: MouseEvent): void => {
       const delta = ev.clientX - startX
-      const newWidth = Math.min(500, Math.max(220, startWidth + delta))
+      const newWidth = Math.min(500, startWidth + delta)
+      if (newWidth < COLLAPSE_THRESHOLD) {
+        setIsCollapsed(true)
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onUp)
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+        return
+      }
       updateSettings({ sidebarWidth: newWidth })
     }
     const onUp = (): void => {
@@ -259,6 +269,13 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
   }, [sidebarWidth, updateSettings])
+
+  // Auto-collapse if stored width is below threshold
+  useEffect(() => {
+    if (sidebarWidth < COLLAPSE_THRESHOLD && !isCollapsed) {
+      setIsCollapsed(true)
+    }
+  }, [sidebarWidth, isCollapsed])
 
   const miniCalendarDays = useMemo(() => {
     const monthStart = startOfMonth(effectiveMiniDate)
@@ -325,7 +342,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps): JSX.Element 
       <div className={styles.collapsed}>
         <button
           className={styles.expandButton}
-          onClick={() => setIsCollapsed(false)}
+          onClick={() => {
+            setIsCollapsed(false)
+            if (sidebarWidth < COLLAPSE_THRESHOLD) {
+              updateSettings({ sidebarWidth: 300 })
+            }
+          }}
           title="Expand sidebar"
         >
           <ChevronRight />

@@ -34,6 +34,7 @@ const ICONS = {
   plus: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>',
   circle: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/></svg>',
   settings: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M13.5 10a1.3 1.3 0 00.26 1.45l.05.05a1.58 1.58 0 11-2.23 2.23l-.05-.05A1.3 1.3 0 0010 13.5a1.3 1.3 0 00-.8 1.2v.1a1.58 1.58 0 01-3.16 0v-.1A1.3 1.3 0 005.28 13.5a1.3 1.3 0 00-1.45.26l-.05.05a1.58 1.58 0 11-2.23-2.23l.05-.05A1.3 1.3 0 002.5 10a1.3 1.3 0 00-1.2-.8H1.2a1.58 1.58 0 010-3.16h.1A1.3 1.3 0 002.5 5.28a1.3 1.3 0 00-.26-1.45l-.05-.05a1.58 1.58 0 112.23-2.23l.05.05A1.3 1.3 0 005.28 2.5a1.3 1.3 0 00.8-1.2V1.2a1.58 1.58 0 013.16 0v.1a1.3 1.3 0 00.8 1.2 1.3 1.3 0 001.45-.26l.05-.05a1.58 1.58 0 112.23 2.23l-.05.05A1.3 1.3 0 0013.5 5.28a1.3 1.3 0 001.2.8h.1a1.58 1.58 0 010 3.16h-.1a1.3 1.3 0 00-1.2.8z"/></svg>',
+  bug: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1v2M8 13v2M3 5H1M3 11H1M13 5h2M13 11h2M5.5 2.5l-1 1M10.5 12.5l-1 1M5.5 12.5l-1-1M10.5 2.5l-1-1"/><rect x="3" y="5" width="10" height="8" rx="2"/><path d="M5 5V4a3 3 0 016 0v1"/></svg>',
 } as const
 
 const createNavigationCommands = (deps: CommandFactoryDeps): Command[] => {
@@ -201,6 +202,19 @@ const createActionCommands = (deps: CommandFactoryDeps): Command[] => [
     action: () => {
       deps.navigate('/settings')
       return 'Opened settings'
+    },
+  },
+  {
+    id: 'debug-toggle',
+    label: 'Toggle CalDAV Debug Mode',
+    description: 'Enable or disable CalDAV sync debug logging',
+    category: 'actions',
+    keywords: ['debug', 'caldav', 'sync', 'logging', 'console'],
+    icon: ICONS.bug,
+    action: () => {
+      const newValue = !deps.caldavDebugMode
+      deps.updateSettings?.({ caldavDebugMode: newValue })
+      return newValue ? 'CalDAV debug mode enabled' : 'CalDAV debug mode disabled'
     },
   },
 ]

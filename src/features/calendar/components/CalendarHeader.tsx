@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useRef, useLayoutEffect } from 'react'
 import {
   format,
   addMonths,
@@ -72,6 +72,24 @@ export function CalendarHeader({
   const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false)
   const viewDropdownRef = useRef<HTMLDivElement>(null)
   const viewDropdownCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 })
+  const viewTabsRef = useRef<HTMLDivElement>(null)
+  const viewTabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+
+  // Sliding indicator for view tabs
+  useLayoutEffect(() => {
+    const container = viewTabsRef.current
+    const activeTab = viewTabRefs.current.get(currentView)
+    if (container && activeTab) {
+      const containerRect = container.getBoundingClientRect()
+      const tabRect = activeTab.getBoundingClientRect()
+      setIndicatorStyle({
+        left: tabRect.left - containerRect.left,
+        width: tabRect.width,
+      })
+    }
+  }, [currentView])
+
   const [showQuickSettings, setShowQuickSettings] = useState(false)
   const quickSettingsTimeoutRef = useState(() => ({ current: undefined as ReturnType<typeof setTimeout> | undefined }))[0]
 
@@ -269,11 +287,19 @@ export function CalendarHeader({
         </button>
 
         {/* View Tabs - always rendered, CSS handles visibility */}
-        <div className={`${styles.viewTabs} ${isMobile || isTablet ? styles.viewTabsHidden : ''}`}>
+        <div className={`${styles.viewTabs} ${isMobile || isTablet ? styles.viewTabsHidden : ''}`} ref={viewTabsRef}>
+          <div
+            className={styles.viewTabIndicator}
+            style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+          />
           {VIEWS.filter(v => journalEnabled || v.value !== 'journal').map((view, index) => (
             <React.Fragment key={view.value}>
               {index === 3 && <div className={styles.viewTabDivider} />}
               <button
+                ref={(el) => {
+                  if (el) viewTabRefs.current.set(view.value, el)
+                  else viewTabRefs.current.delete(view.value)
+                }}
                 className={`${styles.viewTab} ${currentView === view.value ? styles.viewTabActive : ''}`}
                 onClick={() => handleViewChange(view.value)}
               >

@@ -208,6 +208,16 @@ export function CalendarGrid(): JSX.Element {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
+      // Ignore if typing in an input, textarea, select, or contentEditable element
+      const target = e.target as HTMLElement
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target.isContentEditable
+      ) {
+        return
+      }
       if (isOverlayOpen) return
 
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {

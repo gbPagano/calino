@@ -174,9 +174,20 @@ function useViewManager(): void {
   // Handle keyboard shortcuts - navigate and update state
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      // Ignore if typing in an input, textarea, select, or contentEditable element
+      const target = e.target as HTMLElement
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target.isContentEditable
+      ) {
         return
       }
+
+      // Ignore if a modal or overlay is open
+      const { isModalOpen, isOverlayOpen } = useCalendarStore.getState()
+      if (isModalOpen || isOverlayOpen) return
 
       let newView: ViewType | null = null
       if (e.key === '<' || e.key === ',') {
@@ -237,10 +248,20 @@ function CalendarApp(): JSX.Element {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
-      // Ignore if typing in an input or textarea
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
+      // Ignore if typing in an input, textarea, select, or contentEditable element
+      const target = e.target as HTMLElement
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target.isContentEditable
+      ) {
         return
       }
+
+      // Ignore if a modal or overlay is open
+      const { isModalOpen, isOverlayOpen: overlayOpen } = useCalendarStore.getState()
+      if (isModalOpen || overlayOpen) return
 
       // Cmd/Ctrl+K → open command palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {

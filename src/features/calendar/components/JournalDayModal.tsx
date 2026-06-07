@@ -37,6 +37,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [attachments, setAttachments] = useState<CalendarAttachment[]>([])
   const [url, setUrl] = useState('')
+  const [relatedTo, setRelatedTo] = useState<string[]>([])
   const [showAddPanel, setShowAddPanel] = useState(false)
   const [focusedEntryIndex, setFocusedEntryIndex] = useState<number>(-1)
 
@@ -76,6 +77,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
       setSelectedCategories([])
       setAttachments([])
       setUrl('')
+      setRelatedTo([])
       setShowAddPanel(false)
       setConfirmDeleteId(null)
     }
@@ -117,6 +119,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
           categories: selectedCategories.length > 0 ? selectedCategories : undefined,
           url: url || undefined,
           attachments: attachments.length > 0 ? attachments : undefined,
+          relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
         }
         updateEvent(editingId, updates)
         putAttachments(editingId, attachments).catch(() => {
@@ -148,6 +151,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
         categories: selectedCategories.length > 0 ? selectedCategories : undefined,
         url: url || undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
+        relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
       }
       addEvent(newEntry)
       if (attachments.length > 0) {
@@ -171,8 +175,9 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
     setSelectedCategories([])
     setAttachments([])
     setUrl('')
+    setRelatedTo([])
     setShowAddPanel(false)
-  }, [mode, editingId, title, body, date, selectedCategories, attachments, url, addEvent, updateEvent, createCalDAVEvent, updateCalDAVEvent])
+  }, [mode, editingId, title, body, date, selectedCategories, attachments, url, relatedTo, addEvent, updateEvent, createCalDAVEvent, updateCalDAVEvent])
 
   // Ref for handleSave to avoid stale closure in keyboard effect (#10)
   const handleSaveRef = useRef<(() => void) | null>(null)
@@ -184,6 +189,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
     setBody(entry.description || '')
     setSelectedCategories(entry.categories || [])
     setUrl(entry.url || '')
+    setRelatedTo(entry.relatedTo || [])
     setMode('edit')
     // Load attachments from IndexedDB
     getAttachments(entry.id).then((loaded) => {
@@ -192,7 +198,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
       setAttachments(entry.attachments || [])
     })
     // Open add panel if entry has any extra content
-    const hasExtra = (entry.categories?.length ?? 0) > 0 || (entry.url?.length ?? 0) > 0 || (entry.attachments?.length ?? 0) > 0
+    const hasExtra = (entry.categories?.length ?? 0) > 0 || (entry.url?.length ?? 0) > 0 || (entry.attachments?.length ?? 0) > 0 || (entry.relatedTo?.length ?? 0) > 0
     setShowAddPanel(hasExtra)
   }, [])
 
@@ -203,6 +209,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
     setSelectedCategories([])
     setAttachments([])
     setUrl('')
+    setRelatedTo([])
     setShowAddPanel(false)
     setMode('compose')
   }, [])
@@ -481,6 +488,56 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                         showLabel={false}
                       />
                     </div>
+
+                    {/* Related To */}
+                    {(() => {
+                      const sameDayEvents = events.filter(
+                        (e) => e.type !== 'journal' && e.id !== editingId && e.start === date
+                      )
+                      if (sameDayEvents.length === 0) return null
+                      return (
+                        <div className={styles.addSection}>
+                          <div className={styles.addSectionHeader}>
+                            <span className={styles.addSectionLabel}>Related to</span>
+                            {relatedTo.length > 0 && (
+                              <button
+                                type="button"
+                                className={styles.removeFieldButton}
+                                onClick={() => setRelatedTo([])}
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                          <div className={styles.relatedList}>
+                            {sameDayEvents.map((ev) => {
+                              const isSelected = relatedTo.includes(ev.id)
+                              return (
+                                <button
+                                  key={ev.id}
+                                  type="button"
+                                  className={`${styles.relatedChip} ${isSelected ? styles.relatedChipActive : ''}`}
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      setRelatedTo(relatedTo.filter((id) => id !== ev.id))
+                                    } else {
+                                      setRelatedTo([...relatedTo, ev.id])
+                                    }
+                                  }}
+                                >
+                                  <span className={styles.relatedChipTitle}>
+                                    {ev.title || '(untitled)'}
+                                  </span>
+                                  <span className={styles.relatedChipDate}>
+                                    {ev.start}
+                                  </span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 )}
               </div>

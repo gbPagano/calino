@@ -484,6 +484,54 @@
   border-color: var(--accent);
 }
 
+.relatedList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.relatedChip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+  color: var(--ink);
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.relatedChip:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft, rgba(196, 168, 154, 0.04));
+}
+
+.relatedChipActive {
+  border-color: var(--accent);
+  background: var(--accent-soft, rgba(196, 168, 154, 0.08));
+}
+
+.relatedChipTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relatedChipDate {
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
 .btnAccent {
   padding: 7px 22px;
   border-radius: 8px;

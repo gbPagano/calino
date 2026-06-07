@@ -137,6 +137,23 @@
   margin: 0 22px;
 }
 
+.moreToggle {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  padding: 10px 0;
+  cursor: pointer;
+  transition: color 0.12s;
+}
+
+.moreToggle:hover {
+  color: var(--ink);
+}
+
 /* Attachments */
 .attachmentCount {
   font-size: 12px;

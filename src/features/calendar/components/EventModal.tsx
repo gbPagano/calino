@@ -298,7 +298,7 @@ export function EventModal(): JSX.Element | null {
   const [showDescription, setShowDescription] = useState(!!initialState.description)
   const [attachments, setAttachments] = useState<CalendarAttachment[]>([])
   const [relatedTo, setRelatedTo] = useState<string[]>([])
-  const [showAllRelated, setShowAllRelated] = useState(false)
+  const [showMoreFields, setShowMoreFields] = useState(false)
 
   // Load attachments from IndexedDB when modal opens with existing event
   useEffect(() => {
@@ -573,12 +573,10 @@ export function EventModal(): JSX.Element | null {
     return events.filter((e) => {
       if (e.id === selectedEventId) return false
       if (e.type === 'journal') return false
-      if (!showAllRelated) {
-        if (!e.start.startsWith(startDate)) return false
-      }
+      if (!e.start.startsWith(startDate)) return false
       return true
     })
-  }, [events, selectedEventId, startDate, showAllRelated])
+  }, [events, selectedEventId, startDate])
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
@@ -1059,51 +1057,50 @@ export function EventModal(): JSX.Element | null {
             </div>
           )}
 
-          <div className={styles.modalRow2}>
-            <div className={styles.categoriesContainer}>
-              <div className={styles.categoriesLabel}>Related to</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <button
-                  type="button"
-                  className={`${styles.categoryChip} ${showAllRelated ? styles.categoryChipSelected : ''}`}
-                  onClick={() => setShowAllRelated(!showAllRelated)}
-                >
-                  {showAllRelated ? 'Showing all' : 'Same day only'}
-                </button>
-              </div>
-              <div className={styles.categoriesList}>
-                {candidateEvents.map((ev) => (
-                  <button
-                    key={ev.id}
-                    type="button"
-                    className={`${styles.categoryChip} ${
-                      relatedTo.includes(ev.id) ? styles.categoryChipSelected : ''
-                    }`}
-                    onClick={() => {
-                      if (relatedTo.includes(ev.id)) {
-                        setRelatedTo(relatedTo.filter((id) => id !== ev.id))
-                      } else {
-                        setRelatedTo([...relatedTo, ev.id])
-                      }
-                    }}
-                  >
-                    {ev.title}
-                  </button>
-                ))}
-                {candidateEvents.length === 0 && (
-                  <span style={{ fontSize: 12, color: 'var(--color-text-muted, #a0a0a0)' }}>
-                    No events available
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
           <AttachmentSection
             attachments={attachments}
             onAttachmentsChange={setAttachments}
             eventId={selectedEventId}
           />
+
+          {/* More fields toggle */}
+          {candidateEvents.length > 0 && (
+            <>
+              <hr className={styles.modalDivider} />
+              <button
+                type="button"
+                className={styles.moreToggle}
+                onClick={() => setShowMoreFields(!showMoreFields)}
+              >
+                {showMoreFields ? '▾ Less' : '▸ More'}
+              </button>
+              {showMoreFields && (
+                <div className={styles.categoriesContainer}>
+                  <div className={styles.categoriesLabel}>Related to</div>
+                  <div className={styles.categoriesList}>
+                    {candidateEvents.map((ev) => (
+                      <button
+                        key={ev.id}
+                        type="button"
+                        className={`${styles.categoryChip} ${
+                          relatedTo.includes(ev.id) ? styles.categoryChipSelected : ''
+                        }`}
+                        onClick={() => {
+                          if (relatedTo.includes(ev.id)) {
+                            setRelatedTo(relatedTo.filter((id) => id !== ev.id))
+                          } else {
+                            setRelatedTo([...relatedTo, ev.id])
+                          }
+                        }}
+                      >
+                        {ev.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
           <hr className={styles.modalDivider} />
           <div className={styles.modalFooter}>

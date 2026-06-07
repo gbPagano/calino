@@ -313,6 +313,7 @@
   padding: 4px;
   border-radius: 12px;
   transition: opacity 0.2s ease, width 0.2s ease, padding 0.2s ease;
+  position: relative;
 }
 
 .viewTab {

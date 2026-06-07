@@ -273,6 +273,14 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
               {confirmDeleteId === editingId ? 'Click again to confirm' : 'Delete'}
             </button>
           )}
+          {mode === 'view' && (
+            <button className={styles.addEntry} onClick={handleStartCompose}>
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M6 1v10M1 6h10" />
+              </svg>
+              Add entry
+            </button>
+          )}
           <div className={styles.footerActions}>
             {mode !== 'view' ? (
               <>
@@ -297,14 +305,6 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
               </button>
             )}
           </div>
-          {mode === 'view' && (
-            <button className={styles.addEntry} onClick={handleStartCompose}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                <path d="M6 1v10M1 6h10" />
-              </svg>
-              Add entry
-            </button>
-          )}
         </div>
       </div>
     </div>

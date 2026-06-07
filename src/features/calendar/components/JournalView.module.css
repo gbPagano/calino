@@ -69,11 +69,12 @@
 /* Entry row */
 .entry {
   display: grid;
-  grid-template-columns: 64px 1fr;
-  gap: 0 28px;
+  grid-template-columns: 64px 1fr auto;
+  gap: 0 16px;
   padding: 26px 0;
   border-bottom: 1px solid var(--line-2);
   cursor: default;
+  position: relative;
 }
 
 .entry:last-child {
@@ -135,6 +136,44 @@
   color: var(--ink-2);
   line-height: 1.72;
   text-wrap: pretty;
+}
+
+/* Delete button — hidden until hover */
+.deleteBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.14s, color 0.14s;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.deleteBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.entry:hover .deleteBtn {
+  opacity: 1;
+}
+
+.deleteBtn:hover {
+  background: rgba(196, 112, 104, 0.1);
+  color: #c47068;
+}
+
+.deleteBtnConfirm {
+  opacity: 1 !important;
+  background: #c47068;
+  color: #fff;
 }
 
 /* Compose */

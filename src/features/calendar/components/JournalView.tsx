@@ -15,8 +15,9 @@ export function JournalView(): JSX.Element {
   const events = useCalendarStore((state) => state.events)
   const addEvent = useCalendarStore((state) => state.addEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
+  const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const calendars = useCalendarStore((state) => state.calendars)
-  const { createEvent: createCalDAVEvent, updateEvent: updateCalDAVEvent } = useCalDAV()
+  const { createEvent: createCalDAVEvent, updateEvent: updateCalDAVEvent, deleteEvent: deleteCalDAVEvent } = useCalDAV()
 
   const [isComposing, setIsComposing] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -24,6 +25,7 @@ export function JournalView(): JSX.Element {
   const [body, setBody] = useState('')
   const [editingDate, setEditingDate] = useState(new Date().toISOString().split('T')[0])
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const titleInputRef = useRef<HTMLInputElement>(null)
   const bodyInputRef = useRef<HTMLTextAreaElement>(null)
@@ -146,6 +148,21 @@ export function JournalView(): JSX.Element {
     setBody('')
     setIsComposing(true)
   }, [])
+
+  const handleDelete = useCallback((entryId: string): void => {
+    if (confirmDeleteId === entryId) {
+      // Actually delete
+      const entry = events.find((e) => e.id === entryId)
+      deleteEvent(entryId)
+      if (entry && entry.calendarId !== 'default') {
+        deleteCalDAVEvent(entry)
+      }
+      setConfirmDeleteId(null)
+    } else {
+      // First click — show confirm
+      setConfirmDeleteId(entryId)
+    }
+  }, [confirmDeleteId, events, deleteEvent, deleteCalDAVEvent])
 
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
   const saveHint = `${isMac ? '⌘' : 'Ctrl+'} Return to save · Esc to cancel`
@@ -348,6 +365,20 @@ export function JournalView(): JSX.Element {
                           ))}
                         </div>
                       </div>
+                      <button
+                        className={`${styles.deleteBtn} ${confirmDeleteId === entry.id ? styles.deleteBtnConfirm : ''}`}
+                        title={confirmDeleteId === entry.id ? 'Click again to confirm delete' : 'Delete entry'}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(entry.id)
+                        }}
+                      >
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 4h12" />
+                          <path d="M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4" />
+                          <path d="M12.667 4v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4" />
+                        </svg>
+                      </button>
                     </article>
                   )
                 })}

@@ -213,6 +213,46 @@
   outline-offset: 1px;
 }
 
+/* ---- Journal Indicator ---- */
+.journalIndicator {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s, background 0.14s, color 0.14s;
+  opacity: 0;
+}
+
+.journalIndicator svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.day:hover .journalIndicator {
+  opacity: 1;
+}
+
+.journalIndicator:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+
+/* Always show dot on mobile (no hover) */
+@media (max-width: 768px) {
+  .journalIndicator {
+    opacity: 0.5;
+  }
+}
+
 /* ---- Events Container ---- */
 .events {
   display: flex;

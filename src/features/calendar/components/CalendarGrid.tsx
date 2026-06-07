@@ -34,6 +34,7 @@ import {
 } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
@@ -46,6 +47,7 @@ import { useIsTallWindow, useIsWideWindow } from '@/hooks/useWindowHeight'
 import { AgendaView } from './AgendaView'
 import { DayView } from './DayView'
 import type { CalendarEvent, ViewType } from '@/types'
+import { getJournalDates } from '@/store/calendarStore'
 import styles from './CalendarGrid.module.css'
 
 const VIEW_ROUTES: Record<ViewType, string> = {
@@ -321,7 +323,7 @@ export function CalendarGrid(): JSX.Element {
 
     const map = new Map<string, CalendarEvent[]>()
     monthEvents
-      .filter((event) => event.type !== 'task')
+      .filter((event) => event.type !== 'task' && event.type !== 'journal')
       .forEach((event) => {
         const eventStart = parseISO(event.start)
         const eventEnd = parseISO(event.end)
@@ -391,6 +393,8 @@ export function CalendarGrid(): JSX.Element {
       })
     return map
   }, [events, calendars, hideCompletedTasksInMonthView, selectedCategoryNames])
+
+  const journalDates = useMemo(() => getJournalDates(events), [events])
 
   const handleGridResizeStart = (e: React.MouseEvent): void => {
     e.preventDefault()
@@ -550,6 +554,7 @@ export function CalendarGrid(): JSX.Element {
                               day={day}
                               dayEvents={dayEvents}
                               dayTasks={dayTasks}
+                              hasJournal={journalDates.has(dateKey)}
                               isCurrentMonth={isCurrentMonth}
                               isTodayDate={isTodayDate}
                               isWeekend={isWeekend}
@@ -654,6 +659,7 @@ export function CalendarGrid(): JSX.Element {
                         day={day}
                         dayEvents={dayEvents}
                         dayTasks={dayTasks}
+                        hasJournal={journalDates.has(dateKey)}
                         isCurrentMonth={isCurrentMonth}
                         isTodayDate={isTodayDate}
                         isWeekend={isWeekend}
@@ -685,6 +691,7 @@ interface DroppableDayProps {
   day: Date
   dayEvents: CalendarEvent[]
   dayTasks: CalendarEvent[]
+  hasJournal: boolean
   isCurrentMonth: boolean
   isTodayDate: boolean
   isWeekend: boolean
@@ -703,6 +710,7 @@ const DroppableDay = React.memo(function DroppableDay({
   day,
   dayEvents,
   dayTasks,
+  hasJournal,
   isCurrentMonth,
   isTodayDate,
   isWeekend,
@@ -767,6 +775,21 @@ const DroppableDay = React.memo(function DroppableDay({
         >
           {format(day, 'd')}
         </button>
+        {hasJournal && (
+          <button
+            className={styles.journalIndicator}
+            title="View journal entries"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDayNumberClick(day)
+            }}
+          >
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" />
+              <path d="M7.5 4.5l2 2" />
+            </svg>
+          </button>
+        )}
       </div>
       {dayEvents.length > 0 && (
         <div className={styles.events}>
@@ -840,6 +863,17 @@ const DroppableDay = React.memo(function DroppableDay({
                 setContextMenu(null)
               },
             },
+            ...(useSettingsStore.getState().journalEnabled
+              ? [
+                  {
+                    label: 'New journal entry',
+                    onClick: () => {
+                      openModal(format(day, 'yyyy-MM-dd'), undefined, undefined, 'journal')
+                      setContextMenu(null)
+                    },
+                  },
+                ]
+              : []),
           ]}
         />
       )}

@@ -223,8 +223,6 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-top: 8px;
-  align-self: flex-start;
   height: 32px;
   padding: 0 12px;
   border-radius: 9px;

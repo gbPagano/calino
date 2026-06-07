@@ -237,13 +237,6 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                   </React.Fragment>
                 ))}
               </div>
-
-              <button className={styles.addEntry} onClick={handleStartCompose}>
-                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                  <path d="M6 1v10M1 6h10" />
-                </svg>
-                Add entry
-              </button>
             </>
           )}
 
@@ -272,6 +265,14 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
 
         {/* Footer — always at bottom */}
         <div className={styles.footer}>
+          {mode === 'view' && (
+            <button className={styles.addEntry} onClick={handleStartCompose}>
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M6 1v10M1 6h10" />
+              </svg>
+              Add entry
+            </button>
+          )}
           {mode === 'edit' && editingId && (
             <button
               className={`${styles.btnDelete} ${confirmDeleteId === editingId ? styles.btnDeleteConfirm : ''}`}

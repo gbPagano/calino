@@ -29,6 +29,9 @@ describe('EventFormFields', () => {
     onRemindersChange: vi.fn(),
     transparency: 'opaque' as const,
     onTransparencyChange: vi.fn(),
+    relatedTo: [] as string[],
+    onRelatedToChange: vi.fn(),
+    candidateEvents: [] as never[],
   }
 
   const renderWithMoreOptions = (props = {}) => {

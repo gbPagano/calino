@@ -298,7 +298,7 @@ export function EventModal(): JSX.Element | null {
   const [showDescription, setShowDescription] = useState(!!initialState.description)
   const [attachments, setAttachments] = useState<CalendarAttachment[]>([])
   const [relatedTo, setRelatedTo] = useState<string[]>([])
-  const [showMoreFields, setShowMoreFields] = useState(false)
+
 
   // Load attachments from IndexedDB when modal opens with existing event
   useEffect(() => {
@@ -966,6 +966,9 @@ export function EventModal(): JSX.Element | null {
               onRemindersChange={setReminders}
               transparency={transparency}
               onTransparencyChange={setTransparency}
+              relatedTo={relatedTo}
+              onRelatedToChange={setRelatedTo}
+              candidateEvents={candidateEvents}
             />
           )}
 
@@ -1063,44 +1066,7 @@ export function EventModal(): JSX.Element | null {
             eventId={selectedEventId}
           />
 
-          {/* More fields toggle */}
-          {candidateEvents.length > 0 && (
-            <>
-              <hr className={styles.modalDivider} />
-              <button
-                type="button"
-                className={styles.moreToggle}
-                onClick={() => setShowMoreFields(!showMoreFields)}
-              >
-                {showMoreFields ? '▾ Less' : '▸ More'}
-              </button>
-              {showMoreFields && (
-                <div className={styles.categoriesContainer}>
-                  <div className={styles.categoriesLabel}>Related to</div>
-                  <div className={styles.categoriesList}>
-                    {candidateEvents.map((ev) => (
-                      <button
-                        key={ev.id}
-                        type="button"
-                        className={`${styles.categoryChip} ${
-                          relatedTo.includes(ev.id) ? styles.categoryChipSelected : ''
-                        }`}
-                        onClick={() => {
-                          if (relatedTo.includes(ev.id)) {
-                            setRelatedTo(relatedTo.filter((id) => id !== ev.id))
-                          } else {
-                            setRelatedTo([...relatedTo, ev.id])
-                          }
-                        }}
-                      >
-                        {ev.title}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+
 
           <hr className={styles.modalDivider} />
           <div className={styles.modalFooter}>

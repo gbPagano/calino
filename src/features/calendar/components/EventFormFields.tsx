@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import { useState, useRef } from 'react'
-import type { RecurrenceRule, Reminder } from '@/types'
+import type { RecurrenceRule, Reminder, CalendarEvent } from '@/types'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useScrollInput } from '@/hooks/useScrollInput'
 import styles from './EventModal.module.css'
@@ -26,6 +26,9 @@ interface EventFormFieldsProps {
   onRemindersChange: (reminders: Reminder[]) => void
   transparency?: 'opaque' | 'transparent'
   onTransparencyChange: (transparency: 'opaque' | 'transparent') => void
+  relatedTo: string[]
+  onRelatedToChange: (ids: string[]) => void
+  candidateEvents: CalendarEvent[]
 }
 
 const TRAVEL_DURATION_OPTIONS: { value: number | undefined; label: string }[] = [
@@ -91,6 +94,9 @@ export function EventFormFields({
   onRemindersChange,
   transparency = 'opaque',
   onTransparencyChange,
+  relatedTo,
+  onRelatedToChange,
+  candidateEvents,
 }: EventFormFieldsProps): JSX.Element {
   const [showMoreOptions, setShowMoreOptions] = useState(false)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
@@ -316,6 +322,33 @@ export function EventFormFields({
               </select>
             </div>
           </div>
+
+          {/* Related to */}
+          {candidateEvents.length > 0 && (
+            <div className={styles.categoriesContainer}>
+              <div className={styles.categoriesLabel}>Related to</div>
+              <div className={styles.categoriesList}>
+                {candidateEvents.map((ev) => (
+                  <button
+                    key={ev.id}
+                    type="button"
+                    className={`${styles.categoryChip} ${
+                      relatedTo.includes(ev.id) ? styles.categoryChipSelected : ''
+                    }`}
+                    onClick={() => {
+                      if (relatedTo.includes(ev.id)) {
+                        onRelatedToChange(relatedTo.filter((id) => id !== ev.id))
+                      } else {
+                        onRelatedToChange([...relatedTo, ev.id])
+                      }
+                    }}
+                  >
+                    {ev.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>

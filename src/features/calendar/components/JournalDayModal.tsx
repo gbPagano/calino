@@ -546,7 +546,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                                     {ev.title || '(untitled)'}
                                   </span>
                                   <span className={styles.relatedChipDate}>
-                                    {ev.start}
+                                    {ev.start.split('T')[1]?.slice(0, 5) || ''}
                                   </span>
                                 </button>
                               )

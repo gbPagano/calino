@@ -265,7 +265,7 @@ function JournalComposeForm({
                                 {event.title || '(untitled)'}
                               </span>
                               <span className={styles.relatedChipDate}>
-                                {event.start}
+                                {event.start.split('T')[1]?.slice(0, 5) || ''}
                               </span>
                             </button>
                           )

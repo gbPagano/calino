@@ -140,9 +140,9 @@
 
 /* Delete button — hidden until hover */
 .deleteBtn {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -152,13 +152,12 @@
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s, background 0.14s, color 0.14s;
-  align-self: flex-start;
-  margin-top: 4px;
+  align-self: center;
 }
 
 .deleteBtn svg {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .entry:hover .deleteBtn {

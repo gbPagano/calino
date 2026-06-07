@@ -367,8 +367,8 @@ export function JournalView(): JSX.Element {
                       </div>
                       <button
                         className={`${styles.deleteBtn} ${confirmDeleteId === entry.id ? styles.deleteBtnConfirm : ''}`}
-                        title={confirmDeleteId === entry.id ? 'Click again to confirm delete' : 'Delete entry'}
-                        onDoubleClick={(e) => {
+                        title={confirmDeleteId === entry.id ? 'Click to confirm delete' : 'Delete entry'}
+                        onClick={(e) => {
                           e.stopPropagation()
                           handleDelete(entry.id)
                         }}

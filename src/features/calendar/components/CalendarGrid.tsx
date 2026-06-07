@@ -906,7 +906,8 @@ const DroppableDay = React.memo(function DroppableDay({
                   {
                     label: 'New journal entry',
                     onClick: () => {
-                      openModal(format(day, 'yyyy-MM-dd'), undefined, undefined, 'journal')
+                      setJournalModalDate(format(day, 'yyyy-MM-dd'))
+                      setIsJournalModalOpen(true)
                       setContextMenu(null)
                     },
                   },

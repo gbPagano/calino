@@ -232,6 +232,36 @@
   margin-top: 2px;
 }
 
+/* Date button and input */
+.dateButton {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 2px 4px;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s;
+}
+
+.dateButton:hover {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.dateInput {
+  font-family: var(--font-serif, 'Newsreader', Georgia, serif);
+  font-size: 38px;
+  font-weight: 400;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 2px 4px;
+  background: var(--panel);
+  cursor: pointer;
+}
+
 .btnAccent {
   height: 32px;
   padding: 0 15px;

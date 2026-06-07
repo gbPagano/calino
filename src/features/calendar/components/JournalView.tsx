@@ -22,6 +22,8 @@ export function JournalView(): JSX.Element {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  const [editingDate, setEditingDate] = useState(new Date().toISOString().split('T')[0])
+  const [showDatePicker, setShowDatePicker] = useState(false)
 
   const titleInputRef = useRef<HTMLInputElement>(null)
   const bodyInputRef = useRef<HTMLTextAreaElement>(null)
@@ -92,6 +94,8 @@ export function JournalView(): JSX.Element {
         const updates: Partial<CalendarEvent> = {
           title: trimmedTitle,
           description: trimmedBody,
+          start: editingDate,
+          end: editingDate,
           lastModified: now,
         }
         updateEvent(editingId, updates)
@@ -107,8 +111,8 @@ export function JournalView(): JSX.Element {
         calendarId: defaultCalendar?.id || 'default',
         title: trimmedTitle,
         description: trimmedBody,
-        start: today,
-        end: today,
+        start: editingDate,
+        end: editingDate,
         isAllDay: true,
         type: 'journal',
         created: now,
@@ -124,13 +128,16 @@ export function JournalView(): JSX.Element {
     setEditingId(null)
     setTitle('')
     setBody('')
-  }, [editingId, title, body, events, calendars, addEvent, updateEvent, createCalDAVEvent, updateCalDAVEvent])
+    setShowDatePicker(false)
+  }, [editingId, editingDate, title, body, events, calendars, addEvent, updateEvent, createCalDAVEvent, updateCalDAVEvent])
 
   const handleStartEdit = useCallback((entry: CalendarEvent): void => {
     setEditingId(entry.id)
     setTitle(entry.title || '')
     setBody(entry.description || '')
+    setEditingDate(entry.start)
     setIsComposing(true)
+    setShowDatePicker(false)
   }, [])
 
   const handleStartCompose = useCallback((): void => {
@@ -172,16 +179,32 @@ export function JournalView(): JSX.Element {
         {isComposing && (
           <div className={styles.compose}>
             <div className={styles.composeDateCol}>
-              <span className={styles.composeDay}>
-                {editingId
-                  ? formatEntryDate(events.find((e) => e.id === editingId)?.start || new Date().toISOString().split('T')[0]).day
-                  : format(new Date(), 'd')}
-              </span>
-              <span className={styles.composeWeekday}>
-                {editingId
-                  ? formatEntryDate(events.find((e) => e.id === editingId)?.start || new Date().toISOString().split('T')[0]).weekday
-                  : format(new Date(), 'EEE').toUpperCase()}
-              </span>
+              {showDatePicker ? (
+                <input
+                  type="date"
+                  className={styles.dateInput}
+                  value={editingDate}
+                  onChange={(e) => {
+                    setEditingDate(e.target.value)
+                    setShowDatePicker(false)
+                  }}
+                  onBlur={() => setShowDatePicker(false)}
+                  autoFocus
+                />
+              ) : (
+                <button
+                  className={styles.dateButton}
+                  onClick={() => setShowDatePicker(true)}
+                  title="Click to change date"
+                >
+                  <span className={styles.composeDay}>
+                    {formatEntryDate(editingDate).day}
+                  </span>
+                  <span className={styles.composeWeekday}>
+                    {formatEntryDate(editingDate).weekday}
+                  </span>
+                </button>
+              )}
             </div>
             <div className={styles.composeFields}>
               <input
@@ -241,8 +264,32 @@ export function JournalView(): JSX.Element {
                     return (
                       <div key={entry.id} className={styles.compose}>
                         <div className={styles.composeDateCol}>
-                          <span className={styles.composeDay}>{day}</span>
-                          <span className={styles.composeWeekday}>{weekday}</span>
+                          {showDatePicker ? (
+                            <input
+                              type="date"
+                              className={styles.dateInput}
+                              value={editingDate}
+                              onChange={(e) => {
+                                setEditingDate(e.target.value)
+                                setShowDatePicker(false)
+                              }}
+                              onBlur={() => setShowDatePicker(false)}
+                              autoFocus
+                            />
+                          ) : (
+                            <button
+                              className={styles.dateButton}
+                              onClick={() => setShowDatePicker(true)}
+                              title="Click to change date"
+                            >
+                              <span className={styles.composeDay}>
+                                {formatEntryDate(editingDate).day}
+                              </span>
+                              <span className={styles.composeWeekday}>
+                                {formatEntryDate(editingDate).weekday}
+                              </span>
+                            </button>
+                          )}
                         </div>
                         <div className={styles.composeFields}>
                           <input

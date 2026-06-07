@@ -7,6 +7,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { v4 as uuidv4 } from 'uuid'
 import { getJournalEntriesForMonth } from '@/store/calendarStore'
+import { renderMarkdown } from '@/lib/markdown'
 import type { CalendarEvent } from '@/types'
 import styles from './JournalView.module.css'
 
@@ -359,11 +360,10 @@ export function JournalView(): JSX.Element {
                         {entry.title && (
                           <div className={styles.summary}>{entry.title}</div>
                         )}
-                        <div className={styles.body}>
-                          {(entry.description || '').split('\n\n').map((p, i) => (
-                            <p key={i}>{p}</p>
-                          ))}
-                        </div>
+                        <div
+                          className={styles.body}
+                          dangerouslySetInnerHTML={{ __html: renderMarkdown(entry.description || '') }}
+                        />
                       </div>
                       <button
                         className={`${styles.deleteBtn} ${confirmDeleteId === entry.id ? styles.deleteBtnConfirm : ''}`}

@@ -161,6 +161,63 @@
   text-wrap: pretty;
 }
 
+.body p + p {
+  margin-top: 10px;
+}
+
+.body strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.body em {
+  font-style: italic;
+}
+
+.body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  background: rgba(44, 40, 33, 0.06);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.body blockquote {
+  border-left: 3px solid var(--line);
+  padding-left: 12px;
+  color: var(--ink-3);
+  font-style: italic;
+  margin: 8px 0;
+}
+
+.body ul, .body ol {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.body li {
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.7;
+}
+
+.body hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 16px 0;
+}
+
+.body h1, .body h2, .body h3 {
+  font-family: var(--font-serif, 'Newsreader', Georgia, serif);
+  color: var(--ink);
+  margin-top: 16px;
+  margin-bottom: 4px;
+}
+
+.body h1 { font-size: 20px; }
+.body h2 { font-size: 17px; }
+.body h3 { font-size: 15px; }
+
 /* Add Entry Button */
 .addEntry {
   display: flex;
@@ -205,6 +262,12 @@
   width: 100%;
   border-bottom: 1px solid var(--line);
   padding-bottom: 10px;
+  box-shadow: none;
+}
+
+.inputTitle:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 .inputTitle::placeholder {

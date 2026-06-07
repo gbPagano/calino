@@ -120,6 +120,7 @@ vi.mock('@/store/settingsStore', () => ({
       sidebarWidth: 300,
       sidebarCollapsed: false,
       useCategoryColors: true,
+      journalEnabled: false,
       updateSettings: vi.fn(),
       resetSettings: vi.fn(),
     }

@@ -47,9 +47,9 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
 
   // Refs for stable values used in callbacks (#9)
   const eventsRef = useRef(events)
-  eventsRef.current = events
   const calendarsRef = useRef(calendars)
-  calendarsRef.current = calendars
+  useEffect(() => { eventsRef.current = events })
+  useEffect(() => { calendarsRef.current = calendars })
 
   // Get journal entries for this date
   const entries = useMemo(
@@ -198,7 +198,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
 
   // Ref for handleSave to avoid stale closure in keyboard effect (#10)
   const handleSaveRef = useRef<(() => void) | null>(null)
-  handleSaveRef.current = handleSave
+  useEffect(() => { handleSaveRef.current = handleSave })
 
   const handleStartEdit = useCallback((entry: CalendarEvent): void => {
     setEditingId(entry.id)
@@ -321,8 +321,6 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
 
   if (!isOpen) return null
 
-  const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent)
-  const saveHint = `${isMac ? '⌘' : 'Ctrl+'} Return to save · Esc to cancel`
 
   return (
     <div className={styles.scrim}>

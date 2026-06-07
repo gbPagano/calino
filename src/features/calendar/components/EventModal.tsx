@@ -346,7 +346,7 @@ export function EventModal(): JSX.Element | null {
   const lastSelectedDate = useRef<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const closeModalRef = useRef(closeModal)
-  closeModalRef.current = closeModal
+  useEffect(() => { closeModalRef.current = closeModal })
 
   // Title autocomplete
   const [titleSuggestions, setTitleSuggestions] = useState<CalendarEvent[]>([])

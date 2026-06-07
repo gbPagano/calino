@@ -1,7 +1,7 @@
 import type { JSX } from 'react'
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { format, parseISO } from 'date-fns'
-import { useNavigate } from 'react-router-dom'
+// useNavigate removed — unused
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { v4 as uuidv4 } from 'uuid'
@@ -49,7 +49,7 @@ function JournalComposeForm({
   relatedTo,
   titleRef,
   bodyRef,
-  saveHint,
+  // saveHint available but not rendered in compose form currently
   formatEntryDate,
   onTitleChange,
   onBodyChange,
@@ -70,9 +70,8 @@ function JournalComposeForm({
   // Determine which add sections have content
   const hasCategories = selectedCategories.length > 0
   const hasUrl = url.length > 0
-  const hasAttachments = attachments.length > 0
   const hasRelated = relatedTo.length > 0
-  const hasAnyContent = hasCategories || hasUrl || hasAttachments || hasRelated
+  // const hasAnyContent = hasCategories || hasUrl || hasAttachments || hasRelated
 
   // Non-journal events on the same day for linking
   const sameDayEvents = useMemo(() => {
@@ -130,7 +129,7 @@ function JournalComposeForm({
           onChange={(e) => onBodyChange(e.target.value)}
         />
         {/* Add panel — categories, link, attachments */}
-        {categories.length > 0 || true ? (
+        {(
           <div className={styles.addPanel}>
             {!showAddPanel ? (
               <button
@@ -288,7 +287,7 @@ function JournalComposeForm({
               </div>
             )}
           </div>
-        ) : null}
+        )}
         <div className={styles.composeActions}>
           <button className={styles.btnGhost} onClick={onCancel}>
             Cancel
@@ -305,7 +304,7 @@ function JournalComposeForm({
 // ── Main component ───────────────────────────────────────────────────────────
 
 export function JournalView(): JSX.Element {
-  const navigate = useNavigate()
+  // const navigate = useNavigate()
   const events = useCalendarStore((state) => state.events)
   const addEvent = useCalendarStore((state) => state.addEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
@@ -323,7 +322,6 @@ export function JournalView(): JSX.Element {
   const [url, setUrl] = useState('')
   const [relatedTo, setRelatedTo] = useState<string[]>([])
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [showAddPanel, setShowAddPanel] = useState(false)
 
   // Use store's currentDate for month filtering
   const currentDate = useCalendarStore((state) => state.currentDate)
@@ -333,9 +331,10 @@ export function JournalView(): JSX.Element {
 
   // Refs for stable values used in callbacks (#9)
   const eventsRef = useRef(events)
-  eventsRef.current = events
   const calendarsRef = useRef(calendars)
-  calendarsRef.current = calendars
+  // Keep refs in sync with state
+  useEffect(() => { eventsRef.current = events })
+  useEffect(() => { calendarsRef.current = calendars })
 
   // Group journal entries by month — viewed month only
   const groupedEntries = useMemo(() => {
@@ -369,7 +368,7 @@ export function JournalView(): JSX.Element {
     setConfirmDeleteId(null)
   }, [editingId, isComposing])
 
-  const handleSaveEntry = useCallback((): void => {
+  const handleSaveEntry = (): void => {
     const trimmedBody = body.trim()
     if (!trimmedBody) {
       bodyInputRef.current?.focus()
@@ -468,11 +467,11 @@ export function JournalView(): JSX.Element {
     setSelectedCategories([])
     setAttachments([])
     setUrl('')
-  }, [editingId, editingDate, title, body, selectedCategories, attachments, url, addEvent, updateEvent, createCalDAVEvent, updateCalDAVEvent])
+  }
 
   // Keyboard shortcuts — use ref for handleSaveEntry to avoid stale closure (#10)
   const handleSaveEntryRef = useRef(handleSaveEntry)
-  handleSaveEntryRef.current = handleSaveEntry
+  useEffect(() => { handleSaveEntryRef.current = handleSaveEntry })
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -500,8 +499,7 @@ export function JournalView(): JSX.Element {
     setRelatedTo(entry.relatedTo || [])
     setIsComposing(true)
     // Open add panel if entry has any extra content
-    const hasExtra = (entry.categories?.length ?? 0) > 0 || (entry.url?.length ?? 0) > 0 || (entry.attachments?.length ?? 0) > 0 || (entry.relatedTo?.length ?? 0) > 0
-    setShowAddPanel(hasExtra)
+    // setShowAddPanel(hasExtra) — JournalComposeForm manages its own state
     // Load attachments from IndexedDB
     getAttachments(entry.id).then((loaded) => {
       setAttachments(loaded.length > 0 ? loaded : entry.attachments || [])
@@ -519,7 +517,7 @@ export function JournalView(): JSX.Element {
     setAttachments([])
     setUrl('')
     setRelatedTo([])
-    setShowAddPanel(false)
+    // setShowAddPanel(false) — JournalComposeForm manages its own state
     setIsComposing(true)
   }, [])
 
@@ -557,7 +555,7 @@ export function JournalView(): JSX.Element {
   }, [confirmDeleteId, deleteEvent, deleteCalDAVEvent, addEvent, createCalDAVEvent])
 
   const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent)
-  const saveHint = `${isMac ? '⌘' : 'Ctrl+'} Return to save · Esc to cancel`
+
 
   // Format date for display in entry
   const formatEntryDate = useCallback((dateStr: string): { day: string; weekday: string } => {
@@ -608,7 +606,7 @@ export function JournalView(): JSX.Element {
             relatedTo={relatedTo}
             titleRef={titleInputRef}
             bodyRef={bodyInputRef}
-            saveHint={saveHint}
+            saveHint={`${isMac ? '⌘' : 'Ctrl+'} Return to save · Esc to cancel`}
             formatEntryDate={formatEntryDate}
             onTitleChange={setTitle}
             onBodyChange={setBody}
@@ -654,7 +652,7 @@ export function JournalView(): JSX.Element {
                         relatedTo={relatedTo}
                         titleRef={titleInputRef}
                         bodyRef={bodyInputRef}
-                        saveHint={saveHint}
+                        saveHint={`${isMac ? '⌘' : 'Ctrl+'} Return to save · Esc to cancel`}
                         formatEntryDate={formatEntryDate}
                         onTitleChange={setTitle}
                         onBodyChange={setBody}

@@ -337,7 +337,7 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
     id: 'new-journal-entry',
     label: 'New Journal Entry',
     description: 'Create a new journal entry for today',
-    category: 'quick-add',
+    category: 'actions',
     keywords: ['journal', 'notes', 'diary', 'new', 'create', 'add'],
     icon: ICONS.plus,
     action: () => {
@@ -356,8 +356,8 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
     action: () => {
       const events = useCalendarStore.getState().events
       const journalEntries = events
-        .filter((e: { type: string }) => e.type === 'journal')
-        .sort((a: { start: string }, b: { start: string }) => b.start.localeCompare(a.start))
+        .filter((e) => e.type === 'journal')
+        .sort((a, b) => b.start.localeCompare(a.start))
 
       if (journalEntries.length === 0) {
         return 'No journal entries to export'

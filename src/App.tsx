@@ -56,6 +56,7 @@ const VIEW_ROUTES: Record<ViewType, string> = {
   day: '/day',
   agenda: '/agenda',
   todo: '/tasks',
+  journal: '/journal',
 }
 
 const URL_TO_VIEW: Record<string, ViewType> = {
@@ -64,9 +65,10 @@ const URL_TO_VIEW: Record<string, ViewType> = {
   '/day': 'day',
   '/agenda': 'agenda',
   '/tasks': 'todo',
+  '/journal': 'journal',
 }
 
-const VIEW_ORDER: ViewType[] = ['month', 'week', 'day', 'agenda', 'todo']
+const VIEW_ORDER: ViewType[] = ['month', 'week', 'day', 'agenda', 'todo', 'journal']
 
 function Toast(): JSX.Element | null {
   const [message, setMessage] = useState<string | null>(null)

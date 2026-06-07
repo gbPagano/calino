@@ -228,17 +228,33 @@
   cursor: pointer;
   flex-shrink: 0;
   transition: opacity 0.15s, background 0.14s, color 0.14s;
-  opacity: 0;
+  position: relative;
 }
 
 .journalIndicator svg {
   width: 12px;
   height: 12px;
   display: block;
+  opacity: 0;
+  transition: opacity 0.15s;
 }
 
-.day:hover .journalIndicator {
+.journalIndicatorDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.45;
+  transition: opacity 0.15s;
+  position: absolute;
+}
+
+.day:hover .journalIndicator svg {
   opacity: 1;
+}
+
+.day:hover .journalIndicatorDot {
+  opacity: 0;
 }
 
 .journalIndicator:hover {
@@ -248,8 +264,8 @@
 
 /* Always show dot on mobile (no hover) */
 @media (max-width: 768px) {
-  .journalIndicator {
-    opacity: 0.5;
+  .journalIndicatorDot {
+    opacity: 0.45;
   }
 }
 

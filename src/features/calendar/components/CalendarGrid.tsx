@@ -856,6 +856,7 @@ const DroppableDay = React.memo(function DroppableDay({
               onJournalIndicatorClick(day)
             }}
           >
+            <span className={styles.journalIndicatorDot} />
             <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z" />
               <path d="M7.5 4.5l2 2" />

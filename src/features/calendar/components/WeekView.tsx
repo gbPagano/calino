@@ -220,7 +220,7 @@ export function WeekView(): JSX.Element {
       const startKey = format(eventStart, 'yyyy-MM-dd')
       const endKey = format(eventEnd, 'yyyy-MM-dd')
 
-      if (event.type !== 'task' && event.isAllDay) {
+      if (event.type !== 'task' && event.type !== 'journal' && event.isAllDay) {
         allDay.set(startKey, [...(allDay.get(startKey) || []), event])
       } else if (event.type !== 'task' ? !event.isAllDay : !event.isAllDay && event.start) {
         if (startKey === endKey) {

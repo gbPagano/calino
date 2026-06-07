@@ -167,7 +167,7 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
   const dateKey = format(date, 'yyyy-MM-dd')
 
   const allDayEvents = useMemo(() => {
-    return getEventsForDateRange(dateKey, dateKey).filter((e) => e.type !== 'task' && e.isAllDay)
+    return getEventsForDateRange(dateKey, dateKey).filter((e) => e.type !== 'task' && e.type !== 'journal' && e.isAllDay)
   }, [dateKey, getEventsForDateRange, events])
 
   const dayEvents = useMemo(() => {

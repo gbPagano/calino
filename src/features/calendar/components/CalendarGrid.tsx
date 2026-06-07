@@ -123,6 +123,7 @@ export function CalendarGrid(): JSX.Element {
   // Journal day modal state
   const [journalModalDate, setJournalModalDate] = useState<string | null>(null)
   const [isJournalModalOpen, setIsJournalModalOpen] = useState(false)
+  const [journalStartInCompose, setJournalStartInCompose] = useState(false)
 
   useEffect(() => {
     currentDateRef.current = currentDate
@@ -576,6 +577,7 @@ export function CalendarGrid(): JSX.Element {
                               }}
                               onOpenJournalModal={(date) => {
                                 setJournalModalDate(date)
+                                setJournalStartInCompose(true)
                                 setIsJournalModalOpen(true)
                               }}
                               openModal={openModal}
@@ -613,9 +615,11 @@ export function CalendarGrid(): JSX.Element {
         <JournalDayModal
           isOpen={isJournalModalOpen}
           date={journalModalDate}
+          startInCompose={journalStartInCompose}
           onClose={() => {
             setIsJournalModalOpen(false)
             setJournalModalDate(null)
+            setJournalStartInCompose(false)
           }}
         />
       )}
@@ -701,6 +705,7 @@ export function CalendarGrid(): JSX.Element {
                         }}
                         onOpenJournalModal={(date) => {
                           setJournalModalDate(date)
+                          setJournalStartInCompose(true)
                           setIsJournalModalOpen(true)
                         }}
                         openModal={openModal}
@@ -720,9 +725,11 @@ export function CalendarGrid(): JSX.Element {
       <JournalDayModal
         isOpen={isJournalModalOpen}
         date={journalModalDate}
+        startInCompose={journalStartInCompose}
         onClose={() => {
           setIsJournalModalOpen(false)
           setJournalModalDate(null)
+          setJournalStartInCompose(false)
         }}
       />
     )}

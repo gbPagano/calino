@@ -11,12 +11,13 @@ import styles from './JournalDayModal.module.css'
 interface JournalDayModalProps {
   isOpen: boolean
   date: string // ISO date string (yyyy-MM-dd)
+  startInCompose?: boolean
   onClose: () => void
 }
 
 type ModalMode = 'view' | 'compose' | 'edit'
 
-export function JournalDayModal({ isOpen, date, onClose }: JournalDayModalProps): JSX.Element | null {
+export function JournalDayModal({ isOpen, date, startInCompose = false, onClose }: JournalDayModalProps): JSX.Element | null {
   const events = useCalendarStore((state) => state.events)
   const addEvent = useCalendarStore((state) => state.addEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
@@ -44,12 +45,16 @@ export function JournalDayModal({ isOpen, date, onClose }: JournalDayModalProps)
   // Reset mode when modal opens
   useEffect(() => {
     if (isOpen) {
-      setMode('view')
+      if (startInCompose) {
+        setMode('compose')
+      } else {
+        setMode('view')
+      }
       setEditingId(null)
       setTitle('')
       setBody('')
     }
-  }, [isOpen, date])
+  }, [isOpen, date, startInCompose])
 
   // Focus input when entering compose/edit mode
   useEffect(() => {
@@ -185,8 +190,6 @@ export function JournalDayModal({ isOpen, date, onClose }: JournalDayModalProps)
         </div>
 
         <div className={styles.content}>
-          <div className={styles.rule} />
-
           {mode === 'view' && (
             <>
               <div className={styles.entries}>

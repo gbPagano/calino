@@ -353,6 +353,17 @@ export function useCalDAV(): UseCalDAVReturn {
 
         console.log(`[CalDAV] addAccount: done — ${eventsAdded} events added`)
 
+        // After adding account, check if any journal entries exist and enable journaling if so
+        const allEvents = useCalendarStore.getState().events
+        const hasJournalEntries = allEvents.some((e) => e.type === 'journal')
+        if (hasJournalEntries) {
+          const { journalEnabled, updateSettings } = useSettingsStore.getState()
+          if (!journalEnabled) {
+            console.log('[CalDAV] Enabling journaling after addAccount (found journal entries)')
+            updateSettings({ journalEnabled: true })
+          }
+        }
+
         for (const catName of newCategoryNames) {
           storeAddCategory({
             id: crypto.randomUUID(),
@@ -535,10 +546,18 @@ export function useCalDAV(): UseCalDAVReturn {
         processPendingChanges()
 
         // After sync, check if any journal entries exist and enable journaling if so
-        const hasJournalEntries = useCalendarStore.getState().events.some((e) => e.type === 'journal')
+        const allEvents = useCalendarStore.getState().events
+        const hasJournalEntries = allEvents.some((e) => e.type === 'journal')
+        console.log('[CalDAV] Journal check after sync:', {
+          totalEvents: allEvents.length,
+          journalEntries: allEvents.filter((e) => e.type === 'journal').length,
+          hasJournalEntries,
+        })
         if (hasJournalEntries) {
           const { journalEnabled, updateSettings } = useSettingsStore.getState()
+          console.log('[CalDAV] Journal enabled status:', journalEnabled)
           if (!journalEnabled) {
+            console.log('[CalDAV] Enabling journaling...')
             updateSettings({ journalEnabled: true })
           }
         }

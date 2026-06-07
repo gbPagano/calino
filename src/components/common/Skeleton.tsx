@@ -147,7 +147,7 @@ function JournalSkeleton(): JSX.Element {
         <div className="skeleton-bar skeleton-bar--journal-count" />
         <div className="skeleton-bar skeleton-bar--journal-button" />
       </div>
-      {Array.from({ length: 4 }).map((_, i) => (
+      {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="skeleton-journal-entry">
           <div className="skeleton-journal-date">
             <div className="skeleton-bar skeleton-bar--journal-day" />

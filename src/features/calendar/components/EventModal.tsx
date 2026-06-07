@@ -36,6 +36,7 @@ interface InitialFormState {
   transparency: 'opaque' | 'transparent'
   categories: string[]
   attachments: CalendarAttachment[]
+  relatedTo: string[]
 }
 
 function getInitialFormState(
@@ -67,6 +68,7 @@ function getInitialFormState(
       transparency: 'opaque',
       categories: [],
       attachments: [],
+      relatedTo: [],
       isRecurringInstance: false,
       originalEventId: null,
     }
@@ -125,6 +127,7 @@ function getInitialFormState(
         transparency: existingEvent.transparency || 'opaque',
         categories: categoryNames,
         attachments: existingEvent.attachments || [],
+        relatedTo: existingEvent.relatedTo || [],
         isRecurringInstance,
         originalEventId,
       }
@@ -184,6 +187,7 @@ function getInitialFormState(
             transparency: 'opaque',
             categories: [],
             attachments: [],
+            relatedTo: [],
             isRecurringInstance: false,
             originalEventId: null,
           }
@@ -206,6 +210,7 @@ function getInitialFormState(
         transparency: 'opaque',
         categories: [],
         attachments: [],
+        relatedTo: [],
         isRecurringInstance: false,
         originalEventId: null,
       }
@@ -229,6 +234,7 @@ function getInitialFormState(
     transparency: 'opaque',
     categories: [],
     attachments: [],
+    relatedTo: [],
     isRecurringInstance: false,
     originalEventId: null,
   }
@@ -291,6 +297,8 @@ export function EventModal(): JSX.Element | null {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showDescription, setShowDescription] = useState(!!initialState.description)
   const [attachments, setAttachments] = useState<CalendarAttachment[]>([])
+  const [relatedTo, setRelatedTo] = useState<string[]>([])
+  const [showAllRelated, setShowAllRelated] = useState(false)
 
   // Load attachments from IndexedDB when modal opens with existing event
   useEffect(() => {
@@ -369,6 +377,7 @@ export function EventModal(): JSX.Element | null {
     setDescription(ev.description || '')
     setLocation(ev.location || '')
     setSelectedCategories(ev.categories || [])
+    setRelatedTo(ev.relatedTo || [])
     // Fill time only if using default (09:00-10:00)
     if (startTime === '09:00' && endTime === '10:00') {
       const evStart = parseISO(ev.start)
@@ -443,6 +452,7 @@ export function EventModal(): JSX.Element | null {
       setReminders(formDefaults.reminders)
       setShowDescription(!!formDefaults.description)
       setSelectedCategories(formDefaults.categories)
+      setRelatedTo(formDefaults.relatedTo)
 
       const existingEvent = selectedEventId
         ? currentEvents.find((e) => e.id === selectedEventId)
@@ -511,6 +521,7 @@ export function EventModal(): JSX.Element | null {
         priority !== existingEventForMode.priority ||
         calendarId !== existingEventForMode.calendarId ||
         JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || []) ||
+        JSON.stringify(relatedTo) !== JSON.stringify(existingEventForMode.relatedTo || []) ||
         attachmentsChanged
       )
     }
@@ -531,6 +542,7 @@ export function EventModal(): JSX.Element | null {
       travelDuration !== existingEventForMode.travelDuration ||
       calendarId !== existingEventForMode.calendarId ||
       JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || []) ||
+      JSON.stringify(relatedTo) !== JSON.stringify(existingEventForMode.relatedTo || []) ||
       attachmentsChanged
     )
   }, [
@@ -553,8 +565,20 @@ export function EventModal(): JSX.Element | null {
     travelDuration,
     calendarId,
     selectedCategories,
+    relatedTo,
     attachments,
   ])
+
+  const candidateEvents = useMemo(() => {
+    return events.filter((e) => {
+      if (e.id === selectedEventId) return false
+      if (e.type === 'journal') return false
+      if (!showAllRelated) {
+        if (!e.start.startsWith(startDate)) return false
+      }
+      return true
+    })
+  }, [events, selectedEventId, startDate, showAllRelated])
 
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
@@ -630,6 +654,7 @@ export function EventModal(): JSX.Element | null {
           reminders,
           transparency,
           sequence: 0,
+          relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
           attachments: attachments.length > 0 ? attachments : undefined,
         }
 
@@ -669,6 +694,7 @@ export function EventModal(): JSX.Element | null {
           reminders: isTaskMode ? undefined : reminders,
           transparency: isTaskMode ? undefined : transparency,
           categories: selectedCategories,
+          relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
           attachments: attachments.length > 0 ? attachments : undefined,
         })
         // Sync IndexedDB with current attachments
@@ -702,6 +728,7 @@ export function EventModal(): JSX.Element | null {
               reminders: isTaskMode ? undefined : reminders,
               transparency: isTaskMode ? undefined : transparency,
               categories: selectedCategories,
+              relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
             },
             {
               title,
@@ -720,6 +747,7 @@ export function EventModal(): JSX.Element | null {
               reminders: isTaskMode ? undefined : reminders,
               transparency: isTaskMode ? undefined : transparency,
               categories: selectedCategories,
+              relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
               attachments: attachments.length > 0 ? attachments : undefined,
             }
           )
@@ -752,6 +780,7 @@ export function EventModal(): JSX.Element | null {
         reminders: isTaskMode ? undefined : reminders,
         transparency: isTaskMode ? undefined : transparency,
         categories: selectedCategories,
+        relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
       }
       addEvent(newEvent)
@@ -1029,6 +1058,46 @@ export function EventModal(): JSX.Element | null {
               />
             </div>
           )}
+
+          <div className={styles.modalRow2}>
+            <div className={styles.categoriesContainer}>
+              <div className={styles.categoriesLabel}>Related to</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <button
+                  type="button"
+                  className={`${styles.categoryChip} ${showAllRelated ? styles.categoryChipSelected : ''}`}
+                  onClick={() => setShowAllRelated(!showAllRelated)}
+                >
+                  {showAllRelated ? 'Showing all' : 'Same day only'}
+                </button>
+              </div>
+              <div className={styles.categoriesList}>
+                {candidateEvents.map((ev) => (
+                  <button
+                    key={ev.id}
+                    type="button"
+                    className={`${styles.categoryChip} ${
+                      relatedTo.includes(ev.id) ? styles.categoryChipSelected : ''
+                    }`}
+                    onClick={() => {
+                      if (relatedTo.includes(ev.id)) {
+                        setRelatedTo(relatedTo.filter((id) => id !== ev.id))
+                      } else {
+                        setRelatedTo([...relatedTo, ev.id])
+                      }
+                    }}
+                  >
+                    {ev.title}
+                  </button>
+                ))}
+                {candidateEvents.length === 0 && (
+                  <span style={{ fontSize: 12, color: 'var(--color-text-muted, #a0a0a0)' }}>
+                    No events available
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
 
           <AttachmentSection
             attachments={attachments}

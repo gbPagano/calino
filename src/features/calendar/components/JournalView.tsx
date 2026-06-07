@@ -22,6 +22,7 @@ interface JournalComposeFormProps {
   selectedCategories: string[]
   attachments: CalendarAttachment[]
   url: string
+  relatedTo: string[]
   titleRef: React.RefObject<HTMLInputElement | null>
   bodyRef: React.RefObject<HTMLTextAreaElement | null>
   saveHint: string
@@ -32,6 +33,7 @@ interface JournalComposeFormProps {
   onCategoriesChange: (categories: string[]) => void
   onAttachmentsChange: (attachments: CalendarAttachment[]) => void
   onUrlChange: (url: string) => void
+  onRelatedToChange: (ids: string[]) => void
   onSave: () => void
   onCancel: () => void
 }
@@ -44,6 +46,7 @@ function JournalComposeForm({
   selectedCategories,
   attachments,
   url,
+  relatedTo,
   titleRef,
   bodyRef,
   saveHint,
@@ -54,10 +57,12 @@ function JournalComposeForm({
   onCategoriesChange,
   onAttachmentsChange,
   onUrlChange,
+  onRelatedToChange,
   onSave,
   onCancel,
 }: JournalComposeFormProps): JSX.Element {
   const categories = useCalendarStore((state) => state.categories)
+  const events = useCalendarStore((state) => state.events)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showAddPanel, setShowAddPanel] = useState(false)
   const { day, weekday } = formatEntryDate(editingDate)
@@ -66,7 +71,22 @@ function JournalComposeForm({
   const hasCategories = selectedCategories.length > 0
   const hasUrl = url.length > 0
   const hasAttachments = attachments.length > 0
-  const hasAnyContent = hasCategories || hasUrl || hasAttachments
+  const hasRelated = relatedTo.length > 0
+  const hasAnyContent = hasCategories || hasUrl || hasAttachments || hasRelated
+
+  // Non-journal events on the same day for linking
+  const sameDayEvents = useMemo(() => {
+    const dayKey = editingDate // yyyy-MM-dd
+    return events.filter((e) => e.type !== 'journal' && e.id !== editingId && e.start === dayKey)
+  }, [events, editingId, editingDate])
+
+  const otherDayEvents = useMemo(() => {
+    const dayKey = editingDate
+    return events.filter((e) => e.type !== 'journal' && e.id !== editingId && e.start !== dayKey)
+  }, [events, editingId, editingDate])
+
+  const [showAllRelated, setShowAllRelated] = useState(false)
+  const linkableEvents = showAllRelated ? [...sameDayEvents, ...otherDayEvents] : sameDayEvents
 
   return (
     <div className={styles.compose}>
@@ -208,6 +228,63 @@ function JournalComposeForm({
                     showLabel={false}
                   />
                 </div>
+
+                {/* Related To */}
+                <div className={styles.addSection}>
+                  <div className={styles.addSectionHeader}>
+                    <span className={styles.addSectionLabel}>Related to</span>
+                    {hasRelated && (
+                      <button
+                        type="button"
+                        className={styles.removeFieldButton}
+                        onClick={() => onRelatedToChange([])}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  {(linkableEvents.length > 0 || (showAllRelated && otherDayEvents.length > 0)) ? (
+                    <>
+                      <div className={styles.relatedList}>
+                        {linkableEvents.map((event) => {
+                          const isSelected = relatedTo.includes(event.id)
+                          return (
+                            <button
+                              key={event.id}
+                              type="button"
+                              className={`${styles.relatedChip} ${isSelected ? styles.relatedChipActive : ''}`}
+                              onClick={() => {
+                                if (isSelected) {
+                                  onRelatedToChange(relatedTo.filter((id) => id !== event.id))
+                                } else {
+                                  onRelatedToChange([...relatedTo, event.id])
+                                }
+                              }}
+                            >
+                              <span className={styles.relatedChipTitle}>
+                                {event.title || '(untitled)'}
+                              </span>
+                              <span className={styles.relatedChipDate}>
+                                {event.start}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {otherDayEvents.length > 0 && (
+                        <button
+                          type="button"
+                          className={styles.relatedToggle}
+                          onClick={() => setShowAllRelated(!showAllRelated)}
+                        >
+                          {showAllRelated ? '↑ Hide other days' : `+ ${otherDayEvents.length} other event${otherDayEvents.length === 1 ? '' : 's'}`}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className={styles.relatedEmpty}>No events on this day to link</div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -244,6 +321,7 @@ export function JournalView(): JSX.Element {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [attachments, setAttachments] = useState<CalendarAttachment[]>([])
   const [url, setUrl] = useState('')
+  const [relatedTo, setRelatedTo] = useState<string[]>([])
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   // Use store's currentDate for month filtering
@@ -316,6 +394,7 @@ export function JournalView(): JSX.Element {
           categories: selectedCategories.length > 0 ? selectedCategories : undefined,
           url: url || undefined,
           attachments: attachments.length > 0 ? attachments : undefined,
+          relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
         }
         updateEvent(editingId, updates)
         putAttachments(editingId, attachments).catch(() => {
@@ -345,6 +424,7 @@ export function JournalView(): JSX.Element {
         categories: selectedCategories.length > 0 ? selectedCategories : undefined,
         url: url || undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
+        relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
       }
       addEvent(newEntry)
       if (attachments.length > 0) {
@@ -395,9 +475,10 @@ export function JournalView(): JSX.Element {
     setEditingDate(entry.start)
     setSelectedCategories(entry.categories || [])
     setUrl(entry.url || '')
+    setRelatedTo(entry.relatedTo || [])
     setIsComposing(true)
     // Open add panel if entry has any extra content
-    const hasExtra = (entry.categories?.length ?? 0) > 0 || (entry.url?.length ?? 0) > 0 || (entry.attachments?.length ?? 0) > 0
+    const hasExtra = (entry.categories?.length ?? 0) > 0 || (entry.url?.length ?? 0) > 0 || (entry.attachments?.length ?? 0) > 0 || (entry.relatedTo?.length ?? 0) > 0
     setShowAddPanel(hasExtra)
     // Load attachments from IndexedDB
     getAttachments(entry.id).then((loaded) => {
@@ -415,6 +496,7 @@ export function JournalView(): JSX.Element {
     setSelectedCategories([])
     setAttachments([])
     setUrl('')
+    setRelatedTo([])
     setShowAddPanel(false)
     setIsComposing(true)
   }, [])
@@ -471,6 +553,7 @@ export function JournalView(): JSX.Element {
     setSelectedCategories([])
     setAttachments([])
     setUrl('')
+    setRelatedTo([])
   }, [])
 
   return (
@@ -499,6 +582,7 @@ export function JournalView(): JSX.Element {
             selectedCategories={selectedCategories}
             attachments={attachments}
             url={url}
+            relatedTo={relatedTo}
             titleRef={titleInputRef}
             bodyRef={bodyInputRef}
             saveHint={saveHint}
@@ -509,6 +593,7 @@ export function JournalView(): JSX.Element {
             onCategoriesChange={setSelectedCategories}
             onAttachmentsChange={setAttachments}
             onUrlChange={setUrl}
+            onRelatedToChange={setRelatedTo}
             onSave={handleSaveEntry}
             onCancel={handleCancel}
           />
@@ -543,6 +628,7 @@ export function JournalView(): JSX.Element {
                         selectedCategories={selectedCategories}
                         attachments={attachments}
                         url={url}
+                        relatedTo={relatedTo}
                         titleRef={titleInputRef}
                         bodyRef={bodyInputRef}
                         saveHint={saveHint}
@@ -553,6 +639,7 @@ export function JournalView(): JSX.Element {
                         onCategoriesChange={setSelectedCategories}
                         onAttachmentsChange={setAttachments}
                         onUrlChange={setUrl}
+                        onRelatedToChange={setRelatedTo}
                         onSave={handleSaveEntry}
                         onCancel={handleCancel}
                       />
@@ -594,6 +681,19 @@ export function JournalView(): JSX.Element {
                           >
                             🔗 {entry.url}
                           </a>
+                        )}
+                        {entry.relatedTo && entry.relatedTo.length > 0 && (
+                          <div className={styles.entryRelated}>
+                            {entry.relatedTo.map((relId) => {
+                              const relatedEvent = events.find((e) => e.id === relId)
+                              if (!relatedEvent) return null
+                              return (
+                                <span key={relId} className={styles.entryRelatedTag}>
+                                  ↗ {relatedEvent.title || '(untitled)'}
+                                </span>
+                              )
+                            })}
+                          </div>
                         )}
                       </div>
                       <button

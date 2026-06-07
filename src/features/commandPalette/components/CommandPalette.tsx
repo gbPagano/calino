@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCommandPalette } from '../hooks/useCommandPalette'
 import { CommandItem } from './CommandItem'
@@ -26,6 +26,9 @@ const TYPING_SPEED = 45
 const PAUSE_AFTER_TYPING = 2000
 const ERASING_SPEED = 25
 
+// Group order for display
+const GROUP_ORDER = ['actions', 'navigation', 'settings', 'event', 'quick-add', 'search']
+
 export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: CommandPaletteProps): JSX.Element | null {
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -36,6 +39,45 @@ export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: 
     useCommandPalette({ isOpen, toggleSidebar, sidebarOpen })
 
   const timeFormat = useSettingsStore((state) => state.timeFormat)
+
+  // Group results by category and assign visual indices (top-to-bottom order)
+  const { flatResults, originalToVisual, maxVisualIndex, groupedResults, orderedCategories } = useMemo(() => {
+    const grouped: Record<string, Array<{ type: string; item: unknown; score: number; originalIndex: number }>> = {}
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i]
+      let category = 'command'
+      if (result.type === 'event') category = 'event'
+      if (result.type === 'calendar') category = 'calendar'
+      if (result.type === 'quick-add') category = 'quick-add'
+      if (result.type === 'command') {
+        const cmd = result.item as { category: string }
+        category = cmd.category
+      }
+      if (!grouped[category]) grouped[category] = []
+      grouped[category].push({ ...result, originalIndex: i })
+    }
+
+    const ordered = GROUP_ORDER.filter((cat) => grouped[cat])
+
+    // Flat list in visual order with sequential indices
+    const flat: Array<{ type: string; item: unknown; score: number; originalIndex: number; visualIndex: number }> = []
+    let visIdx = 0
+    for (const cat of ordered) {
+      for (const r of grouped[cat]) {
+        flat.push({ ...r, visualIndex: visIdx++ })
+      }
+    }
+
+    const origToVis = new Map(flat.map((r) => [r.originalIndex, r.visualIndex]))
+
+    return {
+      flatResults: flat,
+      originalToVisual: origToVis,
+      maxVisualIndex: flat.length - 1,
+      groupedResults: grouped,
+      orderedCategories: ordered,
+    }
+  }, [results])
 
   // Typewriter animation
   useEffect(() => {
@@ -85,20 +127,24 @@ export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: 
     async (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setSelectedIndex((i) => Math.min(i + 1, results.length - 1))
+        setSelectedIndex((i) => Math.min(i + 1, maxVisualIndex))
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
         setSelectedIndex((i) => Math.max(i - 1, 0))
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        const result = await executeSelected()
-        if (result?.success && result.message) {
-          showToast(result.message)
+        // Convert visual index back to original index for executeSelected
+        const originalIndex = flatResults[selectedIndex]?.originalIndex
+        if (originalIndex !== undefined) {
+          const result = await executeSelected(originalIndex)
+          if (result?.success && result.message) {
+            showToast(result.message)
+          }
         }
         onClose()
       }
     },
-    [results.length, executeSelected, onClose, setSelectedIndex]
+    [maxVisualIndex, flatResults, selectedIndex, executeSelected, onClose, setSelectedIndex]
   )
 
   useEffect(() => {
@@ -139,8 +185,10 @@ export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: 
 
   if (!isOpen) return null
 
-  const handleItemClick = async (index: number) => {
-    const result = await executeSelected(index)
+  const handleItemClick = async (visualIdx: number) => {
+    const originalIndex = flatResults[visualIdx]?.originalIndex
+    if (originalIndex === undefined) return
+    const result = await executeSelected(originalIndex)
     if (result?.success && result.message) {
       showToast(result.message)
     }
@@ -158,31 +206,6 @@ export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: 
     }
     return labels[category] || category
   }
-
-  // Group order: actions first, then navigation, then settings
-  const GROUP_ORDER = ['actions', 'navigation', 'settings', 'event', 'quick-add', 'search']
-
-  const groupedResults = results.reduce(
-    (acc, result, index) => {
-      let category = 'command'
-      if (result.type === 'event') category = 'event'
-      if (result.type === 'calendar') category = 'calendar'
-      if (result.type === 'quick-add') category = 'quick-add'
-      if (result.type === 'command') {
-        const cmd = result.item as { category: string }
-        category = cmd.category
-      }
-
-      if (!acc[category]) {
-        acc[category] = []
-      }
-      acc[category].push({ ...result, index })
-      return acc
-    },
-    {} as Record<string, Array<{ type: string; item: unknown; score: number; index: number }>>
-  )
-
-  const orderedCategories = GROUP_ORDER.filter((cat) => groupedResults[cat])
 
   return (
     <div className={styles.container} onClick={onClose}>
@@ -233,15 +256,16 @@ export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: 
                 <div className={styles.groupLabel}>{getCategoryLabel(category)}</div>
                 {items.map((result) => {
                   const item = result.item as { id?: string; title?: string }
-                  const stableKey = item.id ?? `${category}-${item.title ?? result.index}`
+                  const visIdx = originalToVisual.get(result.originalIndex) ?? 0
+                  const stableKey = item.id ?? `${category}-${item.title ?? visIdx}`
                   return (
                     <CommandItem
                       key={stableKey}
-                      data-index={result.index}
+                      data-index={visIdx}
                       item={result.item as Parameters<typeof CommandItem>[0]['item']}
                       type={result.type as 'command' | 'event' | 'calendar' | 'quick-add'}
-                      isSelected={selectedIndex === result.index}
-                      onClick={() => handleItemClick(result.index)}
+                      isSelected={selectedIndex === visIdx}
+                      onClick={() => handleItemClick(visIdx)}
                       timeFormat={timeFormat}
                     />
                   )

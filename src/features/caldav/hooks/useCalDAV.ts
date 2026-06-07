@@ -534,6 +534,15 @@ export function useCalDAV(): UseCalDAVReturn {
         storage.updateAccountLastSync(accountId)
         processPendingChanges()
 
+        // After sync, check if any journal entries exist and enable journaling if so
+        const hasJournalEntries = useCalendarStore.getState().events.some((e) => e.type === 'journal')
+        if (hasJournalEntries) {
+          const { journalEnabled, updateSettings } = useSettingsStore.getState()
+          if (!journalEnabled) {
+            updateSettings({ journalEnabled: true })
+          }
+        }
+
         setSyncState((prev) => ({
           ...prev,
           status: 'idle',

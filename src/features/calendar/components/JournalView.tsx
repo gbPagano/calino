@@ -400,7 +400,7 @@ export function JournalView(): JSX.Element {
         if (attachments.length > 0) {
           putAttachments(editingId, attachments).then(() => {
             if (existing.calendarId !== 'default') {
-              updateCalDAVEvent({ ...existing, ...updates }).catch(() => {
+              updateCalDAVEvent(existing.calendarId, { ...existing, ...updates }).catch(() => {
                 showToast('Failed to sync update. It will be retried.')
               })
             }
@@ -410,7 +410,7 @@ export function JournalView(): JSX.Element {
         } else {
           deleteAttachments(editingId).catch(() => {})
           if (existing.calendarId !== 'default') {
-            updateCalDAVEvent({ ...existing, ...updates }).catch(() => {
+            updateCalDAVEvent(existing.calendarId, { ...existing, ...updates }).catch(() => {
               showToast('Failed to sync update. It will be retried.')
             })
           }
@@ -443,7 +443,7 @@ export function JournalView(): JSX.Element {
           // Clean up the 'new' key used during composition
           deleteAttachments('new').catch(() => {})
           if (defaultCalendar?.id !== 'default') {
-            createCalDAVEvent(newEntry).catch(() => {
+            createCalDAVEvent(newEntry.calendarId, newEntry).catch(() => {
               showToast('Failed to sync entry. It will be retried.')
             })
           }
@@ -453,7 +453,7 @@ export function JournalView(): JSX.Element {
       } else {
         deleteAttachments('new').catch(() => {})
         if (defaultCalendar?.id !== 'default') {
-          createCalDAVEvent(newEntry).catch(() => {
+          createCalDAVEvent(newEntry.calendarId, newEntry).catch(() => {
             showToast('Failed to sync entry. It will be retried.')
           })
         }
@@ -528,7 +528,7 @@ export function JournalView(): JSX.Element {
       const entry = eventsRef.current.find((e) => e.id === entryId)
       deleteEvent(entryId)
       if (entry && entry.calendarId !== 'default') {
-        deleteCalDAVEvent(entry).catch(() => {
+        deleteCalDAVEvent(entry.calendarId, entry.id).catch(() => {
           showToast('Failed to sync deletion. It will be retried.')
         })
       }
@@ -541,7 +541,7 @@ export function JournalView(): JSX.Element {
           onUndo: () => {
             addEvent(entry)
             if (entry.calendarId !== 'default') {
-              createCalDAVEvent(entry).catch(() => {
+              createCalDAVEvent(entry.calendarId, entry).catch(() => {
                 showToast('Failed to restore entry.')
               })
             }

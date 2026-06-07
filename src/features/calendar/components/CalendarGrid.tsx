@@ -847,7 +847,7 @@ const DroppableDay = React.memo(function DroppableDay({
         >
           {format(day, 'd')}
         </button>
-        {hasJournal && (
+        {journalEnabled && hasJournal && (
           <button
             className={styles.journalIndicator}
             title="View journal entries"

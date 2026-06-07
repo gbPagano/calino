@@ -34,7 +34,6 @@ import {
 } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
-import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'

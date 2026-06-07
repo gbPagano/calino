@@ -48,6 +48,7 @@ import { AgendaView } from './AgendaView'
 import { DayView } from './DayView'
 import type { CalendarEvent, ViewType } from '@/types'
 import { getJournalDates } from '@/store/calendarStore'
+import { JournalDayModal } from './JournalDayModal'
 import styles from './CalendarGrid.module.css'
 
 const VIEW_ROUTES: Record<ViewType, string> = {
@@ -119,6 +120,9 @@ export function CalendarGrid(): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   // Track active resize listeners for cleanup on unmount
   const resizeCleanupRef = useRef<(() => void) | null>(null)
+  // Journal day modal state
+  const [journalModalDate, setJournalModalDate] = useState<string | null>(null)
+  const [isJournalModalOpen, setIsJournalModalOpen] = useState(false)
 
   useEffect(() => {
     currentDateRef.current = currentDate
@@ -493,6 +497,7 @@ export function CalendarGrid(): JSX.Element {
 
   if (isTallWindow) {
     return (
+      <>
       <div className={styles.splitContainer}>
         <div className={styles.gridTop} style={{ flex: `0 0 ${gridRatio * 100}%`, maxHeight: 800 * gridRatio / 0.6 }}>
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -565,6 +570,10 @@ export function CalendarGrid(): JSX.Element {
                               onDayClick={handleDayClick}
                               onDayDoubleClick={handleDayDoubleClick}
                               onDayNumberClick={handleDayNumberClick}
+                              onJournalIndicatorClick={(day) => {
+                                setJournalModalDate(format(day, 'yyyy-MM-dd'))
+                                setIsJournalModalOpen(true)
+                              }}
                               openModal={openModal}
                             />
                           )
@@ -596,10 +605,22 @@ export function CalendarGrid(): JSX.Element {
           )}
         </div>
       </div>
+      {isJournalModalOpen && journalModalDate && (
+        <JournalDayModal
+          isOpen={isJournalModalOpen}
+          date={journalModalDate}
+          onClose={() => {
+            setIsJournalModalOpen(false)
+            setJournalModalDate(null)
+          }}
+        />
+      )}
+    </>
     )
   }
 
   return (
+    <>
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className={styles.gridPanel} ref={containerRef} {...bind} style={{ touchAction: 'none' as const }}>
         <div
@@ -670,6 +691,10 @@ export function CalendarGrid(): JSX.Element {
                         onDayClick={handleDayClick}
                         onDayDoubleClick={handleDayDoubleClick}
                         onDayNumberClick={handleDayNumberClick}
+                        onJournalIndicatorClick={(day) => {
+                          setJournalModalDate(format(day, 'yyyy-MM-dd'))
+                          setIsJournalModalOpen(true)
+                        }}
                         openModal={openModal}
                       />
                     )
@@ -683,6 +708,17 @@ export function CalendarGrid(): JSX.Element {
       </div>
       <DragOverlay>{activeEvent ? <EventCard event={activeEvent} /> : null}</DragOverlay>
     </DndContext>
+    {isJournalModalOpen && journalModalDate && (
+      <JournalDayModal
+        isOpen={isJournalModalOpen}
+        date={journalModalDate}
+        onClose={() => {
+          setIsJournalModalOpen(false)
+          setJournalModalDate(null)
+        }}
+      />
+    )}
+    </>
   )
 }
 
@@ -702,6 +738,7 @@ interface DroppableDayProps {
   onDayClick: (day: Date) => void
   onDayDoubleClick: (day: Date) => void
   onDayNumberClick: (day: Date) => void
+  onJournalIndicatorClick: (day: Date) => void
   openModal: (date?: string, endDate?: string, eventId?: string, mode?: 'event' | 'task') => void
 }
 
@@ -721,6 +758,7 @@ const DroppableDay = React.memo(function DroppableDay({
   onDayClick,
   onDayDoubleClick,
   onDayNumberClick,
+  onJournalIndicatorClick,
   openModal,
 }: DroppableDayProps): JSX.Element {
   const { setNodeRef, isOver } = useDroppable({ id: dateKey })
@@ -781,7 +819,7 @@ const DroppableDay = React.memo(function DroppableDay({
             title="View journal entries"
             onClick={(e) => {
               e.stopPropagation()
-              onDayNumberClick(day)
+              onJournalIndicatorClick(day)
             }}
           >
             <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

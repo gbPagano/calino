@@ -29,6 +29,7 @@ const WeekView = lazy(() => import('./features/calendar/components/WeekView').th
 const DayView = lazy(() => import('./features/calendar/components/DayView').then(m => ({ default: m.DayView })))
 const AgendaView = lazy(() => import('./features/calendar/components/AgendaView').then(m => ({ default: m.AgendaView })))
 const TodoView = lazy(() => import('./features/calendar/components/TodoView').then(m => ({ default: m.TodoView })))
+const JournalView = lazy(() => import('./features/calendar/components/JournalView').then(m => ({ default: m.JournalView })))
 
 function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: ViewType }): JSX.Element {
   return (
@@ -279,6 +280,8 @@ function CalendarApp(): JSX.Element {
           return <AgendaView />
         case 'todo':
           return <TodoView />
+        case 'journal':
+          return <JournalView />
         default:
           return <CalendarGrid />
       }
@@ -426,6 +429,7 @@ function App(): JSX.Element {
           <Route path="/day" element={<CalendarApp />} />
           <Route path="/agenda" element={<CalendarApp />} />
           <Route path="/tasks" element={<CalendarApp />} />
+          <Route path="/journal" element={<CalendarApp />} />
           <Route path="/" element={<CalendarApp />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />

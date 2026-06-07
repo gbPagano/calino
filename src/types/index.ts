@@ -76,7 +76,7 @@ export interface Calendar {
   showTasksInViews: boolean
 }
 
-export type ViewType = 'month' | 'week' | 'day' | 'agenda' | 'todo'
+export type ViewType = 'month' | 'week' | 'day' | 'agenda' | 'todo' | 'journal'
 
 export interface CalendarState {
   events: CalendarEvent[]

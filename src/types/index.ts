@@ -62,6 +62,8 @@ export interface CalendarEvent {
   originalEnd?: string
   syncStatus?: SyncStatus
   attachments?: CalendarAttachment[]
+  url?: string
+  relatedTo?: string[]
   created?: string
   lastModified?: string
 }

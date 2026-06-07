@@ -3,6 +3,7 @@ import type { Command, CommandCategory } from '../types'
 export type { Command, CommandCategory }
 import { addDays, addWeeks, addMonths, subWeeks, subMonths, format } from 'date-fns'
 import type { ThemeMode } from '@/types'
+import { useCalendarStore } from '@/store/calendarStore'
 
 interface CommandFactoryDeps {
   navigate: (path: string) => void
@@ -343,6 +344,55 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
       const today = new Date().toISOString().split('T')[0]
       deps.openModal(today, undefined, undefined, 'journal')
       return 'New journal entry'
+    },
+  },
+  {
+    id: 'export-journal',
+    label: 'Export Journal as Markdown',
+    description: 'Download all journal entries as a .md file',
+    category: 'actions',
+    keywords: ['journal', 'export', 'markdown', 'download', 'backup'],
+    icon: ICONS.calendar,
+    action: () => {
+      const events = useCalendarStore.getState().events
+      const journalEntries = events
+        .filter((e: { type: string }) => e.type === 'journal')
+        .sort((a: { start: string }, b: { start: string }) => b.start.localeCompare(a.start))
+
+      if (journalEntries.length === 0) {
+        return 'No journal entries to export'
+      }
+
+      let md = '# Journal\n\n'
+      let currentDate = ''
+
+      for (const entry of journalEntries) {
+        if (entry.start !== currentDate) {
+          currentDate = entry.start
+          md += `\n## ${currentDate}\n\n`
+        }
+        if (entry.title) {
+          md += `### ${entry.title}\n\n`
+        }
+        if (entry.description) {
+          md += `${entry.description}\n\n`
+        }
+        if (entry.categories && entry.categories.length > 0) {
+          md += `*Categories: ${entry.categories.join(', ')}*\n\n`
+        }
+      }
+
+      const blob = new Blob([md], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `journal-export-${new Date().toISOString().split('T')[0]}.md`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      return `Exported ${journalEntries.length} journal entries`
     },
   },
   {

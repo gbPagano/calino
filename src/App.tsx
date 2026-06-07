@@ -70,15 +70,26 @@ const VIEW_ORDER: ViewType[] = ['month', 'week', 'day', 'agenda', 'todo']
 
 function Toast(): JSX.Element | null {
   const [message, setMessage] = useState<string | null>(null)
+  const [undoAction, setUndoAction] = useState<(() => void) | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const handleShowToast = (e: CustomEvent) => {
+      // Clear any existing timeout
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
       setMessage(e.detail.message)
-      setTimeout(() => setMessage(null), TOAST_DURATION_MS)
+      setUndoAction(e.detail.onUndo ?? null)
+      timeoutRef.current = setTimeout(() => {
+        setMessage(null)
+        setUndoAction(null)
+      }, e.detail.duration ?? TOAST_DURATION_MS)
     }
 
     window.addEventListener('show-toast', handleShowToast as EventListener)
-    return () => window.removeEventListener('show-toast', handleShowToast as EventListener)
+    return () => {
+      window.removeEventListener('show-toast', handleShowToast as EventListener)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
   }, [])
 
   if (!message) return null
@@ -87,6 +98,18 @@ function Toast(): JSX.Element | null {
     <div className="toast" role="status" aria-live="polite">
       <span className="toastIcon">✓</span>
       {message}
+      {undoAction && (
+        <button
+          className="toastUndo"
+          onClick={() => {
+            undoAction()
+            setMessage(null)
+            setUndoAction(null)
+          }}
+        >
+          Undo
+        </button>
+      )}
     </div>
   )
 }

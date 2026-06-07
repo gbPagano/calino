@@ -144,6 +144,9 @@ export function CalendarHeader({
       case 'todo':
         newDate = date
         break
+      case 'journal':
+        newDate = direction === 'prev' ? subMonths(date, 1) : addMonths(date, 1)
+        break
       default:
         newDate = date
     }

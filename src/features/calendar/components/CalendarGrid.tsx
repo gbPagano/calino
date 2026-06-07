@@ -88,6 +88,7 @@ export function CalendarGrid(): JSX.Element {
   const hideCompletedTasksInMonthView = useSettingsStore(
     (state) => state.hideCompletedTasksInMonthView ?? true
   )
+  const journalEnabled = useSettingsStore((state) => state.journalEnabled)
 
   const { updateEvent: caldavUpdateEvent } = useCalDAV()
 
@@ -561,6 +562,7 @@ export function CalendarGrid(): JSX.Element {
                               dayEvents={dayEvents}
                               dayTasks={dayTasks}
                               hasJournal={journalDates.has(dateKey)}
+                              journalEnabled={journalEnabled}
                               isCurrentMonth={isCurrentMonth}
                               isTodayDate={isTodayDate}
                               isWeekend={isWeekend}
@@ -576,9 +578,15 @@ export function CalendarGrid(): JSX.Element {
                                 setIsJournalModalOpen(true)
                               }}
                               onOpenJournalModal={(date) => {
-                                setJournalModalDate(date)
-                                setJournalStartInCompose(true)
-                                setIsJournalModalOpen(true)
+                                // Force reset: close first, then reopen on next tick (#24)
+                                setIsJournalModalOpen(false)
+                                setJournalModalDate(null)
+                                setJournalStartInCompose(false)
+                                requestAnimationFrame(() => {
+                                  setJournalModalDate(date)
+                                  setJournalStartInCompose(true)
+                                  setIsJournalModalOpen(true)
+                                })
                               }}
                               openModal={openModal}
                             />
@@ -689,6 +697,7 @@ export function CalendarGrid(): JSX.Element {
                         dayEvents={dayEvents}
                         dayTasks={dayTasks}
                         hasJournal={journalDates.has(dateKey)}
+                        journalEnabled={journalEnabled}
                         isCurrentMonth={isCurrentMonth}
                         isTodayDate={isTodayDate}
                         isWeekend={isWeekend}
@@ -704,9 +713,15 @@ export function CalendarGrid(): JSX.Element {
                           setIsJournalModalOpen(true)
                         }}
                         onOpenJournalModal={(date) => {
-                          setJournalModalDate(date)
-                          setJournalStartInCompose(true)
-                          setIsJournalModalOpen(true)
+                          // Force reset: close first, then reopen on next tick (#24)
+                          setIsJournalModalOpen(false)
+                          setJournalModalDate(null)
+                          setJournalStartInCompose(false)
+                          requestAnimationFrame(() => {
+                            setJournalModalDate(date)
+                            setJournalStartInCompose(true)
+                            setIsJournalModalOpen(true)
+                          })
                         }}
                         openModal={openModal}
                       />
@@ -743,6 +758,7 @@ interface DroppableDayProps {
   dayEvents: CalendarEvent[]
   dayTasks: CalendarEvent[]
   hasJournal: boolean
+  journalEnabled: boolean
   isCurrentMonth: boolean
   isTodayDate: boolean
   isWeekend: boolean
@@ -764,6 +780,7 @@ const DroppableDay = React.memo(function DroppableDay({
   dayEvents,
   dayTasks,
   hasJournal,
+  journalEnabled,
   isCurrentMonth,
   isTodayDate,
   isWeekend,
@@ -918,7 +935,7 @@ const DroppableDay = React.memo(function DroppableDay({
                 setContextMenu(null)
               },
             },
-            ...(useSettingsStore.getState().journalEnabled
+            ...(journalEnabled
               ? [
                   {
                     label: 'New journal entry',
@@ -928,7 +945,7 @@ const DroppableDay = React.memo(function DroppableDay({
                     },
                   },
                 ]
-              : []),,
+              : []),
           ]}
         />
       )}

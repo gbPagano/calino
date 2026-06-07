@@ -13,12 +13,14 @@ interface AttachmentSectionProps {
   attachments: CalendarAttachment[]
   onAttachmentsChange: (attachments: CalendarAttachment[]) => void
   eventId: string | null
+  showLabel?: boolean
 }
 
 export function AttachmentSection({
   attachments,
   onAttachmentsChange,
   eventId,
+  showLabel = true,
 }: AttachmentSectionProps): JSX.Element {
   const storageKey = eventId || 'new'
 
@@ -81,10 +83,12 @@ export function AttachmentSection({
 
   return (
     <div className={styles.modalField}>
-      <div className={styles.fieldHeader}>
-        <label className={styles.label}>Attachments</label>
-        <span className={styles.attachmentCount}>{attachments.length}</span>
-      </div>
+      {showLabel && (
+        <div className={styles.fieldHeader}>
+          <label className={styles.label}>Attachments</label>
+          <span className={styles.attachmentCount}>{attachments.length}</span>
+        </div>
+      )}
       {attachments.length > 0 && (
         <p className={styles.attachmentSyncNote}>
           Attachments will be synced to the CalDAV server when you save.

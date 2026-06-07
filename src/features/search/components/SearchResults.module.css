@@ -69,6 +69,18 @@
   color: #5f6368;
 }
 
+.resultType {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(196, 168, 154, 0.15);
+  color: var(--accent, #a8908a);
+  letter-spacing: 0.01em;
+}
+
 .resultDate {
   display: flex;
   align-items: center;

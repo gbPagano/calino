@@ -141,6 +141,12 @@ export function SearchResults({ results, onSelectEvent }: SearchResultsProps): J
                 )}
               </h4>
               <div className={styles.resultMeta}>
+                {result.event.type === 'journal' && (
+                  <span className={styles.resultType}>Journal</span>
+                )}
+                {result.event.type === 'task' && (
+                  <span className={styles.resultType}>Task</span>
+                )}
                 <span className={styles.resultDate}>
                   <svg aria-hidden="true"
                     width="12"

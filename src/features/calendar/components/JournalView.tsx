@@ -3,13 +3,229 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { format, parseISO } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/store/calendarStore'
-import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { v4 as uuidv4 } from 'uuid'
-import { getJournalEntriesForMonth } from '@/store/calendarStore'
 import { renderMarkdown } from '@/lib/markdown'
-import type { CalendarEvent } from '@/types'
+import { showToast } from '@/lib/toast'
+import { putAttachments, getAttachments } from '@/lib/attachmentStore'
+import type { CalendarEvent, CalendarAttachment } from '@/types'
+import { AttachmentSection } from './AttachmentSection'
 import styles from './JournalView.module.css'
+
+// ── Shared compose form ──────────────────────────────────────────────────────
+
+interface JournalComposeFormProps {
+  editingId: string | null
+  editingDate: string
+  title: string
+  body: string
+  selectedCategories: string[]
+  attachments: CalendarAttachment[]
+  url: string
+  titleRef: React.RefObject<HTMLInputElement | null>
+  bodyRef: React.RefObject<HTMLTextAreaElement | null>
+  saveHint: string
+  formatEntryDate: (dateStr: string) => { day: string; weekday: string }
+  onTitleChange: (value: string) => void
+  onBodyChange: (value: string) => void
+  onDateChange: (value: string) => void
+  onCategoriesChange: (categories: string[]) => void
+  onAttachmentsChange: (attachments: CalendarAttachment[]) => void
+  onUrlChange: (url: string) => void
+  onSave: () => void
+  onCancel: () => void
+}
+
+function JournalComposeForm({
+  editingId,
+  editingDate,
+  title,
+  body,
+  selectedCategories,
+  attachments,
+  url,
+  titleRef,
+  bodyRef,
+  saveHint,
+  formatEntryDate,
+  onTitleChange,
+  onBodyChange,
+  onDateChange,
+  onCategoriesChange,
+  onAttachmentsChange,
+  onUrlChange,
+  onSave,
+  onCancel,
+}: JournalComposeFormProps): JSX.Element {
+  const categories = useCalendarStore((state) => state.categories)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showAddPanel, setShowAddPanel] = useState(false)
+  const { day, weekday } = formatEntryDate(editingDate)
+
+  // Determine which add sections have content
+  const hasCategories = selectedCategories.length > 0
+  const hasUrl = url.length > 0
+  const hasAttachments = attachments.length > 0
+  const hasAnyContent = hasCategories || hasUrl || hasAttachments
+
+  return (
+    <div className={styles.compose}>
+      <div className={styles.composeDateCol}>
+        {showDatePicker ? (
+          <input
+            type="date"
+            className={styles.dateInput}
+            value={editingDate}
+            onChange={(e) => {
+              onDateChange(e.target.value)
+              setShowDatePicker(false)
+            }}
+            onBlur={() => setShowDatePicker(false)}
+            autoFocus
+          />
+        ) : (
+          <button
+            className={styles.dateButton}
+            onClick={() => setShowDatePicker(true)}
+            title="Click to change date"
+          >
+            <span className={styles.composeDay}>{day}</span>
+            <span className={styles.composeWeekday}>{weekday}</span>
+          </button>
+        )}
+      </div>
+      <div className={styles.composeFields}>
+        <input
+          ref={titleRef}
+          type="text"
+          placeholder="Title (optional)"
+          value={title}
+          onChange={(e) => onTitleChange(e.target.value)}
+        />
+        <textarea
+          ref={bodyRef}
+          placeholder="Write something…"
+          rows={8}
+          value={body}
+          onChange={(e) => onBodyChange(e.target.value)}
+        />
+        {/* Add panel — categories, link, attachments */}
+        {categories.length > 0 || true ? (
+          <div className={styles.addPanel}>
+            {!showAddPanel ? (
+              <button
+                type="button"
+                className={styles.addToggle}
+                onClick={() => setShowAddPanel(true)}
+              >
+                + Add
+              </button>
+            ) : (
+              <div className={styles.addPanelContent}>
+                <button
+                  type="button"
+                  className={styles.addToggle}
+                  onClick={() => setShowAddPanel(false)}
+                >
+                  − Hide
+                </button>
+
+                {/* Categories */}
+                {categories.length > 0 && (
+                  <div className={styles.addSection}>
+                    <div className={styles.addSectionHeader}>
+                      <span className={styles.addSectionLabel}>Categories</span>
+                      {hasCategories && (
+                        <button
+                          type="button"
+                          className={styles.removeFieldButton}
+                          onClick={() => onCategoriesChange([])}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                    <div className={styles.categoryPicker}>
+                      {categories.map((cat) => {
+                        const isSelected = selectedCategories.includes(cat.name)
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            className={`${styles.categoryChip} ${isSelected ? styles.categoryChipActive : ''}`}
+                            style={{
+                              '--chip-color': cat.color,
+                            } as React.CSSProperties}
+                            onClick={() => {
+                              if (isSelected) {
+                                onCategoriesChange(selectedCategories.filter((c) => c !== cat.name))
+                              } else {
+                                onCategoriesChange([...selectedCategories, cat.name])
+                              }
+                            }}
+                          >
+                            <span
+                              className={styles.categoryDot}
+                              style={{ backgroundColor: cat.color }}
+                            />
+                            {cat.name}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* URL */}
+                <div className={styles.addSection}>
+                  <div className={styles.addSectionHeader}>
+                    <span className={styles.addSectionLabel}>Link</span>
+                    {hasUrl && (
+                      <button
+                        type="button"
+                        className={styles.removeFieldButton}
+                        onClick={() => onUrlChange('')}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    className={styles.urlInput}
+                    placeholder="https://example.com"
+                    value={url}
+                    onChange={(e) => onUrlChange(e.target.value)}
+                  />
+                </div>
+
+                {/* Attachments */}
+                <div className={styles.addSection}>
+                  <AttachmentSection
+                    attachments={attachments}
+                    onAttachmentsChange={onAttachmentsChange}
+                    eventId={editingId || 'new'}
+                    showLabel={false}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
+        <div className={styles.composeActions}>
+          <button className={styles.btnGhost} onClick={onCancel}>
+            Cancel
+          </button>
+          <button className={styles.btnAccent} onClick={onSave}>
+            {editingId ? 'Save changes' : 'Save entry'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 
 export function JournalView(): JSX.Element {
   const navigate = useNavigate()
@@ -25,30 +241,37 @@ export function JournalView(): JSX.Element {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [editingDate, setEditingDate] = useState(new Date().toISOString().split('T')[0])
-  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [attachments, setAttachments] = useState<CalendarAttachment[]>([])
+  const [url, setUrl] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
+  // Use store's currentDate for month filtering
+  const currentDate = useCalendarStore((state) => state.currentDate)
 
   const titleInputRef = useRef<HTMLInputElement>(null)
   const bodyInputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Group journal entries by month
+  // Refs for stable values used in callbacks (#9)
+  const eventsRef = useRef(events)
+  eventsRef.current = events
+  const calendarsRef = useRef(calendars)
+  calendarsRef.current = calendars
+
+  // Group journal entries by month — viewed month only
   const groupedEntries = useMemo(() => {
-    const entries = events.filter((e) => e.type === 'journal')
-    const groups = new Map<string, CalendarEvent[]>()
+    const monthKey = currentDate.slice(0, 7) // yyyy-MM
+    const entries = events
+      .filter((e) => e.type === 'journal' && e.start.startsWith(monthKey))
+      .sort((a, b) => b.start.localeCompare(a.start)) // newest first
 
-    for (const entry of entries) {
-      const monthKey = entry.start.slice(0, 7) // yyyy-MM
-      const existing = groups.get(monthKey) || []
-      groups.set(monthKey, [...existing, entry])
-    }
+    if (entries.length === 0) return []
 
-    // Sort months descending
-    const sortedMonths = Array.from(groups.keys()).sort((a, b) => b.localeCompare(a))
-    return sortedMonths.map((monthKey) => ({
+    return [{
       monthKey,
-      entries: groups.get(monthKey) || [],
-    }))
-  }, [events])
+      entries,
+    }]
+  }, [events, currentDate])
 
   const totalCount = useMemo(
     () => events.filter((e) => e.type === 'journal').length,
@@ -62,22 +285,10 @@ export function JournalView(): JSX.Element {
     }
   }, [isComposing])
 
-  // Keyboard shortcuts
+  // Reset confirmDeleteId when switching entries or entering/exiting compose
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape' && isComposing) {
-        setIsComposing(false)
-        setTitle('')
-        setBody('')
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && isComposing) {
-        e.preventDefault()
-        handleSaveEntry()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isComposing, title, body])
+    setConfirmDeleteId(null)
+  }, [editingId, isComposing])
 
   const handleSaveEntry = useCallback((): void => {
     const trimmedBody = body.trim()
@@ -88,11 +299,12 @@ export function JournalView(): JSX.Element {
 
     const trimmedTitle = title.trim()
     const now = new Date().toISOString()
-    const today = new Date().toISOString().split('T')[0]
+    const currentEvents = eventsRef.current
+    const currentCalendars = calendarsRef.current
 
     if (editingId) {
       // Update existing entry
-      const existing = events.find((e) => e.id === editingId)
+      const existing = currentEvents.find((e) => e.id === editingId)
       if (existing) {
         const updates: Partial<CalendarEvent> = {
           title: trimmedTitle,
@@ -100,17 +312,27 @@ export function JournalView(): JSX.Element {
           start: editingDate,
           end: editingDate,
           lastModified: now,
+          sequence: (existing.sequence ?? 0) + 1,
+          categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+          url: url || undefined,
+          attachments: attachments.length > 0 ? attachments : undefined,
         }
         updateEvent(editingId, updates)
+        putAttachments(editingId, attachments).catch(() => {
+          showToast('Failed to save attachments locally')
+        })
         if (existing.calendarId !== 'default') {
-          updateCalDAVEvent({ ...existing, ...updates })
+          updateCalDAVEvent({ ...existing, ...updates }).catch(() => {
+            showToast('Failed to sync update. It will be retried.')
+          })
         }
       }
     } else {
       // Create new entry
-      const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
+      const defaultCalendar = currentCalendars.find((c) => c.isDefault) || currentCalendars[0]
+      const newId = uuidv4()
       const newEntry: CalendarEvent = {
-        id: uuidv4(),
+        id: newId,
         calendarId: defaultCalendar?.id || 'default',
         title: trimmedTitle,
         description: trimmedBody,
@@ -120,10 +342,20 @@ export function JournalView(): JSX.Element {
         type: 'journal',
         created: now,
         lastModified: now,
+        categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+        url: url || undefined,
+        attachments: attachments.length > 0 ? attachments : undefined,
       }
       addEvent(newEntry)
+      if (attachments.length > 0) {
+        putAttachments(newId, attachments).catch(() => {
+          showToast('Failed to save attachments locally')
+        })
+      }
       if (defaultCalendar?.id !== 'default') {
-        createCalDAVEvent(newEntry)
+        createCalDAVEvent(newEntry).catch(() => {
+          showToast('Failed to sync entry. It will be retried.')
+        })
       }
     }
 
@@ -131,51 +363,115 @@ export function JournalView(): JSX.Element {
     setEditingId(null)
     setTitle('')
     setBody('')
-    setShowDatePicker(false)
-  }, [editingId, editingDate, title, body, events, calendars, addEvent, updateEvent, createCalDAVEvent, updateCalDAVEvent])
+    setSelectedCategories([])
+    setAttachments([])
+    setUrl('')
+  }, [editingId, editingDate, title, body, selectedCategories, attachments, url, addEvent, updateEvent, createCalDAVEvent, updateCalDAVEvent])
+
+  // Keyboard shortcuts — use ref for handleSaveEntry to avoid stale closure (#10)
+  const handleSaveEntryRef = useRef(handleSaveEntry)
+  handleSaveEntryRef.current = handleSaveEntry
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape' && isComposing) {
+        setIsComposing(false)
+        setTitle('')
+        setBody('')
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && isComposing) {
+        e.preventDefault()
+        handleSaveEntryRef.current()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isComposing])
 
   const handleStartEdit = useCallback((entry: CalendarEvent): void => {
     setEditingId(entry.id)
     setTitle(entry.title || '')
     setBody(entry.description || '')
     setEditingDate(entry.start)
+    setSelectedCategories(entry.categories || [])
+    setUrl(entry.url || '')
     setIsComposing(true)
-    setShowDatePicker(false)
+    // Open add panel if entry has any extra content
+    const hasExtra = (entry.categories?.length ?? 0) > 0 || (entry.url?.length ?? 0) > 0 || (entry.attachments?.length ?? 0) > 0
+    setShowAddPanel(hasExtra)
+    // Load attachments from IndexedDB
+    getAttachments(entry.id).then((loaded) => {
+      setAttachments(loaded.length > 0 ? loaded : entry.attachments || [])
+    }).catch(() => {
+      setAttachments(entry.attachments || [])
+    })
   }, [])
 
   const handleStartCompose = useCallback((): void => {
     setEditingId(null)
     setTitle('')
     setBody('')
+    setEditingDate(new Date().toISOString().split('T')[0])
+    setSelectedCategories([])
+    setAttachments([])
+    setUrl('')
+    setShowAddPanel(false)
     setIsComposing(true)
   }, [])
 
   const handleDelete = useCallback((entryId: string): void => {
     if (confirmDeleteId === entryId) {
       // Actually delete
-      const entry = events.find((e) => e.id === entryId)
+      const entry = eventsRef.current.find((e) => e.id === entryId)
       deleteEvent(entryId)
       if (entry && entry.calendarId !== 'default') {
-        deleteCalDAVEvent(entry)
+        deleteCalDAVEvent(entry).catch(() => {
+          showToast('Failed to sync deletion. It will be retried.')
+        })
       }
       setConfirmDeleteId(null)
+
+      // Show undo toast (#17)
+      if (entry) {
+        showToast('Entry deleted', {
+          duration: 8000,
+          onUndo: () => {
+            addEvent(entry)
+            if (entry.calendarId !== 'default') {
+              createCalDAVEvent(entry).catch(() => {
+                showToast('Failed to restore entry.')
+              })
+            }
+          },
+        })
+      }
     } else {
       // First click — show confirm
       setConfirmDeleteId(entryId)
     }
-  }, [confirmDeleteId, events, deleteEvent, deleteCalDAVEvent])
+  }, [confirmDeleteId, deleteEvent, deleteCalDAVEvent, addEvent, createCalDAVEvent])
 
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+  const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent)
   const saveHint = `${isMac ? '⌘' : 'Ctrl+'} Return to save · Esc to cancel`
 
   // Format date for display in entry
-  const formatEntryDate = (dateStr: string): { day: string; weekday: string } => {
+  const formatEntryDate = useCallback((dateStr: string): { day: string; weekday: string } => {
     const d = parseISO(dateStr)
     return {
       day: format(d, 'd'),
       weekday: format(d, 'EEE').toUpperCase(),
     }
-  }
+  }, [])
+
+  const handleCancel = useCallback(() => {
+    setIsComposing(false)
+    setEditingId(null)
+    setTitle('')
+    setBody('')
+    setSelectedCategories([])
+    setAttachments([])
+    setUrl('')
+  }, [])
 
   return (
     <div className={styles.page}>
@@ -195,69 +491,27 @@ export function JournalView(): JSX.Element {
 
         {/* Compose form (at top when composing new entry only) */}
         {isComposing && !editingId && (
-          <div className={styles.compose}>
-            <div className={styles.composeDateCol}>
-              {showDatePicker ? (
-                <input
-                  type="date"
-                  className={styles.dateInput}
-                  value={editingDate}
-                  onChange={(e) => {
-                    setEditingDate(e.target.value)
-                    setShowDatePicker(false)
-                  }}
-                  onBlur={() => setShowDatePicker(false)}
-                  autoFocus
-                />
-              ) : (
-                <button
-                  className={styles.dateButton}
-                  onClick={() => setShowDatePicker(true)}
-                  title="Click to change date"
-                >
-                  <span className={styles.composeDay}>
-                    {formatEntryDate(editingDate).day}
-                  </span>
-                  <span className={styles.composeWeekday}>
-                    {formatEntryDate(editingDate).weekday}
-                  </span>
-                </button>
-              )}
-            </div>
-            <div className={styles.composeFields}>
-              <input
-                ref={titleInputRef}
-                type="text"
-                placeholder="Title (optional)"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-              <textarea
-                ref={bodyInputRef}
-                placeholder="Write something…"
-                rows={4}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-              />
-              <div className={styles.composeHint}>{saveHint}</div>
-              <div className={styles.composeActions}>
-                <button
-                  className={styles.btnGhost}
-                  onClick={() => {
-                    setIsComposing(false)
-                    setEditingId(null)
-                    setTitle('')
-                    setBody('')
-                  }}
-                >
-                  Cancel
-                </button>
-                <button className={styles.btnAccent} onClick={handleSaveEntry}>
-                  {editingId ? 'Save changes' : 'Save entry'}
-                </button>
-              </div>
-            </div>
-          </div>
+          <JournalComposeForm
+            editingId={editingId}
+            editingDate={editingDate}
+            title={title}
+            body={body}
+            selectedCategories={selectedCategories}
+            attachments={attachments}
+            url={url}
+            titleRef={titleInputRef}
+            bodyRef={bodyInputRef}
+            saveHint={saveHint}
+            formatEntryDate={formatEntryDate}
+            onTitleChange={setTitle}
+            onBodyChange={setBody}
+            onDateChange={setEditingDate}
+            onCategoriesChange={setSelectedCategories}
+            onAttachmentsChange={setAttachments}
+            onUrlChange={setUrl}
+            onSave={handleSaveEntry}
+            onCancel={handleCancel}
+          />
         )}
 
         {/* Entry list */}
@@ -280,69 +534,28 @@ export function JournalView(): JSX.Element {
                   // If this entry is being edited, show compose form inline
                   if (editingId === entry.id) {
                     return (
-                      <div key={entry.id} className={styles.compose}>
-                        <div className={styles.composeDateCol}>
-                          {showDatePicker ? (
-                            <input
-                              type="date"
-                              className={styles.dateInput}
-                              value={editingDate}
-                              onChange={(e) => {
-                                setEditingDate(e.target.value)
-                                setShowDatePicker(false)
-                              }}
-                              onBlur={() => setShowDatePicker(false)}
-                              autoFocus
-                            />
-                          ) : (
-                            <button
-                              className={styles.dateButton}
-                              onClick={() => setShowDatePicker(true)}
-                              title="Click to change date"
-                            >
-                              <span className={styles.composeDay}>
-                                {formatEntryDate(editingDate).day}
-                              </span>
-                              <span className={styles.composeWeekday}>
-                                {formatEntryDate(editingDate).weekday}
-                              </span>
-                            </button>
-                          )}
-                        </div>
-                        <div className={styles.composeFields}>
-                          <input
-                            ref={titleInputRef}
-                            type="text"
-                            placeholder="Title (optional)"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                          />
-                          <textarea
-                            ref={bodyInputRef}
-                            placeholder="Write something…"
-                            rows={4}
-                            value={body}
-                            onChange={(e) => setBody(e.target.value)}
-                          />
-                          <div className={styles.composeHint}>{saveHint}</div>
-                          <div className={styles.composeActions}>
-                            <button
-                              className={styles.btnGhost}
-                              onClick={() => {
-                                setIsComposing(false)
-                                setEditingId(null)
-                                setTitle('')
-                                setBody('')
-                              }}
-                            >
-                              Cancel
-                            </button>
-                            <button className={styles.btnAccent} onClick={handleSaveEntry}>
-                              Save changes
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      <JournalComposeForm
+                        key={entry.id}
+                        editingId={editingId}
+                        editingDate={editingDate}
+                        title={title}
+                        body={body}
+                        selectedCategories={selectedCategories}
+                        attachments={attachments}
+                        url={url}
+                        titleRef={titleInputRef}
+                        bodyRef={bodyInputRef}
+                        saveHint={saveHint}
+                        formatEntryDate={formatEntryDate}
+                        onTitleChange={setTitle}
+                        onBodyChange={setBody}
+                        onDateChange={setEditingDate}
+                        onCategoriesChange={setSelectedCategories}
+                        onAttachmentsChange={setAttachments}
+                        onUrlChange={setUrl}
+                        onSave={handleSaveEntry}
+                        onCancel={handleCancel}
+                      />
                     )
                   }
 
@@ -350,6 +563,7 @@ export function JournalView(): JSX.Element {
                     <article
                       key={entry.id}
                       className={styles.entry}
+                      data-date={entry.start}
                       onDoubleClick={() => handleStartEdit(entry)}
                     >
                       <div className={styles.dateCol}>
@@ -364,6 +578,23 @@ export function JournalView(): JSX.Element {
                           className={styles.body}
                           dangerouslySetInnerHTML={{ __html: renderMarkdown(entry.description || '') }}
                         />
+                        {entry.categories && entry.categories.length > 0 && (
+                          <div className={styles.entryCategories}>
+                            {entry.categories.map((cat) => (
+                              <span key={cat} className={styles.entryCategoryTag}>{cat}</span>
+                            ))}
+                          </div>
+                        )}
+                        {entry.url && (
+                          <a
+                            href={entry.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.entryLink}
+                          >
+                            🔗 {entry.url}
+                          </a>
+                        )}
                       </div>
                       <button
                         className={`${styles.deleteBtn} ${confirmDeleteId === entry.id ? styles.deleteBtnConfirm : ''}`}

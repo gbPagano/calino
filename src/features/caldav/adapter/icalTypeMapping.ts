@@ -812,6 +812,9 @@ export function icalVjournalToCalendarEvent(
 
   // DTSTART — date only for journal entries
   let startDate = new Date().toISOString().split('T')[0]
+  if (!dtstartProp) {
+    console.warn('VJOURNAL missing DTSTART, defaulting to today:', uidProp?.getFirstValue())
+  }
   if (dtstartProp) {
     const raw = dtstartProp.getFirstValue()
     if (raw instanceof ICAL.Time) {
@@ -838,6 +841,10 @@ export function icalVjournalToCalendarEvent(
       if (val instanceof ICAL.Time) created = icalTimeToISO(val)
     } catch { /* skip */ }
   }
+  // Fallback: use start date for events without CREATED property
+  if (!created) {
+    created = new Date(startDate).toISOString()
+  }
 
   let lastModified: string | undefined
   if (lastModProp) {
@@ -846,8 +853,64 @@ export function icalVjournalToCalendarEvent(
       if (val instanceof ICAL.Time) lastModified = icalTimeToISO(val)
     } catch { /* skip */ }
   }
+  // Fallback: use created date for events without LAST-MODIFIED property
+  if (!lastModified) {
+    lastModified = created
+  }
 
   const sequence = seqProp ? parseInt(seqProp.getFirstValue() as string, 10) : undefined
+
+  // URL
+  const urlProp = vjournal.getFirstProperty('url')
+  const url = urlProp ? (urlProp.getFirstValue() as string) : undefined
+
+  // RELATED-TO (can occur multiple times)
+  const relatedToProps = vjournal.getAllProperties('related-to')
+  const relatedTo = relatedToProps
+    .map(p => p.getFirstValue() as string)
+    .filter(v => typeof v === 'string' && v.length > 0)
+
+  // ATTACH (port from VEVENT logic)
+  const attachments: CalendarAttachment[] = []
+  const attachProps = vjournal.getAllProperties('attach')
+  for (const attachProp of attachProps) {
+    try {
+      const attachValue = attachProp.getFirstValue()
+      if (attachValue instanceof ICAL.Binary) {
+        const base64Data = attachValue.decodeValue()
+        const rawFmtType = attachProp.getParameter('fmttype')
+        const contentType = (typeof rawFmtType === 'string' ? rawFmtType : undefined) || 'application/octet-stream'
+        const filename = attachProp.getParameter('filename')
+        attachments.push({
+          href: `data:${contentType};base64,${base64Data}`,
+          size: Math.round((base64Data.length * 3) / 4),
+          filename: typeof filename === 'string' ? filename : 'attachment',
+          contentType,
+        })
+      } else if (typeof attachValue === 'string') {
+        if (attachValue.startsWith('data:')) {
+          const match = attachValue.match(/^data:([^;]+);base64,(.+)$/)
+          if (match) {
+            const filename = attachProp.getParameter('filename')
+            attachments.push({
+              href: attachValue,
+              contentType: match[1],
+              size: Math.round((match[2].length * 3) / 4),
+              filename: typeof filename === 'string' ? filename : 'attachment',
+            })
+          }
+        } else {
+          const fmttype = attachProp.getParameter('fmttype')
+          const filename = attachProp.getParameter('filename')
+          attachments.push({
+            href: attachValue,
+            contentType: typeof fmttype === 'string' ? fmttype : 'application/octet-stream',
+            filename: typeof filename === 'string' ? filename : attachValue.split('/').pop() || 'attachment',
+          })
+        }
+      }
+    } catch { /* skip malformed attachment */ }
+  }
 
   return {
     id: uidProp ? (uidProp.getFirstValue() as string) : uuidv4(),
@@ -862,6 +925,9 @@ export function icalVjournalToCalendarEvent(
     created,
     lastModified,
     sequence,
+    url,
+    relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
+    attachments: attachments.length > 0 ? attachments : undefined,
   }
 }
 
@@ -903,6 +969,48 @@ export function calendarEventToIcalVjournal(entry: CalendarEvent): ICAL.Componen
     try {
       vjournal.updatePropertyWithValue('last-modified', ICAL.Time.fromJSDate(new Date(entry.lastModified)))
     } catch { /* skip */ }
+  }
+
+  if (entry.url) {
+    vjournal.updatePropertyWithValue('url', entry.url)
+  }
+
+  if (entry.relatedTo && entry.relatedTo.length > 0) {
+    for (const ref of entry.relatedTo) {
+      vjournal.addPropertyWithValue('related-to', ref)
+    }
+  }
+
+  // Serialize attachments (port from VEVENT logic)
+  if (entry.attachments && entry.attachments.length > 0) {
+    for (const attachment of entry.attachments) {
+      if (attachment.href.startsWith('data:')) {
+        const match = attachment.href.match(/^data:([^;]+);base64,(.+)$/)
+        if (match) {
+          const attachProp = new ICAL.Property('attach')
+          attachProp.setParameter('value', 'BINARY')
+          attachProp.setParameter('encoding', 'BASE64')
+          if (attachment.contentType) {
+            attachProp.setParameter('fmttype', attachment.contentType)
+          }
+          if (attachment.filename) {
+            attachProp.setParameter('filename', attachment.filename)
+          }
+          attachProp.setValue(new ICAL.Binary(match[2]))
+          vjournal.addProperty(attachProp)
+        }
+      } else {
+        const attachProp = new ICAL.Property('attach')
+        attachProp.setValue(attachment.href)
+        if (attachment.contentType) {
+          attachProp.setParameter('fmttype', attachment.contentType)
+        }
+        if (attachment.filename) {
+          attachProp.setParameter('filename', attachment.filename)
+        }
+        vjournal.addProperty(attachProp)
+      }
+    }
   }
 
   return vjournal

@@ -1,12 +1,14 @@
 import type { JSX } from 'react'
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { format, parseISO } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
-import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { v4 as uuidv4 } from 'uuid'
 import { renderMarkdown } from '@/lib/markdown'
-import type { CalendarEvent } from '@/types'
+import { showToast } from '@/lib/toast'
+import { putAttachments, getAttachments } from '@/lib/attachmentStore'
+import type { CalendarEvent, CalendarAttachment } from '@/types'
+import { AttachmentSection } from './AttachmentSection'
 import styles from './JournalDayModal.module.css'
 
 interface JournalDayModalProps {
@@ -24,6 +26,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const calendars = useCalendarStore((state) => state.calendars)
+  const categories = useCalendarStore((state) => state.categories)
   const { createEvent: createCalDAVEvent, updateEvent: updateCalDAVEvent, deleteEvent: deleteCalDAVEvent } = useCalDAV()
 
   const [mode, setMode] = useState<ModalMode>('view')
@@ -31,13 +34,27 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [attachments, setAttachments] = useState<CalendarAttachment[]>([])
+  const [url, setUrl] = useState('')
+  const [showAddPanel, setShowAddPanel] = useState(false)
+  const [focusedEntryIndex, setFocusedEntryIndex] = useState<number>(-1)
 
   const panelRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const bodyInputRef = useRef<HTMLTextAreaElement>(null)
 
+  // Refs for stable values used in callbacks (#9)
+  const eventsRef = useRef(events)
+  eventsRef.current = events
+  const calendarsRef = useRef(calendars)
+  calendarsRef.current = calendars
+
   // Get journal entries for this date
-  const entries = events.filter((e) => e.type === 'journal' && e.start === date)
+  const entries = useMemo(
+    () => events.filter((e) => e.type === 'journal' && e.start === date),
+    [events, date]
+  )
 
   // Parse the date for display
   const dateObj = parseISO(date)
@@ -56,6 +73,11 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
       setEditingId(null)
       setTitle('')
       setBody('')
+      setSelectedCategories([])
+      setAttachments([])
+      setUrl('')
+      setShowAddPanel(false)
+      setConfirmDeleteId(null)
     }
   }, [isOpen, date, startInCompose])
 
@@ -65,6 +87,161 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
       setTimeout(() => titleInputRef.current?.focus(), 80)
     }
   }, [mode])
+
+  // Reset focused entry index when entries change or modal opens
+  useEffect(() => {
+    setFocusedEntryIndex(-1)
+  }, [entries.length, isOpen])
+
+  const handleSave = useCallback((): void => {
+    const trimmedBody = body.trim()
+    if (!trimmedBody) {
+      bodyInputRef.current?.focus()
+      return
+    }
+
+    const trimmedTitle = title.trim()
+    const now = new Date().toISOString()
+    const currentEvents = eventsRef.current
+    const currentCalendars = calendarsRef.current
+
+    if (mode === 'edit' && editingId) {
+      // Update existing entry
+      const existing = currentEvents.find((e) => e.id === editingId)
+      if (existing) {
+        const updates: Partial<CalendarEvent> = {
+          title: trimmedTitle,
+          description: trimmedBody,
+          lastModified: now,
+          sequence: (existing.sequence ?? 0) + 1,
+          categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+          url: url || undefined,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        }
+        updateEvent(editingId, updates)
+        putAttachments(editingId, attachments).catch(() => {
+          showToast('Failed to save attachments locally')
+        })
+
+        // Sync to CalDAV if needed
+        if (existing.calendarId !== 'default') {
+          updateCalDAVEvent({ ...existing, ...updates }).catch(() => {
+            showToast('Failed to sync update. It will be retried.')
+          })
+        }
+      }
+    } else {
+      // Create new entry
+      const defaultCalendar = currentCalendars.find((c) => c.isDefault) || currentCalendars[0]
+      const newId = uuidv4()
+      const newEntry: CalendarEvent = {
+        id: newId,
+        calendarId: defaultCalendar?.id || 'default',
+        title: trimmedTitle,
+        description: trimmedBody,
+        start: date,
+        end: date,
+        isAllDay: true,
+        type: 'journal',
+        created: now,
+        lastModified: now,
+        categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+        url: url || undefined,
+        attachments: attachments.length > 0 ? attachments : undefined,
+      }
+      addEvent(newEntry)
+      if (attachments.length > 0) {
+        putAttachments(newId, attachments).catch(() => {
+          showToast('Failed to save attachments locally')
+        })
+      }
+
+      // Sync to CalDAV if needed
+      if (defaultCalendar?.id !== 'default') {
+        createCalDAVEvent(newEntry).catch(() => {
+          showToast('Failed to sync entry. It will be retried.')
+        })
+      }
+    }
+
+    setMode('view')
+    setEditingId(null)
+    setTitle('')
+    setBody('')
+    setSelectedCategories([])
+    setAttachments([])
+    setUrl('')
+    setShowAddPanel(false)
+  }, [mode, editingId, title, body, date, selectedCategories, attachments, url, addEvent, updateEvent, createCalDAVEvent, updateCalDAVEvent])
+
+  // Ref for handleSave to avoid stale closure in keyboard effect (#10)
+  const handleSaveRef = useRef<(() => void) | null>(null)
+  handleSaveRef.current = handleSave
+
+  const handleStartEdit = useCallback((entry: CalendarEvent): void => {
+    setEditingId(entry.id)
+    setTitle(entry.title || '')
+    setBody(entry.description || '')
+    setSelectedCategories(entry.categories || [])
+    setUrl(entry.url || '')
+    setMode('edit')
+    // Load attachments from IndexedDB
+    getAttachments(entry.id).then((loaded) => {
+      setAttachments(loaded.length > 0 ? loaded : entry.attachments || [])
+    }).catch(() => {
+      setAttachments(entry.attachments || [])
+    })
+    // Open add panel if entry has any extra content
+    const hasExtra = (entry.categories?.length ?? 0) > 0 || (entry.url?.length ?? 0) > 0 || (entry.attachments?.length ?? 0) > 0
+    setShowAddPanel(hasExtra)
+  }, [])
+
+  const handleStartCompose = useCallback((): void => {
+    setEditingId(null)
+    setTitle('')
+    setBody('')
+    setSelectedCategories([])
+    setAttachments([])
+    setUrl('')
+    setShowAddPanel(false)
+    setMode('compose')
+  }, [])
+
+  const handleDelete = useCallback((entryId: string): void => {
+    if (confirmDeleteId === entryId) {
+      // Actually delete
+      const entry = eventsRef.current.find((e) => e.id === entryId)
+      deleteEvent(entryId)
+      if (entry && entry.calendarId !== 'default') {
+        deleteCalDAVEvent(entry).catch(() => {
+          showToast('Failed to sync deletion. It will be retried.')
+        })
+      }
+      setConfirmDeleteId(null)
+      setMode('view')
+      setEditingId(null)
+      setTitle('')
+      setBody('')
+
+      // Show undo toast (#17)
+      if (entry) {
+        showToast('Entry deleted', {
+          duration: 8000,
+          onUndo: () => {
+            addEvent(entry)
+            if (entry.calendarId !== 'default') {
+              createCalDAVEvent(entry).catch(() => {
+                showToast('Failed to restore entry.')
+              })
+            }
+          },
+        })
+      }
+    } else {
+      // First click — show confirm
+      setConfirmDeleteId(entryId)
+    }
+  }, [confirmDeleteId, deleteEvent, deleteCalDAVEvent, addEvent, createCalDAVEvent])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -83,101 +260,27 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault()
         if (mode === 'compose' || mode === 'edit') {
-          handleSave()
+          handleSaveRef.current?.()
+        }
+      }
+      // Arrow key navigation between entries (#19)
+      if (mode === 'view' && entries.length > 0) {
+        if (e.key === 'ArrowDown' || e.key === 'j') {
+          e.preventDefault()
+          setFocusedEntryIndex((prev) => (prev < 0 ? 0 : Math.min(prev + 1, entries.length - 1)))
+        } else if (e.key === 'ArrowUp' || e.key === 'k') {
+          e.preventDefault()
+          setFocusedEntryIndex((prev) => Math.max(prev - 1, 0))
+        } else if ((e.key === 'Enter' || e.key === 'o') && focusedEntryIndex >= 0) {
+          e.preventDefault()
+          const entry = entries[focusedEntryIndex]
+          if (entry) handleStartEdit(entry)
         }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, mode, title, body, editingId, date])
-
-  const handleSave = useCallback((): void => {
-    const trimmedBody = body.trim()
-    if (!trimmedBody) {
-      bodyInputRef.current?.focus()
-      return
-    }
-
-    const trimmedTitle = title.trim()
-    const now = new Date().toISOString()
-
-    if (mode === 'edit' && editingId) {
-      // Update existing entry
-      const existing = events.find((e) => e.id === editingId)
-      if (existing) {
-        const updates: Partial<CalendarEvent> = {
-          title: trimmedTitle,
-          description: trimmedBody,
-          lastModified: now,
-        }
-        updateEvent(editingId, updates)
-
-        // Sync to CalDAV if needed
-        if (existing.calendarId !== 'default') {
-          updateCalDAVEvent({ ...existing, ...updates })
-        }
-      }
-    } else {
-      // Create new entry
-      const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
-      const newEntry: CalendarEvent = {
-        id: uuidv4(),
-        calendarId: defaultCalendar?.id || 'default',
-        title: trimmedTitle,
-        description: trimmedBody,
-        start: date,
-        end: date,
-        isAllDay: true,
-        type: 'journal',
-        created: now,
-        lastModified: now,
-      }
-      addEvent(newEntry)
-
-      // Sync to CalDAV if needed
-      if (defaultCalendar?.id !== 'default') {
-        createCalDAVEvent(newEntry)
-      }
-    }
-
-    setMode('view')
-    setEditingId(null)
-    setTitle('')
-    setBody('')
-  }, [mode, editingId, title, body, date, events, calendars, addEvent, updateEvent, createCalDAVEvent, updateCalDAVEvent])
-
-  const handleStartEdit = useCallback((entry: CalendarEvent): void => {
-    setEditingId(entry.id)
-    setTitle(entry.title || '')
-    setBody(entry.description || '')
-    setMode('edit')
-  }, [])
-
-  const handleStartCompose = useCallback((): void => {
-    setEditingId(null)
-    setTitle('')
-    setBody('')
-    setMode('compose')
-  }, [])
-
-  const handleDelete = useCallback((entryId: string): void => {
-    if (confirmDeleteId === entryId) {
-      // Actually delete
-      const entry = events.find((e) => e.id === entryId)
-      deleteEvent(entryId)
-      if (entry && entry.calendarId !== 'default') {
-        deleteCalDAVEvent(entry)
-      }
-      setConfirmDeleteId(null)
-      setMode('view')
-      setEditingId(null)
-      setTitle('')
-      setBody('')
-    } else {
-      // First click — show confirm
-      setConfirmDeleteId(entryId)
-    }
-  }, [confirmDeleteId, events, deleteEvent, deleteCalDAVEvent])
+  }, [isOpen, mode, onClose, entries, focusedEntryIndex, handleStartEdit])
 
   // Click outside to close
   useEffect(() => {
@@ -193,7 +296,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
 
   if (!isOpen) return null
 
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+  const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent)
   const saveHint = `${isMac ? '⌘' : 'Ctrl+'} Return to save · Esc to cancel`
 
   return (
@@ -215,6 +318,14 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
           {mode === 'view' && (
             <>
               <div className={styles.entries}>
+                {entries.length === 0 && (
+                  <div className={styles.emptyState}>
+                    <p>No entries for this day</p>
+                    <button className={styles.btnAccent} onClick={handleStartCompose}>
+                      Write something
+                    </button>
+                  </div>
+                )}
                 {entries.map((entry, index) => (
                   <React.Fragment key={entry.id}>
                     {index > 0 && (
@@ -223,8 +334,10 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                       </div>
                     )}
                     <div
-                      className={styles.entry}
+                      className={`${styles.entry} ${focusedEntryIndex === index ? styles.entryFocused : ''}`}
                       onDoubleClick={() => handleStartEdit(entry)}
+                      tabIndex={0}
+                      role="button"
                     >
                       {entry.title && (
                         <div className={styles.summary}>{entry.title}</div>
@@ -233,6 +346,23 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                         className={styles.body}
                         dangerouslySetInnerHTML={{ __html: renderMarkdown(entry.description || '') }}
                       />
+                      {entry.categories && entry.categories.length > 0 && (
+                        <div className={styles.entryCategories}>
+                          {entry.categories.map((cat) => (
+                            <span key={cat} className={styles.entryCategoryTag}>{cat}</span>
+                          ))}
+                        </div>
+                      )}
+                      {entry.url && (
+                        <a
+                          href={entry.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.entryLink}
+                        >
+                          🔗 {entry.url}
+                        </a>
+                      )}
                     </div>
                   </React.Fragment>
                 ))}
@@ -258,7 +388,102 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
               />
-              <div className={styles.composeHint}>{saveHint}</div>
+              {/* Add panel — categories, link, attachments */}
+              <div className={styles.addPanel}>
+                {!showAddPanel ? (
+                  <button
+                    type="button"
+                    className={styles.addToggle}
+                    onClick={() => setShowAddPanel(true)}
+                  >
+                    + Add
+                  </button>
+                ) : (
+                  <div className={styles.addPanelContent}>
+                    <button
+                      type="button"
+                      className={styles.addToggle}
+                      onClick={() => setShowAddPanel(false)}
+                    >
+                      − Hide
+                    </button>
+
+                    {/* Categories */}
+                    {categories.length > 0 && (
+                      <div className={styles.addSection}>
+                        <div className={styles.addSectionHeader}>
+                          <span className={styles.addSectionLabel}>Categories</span>
+                          {selectedCategories.length > 0 && (
+                            <button
+                              type="button"
+                              className={styles.removeFieldButton}
+                              onClick={() => setSelectedCategories([])}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                        <div className={styles.categoryPicker}>
+                          {categories.map((cat) => {
+                            const isSelected = selectedCategories.includes(cat.name)
+                            return (
+                              <button
+                                key={cat.id}
+                                type="button"
+                                className={`${styles.categoryChip} ${isSelected ? styles.categoryChipActive : ''}`}
+                                style={{ '--chip-color': cat.color } as React.CSSProperties}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedCategories(selectedCategories.filter((c) => c !== cat.name))
+                                  } else {
+                                    setSelectedCategories([...selectedCategories, cat.name])
+                                  }
+                                }}
+                              >
+                                <span className={styles.categoryDot} style={{ backgroundColor: cat.color }} />
+                                {cat.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* URL */}
+                    <div className={styles.addSection}>
+                      <div className={styles.addSectionHeader}>
+                        <span className={styles.addSectionLabel}>Link</span>
+                        {url.length > 0 && (
+                          <button
+                            type="button"
+                            className={styles.removeFieldButton}
+                            onClick={() => setUrl('')}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="url"
+                        className={styles.urlInput}
+                        placeholder="https://example.com"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Attachments */}
+                    <div className={styles.addSection}>
+                      <AttachmentSection
+                        attachments={attachments}
+                        onAttachmentsChange={setAttachments}
+                        eventId={editingId || 'new'}
+                        showLabel={false}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -273,6 +498,28 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
               {confirmDeleteId === editingId ? 'Click again to confirm' : 'Delete'}
             </button>
           )}
+          {mode !== 'view' ? (
+            <>
+              <button
+                className={styles.btnGhost}
+                onClick={() => {
+                  setMode('view')
+                  setEditingId(null)
+                  setTitle('')
+                  setBody('')
+                }}
+              >
+                Cancel
+              </button>
+              <button className={styles.btnAccent} onClick={handleSave}>
+                {mode === 'edit' ? 'Save changes' : 'Save entry'}
+              </button>
+            </>
+          ) : (
+            <button className={styles.btnGhost} onClick={onClose}>
+              Close
+            </button>
+          )}
           {mode === 'view' && (
             <button className={styles.addEntry} onClick={handleStartCompose}>
               <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -281,30 +528,6 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
               Add entry
             </button>
           )}
-          <div className={styles.footerActions}>
-            {mode !== 'view' ? (
-              <>
-                <button
-                  className={styles.btnGhost}
-                  onClick={() => {
-                    setMode('view')
-                    setEditingId(null)
-                    setTitle('')
-                    setBody('')
-                  }}
-                >
-                  Cancel
-                </button>
-                <button className={styles.btnAccent} onClick={handleSave}>
-                  {mode === 'edit' ? 'Save changes' : 'Save entry'}
-                </button>
-              </>
-            ) : (
-              <button className={styles.btnGhost} onClick={onClose}>
-                Close
-              </button>
-            )}
-          </div>
         </div>
       </div>
     </div>

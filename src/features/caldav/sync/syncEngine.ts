@@ -1,7 +1,7 @@
 import type { CalendarEvent } from '@/types'
 import type { SyncResult, ConflictResolution } from '../types'
 import { CalDAVClient } from '../client/CalDAVClient'
-import { eventToICAL, parseICALData, taskToICAL, isUUID } from '../adapter/iCalendarAdapter'
+import { eventToICAL, parseICALData, taskToICAL, journalToICAL, isUUID } from '../adapter/iCalendarAdapter'
 import * as storage from './accountStorage'
 import { getAttachments, putAttachments } from '@/lib/attachmentStore'
 
@@ -131,7 +131,14 @@ export class SyncEngine {
     }
 
     const enriched = await withInlineAttachments(event)
-    const iCalString = enriched.type === 'task' ? taskToICAL(enriched) : eventToICAL(enriched)
+    let iCalString: string
+    if (enriched.type === 'task') {
+      iCalString = taskToICAL(enriched)
+    } else if (enriched.type === 'journal') {
+      iCalString = journalToICAL(enriched)
+    } else {
+      iCalString = eventToICAL(enriched)
+    }
     const filename = `${event.id}.ics`
 
     return this.client.createEvent(calendar.url, iCalString, filename)
@@ -145,7 +152,14 @@ export class SyncEngine {
     }
 
     const enriched = await withInlineAttachments(event)
-    const iCalString = enriched.type === 'task' ? taskToICAL(enriched) : eventToICAL(enriched)
+    let iCalString: string
+    if (enriched.type === 'task') {
+      iCalString = taskToICAL(enriched)
+    } else if (enriched.type === 'journal') {
+      iCalString = journalToICAL(enriched)
+    } else {
+      iCalString = eventToICAL(enriched)
+    }
     console.log('[SyncEngine] updateEvent iCal:', iCalString)
     console.log('[SyncEngine] updateEvent attachments:', JSON.stringify(enriched.attachments))
     const eventUrl = `${calendar.url}${event.id}.ics`

@@ -126,6 +126,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   useCategoryColors: true,
   sidebarWidth: 300,
   sidebarCollapsed: false,
+  journalEnabled: false,
 }
 
 export const useSettingsStore = create<SettingsStore>()(

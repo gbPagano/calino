@@ -3,8 +3,10 @@ import type { CalendarEvent } from '@/types'
 import {
   icalEventToCalendarEvent,
   icalVtodoToCalendarEvent,
+  icalVjournalToCalendarEvent,
   calendarEventToIcalComponent,
   calendarEventToIcalVtodo,
+  calendarEventToIcalVjournal,
 } from './icalTypeMapping'
 
 export { isUUID } from '@/lib/uuid'
@@ -97,7 +99,8 @@ export function parseICALTask(iCalData: string, calendarId: string): CalendarEve
 export function parseICALData(iCalData: string, calendarId: string): CalendarEvent[] {
   const events = parseICALEvent(iCalData, calendarId)
   const tasks = parseICALTask(iCalData, calendarId)
-  return [...events, ...tasks]
+  const journals = parseICALJournal(iCalData, calendarId)
+  return [...events, ...tasks, ...journals]
 }
 
 export function eventToICAL(event: CalendarEvent): string {
@@ -120,6 +123,46 @@ export function taskToICAL(task: CalendarEvent): string {
 
   const vtodo = calendarEventToIcalVtodo(task)
   comp.addSubcomponent(vtodo)
+
+  return comp.toString()
+}
+
+export function parseICALJournal(iCalData: string, calendarId: string): CalendarEvent[] {
+  if (!iCalData || !iCalData.trim()) {
+    return []
+  }
+
+  let jCal: string | unknown[]
+  try {
+    jCal = ICAL.parse(iCalData) as string | unknown[]
+  } catch (e) {
+    console.error('ICAL.parse failed for journals:', e)
+    return []
+  }
+
+  const comp = new ICAL.Component(jCal)
+
+  const vjournals = comp.getAllSubcomponents('vjournal')
+  const entries: CalendarEvent[] = []
+  for (const vjournal of vjournals) {
+    try {
+      entries.push(icalVjournalToCalendarEvent(vjournal, calendarId))
+    } catch (e) {
+      console.error('Failed to parse vjournal:', e)
+      continue
+    }
+  }
+  return entries
+}
+
+export function journalToICAL(entry: CalendarEvent): string {
+  const comp = new ICAL.Component('vcalendar')
+  comp.updatePropertyWithValue('version', '2.0')
+  comp.updatePropertyWithValue('prodid', '-//Calino//EN')
+  comp.updatePropertyWithValue('calscale', 'GREGORIAN')
+
+  const vjournal = calendarEventToIcalVjournal(entry)
+  comp.addSubcomponent(vjournal)
 
   return comp.toString()
 }

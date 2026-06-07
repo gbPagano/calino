@@ -19,7 +19,7 @@ export interface Reminder {
   method: 'popup' | 'email'
 }
 
-export type EventType = 'event' | 'task'
+export type EventType = 'event' | 'task' | 'journal'
 export type SyncStatus = 'synced' | 'pending' | 'failed'
 export type TaskPriority = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
@@ -62,6 +62,8 @@ export interface CalendarEvent {
   originalEnd?: string
   syncStatus?: SyncStatus
   attachments?: CalendarAttachment[]
+  created?: string
+  lastModified?: string
 }
 
 export interface Calendar {
@@ -162,6 +164,7 @@ export interface UserSettings {
   useCategoryColors: boolean
   sidebarWidth: number
   sidebarCollapsed: boolean
+  journalEnabled: boolean
 }
 
 export type SettingsState = UserSettings

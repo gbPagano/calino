@@ -602,3 +602,33 @@ function applyAutoCategories(
 
   return matchingCategoryNames
 }
+
+// ── Journal helpers ─────────────────────────────────────────────────────
+
+export function getJournalEntriesForDate(
+  events: CalendarEvent[],
+  date: string
+): CalendarEvent[] {
+  return events.filter((e) => e.type === 'journal' && e.start === date)
+}
+
+export function getJournalEntriesForMonth(
+  events: CalendarEvent[],
+  year: number,
+  month: number
+): CalendarEvent[] {
+  const prefix = `${year}-${String(month + 1).padStart(2, '0')}`
+  return events
+    .filter((e) => e.type === 'journal' && e.start.startsWith(prefix))
+    .sort((a, b) => b.start.localeCompare(a.start))
+}
+
+export function getJournalDates(
+  events: CalendarEvent[]
+): Set<string> {
+  const dates = new Set<string>()
+  for (const e of events) {
+    if (e.type === 'journal') dates.add(e.start)
+  }
+  return dates
+}

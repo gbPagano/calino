@@ -794,3 +794,116 @@ export function calendarEventToIcalVtodo(task: CalendarEvent): ICAL.Component {
 
   return vtodo
 }
+
+// ── VJOURNAL ──────────────────────────────────────────────────────────────
+
+export function icalVjournalToCalendarEvent(
+  vjournal: ICAL.Component,
+  calendarId: string
+): CalendarEvent {
+  const uidProp = vjournal.getFirstProperty('uid')
+  const summaryProp = vjournal.getFirstProperty('summary')
+  const descProp = vjournal.getFirstProperty('description')
+  const dtstartProp = vjournal.getFirstProperty('dtstart')
+  const createdProp = vjournal.getFirstProperty('created')
+  const lastModProp = vjournal.getFirstProperty('last-modified')
+  const seqProp = vjournal.getFirstProperty('sequence')
+  const catProp = vjournal.getFirstProperty('categories')
+
+  // DTSTART — date only for journal entries
+  let startDate = new Date().toISOString().split('T')[0]
+  if (dtstartProp) {
+    const raw = dtstartProp.getFirstValue()
+    if (raw instanceof ICAL.Time) {
+      const isoStr = icalTimeToISO(raw)
+      if (isoStr) {
+        // Journal entries are date-only — strip any time component
+        startDate = isoStr.includes('T') ? isoStr.split('T')[0] : isoStr
+      }
+    }
+  }
+
+  const categories: string[] = []
+  if (catProp) {
+    const catValue = catProp.getFirstValue()
+    if (typeof catValue === 'string') {
+      categories.push(...catValue.split(',').map((c) => c.trim()))
+    }
+  }
+
+  let created: string | undefined
+  if (createdProp) {
+    try {
+      const val = createdProp.getFirstValue()
+      if (val instanceof ICAL.Time) created = icalTimeToISO(val)
+    } catch { /* skip */ }
+  }
+
+  let lastModified: string | undefined
+  if (lastModProp) {
+    try {
+      const val = lastModProp.getFirstValue()
+      if (val instanceof ICAL.Time) lastModified = icalTimeToISO(val)
+    } catch { /* skip */ }
+  }
+
+  const sequence = seqProp ? parseInt(seqProp.getFirstValue() as string, 10) : undefined
+
+  return {
+    id: uidProp ? (uidProp.getFirstValue() as string) : uuidv4(),
+    calendarId,
+    title: summaryProp ? (summaryProp.getFirstValue() as string) : '',
+    description: descProp ? (descProp.getFirstValue() as string) : '',
+    start: startDate,
+    end: startDate,
+    isAllDay: true,
+    type: 'journal',
+    categories: categories.length > 0 ? categories : undefined,
+    created,
+    lastModified,
+    sequence,
+  }
+}
+
+export function calendarEventToIcalVjournal(entry: CalendarEvent): ICAL.Component {
+  const vjournal = new ICAL.Component('vjournal')
+
+  vjournal.updatePropertyWithValue('uid', entry.id)
+  vjournal.updatePropertyWithValue('dtstamp', ICAL.Time.now())
+  vjournal.updatePropertyWithValue('sequence', entry.sequence ?? 0)
+
+  // DTSTART — date only for journal entries
+  const dateParts = entry.start.split('-')
+  const dtstartDate = createAllDayDate(
+    parseInt(dateParts[0], 10),
+    parseInt(dateParts[1], 10),
+    parseInt(dateParts[2], 10)
+  )
+  vjournal.updatePropertyWithValue('dtstart', dtstartDate)
+
+  if (entry.title) {
+    vjournal.updatePropertyWithValue('summary', entry.title)
+  }
+
+  if (entry.description) {
+    vjournal.updatePropertyWithValue('description', entry.description)
+  }
+
+  if (entry.categories && entry.categories.length > 0) {
+    vjournal.updatePropertyWithValue('categories', entry.categories.join(','))
+  }
+
+  if (entry.created) {
+    try {
+      vjournal.updatePropertyWithValue('created', ICAL.Time.fromJSDate(new Date(entry.created)))
+    } catch { /* skip */ }
+  }
+
+  if (entry.lastModified) {
+    try {
+      vjournal.updatePropertyWithValue('last-modified', ICAL.Time.fromJSDate(new Date(entry.lastModified)))
+    } catch { /* skip */ }
+  }
+
+  return vjournal
+}

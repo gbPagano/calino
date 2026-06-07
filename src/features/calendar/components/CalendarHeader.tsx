@@ -32,6 +32,7 @@ const VIEWS: { value: ViewType; label: string }[] = [
   { value: 'day', label: 'Day' },
   { value: 'agenda', label: 'Agenda' },
   { value: 'todo', label: 'Tasks' },
+  { value: 'journal', label: 'Journal' },
 ]
 
 const VIEW_ROUTES: Record<ViewType, string> = {
@@ -40,6 +41,7 @@ const VIEW_ROUTES: Record<ViewType, string> = {
   day: '/day',
   agenda: '/agenda',
   todo: '/tasks',
+  journal: '/journal',
 }
 
 export function CalendarHeader({
@@ -55,6 +57,7 @@ export function CalendarHeader({
   const showWeekNumbers = useSettingsStore((state) => state.showWeekNumbers)
   const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
   const themeMode = useSettingsStore((state) => state.themeMode)
+  const journalEnabled = useSettingsStore((state) => state.journalEnabled)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
 
   const [isMobile, setIsMobile] = useState(
@@ -264,7 +267,7 @@ export function CalendarHeader({
 
         {/* View Tabs - always rendered, CSS handles visibility */}
         <div className={`${styles.viewTabs} ${isMobile || isTablet ? styles.viewTabsHidden : ''}`}>
-          {VIEWS.map((view, index) => (
+          {VIEWS.filter(v => journalEnabled || v.value !== 'journal').map((view, index) => (
             <React.Fragment key={view.value}>
               {index === 3 && <div className={styles.viewTabDivider} />}
               <button
@@ -304,7 +307,7 @@ export function CalendarHeader({
           </button>
           {isViewDropdownOpen && (
             <div className={styles.viewDropdownMenu}>
-              {VIEWS.map((view, index) => (
+              {VIEWS.filter(v => journalEnabled || v.value !== 'journal').map((view, index) => (
                 <React.Fragment key={view.value}>
                   {index === 3 && <div className={styles.viewDropdownDivider} />}
                   <button

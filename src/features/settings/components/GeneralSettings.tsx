@@ -12,6 +12,7 @@ export function GeneralSettings(): JSX.Element {
   const dateFormat = useSettingsStore((s) => s.dateFormat)
   const timeFormat = useSettingsStore((s) => s.timeFormat)
   const firstDayOfWeek = useSettingsStore((s) => s.firstDayOfWeek)
+  const journalEnabled = useSettingsStore((s) => s.journalEnabled)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
 
   return (
@@ -115,6 +116,23 @@ export function GeneralSettings(): JSX.Element {
             <select className={styles.select} defaultValue="en">
               <option value="en">English</option>
             </select>
+          </div>
+        </div>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Journal</div>
+            <div className={styles.rowDesc}>Attach freeform notes to days in your calendar</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={journalEnabled}
+                onChange={(e) => updateSettings({ journalEnabled: e.target.checked })}
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
           </div>
         </div>
       </div>

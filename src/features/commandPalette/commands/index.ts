@@ -6,9 +6,9 @@ import type { ThemeMode } from '@/types'
 
 interface CommandFactoryDeps {
   navigate: (path: string) => void
-  setCurrentView: (view: 'month' | 'week' | 'day' | 'agenda') => void
+  setCurrentView: (view: 'month' | 'week' | 'day' | 'agenda' | 'journal') => void
   setCurrentDate: (date: string) => void
-  openModal: (date?: string, endDate?: string, eventId?: string, mode?: 'event' | 'task') => void
+  openModal: (date?: string, endDate?: string, eventId?: string, mode?: 'event' | 'task' | 'journal') => void
   toggleSidebar?: () => void
   triggerSync?: () => void
   themeMode?: ThemeMode
@@ -16,6 +16,7 @@ interface CommandFactoryDeps {
   timeFormat?: '12h' | '24h'
   sidebarOpen?: boolean
   useCategoryColors?: boolean
+  journalEnabled?: boolean
   updateSettings?: (
     settings: Partial<{
       themeMode: ThemeMode
@@ -24,6 +25,7 @@ interface CommandFactoryDeps {
       caldavDebugMode: boolean
       timeFormat: '12h' | '24h'
       useCategoryColors: boolean
+      journalEnabled: boolean
     }>
   ) => void
 }
@@ -303,6 +305,44 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
       const newValue = !deps.caldavDebugMode
       deps.updateSettings?.({ caldavDebugMode: newValue })
       return newValue ? 'CalDAV debug mode enabled' : 'CalDAV debug mode disabled'
+    },
+  },
+  {
+    id: 'toggle-journal',
+    label: deps.journalEnabled ? 'Disable Journal' : 'Enable Journal',
+    description: 'Attach freeform notes to days in your calendar',
+    category: 'settings',
+    keywords: ['journal', 'notes', 'diary', 'toggle', 'enable', 'disable'],
+    icon: ICONS.calendar,
+    action: () => {
+      const newValue = !deps.journalEnabled
+      deps.updateSettings?.({ journalEnabled: newValue })
+      return newValue ? 'Journal enabled' : 'Journal disabled'
+    },
+  },
+  {
+    id: 'open-journal',
+    label: 'Open Journal',
+    description: 'Navigate to the Journal view',
+    category: 'navigation',
+    keywords: ['journal', 'notes', 'diary', 'open', 'navigate'],
+    icon: ICONS.calendar,
+    action: () => {
+      deps.navigate('/journal')
+      return 'Opened Journal'
+    },
+  },
+  {
+    id: 'new-journal-entry',
+    label: 'New Journal Entry',
+    description: 'Create a new journal entry for today',
+    category: 'quick-add',
+    keywords: ['journal', 'notes', 'diary', 'new', 'create', 'add'],
+    icon: ICONS.plus,
+    action: () => {
+      const today = new Date().toISOString().split('T')[0]
+      deps.openModal(today, undefined, undefined, 'journal')
+      return 'New journal entry'
     },
   },
   {

@@ -89,6 +89,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
 
   const timeFormat = useSettingsStore((state) => state.timeFormat)
   const useCategoryColors = useSettingsStore((state) => state.useCategoryColors)
+  const journalEnabled = useSettingsStore((state) => state.journalEnabled)
 
   const commands = useMemo(() => {
     return createCommandRegistry({
@@ -100,6 +101,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
       caldavDebugMode,
       timeFormat,
       useCategoryColors,
+      journalEnabled,
       sidebarOpen,
       toggleSidebar,
       updateSettings,
@@ -114,6 +116,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     caldavDebugMode,
     timeFormat,
     useCategoryColors,
+    journalEnabled,
     sidebarOpen,
     toggleSidebar,
     updateSettings,

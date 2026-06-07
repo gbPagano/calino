@@ -27,7 +27,7 @@
   max-width: calc(100vw - 40px);
   max-height: calc(100vh - 80px);
   overflow-y: auto;
-  padding: 36px 40px 40px;
+  padding: 20px 24px;
   display: grid;
   grid-template-columns: 80px 1fr;
   gap: 0 28px;
@@ -348,8 +348,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--line);
   grid-column: 1 / -1;
 }

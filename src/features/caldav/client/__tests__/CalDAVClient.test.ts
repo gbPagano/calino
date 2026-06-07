@@ -157,12 +157,13 @@ END:VCALENDAR`,
   })
 
   describe('fetchEvents', () => {
-    it('fetches both VEVENTs and VTODOs', async () => {
+    it('fetches both VEVENTs, VTODOs, and VJOURNALs', async () => {
       await client.connect()
 
       mockClientMethods.fetchCalendarObjects
         .mockResolvedValueOnce([mockEventObject])
         .mockResolvedValueOnce([mockTodoObject])
+        .mockResolvedValueOnce([])
 
       const result = await client.fetchEvents(
         mockCalendar.url,
@@ -170,7 +171,7 @@ END:VCALENDAR`,
         '2024-12-31T23:59:59Z'
       )
 
-      expect(mockClientMethods.fetchCalendarObjects).toHaveBeenCalledTimes(2)
+      expect(mockClientMethods.fetchCalendarObjects).toHaveBeenCalledTimes(3)
 
       expect(result).toHaveLength(2)
       expect(result.find((obj) => obj.url === mockEventObject.url)).toBeDefined()
@@ -182,6 +183,7 @@ END:VCALENDAR`,
 
       mockClientMethods.fetchCalendarObjects
         .mockResolvedValueOnce([mockEventObject])
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
 
       await client.fetchEvents(mockCalendar.url, '2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z')
@@ -201,6 +203,7 @@ END:VCALENDAR`,
       mockClientMethods.fetchCalendarObjects
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([mockTodoObject])
+        .mockResolvedValueOnce([])
 
       await client.fetchEvents(mockCalendar.url, '2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z')
 
@@ -227,6 +230,7 @@ END:VCALENDAR`,
       mockClientMethods.fetchCalendarObjects
         .mockResolvedValueOnce([mockEventObject])
         .mockResolvedValueOnce([mockEventObject])
+        .mockResolvedValueOnce([])
 
       const result = await client.fetchEvents(
         mockCalendar.url,
@@ -240,7 +244,7 @@ END:VCALENDAR`,
     it('returns empty array when no events or tasks found', async () => {
       await client.connect()
 
-      mockClientMethods.fetchCalendarObjects.mockResolvedValueOnce([]).mockResolvedValueOnce([])
+      mockClientMethods.fetchCalendarObjects.mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([])
 
       const result = await client.fetchEvents(
         mockCalendar.url,
@@ -257,6 +261,7 @@ END:VCALENDAR`,
 
       mockClientMethods.fetchCalendarObjects
         .mockResolvedValueOnce([mockEventObject])
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
 
       const result = await client.fetchEvents(
@@ -279,6 +284,7 @@ END:VCALENDAR`,
 
       mockClientMethods.fetchCalendarObjects
         .mockResolvedValueOnce([mockEventObject])
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
 
       const result = await proxyClient.fetchEvents(
@@ -433,6 +439,7 @@ END:VCALENDAR`,
       mockClientMethods.fetchCalendarObjects
         .mockResolvedValueOnce([mockEventObject])
         .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
 
       await client.fetchEvents(
         mockCalendar.url,
@@ -486,6 +493,7 @@ END:VCALENDAR`,
       mockClientMethods.fetchCalendars.mockClear()
       mockClientMethods.fetchCalendarObjects
         .mockResolvedValueOnce([mockEventObject])
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
 
       await client.fetchEvents(

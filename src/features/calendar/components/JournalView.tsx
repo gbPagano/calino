@@ -7,7 +7,7 @@ import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { v4 as uuidv4 } from 'uuid'
 import { renderMarkdown } from '@/lib/markdown'
 import { showToast } from '@/lib/toast'
-import { putAttachments, getAttachments } from '@/lib/attachmentStore'
+import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
 import type { CalendarEvent, CalendarAttachment } from '@/types'
 import { AttachmentSection } from './AttachmentSection'
 import styles from './JournalView.module.css'
@@ -77,12 +77,12 @@ function JournalComposeForm({
   // Non-journal events on the same day for linking
   const sameDayEvents = useMemo(() => {
     const dayKey = editingDate // yyyy-MM-dd
-    return events.filter((e) => e.type !== 'journal' && e.id !== editingId && e.start === dayKey)
+    return events.filter((e) => e.type !== 'journal' && e.id !== editingId && e.start.startsWith(dayKey))
   }, [events, editingId, editingDate])
 
   const otherDayEvents = useMemo(() => {
     const dayKey = editingDate
-    return events.filter((e) => e.type !== 'journal' && e.id !== editingId && e.start !== dayKey)
+    return events.filter((e) => e.type !== 'journal' && e.id !== editingId && !e.start.startsWith(dayKey))
   }, [events, editingId, editingDate])
 
   const [showAllRelated, setShowAllRelated] = useState(false)
@@ -390,20 +390,30 @@ export function JournalView(): JSX.Element {
           start: editingDate,
           end: editingDate,
           lastModified: now,
-          sequence: (existing.sequence ?? 0) + 1,
           categories: selectedCategories.length > 0 ? selectedCategories : undefined,
           url: url || undefined,
           attachments: attachments.length > 0 ? attachments : undefined,
           relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
         }
         updateEvent(editingId, updates)
-        putAttachments(editingId, attachments).catch(() => {
-          showToast('Failed to save attachments locally')
-        })
-        if (existing.calendarId !== 'default') {
-          updateCalDAVEvent({ ...existing, ...updates }).catch(() => {
-            showToast('Failed to sync update. It will be retried.')
+        // Sync attachments to IDB, then push to server
+        if (attachments.length > 0) {
+          putAttachments(editingId, attachments).then(() => {
+            if (existing.calendarId !== 'default') {
+              updateCalDAVEvent({ ...existing, ...updates }).catch(() => {
+                showToast('Failed to sync update. It will be retried.')
+              })
+            }
+          }).catch(() => {
+            showToast('Failed to save attachments locally')
           })
+        } else {
+          deleteAttachments(editingId).catch(() => {})
+          if (existing.calendarId !== 'default') {
+            updateCalDAVEvent({ ...existing, ...updates }).catch(() => {
+              showToast('Failed to sync update. It will be retried.')
+            })
+          }
         }
       }
     } else {
@@ -428,14 +438,25 @@ export function JournalView(): JSX.Element {
       }
       addEvent(newEntry)
       if (attachments.length > 0) {
-        putAttachments(newId, attachments).catch(() => {
+        // Await IDB write before pushing to server (C2 race condition fix)
+        putAttachments(newId, attachments).then(() => {
+          // Clean up the 'new' key used during composition
+          deleteAttachments('new').catch(() => {})
+          if (defaultCalendar?.id !== 'default') {
+            createCalDAVEvent(newEntry).catch(() => {
+              showToast('Failed to sync entry. It will be retried.')
+            })
+          }
+        }).catch(() => {
           showToast('Failed to save attachments locally')
         })
-      }
-      if (defaultCalendar?.id !== 'default') {
-        createCalDAVEvent(newEntry).catch(() => {
-          showToast('Failed to sync entry. It will be retried.')
-        })
+      } else {
+        deleteAttachments('new').catch(() => {})
+        if (defaultCalendar?.id !== 'default') {
+          createCalDAVEvent(newEntry).catch(() => {
+            showToast('Failed to sync entry. It will be retried.')
+          })
+        }
       }
     }
 

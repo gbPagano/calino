@@ -6,7 +6,7 @@ import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { v4 as uuidv4 } from 'uuid'
 import { renderMarkdown } from '@/lib/markdown'
 import { showToast } from '@/lib/toast'
-import { putAttachments, getAttachments } from '@/lib/attachmentStore'
+import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
 import type { CalendarEvent, CalendarAttachment } from '@/types'
 import { AttachmentSection } from './AttachmentSection'
 import styles from './JournalDayModal.module.css'
@@ -115,22 +115,30 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
           title: trimmedTitle,
           description: trimmedBody,
           lastModified: now,
-          sequence: (existing.sequence ?? 0) + 1,
           categories: selectedCategories.length > 0 ? selectedCategories : undefined,
           url: url || undefined,
           attachments: attachments.length > 0 ? attachments : undefined,
           relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
         }
         updateEvent(editingId, updates)
-        putAttachments(editingId, attachments).catch(() => {
-          showToast('Failed to save attachments locally')
-        })
-
-        // Sync to CalDAV if needed
-        if (existing.calendarId !== 'default') {
-          updateCalDAVEvent({ ...existing, ...updates }).catch(() => {
-            showToast('Failed to sync update. It will be retried.')
+        // Sync attachments to IDB, then push to server
+        if (attachments.length > 0) {
+          putAttachments(editingId, attachments).then(() => {
+            if (existing.calendarId !== 'default') {
+              updateCalDAVEvent({ ...existing, ...updates }).catch(() => {
+                showToast('Failed to sync update. It will be retried.')
+              })
+            }
+          }).catch(() => {
+            showToast('Failed to save attachments locally')
           })
+        } else {
+          deleteAttachments(editingId).catch(() => {})
+          if (existing.calendarId !== 'default') {
+            updateCalDAVEvent({ ...existing, ...updates }).catch(() => {
+              showToast('Failed to sync update. It will be retried.')
+            })
+          }
         }
       }
     } else {
@@ -155,16 +163,25 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
       }
       addEvent(newEntry)
       if (attachments.length > 0) {
-        putAttachments(newId, attachments).catch(() => {
+        // Await IDB write before pushing to server (race condition fix)
+        putAttachments(newId, attachments).then(() => {
+          // Clean up the 'new' key used during composition
+          deleteAttachments('new').catch(() => {})
+          if (defaultCalendar?.id !== 'default') {
+            createCalDAVEvent(newEntry).catch(() => {
+              showToast('Failed to sync entry. It will be retried.')
+            })
+          }
+        }).catch(() => {
           showToast('Failed to save attachments locally')
         })
-      }
-
-      // Sync to CalDAV if needed
-      if (defaultCalendar?.id !== 'default') {
-        createCalDAVEvent(newEntry).catch(() => {
-          showToast('Failed to sync entry. It will be retried.')
-        })
+      } else {
+        deleteAttachments('new').catch(() => {})
+        if (defaultCalendar?.id !== 'default') {
+          createCalDAVEvent(newEntry).catch(() => {
+            showToast('Failed to sync entry. It will be retried.')
+          })
+        }
       }
     }
 
@@ -492,7 +509,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                     {/* Related To */}
                     {(() => {
                       const sameDayEvents = events.filter(
-                        (e) => e.type !== 'journal' && e.id !== editingId && e.start === date
+                        (e) => e.type !== 'journal' && e.id !== editingId && e.start.startsWith(date)
                       )
                       if (sameDayEvents.length === 0) return null
                       return (

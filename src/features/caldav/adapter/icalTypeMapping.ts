@@ -514,7 +514,7 @@ export function calendarEventToIcalComponent(event: CalendarEvent): ICAL.Compone
   const vevent = new ICAL.Component('vevent')
 
   vevent.updatePropertyWithValue('uid', event.id)
-  vevent.updatePropertyWithValue('dtstamp', ICAL.Time.now())
+  vevent.updatePropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), true))
   vevent.updatePropertyWithValue('sequence', event.sequence ?? 0)
 
   if (event.isAllDay) {
@@ -749,7 +749,7 @@ export function calendarEventToIcalVtodo(task: CalendarEvent): ICAL.Component {
   const vtodo = new ICAL.Component('vtodo')
 
   vtodo.updatePropertyWithValue('uid', task.id)
-  vtodo.updatePropertyWithValue('dtstamp', ICAL.Time.now())
+  vtodo.updatePropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), true))
   vtodo.updatePropertyWithValue('sequence', task.sequence ?? 0)
   vtodo.updatePropertyWithValue('summary', task.title)
 
@@ -935,7 +935,7 @@ export function calendarEventToIcalVjournal(entry: CalendarEvent): ICAL.Componen
   const vjournal = new ICAL.Component('vjournal')
 
   vjournal.updatePropertyWithValue('uid', entry.id)
-  vjournal.updatePropertyWithValue('dtstamp', ICAL.Time.now())
+  vjournal.updatePropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), true))
   vjournal.updatePropertyWithValue('sequence', entry.sequence ?? 0)
 
   // DTSTART — date only for journal entries

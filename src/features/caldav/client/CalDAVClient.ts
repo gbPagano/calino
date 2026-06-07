@@ -196,7 +196,24 @@ export class CalDAVClient {
       },
     })
 
-    const allItems = [...eventObjects, ...todoObjects]
+    // Fetch VJOURNALs with custom filter
+    const journalObjects = await client.fetchCalendarObjects({
+      calendar,
+      filters: {
+        'comp-filter': {
+          _attributes: {
+            name: 'VCALENDAR',
+          },
+          'comp-filter': {
+            _attributes: {
+              name: 'VJOURNAL',
+            },
+          },
+        },
+      },
+    })
+
+    const allItems = [...eventObjects, ...todoObjects, ...journalObjects]
 
     // Remove duplicates by URL - store raw server URLs consistently
     const uniqueByUrl = new Map<string, { url: string; data: string; etag?: string }>()
@@ -230,9 +247,12 @@ export class CalDAVClient {
       iCalString,
     })
 
+    // Extract ETag from response headers
+    const etag = result.headers?.get('etag') || ''
+
     return {
       url: result.url,
-      etag: '',
+      etag,
     }
   }
 
@@ -252,9 +272,12 @@ export class CalDAVClient {
       calendarObject: { url: eventUrl, etag, data: iCalString },
     })
 
+    // Extract ETag from response headers
+    const newEtag = result.headers?.get('etag') || etag
+
     return {
       url: result.url,
-      etag: '',
+      etag: newEtag,
     }
   }
 

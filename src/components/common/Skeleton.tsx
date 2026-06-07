@@ -17,6 +17,7 @@ export function CalendarSkeleton({ view = 'month' }: CalendarSkeletonProps): JSX
       {view === 'day' && <DaySkeleton />}
       {view === 'agenda' && <AgendaSkeleton />}
       {view === 'todo' && <TodoSkeleton />}
+      {view === 'journal' && <JournalSkeleton />}
     </div>
   )
 }
@@ -131,6 +132,34 @@ function TodoSkeleton(): JSX.Element {
             <div className="skeleton-bar skeleton-bar--todo-title" />
             {show(i, 0.5) && (
               <div className="skeleton-bar skeleton-bar--todo-due" />
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function JournalSkeleton(): JSX.Element {
+  return (
+    <div className="skeleton-journal">
+      <div className="skeleton-journal-bar">
+        <div className="skeleton-bar skeleton-bar--journal-count" />
+        <div className="skeleton-bar skeleton-bar--journal-button" />
+      </div>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="skeleton-journal-entry">
+          <div className="skeleton-journal-date">
+            <div className="skeleton-bar skeleton-bar--journal-day" />
+            <div className="skeleton-bar skeleton-bar--journal-weekday" />
+          </div>
+          <div className="skeleton-journal-content">
+            {show(i, 0.4) && (
+              <div className="skeleton-bar skeleton-bar--journal-title" />
+            )}
+            <div className="skeleton-bar skeleton-bar--journal-body" />
+            {show(i, 0.6) && (
+              <div className="skeleton-bar skeleton-bar--journal-body skeleton-bar--journal-body-short" />
             )}
           </div>
         </div>

@@ -51,8 +51,28 @@ export function ContextMenu({ x, y, items, onClose, menuId }: ContextMenuProps):
 
   useEffect(() => {
     if (menuRef.current) {
-      menuRef.current.style.left = `${x}px`
-      menuRef.current.style.top = `${y}px`
+      const menu = menuRef.current
+      const rect = menu.getBoundingClientRect()
+      const viewportW = window.innerWidth
+      const viewportH = window.innerHeight
+
+      let adjustedX = x
+      let adjustedY = y
+
+      // Flip horizontally if overflowing right edge
+      if (x + rect.width > viewportW) {
+        adjustedX = x - rect.width
+      }
+      // Flip vertically if overflowing bottom edge
+      if (y + rect.height > viewportH) {
+        adjustedY = y - rect.height
+      }
+      // Clamp to viewport edges
+      adjustedX = Math.max(0, adjustedX)
+      adjustedY = Math.max(0, adjustedY)
+
+      menu.style.left = `${adjustedX}px`
+      menu.style.top = `${adjustedY}px`
     }
   }, [x, y])
 

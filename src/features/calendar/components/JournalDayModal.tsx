@@ -21,13 +21,15 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
   const events = useCalendarStore((state) => state.events)
   const addEvent = useCalendarStore((state) => state.addEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
+  const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const calendars = useCalendarStore((state) => state.calendars)
-  const { createEvent: createCalDAVEvent, updateEvent: updateCalDAVEvent } = useCalDAV()
+  const { createEvent: createCalDAVEvent, updateEvent: updateCalDAVEvent, deleteEvent: deleteCalDAVEvent } = useCalDAV()
 
   const [mode, setMode] = useState<ModalMode>('view')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const panelRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
@@ -157,6 +159,25 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
     setMode('compose')
   }, [])
 
+  const handleDelete = useCallback((entryId: string): void => {
+    if (confirmDeleteId === entryId) {
+      // Actually delete
+      const entry = events.find((e) => e.id === entryId)
+      deleteEvent(entryId)
+      if (entry && entry.calendarId !== 'default') {
+        deleteCalDAVEvent(entry)
+      }
+      setConfirmDeleteId(null)
+      setMode('view')
+      setEditingId(null)
+      setTitle('')
+      setBody('')
+    } else {
+      // First click — show confirm
+      setConfirmDeleteId(entryId)
+    }
+  }, [confirmDeleteId, events, deleteEvent, deleteCalDAVEvent])
+
   // Click outside to close
   useEffect(() => {
     if (!isOpen) return
@@ -245,7 +266,23 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                 onChange={(e) => setBody(e.target.value)}
               />
               <div className={styles.composeHint}>{saveHint}</div>
-              <div className={styles.composeActions}>
+            </>
+          )}
+        </div>
+
+        {/* Footer — always at bottom */}
+        <div className={styles.footer}>
+          {mode === 'edit' && editingId && (
+            <button
+              className={`${styles.btnDelete} ${confirmDeleteId === editingId ? styles.btnDeleteConfirm : ''}`}
+              onClick={() => handleDelete(editingId)}
+            >
+              {confirmDeleteId === editingId ? 'Click again to confirm' : 'Delete'}
+            </button>
+          )}
+          <div className={styles.footerActions}>
+            {mode !== 'view' ? (
+              <>
                 <button
                   className={styles.btnGhost}
                   onClick={() => {
@@ -260,9 +297,13 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                 <button className={styles.btnAccent} onClick={handleSave}>
                   {mode === 'edit' ? 'Save changes' : 'Save entry'}
                 </button>
-              </div>
-            </>
-          )}
+              </>
+            ) : (
+              <button className={styles.btnGhost} onClick={onClose}>
+                Close
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

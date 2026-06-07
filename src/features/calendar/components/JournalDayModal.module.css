@@ -278,6 +278,48 @@
   color: var(--ink);
 }
 
+/* Footer */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  grid-column: 1 / -1;
+}
+
+.footerActions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.btnDelete {
+  height: 32px;
+  padding: 0 15px;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 13px;
+  font-family: inherit;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: color 0.14s, border-color 0.14s, background 0.14s;
+}
+
+.btnDelete:hover {
+  color: #c47068;
+  border-color: #c47068;
+}
+
+.btnDeleteConfirm {
+  background: #c47068;
+  color: #fff;
+  border-color: #c47068;
+}
+
 /* Responsive: stack on mobile */
 @media (max-width: 600px) {
   .panel {

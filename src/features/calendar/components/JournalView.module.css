@@ -321,6 +321,8 @@
   padding: 22px 20px;
   border-radius: 14px;
   margin-bottom: 32px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
 }
 
 .composeDateCol {

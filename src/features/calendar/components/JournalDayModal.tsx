@@ -235,12 +235,13 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
     if (confirmDeleteId === entryId) {
       // Actually delete
       const entry = eventsRef.current.find((e) => e.id === entryId)
-      deleteEvent(entryId)
+      // Sync CalDAV first so it can capture the etag before the local delete
       if (entry && entry.calendarId !== 'default') {
         deleteCalDAVEvent(entry.calendarId, entry.id).catch(() => {
           showToast('Failed to sync deletion. It will be retried.')
         })
       }
+      deleteEvent(entryId)
       setConfirmDeleteId(null)
       setMode('view')
       setEditingId(null)

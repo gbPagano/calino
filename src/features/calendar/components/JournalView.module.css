@@ -254,12 +254,12 @@
 
 .dateInput {
   font-family: var(--font-serif, 'Newsreader', Georgia, serif);
-  font-size: 38px;
+  font-size: 20px;
   font-weight: 400;
   color: var(--accent);
   border: 2px solid var(--accent);
   border-radius: 8px;
-  padding: 4px 8px;
+  padding: 6px 10px;
   background: var(--panel);
   cursor: pointer;
   z-index: 10;

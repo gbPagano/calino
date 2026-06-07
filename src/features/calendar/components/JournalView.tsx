@@ -175,8 +175,8 @@ export function JournalView(): JSX.Element {
           </button>
         </div>
 
-        {/* Compose form (at top when composing) */}
-        {isComposing && (
+        {/* Compose form (at top when composing new entry only) */}
+        {isComposing && !editingId && (
           <div className={styles.compose}>
             <div className={styles.composeDateCol}>
               {showDatePicker ? (

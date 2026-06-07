@@ -574,6 +574,10 @@ export function CalendarGrid(): JSX.Element {
                                 setJournalModalDate(format(day, 'yyyy-MM-dd'))
                                 setIsJournalModalOpen(true)
                               }}
+                              onOpenJournalModal={(date) => {
+                                setJournalModalDate(date)
+                                setIsJournalModalOpen(true)
+                              }}
                               openModal={openModal}
                             />
                           )
@@ -695,6 +699,10 @@ export function CalendarGrid(): JSX.Element {
                           setJournalModalDate(format(day, 'yyyy-MM-dd'))
                           setIsJournalModalOpen(true)
                         }}
+                        onOpenJournalModal={(date) => {
+                          setJournalModalDate(date)
+                          setIsJournalModalOpen(true)
+                        }}
                         openModal={openModal}
                       />
                     )
@@ -739,6 +747,7 @@ interface DroppableDayProps {
   onDayDoubleClick: (day: Date) => void
   onDayNumberClick: (day: Date) => void
   onJournalIndicatorClick: (day: Date) => void
+  onOpenJournalModal: (date: string) => void
   openModal: (date?: string, endDate?: string, eventId?: string, mode?: 'event' | 'task') => void
 }
 
@@ -759,6 +768,7 @@ const DroppableDay = React.memo(function DroppableDay({
   onDayDoubleClick,
   onDayNumberClick,
   onJournalIndicatorClick,
+  onOpenJournalModal,
   openModal,
 }: DroppableDayProps): JSX.Element {
   const { setNodeRef, isOver } = useDroppable({ id: dateKey })
@@ -906,13 +916,12 @@ const DroppableDay = React.memo(function DroppableDay({
                   {
                     label: 'New journal entry',
                     onClick: () => {
-                      setJournalModalDate(format(day, 'yyyy-MM-dd'))
-                      setIsJournalModalOpen(true)
+                      onOpenJournalModal(format(day, 'yyyy-MM-dd'))
                       setContextMenu(null)
                     },
                   },
                 ]
-              : []),
+              : []),,
           ]}
         />
       )}

@@ -314,7 +314,7 @@
   background: rgba(var(--ink-raw, 44, 40, 33), 0.045);
   padding: 4px;
   border-radius: 12px;
-  transition: opacity 0.2s ease, width 0.2s ease, padding 0.2s ease;
+  transition: opacity 0.2s ease, width 0.2s ease, padding 0.2s ease, transform 0.2s ease;
   position: relative;
 }
 
@@ -366,6 +366,8 @@
   overflow: hidden;
   padding: 0;
   pointer-events: none;
+  transform: scaleX(0.6);
+  transform-origin: center;
 }
 
 @media (max-width: 1220px) {
@@ -375,6 +377,8 @@
     overflow: hidden;
     padding: 0;
     pointer-events: none;
+    transform: scaleX(0.6);
+    transform-origin: center;
   }
 }
 

@@ -9,11 +9,14 @@ describe('createCommandRegistry', () => {
   const mockUpdateSettings = vi.fn()
   const mockTriggerSync = vi.fn()
 
+  const mockOpenJournalModal = vi.fn()
+
   const defaultDeps = {
     navigate: mockNavigate,
     setCurrentView: mockSetCurrentView,
     setCurrentDate: mockSetCurrentDate,
     openModal: mockOpenModal,
+    openJournalModal: mockOpenJournalModal,
     themeMode: 'light' as const,
     caldavDebugMode: false,
     updateSettings: mockUpdateSettings,

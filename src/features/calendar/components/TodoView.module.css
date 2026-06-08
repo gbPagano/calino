@@ -260,6 +260,7 @@
   font-weight: 500;
   color: var(--ink, #2c2823);
   line-height: 1.35;
+  text-decoration-color: transparent;
   transition: color 0.2s, text-decoration-color 0.3s;
 }
 

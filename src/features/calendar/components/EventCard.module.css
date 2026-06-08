@@ -271,6 +271,7 @@
 
 .compact .dragContent {
   padding: 0;
+  overflow: visible;
 }
 
 .compact .time,

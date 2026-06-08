@@ -10,6 +10,7 @@ import {
   EventModal,
   EventPreviewPopup,
 } from './features/calendar'
+import { JournalDayModal } from './features/calendar/components/JournalDayModal'
 import { SettingsPage, PrivacyPolicy } from './features/settings'
 import { CommandPalette } from './features/commandPalette'
 import { CookieConsent, ErrorBoundary } from './components/common'
@@ -246,6 +247,10 @@ function CalendarApp(): JSX.Element {
   const setOverlayOpen = useCalendarStore((state) => state.setOverlayOpen)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)
   const openModal = useCalendarStore((state) => state.openModal)
+  const isJournalModalOpen = useCalendarStore((state) => state.isJournalModalOpen)
+  const journalModalDate = useCalendarStore((state) => state.journalModalDate)
+  const journalStartInCompose = useCalendarStore((state) => state.journalStartInCompose)
+  const closeJournalModal = useCalendarStore((state) => state.closeJournalModal)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed)
@@ -382,6 +387,14 @@ function CalendarApp(): JSX.Element {
         onAction={handleFabAction}
       />
       <EventModal />
+      {isJournalModalOpen && journalModalDate && (
+        <JournalDayModal
+          isOpen={isJournalModalOpen}
+          date={journalModalDate}
+          startInCompose={journalStartInCompose}
+          onClose={closeJournalModal}
+        />
+      )}
       <PreviewPopupWrapper />
       <CommandPalette
         isOpen={isCommandPaletteOpen}

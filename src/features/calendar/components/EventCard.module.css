@@ -99,6 +99,29 @@
   text-overflow: ellipsis;
 }
 
+/* ---- Meta (time + location on one line) ---- */
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.meta .time {
+  flex-shrink: 0;
+}
+
+.metaDot {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.meta .location {
+  margin-top: 0;
+  min-width: 0;
+}
+
 /* ---- Location ---- */
 .location {
   font-size: 11px;

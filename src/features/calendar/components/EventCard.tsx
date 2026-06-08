@@ -333,25 +333,39 @@ export const EventCard = React.memo(function EventCard({
               {...attributes}
           >
             <div className={styles.title} title={event.title}>{event.title}</div>
-            {!compact && !event.isAllDay && (
-                <div className={styles.time}>
-                  {isFragmentFirst
-                    ? `${formatTime(event.start)} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`
-                    : isFragmentMiddle
-                    ? `${format(parseISO(event.originalStart || event.start), 'MMM d')} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`
-                    : isFragmentLast
-                    ? `${format(parseISO(event.originalStart || event.start), 'MMM d')} - ${formatTime(event.end)}`
-                    : `${formatTime(event.start)} - ${formatTime(event.end)}`}
-                </div>
-              )}
-              {event.isAllDay && <div className={styles.time}>All day</div>}
-              {event.travelDuration && (
-                <div className={styles.travelTime}>
-                  <TravelIcon />
-                  <span>{formatTravelDuration(event.travelDuration)}</span>
-                </div>
-              )}
-              {event.location && <div className={styles.location}>{event.location}</div>}
+            {(() => {
+              const timeText = !compact && !event.isAllDay
+                ? isFragmentFirst
+                  ? `${formatTime(event.start)} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`
+                  : isFragmentMiddle
+                  ? `${format(parseISO(event.originalStart || event.start), 'MMM d')} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`
+                  : isFragmentLast
+                  ? `${format(parseISO(event.originalStart || event.start), 'MMM d')} - ${formatTime(event.end)}`
+                  : `${formatTime(event.start)} - ${formatTime(event.end)}`
+                : event.isAllDay ? 'All day' : null
+              const locText = event.location || null
+              if (timeText && locText) {
+                return (
+                  <div className={styles.meta}>
+                    <span className={styles.time}>{timeText}</span>
+                    <span className={styles.metaDot}>·</span>
+                    <span className={styles.location}>{locText}</span>
+                  </div>
+                )
+              }
+              return (
+                <>
+                  {timeText && <div className={styles.time}>{timeText}</div>}
+                  {locText && <div className={styles.location}>{locText}</div>}
+                </>
+              )
+            })()}
+            {event.travelDuration && (
+              <div className={styles.travelTime}>
+                <TravelIcon />
+                <span>{formatTravelDuration(event.travelDuration)}</span>
+              </div>
+            )}
             </div>
             {enableResize && (
               <div

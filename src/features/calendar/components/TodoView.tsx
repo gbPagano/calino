@@ -88,6 +88,7 @@ export function TodoView(): JSX.Element {
 
   const [filter, setFilter] = useState<FilterType>('active')
   const [composing, setComposing] = useState(false)
+  const [unstriking, setUnstriking] = useState<Set<string>>(new Set())
   const composerRef = useRef<HTMLInputElement>(null)
   const segmentedRef = useRef<HTMLDivElement>(null)
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
@@ -184,6 +185,17 @@ export function TodoView(): JSX.Element {
 
   const handleToggleComplete = async (task: TaskWithColor): Promise<void> => {
     const newCompleted = !task.completed
+    // If uncompleting, trigger unstrike animation
+    if (task.completed && !newCompleted) {
+      setUnstriking((prev) => new Set(prev).add(task.id))
+      setTimeout(() => {
+        setUnstriking((prev) => {
+          const next = new Set(prev)
+          next.delete(task.id)
+          return next
+        })
+      }, 300)
+    }
     updateEvent(task.id, { completed: newCompleted })
     if (!task.calendarId) return
     try {
@@ -295,7 +307,7 @@ export function TodoView(): JSX.Element {
                   return (
                     <div
                       key={task.id}
-                      className={`${styles.taskRow} ${task.completed ? styles.taskDone : ''}`}
+                      className={`${styles.taskRow} ${task.completed ? styles.taskDone : ''} ${unstriking.has(task.id) ? styles.unstriking : ''}`}
                       style={{ '--event-color': task.calendarColor } as React.CSSProperties}
                     >
                       <button

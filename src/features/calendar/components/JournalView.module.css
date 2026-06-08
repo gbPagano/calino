@@ -54,6 +54,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-3);
+  margin-top: 8px;
 }
 
 .count b {

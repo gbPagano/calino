@@ -344,7 +344,6 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
     action: () => {
       const today = new Date().toISOString().split('T')[0]
       deps.openJournalModal(today, true)
-      return 'New journal entry'
     },
   },
   {

@@ -104,6 +104,7 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
 
     const eventMap = new Map<string, EventWithDate[]>()
     events.forEach((event) => {
+      if (event.type === 'journal') return
       const eventDate = format(parseISO(event.start), 'yyyy-MM-dd')
       const existing = eventMap.get(eventDate) || []
       eventMap.set(eventDate, [...existing, { event, date: parseISO(event.start) }])

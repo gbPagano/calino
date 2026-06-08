@@ -182,7 +182,7 @@ export function TodoView(): JSX.Element {
     }
 
     return result
-  }, [tasks, filter])
+  }, [tasks, filter, recentlyCompleted])
 
   const handleToggleComplete = async (task: TaskWithColor): Promise<void> => {
     const newCompleted = !task.completed

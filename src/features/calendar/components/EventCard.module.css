@@ -34,7 +34,7 @@
   bottom: 3px;
   width: 3px;
   border-radius: 3px;
-  background: var(--event-color, var(--accent));
+  background: color-mix(in srgb, var(--event-color, var(--accent)) 50%, var(--canvas, #fff));
 }
 
 .card:hover {

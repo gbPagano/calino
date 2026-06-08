@@ -311,7 +311,7 @@
   background: transparent;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s, background 0.14s, color 0.14s;
+  transition: opacity 0.15s, background 0.14s, color 0.14s, transform 0.1s;
   align-self: center;
 }
 
@@ -333,6 +333,11 @@
   opacity: 1 !important;
   background: #c47068;
   color: #fff;
+  transition: background 0.2s, color 0.2s, transform 0.1s;
+}
+
+.deleteBtnConfirm:active {
+  transform: scale(0.92);
 }
 
 /* Compose */
@@ -407,7 +412,12 @@
   font-weight: 500;
   letter-spacing: -0.01em;
   padding-bottom: 9px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1.5px solid var(--line);
+  transition: border-color 0.2s;
+}
+
+.composeFields input:focus {
+  border-bottom-color: var(--accent);
 }
 
 .composeFields input::placeholder {
@@ -611,6 +621,10 @@
   background: var(--accent-soft, rgba(196, 168, 154, 0.04));
 }
 
+.relatedChip:active {
+  transform: scale(0.97);
+}
+
 .relatedChipActive {
   border-color: var(--accent);
   background: var(--accent-soft, rgba(196, 168, 154, 0.08));
@@ -671,6 +685,10 @@
   background: color-mix(in srgb, var(--accent) 5%, transparent);
 }
 
+.dateButton:active {
+  transform: scale(0.97);
+}
+
 .dateInput {
   font-family: var(--font-serif, 'Newsreader', Georgia, serif);
   font-size: 20px;
@@ -711,6 +729,11 @@
   opacity: 0.88;
 }
 
+.btnAccent:active {
+  transform: scale(0.97);
+  transition-duration: 0.05s;
+}
+
 .btnGhost {
   height: 32px;
   padding: 0 15px;
@@ -726,6 +749,11 @@
 
 .btnGhost:hover {
   color: var(--ink);
+}
+
+.btnGhost:active {
+  transform: scale(0.97);
+  transition-duration: 0.05s;
 }
 
 /* Empty state */

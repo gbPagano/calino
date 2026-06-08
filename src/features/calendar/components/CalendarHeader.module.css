@@ -145,6 +145,11 @@
   color: var(--ink);
 }
 
+.navArrow:active {
+  transform: scale(0.92);
+  transition-duration: 0.05s;
+}
+
 .navToday {
   height: 38px;
   padding: 0 18px;
@@ -162,6 +167,11 @@
 .navToday:hover {
   background: color-mix(in srgb, var(--accent) 7%, transparent);
   color: var(--accent);
+}
+
+.navToday:active {
+  transform: scale(0.95);
+  transition-duration: 0.05s;
 }
 
 /* ---- Spacer ---- */
@@ -201,6 +211,11 @@
 .iconButton:hover {
   background: rgba(var(--ink-raw, 44, 40, 33), 0.05);
   color: var(--ink);
+}
+
+.iconButton:active {
+  transform: scale(0.9);
+  transition-duration: 0.05s;
 }
 
 @media (max-width: 768px) {
@@ -333,6 +348,11 @@
   transition: color 0.14s;
   position: relative;
   z-index: 1;
+}
+
+.viewTab:active {
+  transform: scale(0.95);
+  transition-duration: 0.05s;
 }
 
 .viewTab:hover {
@@ -534,4 +554,37 @@
 /* ---- Mobile View Tabs ---- */
 .mobileViewTabs {
   display: none;
+}
+
+.mobileViewTab {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, transform 0.1s;
+  font-family: inherit;
+}
+
+.mobileViewTab:hover {
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.05);
+  color: var(--ink);
+}
+
+.mobileViewTab:active {
+  transform: scale(0.95);
+  transition-duration: 0.05s;
+}
+
+.mobileViewTabActive {
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.08);
+  color: var(--ink);
+}
+
+.mobileViewTab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }

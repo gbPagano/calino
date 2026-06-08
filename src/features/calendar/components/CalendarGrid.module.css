@@ -118,6 +118,10 @@
   color: var(--accent);
 }
 
+.weekNumber:active {
+  transform: scale(0.9);
+}
+
 /* ---- Day Cell ---- */
 .day {
   position: relative;
@@ -143,6 +147,11 @@
 
 .day:hover {
   background: rgba(var(--ink-raw, 44, 40, 33), 0.02);
+}
+
+.day:active {
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.05);
+  transition-duration: 0.05s;
 }
 
 .day:focus-visible {
@@ -206,6 +215,11 @@
 
 .dayNumber:hover {
   background: rgba(var(--ink-raw, 44, 40, 33), 0.06);
+}
+
+.dayNumber:active {
+  transform: scale(0.88);
+  transition-duration: 0.05s;
 }
 
 .dayNumber:focus-visible {
@@ -298,6 +312,10 @@
 
 .moreEvents:hover {
   color: var(--ink);
+}
+
+.moreEvents:active {
+  transform: scale(0.95);
 }
 
 .moreEvents:focus-visible {

@@ -129,6 +129,16 @@
   flex-shrink: 0;
   margin-top: 4px;
   box-shadow: var(--shadow-event);
+  transition: background 0.12s, color 0.12s, transform 0.1s;
+}
+
+.modalClose:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--color-text-primary, #1a1a1a);
+}
+
+.modalClose:active {
+  transform: scale(0.9);
 }
 
 .modalDivider {
@@ -402,6 +412,22 @@
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.modalSelect:hover {
+  border-color: rgba(0, 0, 0, 0.15);
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.03));
+}
+
+.modalSelect:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(196, 168, 154, 0.15);
+}
+
+.modalSelect:active {
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.06));
 }
 
 .modalAddDesc {
@@ -452,13 +478,18 @@
   font-family: var(--font-sans, 'Inter', sans-serif);
   cursor: pointer;
   box-shadow: var(--shadow-event);
-  transition: background-color 0.15s, color 0.15s;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
 }
 
 .modalDelete:hover {
   background: var(--color-error-muted, #c47068);
   color: #fff;
   border-color: var(--color-error-muted, #c47068);
+}
+
+.modalDelete:active {
+  transform: scale(0.97);
+  transition-duration: 0.05s;
 }
 
 .modalDeleteConfirm {
@@ -479,6 +510,17 @@
   font-family: var(--font-sans, 'Inter', sans-serif);
   cursor: pointer;
   box-shadow: var(--shadow-event);
+  transition: background 0.12s, color 0.12s, transform 0.1s;
+}
+
+.modalCancel:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-text-primary, #1a1a1a);
+}
+
+.modalCancel:active {
+  transform: scale(0.97);
+  transition-duration: 0.05s;
 }
 
 .modalSave {
@@ -493,12 +535,17 @@
   cursor: pointer;
   letter-spacing: -0.01em;
   box-shadow: 0 2px 8px rgba(196, 168, 154, 0.4);
-  transition: background 0.12s, box-shadow 0.12s;
+  transition: background 0.12s, box-shadow 0.12s, transform 0.1s;
 }
 
 .modalSave:hover {
   background: var(--color-accent-hover);
   box-shadow: 0 4px 14px rgba(196, 168, 154, 0.5);
+}
+
+.modalSave:active {
+  transform: scale(0.97);
+  transition-duration: 0.05s;
 }
 
 .row {

@@ -492,6 +492,12 @@
   outline: none;
   background: var(--panel);
   color: var(--ink);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.renameInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(196, 168, 154, 0.15);
 }
 
 .calRow {
@@ -561,6 +567,12 @@
   outline: none;
   background: var(--panel);
   color: var(--ink);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.renameInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(196, 168, 154, 0.15);
 }
 
 .syncButton {
@@ -1069,12 +1081,16 @@
 .footerLink {
   color: var(--ink-3);
   text-decoration: none;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
   cursor: pointer;
-  transition: color 0.14s;
+  transition: color 0.14s, text-decoration-color 0.14s;
+  text-decoration-color: transparent;
 }
 
 .footerLink:hover {
   color: var(--ink);
+  text-decoration-color: currentColor;
 }
 
 /* ---- Update Indicator ---- */

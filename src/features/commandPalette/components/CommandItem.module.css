@@ -12,6 +12,11 @@
   background: rgba(44, 40, 33, 0.04);
 }
 
+.item:active {
+  transform: scale(0.98);
+  transition-duration: 0.05s;
+}
+
 .item.selected {
   background: var(--accent-soft, #efe7db);
 }

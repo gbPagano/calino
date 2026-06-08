@@ -4,11 +4,9 @@
 
 ---
 
-**Calino is a browser-based CalDAV client that connects directly to your calendar server.** Your CalDAV account is the only account. No accounts, no cloud sync, no bloated suite — just you and your data. It runs as a static page and stays entirely between your browser and your CalDAV server.
+**Calino is a browser-based CalDAV client that connects directly to your calendar server.** No other accounts required, it it runs as a static page and data stays entirely between your browser and your CalDAV server.
 
-**Core philosophy:** 
-
-If you've been looking for a clean, modern CalDAV calendar that doesn't come attached to five other features you don't need — this is it.
+If you've been looking for a beautiful, modern browser-based CalDAV calendar that doesn't come part of a bloated suite, Calino have you covered.
 
 > **⚠️ Active project:** Calino is under active development. Breaking changes are possible. Please report bugs - they're more than welcome.
 
@@ -25,8 +23,7 @@ With that said, I urge you to either selfhost Calino or at least use your own pr
 
 ## Features
 
-I have made it as close as possible, as to what I envision the perfect CalDAV non-enterprise calendar to be, according to my own tastes. I'm simply sharing it with the world. The design philosophy is to have sensible and automatic default settings, that adjust according to your browser , so that you can use it from any clients, without needing further customization.
-
+I have made it as close as possible, as to what I envision the perfect CalDAV non-enterprise calendar to be, according to my own tastes. I'm simply sharing it with the world. The design philosophy is to have sensible and automatic default settings, that adjust according to your browser and calendar, so that you can use it from any clients, without needing further customization.
 
 ### Views
 - **Month, Week, Day, Agenda**
@@ -92,7 +89,7 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 
 ---
 
-## Quick Start
+## Self hosting Quick Start
 
 ```bash
 pnpm install
@@ -117,9 +114,10 @@ cd calino
 docker compose up -d
 ```
 
-Calino runs at http://localhost:8080. To customize settings (site URL, offline support), create a `.env` file — see [`docs/DOCKER.md`](./docs/DOCKER.md) for full details.
+Calino runs at http://localhost:8080 by default.
+To customize settings (site URL, offline support), create a `.env` file — see [`docs/DOCKER.md`](./docs/DOCKER.md) for full details.
 
-## Self-Hosting
+## No-Docker
 
 Calino is a static React app — host it anywhere that serves HTML/JS.
 
@@ -140,7 +138,7 @@ pnpm build
 
 `VITE_SITE_URL` is baked into `index.html` at build time and used for the canonical link, Open Graph / Twitter cards, and the JSON-LD structured-data block.
 
-### Deployment
+### Online Deployment
 
 Calino is a Vite SPA. Any static host works as long as it rewrites all unknown paths to `/index.html` (so client-side routes like `/week` and `/day` resolve on refresh).
 
@@ -157,7 +155,7 @@ yourcaldav.server.com {
 
     handle @cors {
         header {
-            Access-Control-Allow-Origin "https://calino.io" # or your selfhosted Calino instance URL
+            Access-Control-Allow-Origin "*" # or your selfhosted Calino instance URL
             Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PROPFIND, REPORT, OPTIONS"
             Access-Control-Allow-Headers "Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match"
         }

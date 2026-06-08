@@ -30,8 +30,8 @@
   content: '';
   position: absolute;
   left: 6px;
-  top: 3px;
-  bottom: 3px;
+  top: 4px;
+  bottom: 4px;
   width: 3px;
   border-radius: 3px;
   background: color-mix(in srgb, var(--event-color, var(--accent)) 50%, var(--canvas, #fff));

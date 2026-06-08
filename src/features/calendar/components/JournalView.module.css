@@ -110,10 +110,17 @@
   display: grid;
   grid-template-columns: 64px 1fr auto;
   gap: 0 16px;
-  padding: 26px 0;
+  padding: 26px 12px;
+  margin: 0 -12px;
+  border-radius: 12px;
   border-bottom: 1px solid var(--line-2);
   cursor: default;
   position: relative;
+  transition: background 0.12s;
+}
+
+.entry:hover {
+  background: color-mix(in srgb, var(--ink, #2c2823) 3%, transparent);
 }
 
 .entry:last-child {

@@ -186,11 +186,13 @@
   align-items: start;
   padding: 12px 14px;
   border-radius: 13px;
-  transition: background 0.12s;
+  transition: background 0.12s, transform 0.12s, box-shadow 0.12s;
 }
 
 .taskRow:hover {
   background: color-mix(in srgb, var(--ink, #2c2823) 3.5%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(var(--ink-raw, 44, 40, 33), 0.06);
 }
 
 /* ---- Completion Checkbox ---- */

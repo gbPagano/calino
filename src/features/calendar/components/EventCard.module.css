@@ -39,6 +39,8 @@
 
 .card:hover {
   background: color-mix(in srgb, var(--event-color, var(--accent)) var(--event-bg-mix-hover, 12%), var(--canvas));
+  box-shadow: 0 2px 8px rgba(var(--ink-raw, 44, 40, 33), 0.08);
+  transform: translateY(-1px);
 }
 
 .card:focus-visible {

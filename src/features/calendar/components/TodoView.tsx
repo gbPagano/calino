@@ -90,6 +90,7 @@ export function TodoView(): JSX.Element {
   const [composing, setComposing] = useState(false)
   const [unstriking, setUnstriking] = useState<Set<string>>(new Set())
   const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set())
+  const [fadingOut, setFadingOut] = useState<Set<string>>(new Set())
   const composerRef = useRef<HTMLInputElement>(null)
   const segmentedRef = useRef<HTMLDivElement>(null)
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
@@ -200,13 +201,23 @@ export function TodoView(): JSX.Element {
     // If completing in active view, keep visible briefly for strike animation
     if (!task.completed && newCompleted && filter === 'active') {
       setRecentlyCompleted((prev) => new Set(prev).add(task.id))
+      // Start fade-out after strike animation completes
+      setTimeout(() => {
+        setFadingOut((prev) => new Set(prev).add(task.id))
+      }, 320)
+      // Remove from list after fade-out
       setTimeout(() => {
         setRecentlyCompleted((prev) => {
           const next = new Set(prev)
           next.delete(task.id)
           return next
         })
-      }, 350)
+        setFadingOut((prev) => {
+          const next = new Set(prev)
+          next.delete(task.id)
+          return next
+        })
+      }, 520)
     }
     updateEvent(task.id, { completed: newCompleted })
     if (!task.calendarId) return
@@ -319,7 +330,7 @@ export function TodoView(): JSX.Element {
                   return (
                     <div
                       key={task.id}
-                      className={`${styles.taskRow} ${task.completed ? styles.taskDone : ''} ${unstriking.has(task.id) ? styles.unstriking : ''}`}
+                      className={`${styles.taskRow} ${task.completed ? styles.taskDone : ''} ${unstriking.has(task.id) ? styles.unstriking : ''} ${fadingOut.has(task.id) ? styles.fadingOut : ''}`}
                       style={{ '--event-color': task.calendarColor } as React.CSSProperties}
                     >
                       <button

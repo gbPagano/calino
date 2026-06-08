@@ -199,6 +199,13 @@
   box-shadow: 0 2px 8px rgba(var(--ink-raw, 44, 40, 33), 0.06);
 }
 
+.fadingOut {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
 /* ---- Completion Checkbox ---- */
 .taskCheck {
   margin-top: 1px;

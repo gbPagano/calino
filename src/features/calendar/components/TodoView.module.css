@@ -290,7 +290,7 @@
   background: var(--ink-3, #a39d93);
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 0.3s ease;
+  transition: transform 0.25s ease;
   pointer-events: none;
 }
 
@@ -302,6 +302,7 @@
 .unstriking .taskTitle::after {
   transform: scaleX(0);
   transform-origin: right;
+  transition: transform 0.25s ease;
 }
 
 .taskDone .taskNote {

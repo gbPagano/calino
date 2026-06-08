@@ -89,6 +89,7 @@ export function TodoView(): JSX.Element {
   const [filter, setFilter] = useState<FilterType>('active')
   const [composing, setComposing] = useState(false)
   const [unstriking, setUnstriking] = useState<Set<string>>(new Set())
+  const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set())
   const composerRef = useRef<HTMLInputElement>(null)
   const segmentedRef = useRef<HTMLDivElement>(null)
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
@@ -128,8 +129,8 @@ export function TodoView(): JSX.Element {
   const completedCount = useMemo(() => tasks.filter((t) => t.completed).length, [tasks])
 
   const groupedTasks = useMemo((): TaskGroup[] => {
-    const active = tasks.filter((t) => !t.completed)
-    const done = tasks.filter((t) => t.completed)
+    const active = tasks.filter((t) => !t.completed || recentlyCompleted.has(t.id))
+    const done = tasks.filter((t) => t.completed && !recentlyCompleted.has(t.id))
 
     const result: TaskGroup[] = []
 
@@ -195,6 +196,17 @@ export function TodoView(): JSX.Element {
           return next
         })
       }, 300)
+    }
+    // If completing in active view, keep visible briefly for strike animation
+    if (!task.completed && newCompleted && filter === 'active') {
+      setRecentlyCompleted((prev) => new Set(prev).add(task.id))
+      setTimeout(() => {
+        setRecentlyCompleted((prev) => {
+          const next = new Set(prev)
+          next.delete(task.id)
+          return next
+        })
+      }, 350)
     }
     updateEvent(task.id, { completed: newCompleted })
     if (!task.calendarId) return

@@ -51,3 +51,6 @@ PERF_AUDIT.md
 *.avi
 *.mov
 *.pdf
+
+# Archives
+*.zip

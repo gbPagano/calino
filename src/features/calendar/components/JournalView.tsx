@@ -656,7 +656,6 @@ export function JournalView(): JSX.Element {
           </div>
         ) : (
           groupedEntries.map(({ monthKey, entries }) => {
-            const [year, month] = monthKey.split('-').map(Number)
             return (
               <section key={monthKey} className={styles.monthGroup}>
                 {entries.map((entry) => {

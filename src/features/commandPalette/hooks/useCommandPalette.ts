@@ -370,7 +370,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
       if (selected.type === 'command') {
         const cmd = selected.item as Command
         const message = cmd.action()
-        return { success: true, message: message || 'Executed' }
+        return { success: true, message: message ?? '' }
       }
 
       if (selected.type === 'event') {

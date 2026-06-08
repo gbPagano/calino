@@ -30,8 +30,8 @@
   content: '';
   position: absolute;
   left: 5px;
-  top: 5px;
-  bottom: 5px;
+  top: 3px;
+  bottom: 3px;
   width: 3px;
   border-radius: 3px;
   background: var(--event-color, var(--accent));
@@ -103,7 +103,7 @@
 .location {
   font-size: 11px;
   color: var(--ink-2);
-  margin-top: 1px;
+  margin-top: -1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -260,8 +260,8 @@
   font-weight: 500;
   color: var(--ink, #2c2823);
   line-height: 1.35;
-  text-decoration-color: transparent;
-  transition: color 0.2s, text-decoration-color 0.3s;
+  position: relative;
+  display: inline;
 }
 
 .taskNote {
@@ -275,10 +275,26 @@
 }
 
 .taskDone .taskTitle {
-  text-decoration: line-through;
-  text-decoration-color: var(--ink-3, #a39d93);
   color: var(--ink-3, #a39d93);
   font-weight: 400;
+}
+
+.taskDone .taskTitle::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1.5px;
+  background: var(--ink-3, #a39d93);
+  transform: scaleX(1);
+  transform-origin: left;
+  animation: strikeThrough 0.3s ease forwards;
+}
+
+@keyframes strikeThrough {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 
 .taskDone .taskNote {

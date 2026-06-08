@@ -274,6 +274,10 @@
 }
 
 /* Month view: allow travel time to overflow */
+.monthView {
+  overflow: visible;
+}
+
 .monthView .dragContent {
   overflow: visible;
 }

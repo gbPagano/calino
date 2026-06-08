@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   useCalendarStore,
   selectOpenModal,
+  selectOpenJournalModal,
   selectAddEvent,
   selectEvents,
   selectCalendars,
@@ -77,6 +78,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
   const setCurrentView = useCalendarStore(selectSetCurrentView)
   const setCurrentDate = useCalendarStore(selectSetCurrentDate)
   const openModal = useCalendarStore(selectOpenModal)
+  const openJournalModal = useCalendarStore(selectOpenJournalModal)
   const addEvent = useCalendarStore(selectAddEvent)
   const events = useCalendarStore(selectEvents)
   const calendars = useCalendarStore(selectCalendars)
@@ -97,6 +99,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
       setCurrentView,
       setCurrentDate,
       openModal,
+      openJournalModal,
       themeMode,
       caldavDebugMode,
       timeFormat,
@@ -112,6 +115,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     setCurrentView,
     setCurrentDate,
     openModal,
+    openJournalModal,
     themeMode,
     caldavDebugMode,
     timeFormat,

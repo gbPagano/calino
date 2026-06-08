@@ -10,6 +10,7 @@ interface CommandFactoryDeps {
   setCurrentView: (view: 'month' | 'week' | 'day' | 'agenda' | 'journal') => void
   setCurrentDate: (date: string) => void
   openModal: (date?: string, endDate?: string, eventId?: string, mode?: 'event' | 'task' | 'journal') => void
+  openJournalModal: (date: string, startInCompose?: boolean) => void
   toggleSidebar?: () => void
   triggerSync?: () => void
   themeMode?: ThemeMode
@@ -342,7 +343,7 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
     icon: ICONS.plus,
     action: () => {
       const today = new Date().toISOString().split('T')[0]
-      deps.openModal(today, undefined, undefined, 'journal')
+      deps.openJournalModal(today, true)
       return 'New journal entry'
     },
   },

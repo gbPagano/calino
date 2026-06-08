@@ -10,6 +10,7 @@ import { DAY_NUM_TO_CODE, FREQ_MAP } from '@/lib/recurrence'
 import { deleteAttachments } from '@/lib/attachmentStore'
 
 export const selectOpenModal = (state: CalendarStore) => state.openModal
+export const selectOpenJournalModal = (state: CalendarStore) => state.openJournalModal
 export const selectAddEvent = (state: CalendarStore) => state.addEvent
 export const selectUpdateEvent = (state: CalendarStore) => state.updateEvent
 
@@ -52,6 +53,9 @@ export const useCalendarStore = create<CalendarStore>()(
       showAddCalendar: false,
       previewEventId: null,
       previewPosition: null,
+      isJournalModalOpen: false,
+      journalModalDate: null,
+      journalStartInCompose: false,
 
       addEvent: (event: CalendarEvent): void => {
         // Skip events with invalid date ranges instead of blocking the entire import
@@ -321,6 +325,14 @@ export const useCalendarStore = create<CalendarStore>()(
 
       closePreview: (): void => {
         set({ previewEventId: null, previewPosition: null })
+      },
+
+      openJournalModal: (date: string, startInCompose: boolean = false): void => {
+        set({ isJournalModalOpen: true, journalModalDate: date, journalStartInCompose: startInCompose })
+      },
+
+      closeJournalModal: (): void => {
+        set({ isJournalModalOpen: false, journalModalDate: null, journalStartInCompose: false })
       },
 
       getEventsForDateRange: (start: string, end: string): CalendarEvent[] => {

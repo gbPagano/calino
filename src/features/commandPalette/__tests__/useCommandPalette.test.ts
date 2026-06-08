@@ -45,6 +45,9 @@ vi.mock('@/store/calendarStore', () => ({
       showAddCalendar: false,
       previewEventId: null,
       previewPosition: null,
+      isJournalModalOpen: false,
+      journalModalDate: null,
+      journalStartInCompose: false,
       addEvent: vi.fn(),
       updateEvent: vi.fn(),
       deleteEvent: vi.fn(),
@@ -70,6 +73,8 @@ vi.mock('@/store/calendarStore', () => ({
       setShowAddCalendar: vi.fn(),
       openPreview: vi.fn(),
       closePreview: vi.fn(),
+      openJournalModal: vi.fn(),
+      closeJournalModal: vi.fn(),
       getEventsForDateRange: vi.fn(),
       getVisibleEvents: vi.fn(),
     }
@@ -88,6 +93,7 @@ vi.mock('@/store/calendarStore', () => ({
   selectEvents: (state: CalendarStore) => state.events,
   selectAddCategory: (state: CalendarStore) => state.addCategory,
   selectCategories: (state: CalendarStore) => state.categories,
+  selectOpenJournalModal: (state: CalendarStore) => state.openJournalModal,
 }))
 
 vi.mock('@/store/settingsStore', () => ({

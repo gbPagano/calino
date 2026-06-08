@@ -97,6 +97,9 @@ export interface CalendarState {
   showAddCalendar: boolean
   previewEventId: string | null
   previewPosition: { x: number; y: number } | null
+  isJournalModalOpen: boolean
+  journalModalDate: string | null
+  journalStartInCompose: boolean
 }
 
 export interface CalendarActions {
@@ -125,6 +128,8 @@ export interface CalendarActions {
   setShowAddCalendar: (show: boolean) => void
   openPreview: (eventId: string, position: { x: number; y: number }) => void
   closePreview: () => void
+  openJournalModal: (date: string, startInCompose?: boolean) => void
+  closeJournalModal: () => void
   getEventsForDateRange: (start: string, end: string) => CalendarEvent[]
   getVisibleEvents: () => CalendarEvent[]
 }

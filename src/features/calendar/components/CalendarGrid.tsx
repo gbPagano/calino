@@ -121,10 +121,12 @@ export function CalendarGrid(): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   // Track active resize listeners for cleanup on unmount
   const resizeCleanupRef = useRef<(() => void) | null>(null)
-  // Journal day modal state
-  const [journalModalDate, setJournalModalDate] = useState<string | null>(null)
-  const [isJournalModalOpen, setIsJournalModalOpen] = useState(false)
-  const [journalStartInCompose, setJournalStartInCompose] = useState(false)
+  // Journal day modal state (from global store)
+  const isJournalModalOpen = useCalendarStore((state) => state.isJournalModalOpen)
+  const journalModalDate = useCalendarStore((state) => state.journalModalDate)
+  const journalStartInCompose = useCalendarStore((state) => state.journalStartInCompose)
+  const openJournalModal = useCalendarStore((state) => state.openJournalModal)
+  const closeJournalModal = useCalendarStore((state) => state.closeJournalModal)
 
   useEffect(() => {
     currentDateRef.current = currentDate
@@ -584,18 +586,13 @@ export function CalendarGrid(): JSX.Element {
                               onDayDoubleClick={handleDayDoubleClick}
                               onDayNumberClick={handleDayNumberClick}
                               onJournalIndicatorClick={(day) => {
-                                setJournalModalDate(format(day, 'yyyy-MM-dd'))
-                                setIsJournalModalOpen(true)
+                                openJournalModal(format(day, 'yyyy-MM-dd'))
                               }}
                               onOpenJournalModal={(date) => {
                                 // Force reset: close first, then reopen on next tick (#24)
-                                setIsJournalModalOpen(false)
-                                setJournalModalDate(null)
-                                setJournalStartInCompose(false)
+                                closeJournalModal()
                                 requestAnimationFrame(() => {
-                                  setJournalModalDate(date)
-                                  setJournalStartInCompose(true)
-                                  setIsJournalModalOpen(true)
+                                  openJournalModal(date, true)
                                 })
                               }}
                               openModal={openModal}
@@ -634,11 +631,7 @@ export function CalendarGrid(): JSX.Element {
           isOpen={isJournalModalOpen}
           date={journalModalDate}
           startInCompose={journalStartInCompose}
-          onClose={() => {
-            setIsJournalModalOpen(false)
-            setJournalModalDate(null)
-            setJournalStartInCompose(false)
-          }}
+          onClose={closeJournalModal}
         />
       )}
     </>
@@ -719,18 +712,13 @@ export function CalendarGrid(): JSX.Element {
                         onDayDoubleClick={handleDayDoubleClick}
                         onDayNumberClick={handleDayNumberClick}
                         onJournalIndicatorClick={(day) => {
-                          setJournalModalDate(format(day, 'yyyy-MM-dd'))
-                          setIsJournalModalOpen(true)
+                          openJournalModal(format(day, 'yyyy-MM-dd'))
                         }}
                         onOpenJournalModal={(date) => {
                           // Force reset: close first, then reopen on next tick (#24)
-                          setIsJournalModalOpen(false)
-                          setJournalModalDate(null)
-                          setJournalStartInCompose(false)
+                          closeJournalModal()
                           requestAnimationFrame(() => {
-                            setJournalModalDate(date)
-                            setJournalStartInCompose(true)
-                            setIsJournalModalOpen(true)
+                            openJournalModal(date, true)
                           })
                         }}
                         openModal={openModal}
@@ -751,11 +739,7 @@ export function CalendarGrid(): JSX.Element {
         isOpen={isJournalModalOpen}
         date={journalModalDate}
         startInCompose={journalStartInCompose}
-        onClose={() => {
-          setIsJournalModalOpen(false)
-          setJournalModalDate(null)
-          setJournalStartInCompose(false)
-        }}
+        onClose={closeJournalModal}
       />
     )}
     </>

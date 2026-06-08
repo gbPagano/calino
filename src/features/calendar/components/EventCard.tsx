@@ -30,6 +30,7 @@ interface EventCardProps {
   enableResize?: boolean
   hideTopRadius?: boolean
   isMobileMonth?: boolean
+  monthView?: boolean
   transparent?: boolean
   hourHeight?: number
 }
@@ -42,6 +43,7 @@ export const EventCard = React.memo(function EventCard({
   enableResize = true,
   hideTopRadius = false,
   isMobileMonth = false,
+  monthView = false,
   transparent = false,
   hourHeight = 60,
 }: EventCardProps): JSX.Element {
@@ -252,7 +254,7 @@ export const EventCard = React.memo(function EventCard({
         ref={setNodeRef}
         style={style}
         data-event-card
-        className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${event.completed ? styles.isDone : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''}`}
+        className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${event.completed ? styles.isDone : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${monthView ? styles.monthView : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''}`}
         onContextMenu={handleContextMenu}
         {...bind}
       >

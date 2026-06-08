@@ -292,7 +292,6 @@
 .events .card {
   height: auto !important;
   flex-shrink: 0;
-  overflow: visible;
 }
 
 /* ---- More Events Button ---- */

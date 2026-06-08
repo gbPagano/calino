@@ -271,6 +271,10 @@
 
 .compact .dragContent {
   padding: 0;
+}
+
+/* Month view: allow travel time to overflow */
+.monthView .dragContent {
   overflow: visible;
 }
 

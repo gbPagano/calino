@@ -874,6 +874,7 @@ const DroppableDay = React.memo(function DroppableDay({
                   compact={shouldCompact}
                   isMobileMonth={isMobile}
                   enableResize={false}
+                  monthView
                 />
               )
             })}
@@ -893,7 +894,7 @@ const DroppableDay = React.memo(function DroppableDay({
         <div className={styles.tasks}>
           <AnimatePresence mode="popLayout">
             {dayTasks.slice(0, monthViewEventLimit).map((task) => (
-              <EventCard key={task.id} event={task} compact isMobileMonth={isMobile} enableResize={false} />
+              <EventCard key={task.id} event={task} compact isMobileMonth={isMobile} enableResize={false} monthView />
             ))}
           </AnimatePresence>
           {dayTasks.length > monthViewEventLimit && (

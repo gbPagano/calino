@@ -657,11 +657,8 @@ export function JournalView(): JSX.Element {
         ) : (
           groupedEntries.map(({ monthKey, entries }) => {
             const [year, month] = monthKey.split('-').map(Number)
-            const monthLabel = format(new Date(year, month - 1), 'MMMM yyyy')
-
             return (
               <section key={monthKey} className={styles.monthGroup}>
-                <div className={styles.monthHead}>{monthLabel}</div>
                 {entries.map((entry) => {
                   const { day, weekday } = formatEntryDate(entry.start)
 

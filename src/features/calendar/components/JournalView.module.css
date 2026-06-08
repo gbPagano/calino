@@ -48,8 +48,12 @@
 }
 
 .count {
-  font-size: 14px;
-  color: var(--ink-2);
+  font-family: var(--font-serif, 'Newsreader', Georgia, serif);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
 
 .count b {

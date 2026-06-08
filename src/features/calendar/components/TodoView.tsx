@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useMemo, useState, useRef, useEffect } from 'react'
+import { useMemo, useState, useRef, useEffect, useLayoutEffect } from 'react'
 import {
   format,
   parseISO,
@@ -89,12 +89,29 @@ export function TodoView(): JSX.Element {
   const [filter, setFilter] = useState<FilterType>('active')
   const [composing, setComposing] = useState(false)
   const composerRef = useRef<HTMLInputElement>(null)
+  const segmentedRef = useRef<HTMLDivElement>(null)
+  const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+  const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 })
 
   useEffect(() => {
     if (composing && composerRef.current) {
       composerRef.current.focus()
     }
   }, [composing])
+
+  // Sliding indicator for filter tabs
+  useLayoutEffect(() => {
+    const container = segmentedRef.current
+    const activeTab = tabRefs.current.get(filter)
+    if (container && activeTab) {
+      const containerRect = container.getBoundingClientRect()
+      const tabRect = activeTab.getBoundingClientRect()
+      setIndicatorStyle({
+        left: tabRect.left - containerRect.left,
+        width: tabRect.width,
+      })
+    }
+  }, [filter])
 
   const tasks: TaskWithColor[] = useMemo(() => {
     const calendarMap = new Map(calendars.map((c) => [c.id, c.color]))
@@ -203,20 +220,24 @@ export function TodoView(): JSX.Element {
             <b>{activeCount}</b> active <span className={styles.dim}>·</span> {completedCount} completed
           </div>
           <div className={styles.tpControls}>
-            <div className={styles.segmentedControl}>
+            <div className={styles.segmentedControl} ref={segmentedRef}>
+              <div className={styles.tabIndicator} style={{ left: indicatorStyle.left, width: indicatorStyle.width }} />
               <button
+                ref={(el) => { if (el) tabRefs.current.set('all', el) }}
                 className={`${styles.tab} ${filter === 'all' ? styles.tabActive : ''}`}
                 onClick={() => setFilter('all')}
               >
                 All
               </button>
               <button
+                ref={(el) => { if (el) tabRefs.current.set('active', el) }}
                 className={`${styles.tab} ${filter === 'active' ? styles.tabActive : ''}`}
                 onClick={() => setFilter('active')}
               >
                 Active
               </button>
               <button
+                ref={(el) => { if (el) tabRefs.current.set('completed', el) }}
                 className={`${styles.tab} ${filter === 'completed' ? styles.tabActive : ''}`}
                 onClick={() => setFilter('completed')}
               >

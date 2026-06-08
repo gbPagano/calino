@@ -26,6 +26,7 @@ interface JournalComposeFormProps {
   titleRef: React.RefObject<HTMLInputElement | null>
   bodyRef: React.RefObject<HTMLTextAreaElement | null>
   saveHint: string
+  closing?: boolean
   formatEntryDate: (dateStr: string) => { day: string; weekday: string }
   onTitleChange: (value: string) => void
   onBodyChange: (value: string) => void
@@ -50,6 +51,7 @@ function JournalComposeForm({
   titleRef,
   bodyRef,
   // saveHint available but not rendered in compose form currently
+  closing,
   formatEntryDate,
   onTitleChange,
   onBodyChange,
@@ -88,7 +90,7 @@ function JournalComposeForm({
   const linkableEvents = showAllRelated ? [...sameDayEvents, ...otherDayEvents] : sameDayEvents
 
   return (
-    <div className={styles.compose}>
+    <div className={`${styles.compose} ${closing ? styles.closing : ''}`}>
       <div className={styles.composeDateCol}>
         {showDatePicker ? (
           <input
@@ -313,6 +315,7 @@ export function JournalView(): JSX.Element {
   const { createEvent: createCalDAVEvent, updateEvent: updateCalDAVEvent, deleteEvent: deleteCalDAVEvent } = useCalDAV()
 
   const [isComposing, setIsComposing] = useState(false)
+  const [isClosing, setIsClosing] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
@@ -460,13 +463,17 @@ export function JournalView(): JSX.Element {
       }
     }
 
-    setIsComposing(false)
-    setEditingId(null)
-    setTitle('')
-    setBody('')
-    setSelectedCategories([])
-    setAttachments([])
-    setUrl('')
+    setIsClosing(true)
+    setTimeout(() => {
+      setIsComposing(false)
+      setIsClosing(false)
+      setEditingId(null)
+      setTitle('')
+      setBody('')
+      setSelectedCategories([])
+      setAttachments([])
+      setUrl('')
+    }, 200)
   }
 
   // Keyboard shortcuts — use ref for handleSaveEntry to avoid stale closure (#10)
@@ -476,9 +483,13 @@ export function JournalView(): JSX.Element {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape' && isComposing) {
-        setIsComposing(false)
-        setTitle('')
-        setBody('')
+        setIsClosing(true)
+        setTimeout(() => {
+          setIsComposing(false)
+          setIsClosing(false)
+          setTitle('')
+          setBody('')
+        }, 200)
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && isComposing) {
         e.preventDefault()
@@ -509,6 +520,18 @@ export function JournalView(): JSX.Element {
   }, [])
 
   const handleStartCompose = useCallback((): void => {
+    // If already composing, close with animation
+    if (isComposing) {
+      setIsClosing(true)
+      setTimeout(() => {
+        setIsComposing(false)
+        setIsClosing(false)
+        setEditingId(null)
+        setTitle('')
+        setBody('')
+      }, 200)
+      return
+    }
     setEditingId(null)
     setTitle('')
     setBody('')
@@ -517,9 +540,8 @@ export function JournalView(): JSX.Element {
     setAttachments([])
     setUrl('')
     setRelatedTo([])
-    // setShowAddPanel(false) — JournalComposeForm manages its own state
     setIsComposing(true)
-  }, [])
+  }, [isComposing])
 
   const handleDelete = useCallback((entryId: string): void => {
     if (confirmDeleteId === entryId) {
@@ -567,13 +589,16 @@ export function JournalView(): JSX.Element {
   }, [])
 
   const handleCancel = useCallback(() => {
-    setIsComposing(false)
-    setEditingId(null)
-    setTitle('')
-    setBody('')
-    setSelectedCategories([])
-    setAttachments([])
-    setUrl('')
+    setIsClosing(true)
+    setTimeout(() => {
+      setIsComposing(false)
+      setIsClosing(false)
+      setEditingId(null)
+      setTitle('')
+      setBody('')
+      setSelectedCategories([])
+      setAttachments([])
+      setUrl('')
     setRelatedTo([])
   }, [])
 
@@ -607,6 +632,7 @@ export function JournalView(): JSX.Element {
             titleRef={titleInputRef}
             bodyRef={bodyInputRef}
             saveHint={`${isMac ? '⌘' : 'Ctrl+'} Return to save · Esc to cancel`}
+            closing={isClosing}
             formatEntryDate={formatEntryDate}
             onTitleChange={setTitle}
             onBodyChange={setBody}

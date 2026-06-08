@@ -473,6 +473,7 @@ export function JournalView(): JSX.Element {
       setSelectedCategories([])
       setAttachments([])
       setUrl('')
+      setRelatedTo([])
     }, 200)
   }
 
@@ -599,7 +600,8 @@ export function JournalView(): JSX.Element {
       setSelectedCategories([])
       setAttachments([])
       setUrl('')
-    setRelatedTo([])
+      setRelatedTo([])
+    }, 200)
   }, [])
 
   return (

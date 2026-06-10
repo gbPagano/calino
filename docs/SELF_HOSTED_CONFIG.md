@@ -65,13 +65,13 @@ This outputs a JSON blob with `ciphertext`, `iv`, and `salt`. Copy this into you
 
 **Option A: Volume mount (recommended)**
 
-Mount the config file into the nginx html directory:
+Mount the config file into the Caddy srv directory:
 
 ```bash
 docker run -d \
   --name calino \
-  -p 3000:80 \
-  -v /path/to/calino.config.json:/usr/share/nginx/html/calino.config.json:ro \
+  -p 3000:8080 \
+  -v /path/to/calino.config.json:/srv/calino.config.json:ro \
   ghcr.io/ivan-malinovski/calino:latest
 ```
 
@@ -82,9 +82,9 @@ services:
   calino:
     image: ghcr.io/ivan-malinovski/calino:latest
     ports:
-      - "3000:80"
+      - "3000:8080"
     volumes:
-      - ./calino.config.json:/usr/share/nginx/html/calino.config.json:ro
+      - ./calino.config.json:/srv/calino.config.json:ro
     restart: unless-stopped
 ```
 
@@ -94,14 +94,14 @@ If you need to bake the config into the image:
 
 ```dockerfile
 FROM ghcr.io/ivan-malinovski/calino:latest
-copy calino.config.json /usr/share/nginx/html/calino.config.json
+copy calino.config.json /srv/calino.config.json
 ```
 
 Then build and run:
 
 ```bash
 docker build -t calino-custom .
-docker run -d -p 3000:80 calino-custom
+docker run -d -p 3000:8080 calino-custom
 ```
 
 **Verify:** Open `http://localhost:3000/calino.config.json` in your browser — you should see the JSON. The master password prompt will appear on the main page.

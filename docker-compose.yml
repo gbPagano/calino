@@ -12,7 +12,7 @@ services:
     # Uncomment to enable self-hosted CalDAV account preconfiguration.
     # See docs/SELF_HOSTED_CONFIG.md for setup instructions.
     # volumes:
-    #   - ./calino.config.json:/usr/share/nginx/html/calino.config.json:ro
+    #   - ./calino.config.json:/srv/calino.config.json:ro
     # ⚠️ All env vars are build-time only (baked into JS by Vite).
     # To change them: update .env, then `docker compose build`.
     # See docs/DOCKER.md for details.

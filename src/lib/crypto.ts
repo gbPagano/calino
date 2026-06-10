@@ -67,7 +67,13 @@ function toBase64(buffer: ArrayBuffer): string {
 }
 
 function fromBase64(base64: string): Uint8Array {
-  const binary = atob(base64)
+  // Convert base64url to standard base64
+  let stdBase64 = base64.replace(/-/g, '+').replace(/_/g, '/')
+  // Add padding if needed
+  const padding = (4 - (stdBase64.length % 4)) % 4
+  stdBase64 += '='.repeat(padding)
+
+  const binary = atob(stdBase64)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i)

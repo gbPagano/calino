@@ -14,6 +14,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { safeCalDAVDelete } from '@/lib/caldavHelpers'
+import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 import type { CalendarEvent } from '@/types'
 import { isUUID } from '@/lib/uuid'
 import { ContextMenu } from '@/components/common/ContextMenu'
@@ -44,7 +45,8 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
   const events = useCalendarStore((state) => state.events)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
-  const { deleteEvent: deleteCalDAVEvent } = useCalDAV()
+  const addEvent = useCalendarStore((state) => state.addEvent)
+  const { deleteEvent: deleteCalDAVEvent, createEvent: createCalDAVEvent } = useCalDAV()
   const closeMenu = useContextMenuStore((state) => state.closeMenu)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; day: Date } | null>(null)
   const [eventContextMenu, setEventContextMenu] = useState<{ x: number; y: number; event: CalendarEvent } | null>(null)
@@ -366,12 +368,15 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
               },
               {
                 label: 'Delete',
-                onClick: async () => {
-                  const eventId = eventContextMenu.event.id
-                  const calendarId = eventContextMenu.event.calendarId
-                  deleteEvent(eventId)
-                  await safeCalDAVDelete(deleteCalDAVEvent, calendarId, eventId)
-                  setEventContextMenu(null)
+                onClick: () => {
+                  deleteEventWithUndo({
+                    event: eventContextMenu.event,
+                    deleteEvent,
+                    addEvent,
+                    createCalDAVEvent,
+                    deleteCalDAVEvent,
+                    onAfterDelete: () => setEventContextMenu(null),
+                  })
                 },
                 danger: true,
               },

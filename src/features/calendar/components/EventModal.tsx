@@ -6,6 +6,7 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { showToast } from '@/lib/toast'
 import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
+import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 import type { CalendarEvent, CalendarAttachment, RecurrenceRule, TaskPriority, Reminder } from '@/types'
 import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
 import { TaskFormFields } from './TaskFormFields'
@@ -845,7 +846,16 @@ export function EventModal(): JSX.Element | null {
     } else {
       const eventIdToDelete = originalEventId || selectedEventId
       if (eventIdToDelete) {
-        await safeCalDAVDelete(deleteCalDAVEvent, calendarId, eventIdToDelete)
+        const eventToDelete = events.find((e) => e.id === eventIdToDelete)
+        if (eventToDelete) {
+          deleteEventWithUndo({
+            event: eventToDelete,
+            deleteEvent,
+            addEvent,
+            createCalDAVEvent,
+            deleteCalDAVEvent,
+          })
+        }
       }
     }
     setShowDeleteDialog(false)

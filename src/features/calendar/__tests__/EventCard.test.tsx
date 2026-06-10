@@ -12,7 +12,7 @@ const mockUseCalDAV = vi.mocked(useCalDAV)
 
 const mockEvent: CalendarEvent = {
   id: 'test-event-1',
-  calendarId: 'default',
+  calendarId: 'caldav-calendar',
   title: 'Test Meeting',
   start: '2024-03-15T10:00:00',
   end: '2024-03-15T11:00:00',
@@ -109,7 +109,7 @@ describe('EventCard', () => {
     const deleteButton = screen.getByText('Delete')
     await user.click(deleteButton)
 
-    expect(mockDeleteCalDAVEvent).toHaveBeenCalledWith('default', 'test-event-1')
+    expect(mockDeleteCalDAVEvent).toHaveBeenCalledWith('caldav-calendar', 'test-event-1')
   })
 
   it('removes old resize listeners before adding new ones (Bug #61)', () => {

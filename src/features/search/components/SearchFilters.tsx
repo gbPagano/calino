@@ -50,8 +50,11 @@ export function SearchFilters({
     onUpdateFilters({ calendarIds: newIds.length > 0 ? newIds : undefined })
   }
 
+  const categories = useCalendarStore((state) => state.categories)
+
   const hasActiveFilters =
-    filters.dateFrom || filters.dateTo || (filters.calendarIds && filters.calendarIds.length > 0)
+    filters.dateFrom || filters.dateTo || (filters.calendarIds && filters.calendarIds.length > 0) ||
+    (filters.types && filters.types.length > 0) || (filters.categoryIds && filters.categoryIds.length > 0)
 
   return (
     <div className={styles.filtersContainer}>
@@ -130,6 +133,67 @@ export function SearchFilters({
           })}
         </div>
       </div>
+
+      <div className={styles.filterGroup}>
+        <label className={styles.filterLabel}>Event Type</label>
+        <div className={styles.checkboxGroup}>
+          {(['event', 'task', 'journal'] as const).map((type) => {
+            const isActive = !filters.types || filters.types.includes(type)
+            return (
+              <label
+                key={type}
+                className={`${styles.checkboxLabel} ${isActive ? styles.active : ''}`}
+              >
+                <input
+                  type="checkbox"
+                  className={styles.checkboxInput}
+                  checked={isActive}
+                  onChange={() => {
+                    const current = filters.types ?? []
+                    const next = current.includes(type)
+                      ? current.filter((t) => t !== type)
+                      : [...current, type]
+                    onUpdateFilters({ types: next.length > 0 ? next : undefined })
+                  }}
+                />
+                {type === 'event' ? 'Events' : type === 'task' ? 'Tasks' : 'Journal'}
+              </label>
+            )
+          })}
+        </div>
+      </div>
+
+      {categories.length > 0 && (
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel}>Categories</label>
+          <div className={styles.checkboxGroup}>
+            {categories.map((category) => {
+              const isActive = !filters.categoryIds || filters.categoryIds.includes(category.id)
+              return (
+                <label
+                  key={category.id}
+                  className={`${styles.checkboxLabel} ${isActive ? styles.active : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    className={styles.checkboxInput}
+                    checked={isActive}
+                    onChange={() => {
+                      const current = filters.categoryIds ?? []
+                      const next = current.includes(category.id)
+                        ? current.filter((id) => id !== category.id)
+                        : [...current, category.id]
+                      onUpdateFilters({ categoryIds: next.length > 0 ? next : undefined })
+                    }}
+                  />
+                  <span className={styles.colorDot} style={{ backgroundColor: category.color }} />
+                  {category.name}
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {hasActiveFilters && (
         <button type="button" className={styles.clearFiltersButton} onClick={onClearFilters}>

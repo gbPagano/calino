@@ -82,6 +82,14 @@ export function search(
         passesFilters = passesFilters && filters.calendarIds.includes(event.calendarId)
       }
 
+      if (filters.types && filters.types.length > 0) {
+        passesFilters = passesFilters && filters.types.includes(event.type ?? 'event')
+      }
+
+      if (filters.categoryIds && filters.categoryIds.length > 0) {
+        passesFilters = passesFilters && (event.categories ?? []).some(cat => filters.categoryIds!.includes(cat))
+      }
+
       if (filters.dateFrom || filters.dateTo) {
         const fromDate = filters.dateFrom ? startOfDay(parseISO(filters.dateFrom)) : null
         const toDate = filters.dateTo ? endOfDay(parseISO(filters.dateTo)) : null
@@ -290,6 +298,14 @@ function filterCollection(
 
     if (filters.calendarIds && filters.calendarIds.length > 0) {
       passes = passes && filters.calendarIds.includes(event.calendarId)
+    }
+
+    if (filters.types && filters.types.length > 0) {
+      passes = passes && filters.types.includes(event.type ?? 'event')
+    }
+
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+      passes = passes && (event.categories ?? []).some(cat => filters.categoryIds!.includes(cat))
     }
 
     if (filters.dateFrom || filters.dateTo) {

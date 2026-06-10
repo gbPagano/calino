@@ -8,6 +8,7 @@ import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { v4 as uuidv4 } from 'uuid'
 import { renderMarkdown } from '@/lib/markdown'
 import { showToast } from '@/lib/toast'
+import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
 import type { CalendarEvent, CalendarAttachment } from '@/types'
 import { AttachmentSection } from './AttachmentSection'
@@ -596,31 +597,17 @@ export function JournalView(): JSX.Element {
 
   const handleDelete = useCallback((entryId: string): void => {
     if (confirmDeleteId === entryId) {
-      // Actually delete
       const entry = eventsRef.current.find((e) => e.id === entryId)
-      // Sync CalDAV first so it can capture the etag before the local delete
-      if (entry && entry.calendarId !== 'default') {
-        deleteCalDAVEvent(entry.calendarId, entry.id).catch(() => {
-          showToast('Failed to sync deletion. It will be retried.')
-        })
-      }
-      deleteEvent(entryId)
-      setConfirmDeleteId(null)
-
-      // Show undo toast (#17)
       if (entry) {
-        showToast('Entry deleted', {
-          duration: 8000,
-          onUndo: () => {
-            addEvent(entry)
-            if (entry.calendarId !== 'default') {
-              createCalDAVEvent(entry.calendarId, entry).catch(() => {
-                showToast('Failed to restore entry.')
-              })
-            }
-          },
+        deleteEventWithUndo({
+          event: entry,
+          deleteEvent,
+          addEvent,
+          createCalDAVEvent,
+          deleteCalDAVEvent,
         })
       }
+      setConfirmDeleteId(null)
     } else {
       // First click — show confirm
       setConfirmDeleteId(entryId)

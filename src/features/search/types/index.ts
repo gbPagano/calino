@@ -16,6 +16,8 @@ export interface SearchFilters {
   dateFrom?: string
   dateTo?: string
   calendarIds?: string[]
+  types?: ('event' | 'task' | 'journal')[]
+  categoryIds?: string[]
 }
 
 export interface SearchOptions {

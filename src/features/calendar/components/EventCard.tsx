@@ -14,6 +14,7 @@ import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
+import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 
 import { isUUID } from '@/features/caldav/adapter/iCalendarAdapter'
 import { extractOriginalEventId, hasDueTime, formatTravelDuration } from '@/lib/events'
@@ -55,9 +56,10 @@ export const EventCard = React.memo(function EventCard({
   const previewEventId = useCalendarStore((state) => state.previewEventId)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
+  const addEvent = useCalendarStore((state) => state.addEvent)
   const duplicateEvent = useCalendarStore((state) => state.duplicateEvent)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
-  const { deleteEvent: deleteCalDAVEvent, updateEvent: updateCalDAVEvent } = useCalDAV()
+  const { deleteEvent: deleteCalDAVEvent, updateEvent: updateCalDAVEvent, createEvent: createCalDAVEvent } = useCalDAV()
   const openMenuId = useContextMenuStore((state) => state.openMenuId)
   const openMenu = useContextMenuStore((state) => state.openMenu)
   const closeMenu = useContextMenuStore((state) => state.closeMenu)
@@ -421,13 +423,18 @@ export const EventCard = React.memo(function EventCard({
               },
               {
                 label: 'Delete',
-                onClick: async () => {
+                onClick: () => {
                   const isRecurring = !!event.recurrence || !!event.rruleString || !!originalEventId
                   if (isRecurring) {
                     setShowDeleteDialog(true)
                   } else {
-                    deleteEvent(event.id)
-                    await safeCalDAVDelete(deleteCalDAVEvent, event.calendarId, event.id)
+                    deleteEventWithUndo({
+                      event,
+                      deleteEvent,
+                      addEvent,
+                      createCalDAVEvent,
+                      deleteCalDAVEvent,
+                    })
                   }
                 },
                 icon: <DeleteIcon />,
@@ -465,11 +472,24 @@ export const EventCard = React.memo(function EventCard({
                   }
                 }
               } else if (originalEventId) {
-                deleteEvent(originalEventId)
-                await safeCalDAVDelete(deleteCalDAVEvent, event.calendarId, originalEventId)
+                const eventToDelete = useCalendarStore.getState().events.find((e) => e.id === originalEventId)
+                if (eventToDelete) {
+                  deleteEventWithUndo({
+                    event: eventToDelete,
+                    deleteEvent,
+                    addEvent,
+                    createCalDAVEvent,
+                    deleteCalDAVEvent,
+                  })
+                }
               } else {
-                deleteEvent(event.id)
-                await safeCalDAVDelete(deleteCalDAVEvent, event.calendarId, event.id)
+                deleteEventWithUndo({
+                  event,
+                  deleteEvent,
+                  addEvent,
+                  createCalDAVEvent,
+                  deleteCalDAVEvent,
+                })
               }
               setShowDeleteDialog(false)
             }}

@@ -16,7 +16,7 @@ export interface RecurrenceRule {
 export interface Reminder {
   id: string
   minutesBefore: number
-  method: 'popup' | 'email'
+  method: 'popup'
 }
 
 export type EventType = 'event' | 'task' | 'journal'

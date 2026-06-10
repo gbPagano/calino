@@ -485,6 +485,23 @@ function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
   )
 }
 
+function GitHubPagesRedirect(): null {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (location.search.startsWith('?/')) {
+      const query = location.search.slice(2)
+      const parts = query.split('&')
+      const path = parts[0].replace(/~and~/g, '&')
+      const search = parts[1] ? '?' + parts[1].replace(/~and~/g, '&') : ''
+      navigate(path + search + location.hash, { replace: true })
+    }
+  }, [location, navigate])
+
+  return null
+}
+
 function App(): JSX.Element {
   const loadConfigFile = useConfigStore((state) => state.loadConfigFile)
 
@@ -496,6 +513,7 @@ function App(): JSX.Element {
   return (
     <BrowserRouter>
       <ThemeProvider>
+        <GitHubPagesRedirect />
         <Toast />
         <CookieConsent />
         <MasterPasswordPrompt />

@@ -441,18 +441,20 @@ export function useCalDAV(): UseCalDAVReturn {
   )
 
   // Auto-connect to preconfigured accounts when unlocked
-  const autoConnectRef = useRef(false)
+  const autoConnectDoneRef = useRef(false)
   const isUnlocked = useConfigStore((state) => state.isUnlocked)
   const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
 
   useEffect(() => {
-    const { config, getCredential } = useConfigStore.getState()
-
-    if (!isUnlocked || !hasPreconfiguredAccounts || !config || autoConnectRef.current) {
+    if (!isUnlocked || !hasPreconfiguredAccounts || autoConnectDoneRef.current) {
       return
     }
 
-    autoConnectRef.current = true
+    const { config, getCredential } = useConfigStore.getState()
+    if (!config) return
+
+    // Mark immediately to prevent any re-runs
+    autoConnectDoneRef.current = true
 
     const existingAccounts = storage.getAllAccounts()
 
@@ -473,7 +475,8 @@ export function useCalDAV(): UseCalDAVReturn {
           console.error(`[CalDAV] Failed to auto-connect ${account.name}:`, err)
         })
     }
-  }, [addAccount, isUnlocked, hasPreconfiguredAccounts])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUnlocked, hasPreconfiguredAccounts])
 
   const removeAccount = useCallback(async (accountId: string): Promise<void> => {
     const account = storage.getAccountById(accountId)

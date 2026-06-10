@@ -247,6 +247,22 @@ fi
 if [ "$SKIP_PUSH" = false ]; then
   step "Pushing to $BRANCH"
   git push origin "$BRANCH"
+
+  # Also push the version tag and create GitHub Release if we bumped
+  if [ -n "$BUMP" ]; then
+    git tag "v$NEW_VERSION"
+    git push origin "v$NEW_VERSION"
+
+    # Create GitHub Release with changelog excerpt
+    step "Creating GitHub Release v$NEW_VERSION"
+    gh release create "v$NEW_VERSION" \
+      --title "v$NEW_VERSION" \
+      --generate-notes \
+      --repo "$(git remote get-url origin | sed 's/.*github.com[:/]\(.\+\)\.git$/\1/')" \
+      2>/dev/null || echo "  (release creation skipped — install gh CLI for auto-releases)"
+    ok "Release v$NEW_VERSION created"
+  fi
+
   ok "Pushed to $BRANCH"
 fi
 

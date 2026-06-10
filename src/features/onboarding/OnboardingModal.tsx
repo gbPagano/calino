@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import { useState } from 'react'
 import { useSettingsStore, EVENT_COLORS } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useConfigStore } from '@/store/configStore'
 import { parseICALData } from '@/features/caldav/adapter/iCalendarAdapter'
 import styles from './OnboardingModal.module.css'
 
@@ -19,8 +20,9 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
   const addCategory = useCalendarStore((state) => state.addCategory)
   const categories = useCalendarStore((state) => state.categories)
   const calendars = useCalendarStore((state) => state.calendars)
+  const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
 
-  if (hasCompletedOnboarding) {
+  if (hasCompletedOnboarding || hasPreconfiguredAccounts) {
     return null
   }
 

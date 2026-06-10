@@ -460,23 +460,27 @@ export function useCalDAV(): UseCalDAVReturn {
 
     const existingAccounts = storage.getAllAccounts()
 
-    for (const account of config.accounts) {
-      // Skip if already connected (dedup by URL + username)
-      const alreadyConnected = existingAccounts.some(
-        (a) => a.serverUrl === account.url && a.username === account.username
-      )
-      if (alreadyConnected) continue
+    // Run sequentially to avoid localStorage race conditions in saveCredentials
+    const connectAccounts = async (): Promise<void> => {
+      for (const account of config.accounts) {
+        // Skip if already connected (dedup by URL + username)
+        const alreadyConnected = existingAccounts.some(
+          (a) => a.serverUrl === account.url && a.username === account.username
+        )
+        if (alreadyConnected) continue
 
-      const credential = getCredential(account.url, account.username)
-      if (!credential) continue
+        const credential = getCredential(account.url, account.username)
+        if (!credential) continue
 
-      // Auto-connect in background (don't await — non-blocking)
-      console.log(`[CalDAV] Auto-connecting to preconfigured account: ${account.name}`)
-      addAccount(account.url, credential.username, credential.password, account.name)
-        .catch((err) => {
+        console.log(`[CalDAV] Auto-connecting to preconfigured account: ${account.name}`)
+        try {
+          await addAccount(account.url, credential.username, credential.password, account.name)
+        } catch (err) {
           console.error(`[CalDAV] Failed to auto-connect ${account.name}:`, err)
-        })
+        }
+      }
     }
+    connectAccounts()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked, hasPreconfiguredAccounts])
 

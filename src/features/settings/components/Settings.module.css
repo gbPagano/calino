@@ -204,7 +204,7 @@
   text-transform: uppercase;
   color: var(--ink-3);
   padding: 14px 20px 0;
-  margin-bottom: -4px;
+  margin-bottom: 8px;
 }
 
 /* ── Settings Row ───────────────────────────────────────────────────────── */
@@ -779,4 +779,18 @@
 .rowDisabled .segTab,
 .rowDisabled button {
   pointer-events: none;
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

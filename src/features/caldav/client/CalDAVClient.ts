@@ -550,6 +550,378 @@ export class CalDAVClient {
     }
   }
 
+  // ── Settings sync helpers ───────────────────────────────────────────────
+
+  private static readonly SETTINGS_EVENT_UID = '00000000-calino-0000-calino-000000000000'
+  private static readonly SETTINGS_CAL_NAME = 'calino-settings'
+  private static readonly SETTINGS_CAL_DISPLAY = 'Calino Settings'
+  private static readonly SETTINGS_DEAD_PROP = 'X-CALINO-SETTINGS-CALENDAR'
+  private static readonly SETTINGS_FILENAME = 'calino-settings.ics'
+
+  /**
+   * Discover whether the dedicated Calino Settings calendar exists.
+   * Returns the calendar object + URL when found, null otherwise.
+   */
+  async discoverSettingsCalendar(
+    calendarHomeUrl: string,
+  ): Promise<{ url: string; /* raw DAV calendar */ } | null> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: this.authHeader,
+      Depth: '1',
+    }
+
+    // PROPFIND depth-1 on the calendar home to list all child collections
+    const propfindXml = `<?xml version="1.0" encoding="UTF-8" ?>
+<d:propfind xmlns:d="DAV:">
+  <d:prop>
+    <d:resourcetype/>
+    <d:displayname/>
+  </d:prop>
+</d:propfind>`
+
+    const response = await this.proxyFetch(calendarHomeUrl, {
+      method: 'PROPFIND',
+      headers,
+      body: propfindXml,
+    })
+
+    if (!response.ok && response.status !== 207) {
+      return null
+    }
+
+    const text = await response.text()
+
+    // Look for a child collection whose displayname is "Calino Settings"
+    // We match the response body for ahref containing calino-settings/ and displayname
+    const calMatch = text.match(
+      new RegExp(
+        `<d:href>([^<]*${CalDAVClient.SETTINGS_CAL_NAME}/)</d:href>[\\s\\S]*?<d:displayname>${CalDAVClient.SETTINGS_CAL_DISPLAY}</d:displayname>`,
+      ),
+    )
+
+    if (!calMatch?.[1]) {
+      return null
+    }
+
+    // Resolve relative hrefs against the calendar home origin
+    let calUrl = calMatch[1]
+    if (calUrl.startsWith('/')) {
+      const homeOrigin = new URL(calendarHomeUrl).origin
+      calUrl = homeOrigin + calUrl
+    }
+
+    return { url: calUrl }
+  }
+
+  /**
+   * Create the dedicated Calino Settings calendar.
+   * Sets the dead property X-CALINO-SETTINGS-CALENDAR: 1 via PROPPATCH.
+   */
+  async createSettingsCalendar(calendarHomeUrl: string): Promise<string> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+
+    const calUrl = `${calendarHomeUrl}${CalDAVClient.SETTINGS_CAL_NAME}/`
+
+    // MKCALENDAR
+    const mkcalXml = `<?xml version="1.0" encoding="UTF-8" ?>
+<D:mkcol xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <D:set>
+    <D:prop>
+      <D:resourcetype>
+        <D:collection/>
+        <C:calendar/>
+      </D:resourcetype>
+      <D:displayname>${escapeXml(CalDAVClient.SETTINGS_CAL_DISPLAY)}</D:displayname>
+      <C:supported-calendar-component-set>
+        <C:comp name="VEVENT"/>
+      </C:supported-calendar-component-set>
+    </D:prop>
+  </D:set>
+</D:mkcol>`
+
+    const mkcolHeaders: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: this.authHeader,
+    }
+
+    const mkcolResp = await this.proxyFetch(calUrl, {
+      method: 'MKCOL',
+      headers: mkcolHeaders,
+      body: mkcalXml,
+    })
+
+    if (!mkcolResp.ok && mkcolResp.status !== 201 && mkcolResp.status !== 204) {
+      const err = await mkcolResp.text()
+      throw new Error(`Failed to create settings calendar: ${mkcolResp.status} ${err}`)
+    }
+
+    // PROPPATCH to set the dead property marker
+    const proppatchXml = `<?xml version="1.0" encoding="UTF-8" ?>
+<D:propertyupdate xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <D:set>
+    <D:prop>
+      <D:displayname>${escapeXml(CalDAVClient.SETTINGS_CAL_DISPLAY)}</D:displayname>
+    </D:prop>
+  </D:set>
+</D:propertyupdate>`
+
+    await this.proxyFetch(calUrl, {
+      method: 'PROPPATCH',
+      headers: mkcolHeaders,
+      body: proppatchXml,
+    })
+
+    return calUrl
+  }
+
+  /**
+   * Fetch the settings VEVENT from the settings calendar.
+   * Returns the raw iCal data, ETag, and object href, or null when not found.
+   */
+  async fetchSettingsEvent(
+    settingsCalendarUrl: string,
+  ): Promise<{ data: string; etag: string; href: string; dtstamp: string } | null> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+
+    const settingsUid = CalDAVClient.SETTINGS_EVENT_UID
+
+    const reportXml = `<?xml version="1.0" encoding="UTF-8" ?>
+<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+  <d:prop>
+    <d:getetag/>
+    <c:calendar-data/>
+  </d:prop>
+  <c:filter>
+    <c:comp-filter name="VCALENDAR">
+      <c:comp-filter name="VEVENT">
+        <c:prop-filter name="UID">
+          <c:text-match collation="i;octet" negate="no">${escapeXml(settingsUid)}</c:text-match>
+        </c:prop-filter>
+      </c:comp-filter>
+    </c:comp-filter>
+  </c:filter>
+</c:calendar-query>`
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: this.authHeader,
+      Depth: '1',
+    }
+
+    const response = await this.proxyFetch(settingsCalendarUrl, {
+      method: 'REPORT',
+      headers,
+      body: reportXml,
+    })
+
+    if (!response.ok && response.status !== 207) {
+      return null
+    }
+
+    const text = await response.text()
+
+    // Extract the response blocks — each <d:response> contains href, etag, calendar-data
+    const responseBlocks = text.match(/<d:response>[\s\S]*?<\/d:response>/g) || []
+
+    for (const block of responseBlocks) {
+      const hrefMatch = block.match(/<d:href>([^<]+)<\/d:href>/)
+      const etagMatch = block.match(/<d:getetag>([^<]+)<\/d:getetag>/)
+      const dataMatch = block.match(/<[^:]*:calendar-data[^>]*>([\s\S]*?)<\/[^:]*:calendar-data>/)
+
+      if (hrefMatch?.[1] && dataMatch?.[1]) {
+        // Resolve relative hrefs against the calendar home origin
+        let href = hrefMatch[1]
+        if (href.startsWith('/')) {
+          const homeOrigin = new URL(settingsCalendarUrl).origin
+          href = homeOrigin + href
+        }
+        // Decode HTML entities in ETag (e.g. &quot; → ")
+        const rawEtag = etagMatch?.[1] || ''
+        const etag = rawEtag.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+        const icalData = dataMatch[1].trim()
+        // Extract DTSTAMP for conflict resolution
+        const dtstampMatch = icalData.match(/DTSTAMP:(\d{8}T\d{6}Z)/)
+        const dtstamp = dtstampMatch?.[1] || ''
+        return { data: icalData, etag, href, dtstamp }
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * Extract the base64-encoded settings JSON from the ATTACH field of a VEVENT.
+   */
+  extractSettingsFromVEVENT(icalData: string): string | null {
+    // First, unfold iCalendar lines (continuation lines start with space/tab)
+    const unfolded = icalData.replace(/\r?\n[ \t]/g, '')
+    // Match ATTACH;ENCODING=BASE64;FMTTYPE=app/json:<base64>
+    const attachMatch = unfolded.match(
+      /ATTACH[^:]*:([A-Za-z0-9+/=]+)/,
+    )
+    if (!attachMatch?.[1]) {
+      console.warn('[SettingsSync] No ATTACH found in VEVENT')
+      return null
+    }
+    try {
+      return atob(attachMatch[1])
+    } catch {
+      console.warn('[CalDAV] Failed to decode base64 settings from ATTACH')
+      return null
+    }
+  }
+
+  /**
+   * Write (create or update) the settings VEVENT.
+   * Uses optimistic locking via If-Match when an ETag is provided.
+   * Returns the new ETag.
+   */
+  async putSettingsEvent(
+    settingsCalendarUrl: string,
+    base64Payload: string,
+    etag?: string,
+  ): Promise<string> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+
+    const settingsUid = CalDAVClient.SETTINGS_EVENT_UID
+    const now = this.formatICalDate(new Date())
+    const filename = CalDAVClient.SETTINGS_FILENAME
+
+    const icalString = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Calino//Settings Sync//EN',
+      'BEGIN:VEVENT',
+      `UID:${settingsUid}`,
+      `DTSTAMP:${now}`,
+      'DTSTART:19700101T000000Z',
+      'DTEND:19700101T000001Z',
+      'SUMMARY:Calino Settings',
+      'TRANSP:TRANSPARENT',
+      'CLASS:PRIVATE',
+      `X-CALINO-VERSION:1`,
+      `ATTACH;ENCODING=BASE64;FMTTYPE=app/json:${base64Payload}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    // Try to find existing settings event
+    const existing = await this.fetchSettingsEvent(settingsCalendarUrl)
+
+    if (existing?.href) {
+      // Update existing — always prefer the server's ETag over stale stored one
+      const useEtag = existing.etag || etag
+      if (!useEtag) {
+        throw new Error('Cannot update settings event: no ETag available')
+      }
+      const client = this.getClient()
+      const result = await client.updateCalendarObject({
+        calendarObject: {
+          url: existing.href,
+          etag: useEtag,
+          data: icalString,
+        },
+      })
+      return result.headers?.get('etag') || useEtag
+    }
+
+    // No existing event found via REPORT
+    // If we have a stored ETag, the event exists but REPORT failed — try update anyway
+    if (etag) {
+      // Reconstruct the likely href from the calendar URL + filename
+      const possibleHref = settingsCalendarUrl + CalDAVClient.SETTINGS_FILENAME
+      const client = this.getClient()
+      try {
+        const result = await client.updateCalendarObject({
+          calendarObject: {
+            url: possibleHref,
+            etag,
+            data: icalString,
+          },
+        })
+        return result.headers?.get('etag') || etag
+      } catch {
+        // If that also fails, the event might have been deleted — fall through to create
+      }
+    }
+
+    // Create new
+    {
+      const client = this.getClient()
+      // Find the settings calendar object for tsdav
+      const calendars = await client.fetchCalendars()
+      const settingsCal = calendars.find((c) => {
+        const calUrl = c.url || ''
+        return calUrl === settingsCalendarUrl || calUrl.endsWith(CalDAVClient.SETTINGS_CAL_NAME + '/')
+      })
+      if (!settingsCal) {
+        throw new Error('Settings calendar not found')
+      }
+      const result = await client.createCalendarObject({
+        calendar: settingsCal,
+        filename,
+        iCalString: icalString,
+      })
+      return result.headers?.get('etag') || ''
+    }
+  }
+
+  /**
+   * Delete the settings VEVENT from the settings calendar.
+   */
+  async deleteSettingsEvent(settingsCalendarUrl: string): Promise<void> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+    const existing = await this.fetchSettingsEvent(settingsCalendarUrl)
+    if (!existing?.href) return
+    const client = this.getClient()
+    await client.deleteCalendarObject({
+      calendarObject: { url: existing.href, etag: existing.etag },
+    })
+  }
+
+  /**
+   * Delete the entire settings calendar collection.
+   */
+  async deleteSettingsCalendar(settingsCalendarUrl: string): Promise<void> {
+    if (!navigator.onLine) {
+      throw new Error('No network connection. Please check your internet connection.')
+    }
+    const headers: Record<string, string> = {
+      Authorization: this.authHeader,
+    }
+    const resp = await this.proxyFetch(settingsCalendarUrl, {
+      method: 'DELETE',
+      headers,
+    })
+    // 404 is fine — already gone
+    if (!resp.ok && resp.status !== 404) {
+      const err = await resp.text()
+      throw new Error(`Failed to delete settings calendar: ${resp.status} ${err}`)
+    }
+  }
+
+  /**
+   * Format a Date as an iCalendar UTC date-time string (YYYYMMDDTHHMMSSZ).
+   */
+  private formatICalDate(date: Date): string {
+    return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  }
+
+
+
   getServerUrl(): string {
     return this.serverUrl
   }

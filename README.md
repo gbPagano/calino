@@ -71,6 +71,7 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 - Configurable first day of week, date format, default duration
 - Show/hide week numbers, completed tasks
 - Adjust calendar and category colors
+- **Settings sync** (disabled by default) — sync your preferences (theme, first day of week, time format, etc.) across devices via CalDAV. Opt-in: only activates when you enable it in Settings → Sync. Uses a dedicated hidden calendar on your server. See [`docs/CALINOSETTINGSSYNC.md`](./docs/CALINOSETTINGSSYNC.md) for details.
 
 ### Mobile
 - Swipe left/right to navigate between months/weeks/days

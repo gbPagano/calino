@@ -2,13 +2,13 @@
   "version": 1,
   "accounts": [
     {
-      "name": "Test Account",
-      "url": "https://caldav.example.com/dav.php",
-      "username": "testuser@example.com",
+      "name": "Ivan Test",
+      "url": "https://caldav.malinov.ski/dav.php",
+      "username": "ivan",
       "password": {
-        "ciphertext": "7Xfgw5HmadepXVhUQ4CHqcMx-4eXGbZDCHk",
-        "iv": "5ggqt_nm0Zqegm6z",
-        "salt": "amly0ehQz38bubr568Q86A"
+        "ciphertext": "NPxMb-l3TSC5_WHvwT1iCI_NDpH7_AWb",
+        "iv": "AmDPCMCxtOiRNKQJ",
+        "salt": "akQRx1V244Xp1XBVSBNEQw"
       }
     }
   ]

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { addDays } from 'date-fns'
 import type { CalendarEvent } from '@/types'
 import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
@@ -29,6 +29,9 @@ const selectConflictResolution = (state: { conflictResolution: string }) => stat
 
 // Bug 23 fix: ref to prevent concurrent processPendingChanges execution
 const isProcessingRef = { current: false }
+
+// Module-level guard for auto-connect (shared across all hook instances)
+let autoConnectDone = false
 
 const MAX_RETRIES = 10
 
@@ -441,20 +444,19 @@ export function useCalDAV(): UseCalDAVReturn {
   )
 
   // Auto-connect to preconfigured accounts when unlocked
-  const autoConnectDoneRef = useRef(false)
   const isUnlocked = useConfigStore((state) => state.isUnlocked)
   const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
 
   useEffect(() => {
-    if (!isUnlocked || !hasPreconfiguredAccounts || autoConnectDoneRef.current) {
+    if (!isUnlocked || !hasPreconfiguredAccounts || autoConnectDone) {
       return
     }
 
     const { config, getCredential } = useConfigStore.getState()
     if (!config) return
 
-    // Mark immediately to prevent any re-runs
-    autoConnectDoneRef.current = true
+    // Mark immediately to prevent any re-runs across all hook instances
+    autoConnectDone = true
 
     const existingAccounts = storage.getAllAccounts()
 

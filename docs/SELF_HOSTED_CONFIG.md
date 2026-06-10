@@ -57,14 +57,54 @@ This outputs a JSON blob with `ciphertext`, `iv`, and `salt`. Copy this into you
 
 ### 3. Serve the config file
 
-**Docker:** Mount the config file into the container:
-```bash
-docker run -v /path/to/calino.config.json:/usr/share/nginx/html/calino.config.json ...
-```
+**Development:** Place it in the `public/` directory.
 
 **Static hosting:** Upload `calino.config.json` alongside your built files.
 
-**Development:** Place it in the `public/` directory.
+#### Docker
+
+**Option A: Volume mount (recommended)**
+
+Mount the config file into the nginx html directory:
+
+```bash
+docker run -d \
+  --name calino \
+  -p 3000:80 \
+  -v /path/to/calino.config.json:/usr/share/nginx/html/calino.config.json:ro \
+  ghcr.io/ivan-malinovski/calino:latest
+```
+
+**Option B: Docker Compose**
+
+```yaml
+services:
+  calino:
+    image: ghcr.io/ivan-malinovski/calino:latest
+    ports:
+      - "3000:80"
+    volumes:
+      - ./calino.config.json:/usr/share/nginx/html/calino.config.json:ro
+    restart: unless-stopped
+```
+
+**Option C: Custom Dockerfile**
+
+If you need to bake the config into the image:
+
+```dockerfile
+FROM ghcr.io/ivan-malinovski/calino:latest
+copy calino.config.json /usr/share/nginx/html/calino.config.json
+```
+
+Then build and run:
+
+```bash
+docker build -t calino-custom .
+docker run -d -p 3000:80 calino-custom
+```
+
+**Verify:** Open `http://localhost:3000/calino.config.json` in your browser — you should see the JSON. The master password prompt will appear on the main page.
 
 ## Security Model
 

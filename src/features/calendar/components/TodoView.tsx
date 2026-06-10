@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
-import { useMemo, useState, useRef, useEffect, useLayoutEffect } from 'react'
+import { useMemo, useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   format,
   parseISO,
@@ -79,6 +80,10 @@ const GROUP_LABELS: Record<string, string> = {
   nodate: 'No due date',
 }
 
+type VirtualItem =
+  | { type: 'header'; key: string; label: string; count: number; isOverdue?: boolean }
+  | { type: 'task'; key: string; task: TaskWithColor }
+
 export function TodoView(): JSX.Element {
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
@@ -95,12 +100,35 @@ export function TodoView(): JSX.Element {
   const segmentedRef = useRef<HTMLDivElement>(null)
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 })
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [scrollReady, setScrollReady] = useState(false)
 
   useEffect(() => {
     if (composing && composerRef.current) {
       composerRef.current.focus()
     }
   }, [composing])
+
+  // Detect when scroll container is ready (has a height)
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+
+    // Check immediately
+    if (el.clientHeight > 0) {
+      setScrollReady(true)
+      return
+    }
+
+    // Poll briefly for layout
+    const timer = setTimeout(() => {
+      if (el.clientHeight > 0) {
+        setScrollReady(true)
+      }
+    }, 50)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // Sliding indicator for filter tabs
   useLayoutEffect(() => {
@@ -246,6 +274,110 @@ export function TodoView(): JSX.Element {
     }
   }
 
+  const flatItems: VirtualItem[] = useMemo(() => {
+    const items: VirtualItem[] = []
+    for (const group of groupedTasks) {
+      items.push({
+        type: 'header',
+        key: `header-${group.key}`,
+        label: group.label,
+        count: group.tasks.length,
+        isOverdue: group.isOverdue,
+      })
+      for (const task of group.tasks) {
+        items.push({ type: 'task', key: `task-${task.id}`, task })
+      }
+    }
+    return items
+  }, [groupedTasks])
+
+  const virtualizer = useVirtualizer({
+    count: flatItems.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: (index) => (flatItems[index].type === 'header' ? 40 : 56),
+    overscan: 5,
+  })
+
+  const renderHeader = useCallback(
+    (item: Extract<VirtualItem, { type: 'header' }>, transform?: string) => (
+      <div
+        key={item.key}
+        data-index={0}
+        style={{
+          position: transform ? 'absolute' : undefined,
+          top: 0,
+          left: 0,
+          width: '100%',
+          transform,
+        }}
+      >
+        <div className={`${styles.taskGroup} ${item.isOverdue ? styles.overdueGroup : ''}`}>
+          <div className={styles.groupHeader}>
+            <span className={styles.groupTitle}>{item.label}</span>
+            <span className={styles.groupCount}>{item.count}</span>
+            <span className={styles.groupRule} />
+          </div>
+        </div>
+      </div>
+    ),
+    [],
+  )
+
+  const renderTask = useCallback(
+    (item: Extract<VirtualItem, { type: 'task' }>, transform?: string) => {
+      const task = item.task
+      const dueInfo = getDueLabel(task)
+      return (
+        <div
+          key={item.key}
+          data-index={0}
+          style={{
+            position: transform ? 'absolute' : undefined,
+            top: 0,
+            left: 0,
+            width: '100%',
+            transform,
+          }}
+        >
+          <div
+            className={`${styles.taskRow} ${task.completed ? styles.taskDone : ''} ${unstriking.has(task.id) ? styles.unstriking : ''} ${fadingOut.has(task.id) ? styles.fadingOut : ''}`}
+            style={{ '--event-color': task.calendarColor } as React.CSSProperties}
+          >
+            <button
+              className={styles.taskCheck}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleToggleComplete(task)
+              }}
+              aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
+            >
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7.5l2.5 2.5L11 4" />
+              </svg>
+            </button>
+            <div className={styles.taskBody} onClick={() => handleTaskClick(task)}>
+              <div className={styles.taskTitle}>{task.title}</div>
+              {task.description && (
+                <div className={styles.taskNote}>{task.description}</div>
+              )}
+            </div>
+            <div className={styles.taskMeta}>
+              {task.priority && task.priority <= 3 && (
+                <span className={`${styles.priority} ${getPriorityClass(task.priority)}`}>
+                  {PRIORITY_LABELS[task.priority]}
+                </span>
+              )}
+              <span className={`${styles.dueLabel} ${dueInfo.className}`}>
+                {dueInfo.text}
+              </span>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    [unstriking, fadingOut, handleToggleComplete, handleTaskClick],
+  )
+
   return (
     <div className={styles.container}>
       <div className={styles.tpInner}>
@@ -289,7 +421,7 @@ export function TodoView(): JSX.Element {
         </div>
 
         {/* Task List */}
-        <div className={styles.taskList}>
+        <div className={styles.taskList} ref={scrollContainerRef}>
           {/* Inline Composer */}
           {composing && (
             <div className={styles.inlineComposer}>
@@ -313,60 +445,36 @@ export function TodoView(): JSX.Element {
             </div>
           )}
 
-          {/* Task Groups */}
-          {groupedTasks.map((group) => (
+          {/* Virtualized Task List */}
+          {flatItems.length > 0 && scrollReady && (
             <div
-              key={group.key}
-              className={`${styles.taskGroup} ${group.isOverdue ? styles.overdueGroup : ''}`}
+              style={{
+                height: virtualizer.getTotalSize(),
+                width: '100%',
+                position: 'relative',
+              }}
             >
-              <div className={styles.groupHeader}>
-                <span className={styles.groupTitle}>{group.label}</span>
-                <span className={styles.groupCount}>{group.tasks.length}</span>
-                <span className={styles.groupRule} />
-              </div>
-              <div className={styles.groupTasks}>
-                {group.tasks.map((task) => {
-                  const dueInfo = getDueLabel(task)
-                  return (
-                    <div
-                      key={task.id}
-                      className={`${styles.taskRow} ${task.completed ? styles.taskDone : ''} ${unstriking.has(task.id) ? styles.unstriking : ''} ${fadingOut.has(task.id) ? styles.fadingOut : ''}`}
-                      style={{ '--event-color': task.calendarColor } as React.CSSProperties}
-                    >
-                      <button
-                        className={styles.taskCheck}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleToggleComplete(task)
-                        }}
-                        aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
-                      >
-                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 7.5l2.5 2.5L11 4" />
-                        </svg>
-                      </button>
-                      <div className={styles.taskBody} onClick={() => handleTaskClick(task)}>
-                        <div className={styles.taskTitle}>{task.title}</div>
-                        {task.description && (
-                          <div className={styles.taskNote}>{task.description}</div>
-                        )}
-                      </div>
-                      <div className={styles.taskMeta}>
-                        {task.priority && task.priority <= 3 && (
-                          <span className={`${styles.priority} ${getPriorityClass(task.priority)}`}>
-                            {PRIORITY_LABELS[task.priority]}
-                          </span>
-                        )}
-                        <span className={`${styles.dueLabel} ${dueInfo.className}`}>
-                          {dueInfo.text}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+              {virtualizer.getVirtualItems().map((virtualRow) => {
+                const item = flatItems[virtualRow.index]
+                if (item.type === 'header') {
+                  return renderHeader(item, `translateY(${virtualRow.start}px)`)
+                }
+                return renderTask(item, `translateY(${virtualRow.start}px)`)
+              })}
             </div>
-          ))}
+          )}
+
+          {/* Fallback: render all items when scroll container not ready */}
+          {flatItems.length > 0 && !scrollReady && (
+            <>
+              {flatItems.map((item) => {
+                if (item.type === 'header') {
+                  return renderHeader(item)
+                }
+                return renderTask(item)
+              })}
+            </>
+          )}
         </div>
       </div>
     </div>

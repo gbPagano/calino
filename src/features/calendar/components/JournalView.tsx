@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import React, { useState, useMemo, useCallback, useRef, useEffect, useLayoutEffect } from 'react'
 import { format, parseISO } from 'date-fns'
 // useNavigate removed — unused
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { v4 as uuidv4 } from 'uuid'
@@ -326,9 +327,8 @@ export function JournalView(): JSX.Element {
   const [relatedTo, setRelatedTo] = useState<string[]>([])
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'month' | 'all'>('month')
-  const [allPage, setAllPage] = useState(1)
-  const ENTRIES_PER_PAGE = 20
   const segmentedRef = useRef<HTMLDivElement>(null)
+  const pageRef = useRef<HTMLDivElement>(null)
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 })
 
@@ -354,9 +354,7 @@ export function JournalView(): JSX.Element {
       const monthKey = currentDate.slice(0, 7) // yyyy-MM
       filtered = journalEntries.filter((e) => e.start.startsWith(monthKey))
     } else {
-      // All view — paginate
-      const sorted = [...journalEntries].sort((a, b) => b.start.localeCompare(a.start))
-      filtered = sorted.slice(0, allPage * ENTRIES_PER_PAGE)
+      filtered = [...journalEntries].sort((a, b) => b.start.localeCompare(a.start))
     }
 
     // Group by month
@@ -374,13 +372,23 @@ export function JournalView(): JSX.Element {
         monthKey,
         entries: entries.sort((a, b) => b.start.localeCompare(a.start)),
       }))
-  }, [events, currentDate, viewMode, allPage])
+  }, [events, currentDate, viewMode])
 
-  const hasMore = useMemo(() => {
-    if (viewMode !== 'all') return false
-    const total = events.filter((e) => e.type === 'journal').length
-    return allPage * ENTRIES_PER_PAGE < total
-  }, [events, viewMode, allPage])
+  // Flat sorted list for virtualized 'all' mode
+  const allEntries = useMemo(() => {
+    if (viewMode !== 'all') return []
+    return events
+      .filter((e) => e.type === 'journal')
+      .sort((a, b) => b.start.localeCompare(a.start))
+  }, [events, viewMode])
+
+  // Virtualizer for 'all' mode
+  const virtualizer = useVirtualizer({
+    count: allEntries.length,
+    getScrollElement: () => pageRef.current,
+    estimateSize: () => 120,
+    overscan: 5,
+  })
 
   const totalCount = useMemo(
     () => events.filter((e) => e.type === 'journal').length,
@@ -646,8 +654,108 @@ export function JournalView(): JSX.Element {
     }, 200)
   }, [])
 
+  // Renders a single journal entry card (or inline compose form when editing)
+  const renderEntryCard = (entry: CalendarEvent): JSX.Element => {
+    const { day, weekday } = formatEntryDate(entry.start)
+
+    if (editingId === entry.id) {
+      return (
+        <JournalComposeForm
+          editingId={editingId}
+          editingDate={editingDate}
+          title={title}
+          body={body}
+          selectedCategories={selectedCategories}
+          attachments={attachments}
+          url={url}
+          relatedTo={relatedTo}
+          titleRef={titleInputRef}
+          bodyRef={bodyInputRef}
+          saveHint={`${isMac ? '⌘' : 'Ctrl+'} Return to save · Esc to cancel`}
+          formatEntryDate={formatEntryDate}
+          onTitleChange={setTitle}
+          onBodyChange={setBody}
+          onDateChange={setEditingDate}
+          onCategoriesChange={setSelectedCategories}
+          onAttachmentsChange={setAttachments}
+          onUrlChange={setUrl}
+          onRelatedToChange={setRelatedTo}
+          onSave={handleSaveEntry}
+          onCancel={handleCancel}
+        />
+      )
+    }
+
+    return (
+      <article
+        key={entry.id}
+        className={styles.entry}
+        data-date={entry.start}
+        onDoubleClick={() => handleStartEdit(entry)}
+      >
+        <div className={styles.dateCol}>
+          <span className={styles.dayNum}>{day}</span>
+          <span className={styles.weekday}>{weekday}</span>
+        </div>
+        <div className={styles.content}>
+          {entry.title && (
+            <div className={styles.summary}>{entry.title}</div>
+          )}
+          <div
+            className={styles.body}
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(entry.description || '') }}
+          />
+          {entry.categories && entry.categories.length > 0 && (
+            <div className={styles.entryCategories}>
+              {entry.categories.map((cat) => (
+                <span key={cat} className={styles.entryCategoryTag}>{cat}</span>
+              ))}
+            </div>
+          )}
+          {entry.url && (
+            <a
+              href={entry.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.entryLink}
+            >
+              🔗 {entry.url}
+            </a>
+          )}
+          {entry.relatedTo && entry.relatedTo.length > 0 && (
+            <div className={styles.entryRelated}>
+              {entry.relatedTo.map((relId) => {
+                const relatedEvent = events.find((e) => e.id === relId)
+                if (!relatedEvent) return null
+                return (
+                  <span key={relId} className={styles.entryRelatedTag}>
+                    ↗ {relatedEvent.title || '(untitled)'}
+                  </span>
+                )
+              })}
+            </div>
+          )}
+        </div>
+        <button
+          className={`${styles.deleteBtn} ${confirmDeleteId === entry.id ? styles.deleteBtnConfirm : ''}`}
+          title={confirmDeleteId === entry.id ? 'Click to confirm delete' : 'Delete entry'}
+          onClick={(e) => {
+            e.stopPropagation()
+            handleDelete(entry.id)
+          }}
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 4h12" />
+            <path d="M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4" />
+            <path d="M12.667 4v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4" />
+          </svg>
+        </button>
+      </article>
+    )
+  }
+
   return (
-    <div className={styles.page}>
+    <div className={styles.page} ref={pageRef}>
       <div className={styles.inner}>
         {/* Top bar */}
         <div className={styles.bar}>
@@ -667,7 +775,7 @@ export function JournalView(): JSX.Element {
               <button
                 ref={(el) => { if (el) tabRefs.current.set('all', el) }}
                 className={`${styles.segmentTab} ${viewMode === 'all' ? styles.segmentTabActive : ''}`}
-                onClick={() => { setViewMode('all'); setAllPage(1) }}
+                onClick={() => setViewMode('all')}
               >
                 All
               </button>
@@ -715,122 +823,36 @@ export function JournalView(): JSX.Element {
             <strong>Nothing written yet</strong>
             Start capturing your days — one entry at a time.
           </div>
+        ) : viewMode === 'month' ? (
+          /* Month mode — bounded, no virtualization needed */
+          groupedEntries.map(({ monthKey, entries }) => (
+            <section key={monthKey} className={styles.monthGroup}>
+              {entries.map((entry) => (
+                <React.Fragment key={entry.id}>{renderEntryCard(entry)}</React.Fragment>
+              ))}
+            </section>
+          ))
         ) : (
-          groupedEntries.map(({ monthKey, entries }) => {
-            return (
-              <section key={monthKey} className={styles.monthGroup}>
-                {entries.map((entry) => {
-                  const { day, weekday } = formatEntryDate(entry.start)
-
-                  // If this entry is being edited, show compose form inline
-                  if (editingId === entry.id) {
-                    return (
-                      <JournalComposeForm
-                        key={entry.id}
-                        editingId={editingId}
-                        editingDate={editingDate}
-                        title={title}
-                        body={body}
-                        selectedCategories={selectedCategories}
-                        attachments={attachments}
-                        url={url}
-                        relatedTo={relatedTo}
-                        titleRef={titleInputRef}
-                        bodyRef={bodyInputRef}
-                        saveHint={`${isMac ? '⌘' : 'Ctrl+'} Return to save · Esc to cancel`}
-                        formatEntryDate={formatEntryDate}
-                        onTitleChange={setTitle}
-                        onBodyChange={setBody}
-                        onDateChange={setEditingDate}
-                        onCategoriesChange={setSelectedCategories}
-                        onAttachmentsChange={setAttachments}
-                        onUrlChange={setUrl}
-                        onRelatedToChange={setRelatedTo}
-                        onSave={handleSaveEntry}
-                        onCancel={handleCancel}
-                      />
-                    )
-                  }
-
-                  return (
-                    <article
-                      key={entry.id}
-                      className={styles.entry}
-                      data-date={entry.start}
-                      onDoubleClick={() => handleStartEdit(entry)}
-                    >
-                      <div className={styles.dateCol}>
-                        <span className={styles.dayNum}>{day}</span>
-                        <span className={styles.weekday}>{weekday}</span>
-                      </div>
-                      <div className={styles.content}>
-                        {entry.title && (
-                          <div className={styles.summary}>{entry.title}</div>
-                        )}
-                        <div
-                          className={styles.body}
-                          dangerouslySetInnerHTML={{ __html: renderMarkdown(entry.description || '') }}
-                        />
-                        {entry.categories && entry.categories.length > 0 && (
-                          <div className={styles.entryCategories}>
-                            {entry.categories.map((cat) => (
-                              <span key={cat} className={styles.entryCategoryTag}>{cat}</span>
-                            ))}
-                          </div>
-                        )}
-                        {entry.url && (
-                          <a
-                            href={entry.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.entryLink}
-                          >
-                            🔗 {entry.url}
-                          </a>
-                        )}
-                        {entry.relatedTo && entry.relatedTo.length > 0 && (
-                          <div className={styles.entryRelated}>
-                            {entry.relatedTo.map((relId) => {
-                              const relatedEvent = events.find((e) => e.id === relId)
-                              if (!relatedEvent) return null
-                              return (
-                                <span key={relId} className={styles.entryRelatedTag}>
-                                  ↗ {relatedEvent.title || '(untitled)'}
-                                </span>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        className={`${styles.deleteBtn} ${confirmDeleteId === entry.id ? styles.deleteBtnConfirm : ''}`}
-                        title={confirmDeleteId === entry.id ? 'Click to confirm delete' : 'Delete entry'}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDelete(entry.id)
-                        }}
-                      >
-                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M2 4h12" />
-                          <path d="M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4" />
-                          <path d="M12.667 4v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4" />
-                        </svg>
-                      </button>
-                    </article>
-                  )
-                })}
-              </section>
-            )
-          })
-        )}
-
-        {hasMore && (
-          <button
-            className={styles.loadMore}
-            onClick={() => setAllPage((p) => p + 1)}
-          >
-            Load more
-          </button>
+          /* All mode — virtualized flat list */
+          <div style={{ position: 'relative', height: `${virtualizer.getTotalSize()}px` }}>
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const entry = allEntries[virtualRow.index]
+              return (
+                <div
+                  key={entry.id}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  {renderEntryCard(entry)}
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
     </div>

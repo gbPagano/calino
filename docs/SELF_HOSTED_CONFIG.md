@@ -16,7 +16,7 @@ node scripts/encrypt-password.mjs --master "choose-a-master-password" --password
 
 This outputs a JSON blob. Keep the master password safe — you'll share it with users.
 
-**2. Create `calino.config.json`:**
+**2. Create `calino.config.json` in the project root:**
 
 ```json
 {
@@ -32,15 +32,18 @@ This outputs a JSON blob. Keep the master password safe — you'll share it with
 }
 ```
 
-**3. Serve the file:**
+**3. Build:**
 
-- **Docker Compose** — uncomment the volume mount in `docker-compose.yml`
-- **Docker run** — `-v ./calino.config.json:/srv/calino.config.json:ro`
-- **Development** — place in `public/`
+```bash
+pnpm build            # Dev
+docker compose up -d --build  # Docker
+```
+
+The config is baked into the JS bundle at build time. It is **not** served as a separate file — server URLs and usernames are hidden in minified JavaScript.
 
 **4. Tell users the master password.**
 
-When they open Calino, they'll see a unlock prompt. After entering the master password, all preconfigured accounts connect automatically.
+When they open Calino, they'll see an unlock prompt. After entering the master password, all preconfigured accounts connect automatically.
 
 ### User Experience
 
@@ -54,11 +57,12 @@ When they open Calino, they'll see a unlock prompt. After entering the master pa
 
 | What | Where | Contains |
 |------|-------|----------|
-| `calino.config.json` | Server (static file) | Encrypted passwords only |
+| JS bundle | Server (minified) | Encrypted passwords, server URLs, usernames (hidden in minified code) |
 | localStorage | User's browser | Master password (plain text) |
 | Memory (Zustand) | User's browser tab | Decrypted CalDAV passwords |
 
-- The config file is safe to commit to a repo — it only has encrypted blobs.
+- The config is baked into the JS bundle at build time. It's not served as a separate file.
+- Server URLs and usernames are in minified JavaScript — not casually readable, but not truly secret.
 - The master password is in the user's browser. If someone has access to the browser, they can already see everything.
 - Decrypted CalDAV passwords exist only in memory and are re-derived from the master password + config on each page load.
 
@@ -81,13 +85,14 @@ You can add as many accounts as needed. Each has its own encrypted password:
 ```yaml
 services:
   calino:
-    image: ghcr.io/ivan-malinovski/calino:latest
+    build:
+      context: .
     ports:
       - "3000:8080"
-    volumes:
-      - ./calino.config.json:/srv/calino.config.json:ro
     restart: unless-stopped
 ```
+
+Place `calino.config.json` in the project root before running `docker compose up -d --build`. The config is baked into the bundle during the build step.
 
 ### CORS Requirement
 
@@ -97,7 +102,7 @@ The browser connects directly to your CalDAV server. Your server must allow cros
 
 | Problem | Solution |
 |---------|----------|
-| Prompt doesn't appear | Check that `calino.config.json` is served at `/calino.config.json` (open it in browser) |
+| Prompt doesn't appear | Ensure `calino.config.json` exists in project root during build. Check build logs for `[build] Loaded calino.config.json`. |
 | "Wrong password" | The master password must match the one used to encrypt. Re-encrypt if needed. |
 | Accounts don't connect | Check browser console. Server URL must be reachable and CORS-enabled. |
 | Prompt keeps appearing | Don't clear browser localStorage. The master password is stored there. |
@@ -110,12 +115,20 @@ The browser connects directly to your CalDAV server. Your server must allow cros
 
 ```
 calino.config.json          localStorage              Zustand store
-(encrypted blobs)           (master password)          (decrypted passwords)
+(project root, build-time)  (master password)          (decrypted passwords)
+        │                          │                          │
+        ▼                          │                          │
+    vite.config.ts                  │                          │
+    (Vite define at build)          │                          │
+        │                          │                          │
+        ▼                          │                          │
+    JS bundle                       │                          │
+    (__CALINO_CONFIG__)             │                          │
         │                          │                          │
         └──────────┬───────────────┘                          │
                    │                                          │
             configLoader.ts                                   │
-            (fetch + validate)                                │
+            (reads __CALINO_CONFIG__, validates)               │
                    │                                          │
                    ▼                                          │
             configStore.ts                                    │
@@ -130,8 +143,9 @@ calino.config.json          localStorage              Zustand store
 
 | File | Role |
 |------|------|
+| `vite.config.ts` | Reads `calino.config.json` at build time, injects as `__CALINO_CONFIG__` via `define` |
 | `src/lib/crypto.ts` | `encryptWithMasterPassword()`, `decryptWithMasterPassword()`, `deriveKeyFromPassword()` — PBKDF2 + AES-256-GCM |
-| `src/lib/configLoader.ts` | Fetches `/calino.config.json`, validates schema, caches result |
+| `src/lib/configLoader.ts` | Reads `__CALINO_CONFIG__` global, validates schema, caches result |
 | `src/store/configStore.ts` | Zustand store: master password, decrypted credentials, unlock/lock actions |
 | `src/features/settings/components/MasterPasswordPrompt.tsx` | Modal UI for master password entry |
 | `src/features/caldav/hooks/useCalDAV.ts` | Auto-connect logic (lines ~443–490) |
@@ -206,9 +220,9 @@ The CalDAV credentials are encrypted with a separate app-level key (`APP_SECRET`
 # 1. Encrypt password
 node scripts/encrypt-password.mjs --master "test123" --password "your-password"
 
-# 2. Create calino.config.json with the encrypted blob
+# 2. Create calino.config.json in project root with the encrypted blob
 
-# 3. Run with Docker
+# 3. Build and run
 docker compose up -d --build
 
 # 4. Open http://localhost:8080
@@ -216,10 +230,12 @@ docker compose up -d --build
 # 6. Accounts should auto-connect
 ```
 
+To test without config: delete `calino.config.json` from project root before building. The prompt won't appear.
+
 ### Known Limitations
 
 - Master password is stored in plain text in localStorage (same as existing CalDAV credentials)
 - No "lock" button in the UI — once unlocked, stays unlocked until browser data is cleared
 - No support for changing master password without re-encrypting all passwords
-- Config file is static — changing it requires a page reload
+- Config requires a rebuild to update (it's baked into the JS bundle)
 - Preconfigured accounts are read-only in the settings UI (can't delete or edit them)

@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { loadConfig, type CalinoConfig } from '../lib/configLoader'
-import { decryptWithMasterPassword } from '../lib/crypto'
+import {
+  decryptWithMasterPassword,
+  encryptPassword,
+  decryptPassword,
+  isEncryptedPassword,
+} from '../lib/crypto'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -27,26 +32,33 @@ interface ConfigState {
   // Actions
   loadConfigFile: () => Promise<void>
   unlock: (masterPassword: string) => Promise<boolean>
-  lock: () => void
+  lock: () => Promise<void>
   getCredential: (accountUrl: string, username: string) => DecryptedCredential | null
 }
 
-// ─── localStorage helpers ────────────────────────────────────────────────────
+// ─── localStorage helpers (encrypted at rest) ───────────────────────────────
 
 const MASTER_PASSWORD_KEY = 'calino.masterPassword'
 
-function getStoredMasterPassword(): string | null {
+async function getStoredMasterPassword(): Promise<string | null> {
   try {
-    return localStorage.getItem(MASTER_PASSWORD_KEY)
+    const raw = localStorage.getItem(MASTER_PASSWORD_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (isEncryptedPassword(parsed)) {
+      return await decryptPassword(parsed)
+    }
+    return null
   } catch {
     return null
   }
 }
 
-function setStoredMasterPassword(password: string | null): void {
+async function setStoredMasterPassword(password: string | null): Promise<void> {
   try {
     if (password) {
-      localStorage.setItem(MASTER_PASSWORD_KEY, password)
+      const encrypted = await encryptPassword(password)
+      localStorage.setItem(MASTER_PASSWORD_KEY, JSON.stringify(encrypted))
     } else {
       localStorage.removeItem(MASTER_PASSWORD_KEY)
     }
@@ -67,7 +79,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   // Initial state
   config: null,
   configLoaded: false,
-  masterPassword: getStoredMasterPassword(),
+  masterPassword: null, // loaded async in loadConfigFile
   decryptedCredentials: new Map(),
   isUnlocked: false,
   hasPreconfiguredAccounts: false,
@@ -90,7 +102,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     })
 
     // Auto-unlock if master password is stored
-    const storedPassword = getStoredMasterPassword()
+    const storedPassword = await getStoredMasterPassword()
     if (storedPassword) {
       await get().unlock(storedPassword)
     }
@@ -123,7 +135,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       }
 
       // All decrypted successfully
-      setMasterPassword(masterPassword)
+      await setMasterPassword(masterPassword)
       set({
         masterPassword,
         decryptedCredentials: decrypted,
@@ -140,8 +152,8 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   /**
    * Lock — clear decrypted credentials from memory.
    */
-  lock: () => {
-    setMasterPassword(null)
+  lock: async () => {
+    await setMasterPassword(null)
     set({
       masterPassword: null,
       decryptedCredentials: new Map(),
@@ -160,6 +172,6 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
 // ─── Persist master password ─────────────────────────────────────────────────
 
-function setMasterPassword(password: string | null): void {
-  setStoredMasterPassword(password)
+async function setMasterPassword(password: string | null): Promise<void> {
+  await setStoredMasterPassword(password)
 }

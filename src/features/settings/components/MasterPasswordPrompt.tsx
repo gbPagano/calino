@@ -1,12 +1,49 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useConfigStore } from '../../../store/configStore'
 import styles from './MasterPasswordPrompt.module.css'
 
+const MAX_ATTEMPTS = 5
+const BLOCK_DURATION_MS = 60_000
+const ATTEMPTS_KEY = 'calino.masterPassword.attempts'
+const BLOCKED_KEY = 'calino.masterPassword.blockedUntil'
+
+function getAttempts(): number {
+  try {
+    return parseInt(localStorage.getItem(ATTEMPTS_KEY) ?? '0', 10) || 0
+  } catch {
+    return 0
+  }
+}
+
+function setAttempts(n: number): void {
+  try {
+    localStorage.setItem(ATTEMPTS_KEY, String(n))
+  } catch { /* unavailable */ }
+}
+
+function getBlockedUntil(): number {
+  try {
+    return parseInt(localStorage.getItem(BLOCKED_KEY) ?? '0', 10) || 0
+  } catch {
+    return 0
+  }
+}
+
+function setBlockedUntil(ts: number): void {
+  try {
+    localStorage.setItem(BLOCKED_KEY, String(ts))
+  } catch { /* unavailable */ }
+}
+
 export function MasterPasswordPrompt() {
+  const location = useLocation()
   const { hasPreconfiguredAccounts, isUnlocked, unlock } = useConfigStore()
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [blocked, setBlocked] = useState(false)
+  const [remainingSeconds, setRemainingSeconds] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Focus input on mount
@@ -14,8 +51,36 @@ export function MasterPasswordPrompt() {
     inputRef.current?.focus()
   }, [])
 
+  // Check if currently blocked
+  useEffect(() => {
+    const blockedUntil = getBlockedUntil()
+    if (blockedUntil > Date.now()) {
+      setBlocked(true)
+      setRemainingSeconds(Math.ceil((blockedUntil - Date.now()) / 1000))
+    }
+  }, [])
+
+  // Countdown timer
+  useEffect(() => {
+    if (!blocked) return
+    const interval = setInterval(() => {
+      const blockedUntil = getBlockedUntil()
+      const remaining = Math.ceil((blockedUntil - Date.now()) / 1000)
+      if (remaining <= 0) {
+        setBlocked(false)
+        setRemainingSeconds(0)
+        setAttempts(0)
+        clearInterval(interval)
+        inputRef.current?.focus()
+      } else {
+        setRemainingSeconds(remaining)
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [blocked])
+
   const handleSubmit = useCallback(async () => {
-    if (!password.trim() || loading) return
+    if (!password.trim() || loading || blocked) return
 
     setLoading(true)
     setError('')
@@ -23,11 +88,28 @@ export function MasterPasswordPrompt() {
     const success = await unlock(password)
 
     if (!success) {
-      setError('Wrong password. Please try again.')
+      const newAttempts = getAttempts() + 1
+      setAttempts(newAttempts)
+
+      if (newAttempts >= MAX_ATTEMPTS) {
+        const blockedUntil = Date.now() + BLOCK_DURATION_MS
+        setBlockedUntil(blockedUntil)
+        setBlocked(true)
+        setRemainingSeconds(Math.ceil(BLOCK_DURATION_MS / 1000))
+        setError(`Too many attempts. Try again in 1 minute.`)
+      } else {
+        setError(`Wrong password. ${MAX_ATTEMPTS - newAttempts} attempt${MAX_ATTEMPTS - newAttempts === 1 ? '' : 's'} remaining.`)
+      }
+
+      setPassword('')
       setLoading(false)
-      inputRef.current?.select()
+      inputRef.current?.focus()
+    } else {
+      // Success — reset attempts
+      setAttempts(0)
+      setBlockedUntil(0)
     }
-  }, [password, loading, unlock])
+  }, [password, loading, unlock, blocked])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -42,8 +124,8 @@ export function MasterPasswordPrompt() {
     [handleSubmit]
   )
 
-  // Don't show if no preconfigured accounts or already unlocked
-  if (!hasPreconfiguredAccounts || isUnlocked) {
+  // Don't show if no preconfigured accounts, already unlocked, or on /setup
+  if (!hasPreconfiguredAccounts || isUnlocked || location.pathname === '/setup') {
     return null
   }
 
@@ -75,7 +157,7 @@ export function MasterPasswordPrompt() {
             onKeyDown={handleKeyDown}
             placeholder="Enter master password"
             autoComplete="current-password"
-            disabled={loading}
+            disabled={loading || blocked}
           />
           {error && <div className={styles.errorText}>{error}</div>}
         </div>
@@ -84,10 +166,12 @@ export function MasterPasswordPrompt() {
           <button
             className={`${styles.button} ${styles.submit}`}
             onClick={handleSubmit}
-            disabled={!password.trim() || loading}
+            disabled={!password.trim() || loading || blocked}
           >
             {loading ? (
               <span className={styles.spinner} />
+            ) : blocked ? (
+              `Wait ${remainingSeconds}s`
             ) : (
               'Unlock'
             )}

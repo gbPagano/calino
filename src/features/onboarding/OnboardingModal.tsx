@@ -121,16 +121,20 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
           <button className={styles.addButton} onClick={handleAddCalendar}>
             Add CalDAV Account
           </button>
-          <button
-            className={styles.demoButton}
-            onClick={handleLoadDemoData}
-            disabled={isLoadingDemo}
-          >
-            {isLoadingDemo ? 'Loading...' : 'Try with sample data'}
-          </button>
-          <button className={styles.skipButton} onClick={handleDismiss}>
-            I'll do it later
-          </button>
+          {!__CALINO_SELF_HOSTED__ && (
+            <>
+              <button
+                className={styles.demoButton}
+                onClick={handleLoadDemoData}
+                disabled={isLoadingDemo}
+              >
+                {isLoadingDemo ? 'Loading...' : 'Try with sample data'}
+              </button>
+              <button className={styles.skipButton} onClick={handleDismiss}>
+                I'll do it later
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

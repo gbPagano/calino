@@ -82,6 +82,7 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 - **No telemetry, no analytics.** Nothing leaves your browser except CalDAV traffic to your own server
 - **Serverless by design.** There's nothing to breach on Calino's side — the app is just static HTML/JS
 - **Docker hardening.** Runs as non-root, minimal base image, no shell access
+- **Self-hosted account preloading.** Ship Calino with preconfigured CalDAV accounts protected by a master password. Generate the config via the browser-based `/setup` wizard — no Node.js required. See [`docs/SELF_HOSTED_CONFIG.md`](./docs/SELF_HOSTED_CONFIG.md)
 
 ### Limitations
 - No enterprise features
@@ -117,6 +118,8 @@ docker compose up -d
 
 Calino runs at http://localhost:8080 by default.
 To customize settings (site URL, offline support), create a `.env` file — see [`docs/DOCKER.md`](./docs/DOCKER.md) for full details.
+
+**Preconfigure CalDAV accounts:** Visit `/setup` in any running Calino instance to generate a config file with encrypted credentials. Place it in the project root and rebuild — users will be prompted for a master password instead of entering server details manually. See [`docs/SELF_HOSTED_CONFIG.md`](./docs/SELF_HOSTED_CONFIG.md) for details.
 
 ## No-Docker
 

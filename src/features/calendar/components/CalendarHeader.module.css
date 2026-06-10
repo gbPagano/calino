@@ -321,6 +321,32 @@
   color: var(--ink);
 }
 
+.quickSettingsFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quickSettingsLock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-right: 14px;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-2);
+  transition: color 0.12s, background 0.12s;
+}
+
+.quickSettingsLock:hover {
+  color: var(--color-error, #ea4335);
+  background: rgba(234, 67, 53, 0.08);
+}
+
 /* ---- View Tabs (Segmented Control) ---- */
 .viewTabs {
   display: flex;

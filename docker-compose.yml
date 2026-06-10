@@ -7,14 +7,9 @@ services:
         - CALINO_ENABLE_SW=${CALINO_ENABLE_SW:-false}
         - CALINO_GITHUB_REPO=${CALINO_GITHUB_REPO:-ivan-malinovski/Calino}
         - CALINO_CONTACT_EMAIL=${CALINO_CONTACT_EMAIL:-calendar@malinov.ski}
+        - CALINO_SELF_HOSTED=${CALINO_SELF_HOSTED:-true}
     ports:
       - "8080:8080"
-    # Self-hosted config: place calino.config.json in the project root before building.
-    # It gets baked into the JS bundle at build time (not served as a separate file).
-    # See docs/SELF_HOSTED_CONFIG.md for setup instructions.
-    # ⚠️ All env vars are build-time only (baked into JS by Vite).
-    # To change them: update .env, then `docker compose build`.
-    # See docs/DOCKER.md for details.
     restart: unless-stopped
     # ⚠️ cap_drop ALL removed — Docker Desktop 4.7.1 (runc v1.0.3) has a bug
     # where it drops capabilities needed by the container init process itself,

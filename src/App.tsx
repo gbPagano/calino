@@ -16,6 +16,7 @@ import { CommandPalette } from './features/commandPalette'
 import { CookieConsent, ErrorBoundary } from './components/common'
 import { CalendarSkeleton } from './components/common/Skeleton'
 import { OnboardingModal } from './features/onboarding/OnboardingModal'
+import { SetupPage } from './features/setup/SetupPage'
 import { MasterPasswordPrompt } from './features/settings/components/MasterPasswordPrompt'
 import { useConfigStore } from './store/configStore'
 import { ThemeProvider } from './components/ThemeProvider'
@@ -508,6 +509,7 @@ function App(): JSX.Element {
           <Route path="/" element={<CalendarApp />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/setup" element={<SetupPage />} />
         </Routes>
       </ThemeProvider>
     </BrowserRouter>

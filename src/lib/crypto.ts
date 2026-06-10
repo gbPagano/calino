@@ -10,7 +10,7 @@
 
 const APP_SECRET = 'calino-caldav-v1-2024'
 const APP_SALT = 'calino-salt-v1-2024'
-const PBKDF2_ITERATIONS = 100_000
+const PBKDF2_ITERATIONS = 600_000
 
 export interface EncryptedData {
   iv: string

@@ -17,6 +17,7 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { MOBILE_BREAKPOINT, TABLET_BREAKPOINT } from '@/config'
 const SIDEBAR_BREAKPOINT = 950
 import { useSettingsStore } from '@/store/settingsStore'
+import { useConfigStore } from '@/store/configStore'
 import { useGestures } from '@/hooks/useGestures'
 import type { ViewType } from '@/types'
 import styles from './CalendarHeader.module.css'
@@ -59,6 +60,8 @@ export function CalendarHeader({
   const themeMode = useSettingsStore((state) => state.themeMode)
   const journalEnabled = useSettingsStore((state) => state.journalEnabled)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
+  const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
+  const lock = useConfigStore((state) => state.lock)
 
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
@@ -405,12 +408,27 @@ export function CalendarHeader({
                 </button>
               </div>
               <div className={styles.quickSettingsDivider} />
-              <button
-                className={styles.quickSettingsLink}
-                onClick={() => navigate('/settings')}
-              >
-                All settings →
-              </button>
+              <div className={styles.quickSettingsFooter}>
+                <button
+                  className={styles.quickSettingsLink}
+                  onClick={() => navigate('/settings')}
+                >
+                  All settings →
+                </button>
+                {hasPreconfiguredAccounts && (
+                  <button
+                    className={styles.quickSettingsLock}
+                    onClick={() => lock()}
+                    aria-label="Lock Calino"
+                    title="Lock"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="7" width="10" height="7" rx="2" />
+                      <path d="M5 7V5a3 3 0 016 0v2" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>

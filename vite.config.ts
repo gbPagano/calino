@@ -25,6 +25,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __CALINO_CONFIG__: JSON.stringify(calinoConfig),
+    __CALINO_SELF_HOSTED__: JSON.stringify(!!calinoConfig || process.env.CALINO_SELF_HOSTED === 'true'),
   },
   plugins: [react(), nodePolyfills()],
   server: {

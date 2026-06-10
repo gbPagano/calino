@@ -16,7 +16,7 @@ if (!globalThis.crypto) {
   globalThis.crypto = webcrypto
 }
 
-const PBKDF2_ITERATIONS = 100_000
+const PBKDF2_ITERATIONS = 600_000
 
 function parseArgs() {
   const args = process.argv.slice(2)

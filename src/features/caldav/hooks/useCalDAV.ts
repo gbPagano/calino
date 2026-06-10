@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { addDays } from 'date-fns'
 import type { CalendarEvent } from '@/types'
 import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
@@ -11,6 +11,7 @@ import * as storage from '../sync/accountStorage'
 import { SyncEngine } from '../sync/syncEngine'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import { useConfigStore } from '@/store/configStore'
 import { EVENT_COLORS } from '@/store/settingsStore'
 import {
   selectAddEvent,
@@ -438,6 +439,38 @@ export function useCalDAV(): UseCalDAVReturn {
     },
     [storeAddEvent, storeUpdateEvent]
   )
+
+  // Auto-connect to preconfigured accounts when unlocked
+  const autoConnectRef = useRef(false)
+  useEffect(() => {
+    const { isUnlocked, hasPreconfiguredAccounts, config, getCredential } = useConfigStore.getState()
+
+    if (!isUnlocked || !hasPreconfiguredAccounts || !config || autoConnectRef.current) {
+      return
+    }
+
+    autoConnectRef.current = true
+
+    const existingAccounts = storage.getAllAccounts()
+
+    for (const account of config.accounts) {
+      // Skip if already connected (dedup by URL + username)
+      const alreadyConnected = existingAccounts.some(
+        (a) => a.serverUrl === account.url && a.username === account.username
+      )
+      if (alreadyConnected) continue
+
+      const credential = getCredential(account.url, account.username)
+      if (!credential) continue
+
+      // Auto-connect in background (don't await — non-blocking)
+      console.log(`[CalDAV] Auto-connecting to preconfigured account: ${account.name}`)
+      addAccount(account.url, credential.username, credential.password, account.name)
+        .catch((err) => {
+          console.error(`[CalDAV] Failed to auto-connect ${account.name}:`, err)
+        })
+    }
+  }, [addAccount])
 
   const removeAccount = useCallback(async (accountId: string): Promise<void> => {
     const account = storage.getAccountById(accountId)

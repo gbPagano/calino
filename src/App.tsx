@@ -16,6 +16,8 @@ import { CommandPalette } from './features/commandPalette'
 import { CookieConsent, ErrorBoundary } from './components/common'
 import { CalendarSkeleton } from './components/common/Skeleton'
 import { OnboardingModal } from './features/onboarding/OnboardingModal'
+import { MasterPasswordPrompt } from './features/settings/components/MasterPasswordPrompt'
+import { useConfigStore } from './store/configStore'
 import { ThemeProvider } from './components/ThemeProvider'
 import type { ViewType } from './types'
 import { TOAST_DURATION_MS } from './config'
@@ -483,11 +485,19 @@ function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
 }
 
 function App(): JSX.Element {
+  const loadConfigFile = useConfigStore((state) => state.loadConfigFile)
+
+  // Load self-hosted config on mount
+  useEffect(() => {
+    loadConfigFile()
+  }, [loadConfigFile])
+
   return (
     <BrowserRouter>
       <ThemeProvider>
         <Toast />
         <CookieConsent />
+        <MasterPasswordPrompt />
         <Routes>
           <Route path="/month" element={<CalendarApp />} />
           <Route path="/week" element={<CalendarApp />} />

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "accounts": [
+    {
+      "name": "Personal",
+      "url": "https://caldav.example.com/dav.php/calendars/user/personal/",
+      "username": "user@example.com",
+      "password": {
+        "ciphertext": "ENCRYPTED_CIPHERTEXT_BASE64URL",
+        "iv": "ENCRYPTED_IV_BASE64URL",
+        "salt": "ENCRYPTED_SALT_BASE64URL"
+      }
+    },
+    {
+      "name": "Work",
+      "url": "https://caldav.work.com/dav.php/calendars/user/work/",
+      "username": "employee@work.com",
+      "password": {
+        "ciphertext": "ENCRYPTED_CIPHERTEXT_BASE64URL",
+        "iv": "ENCRYPTED_IV_BASE64URL",
+        "salt": "ENCRYPTED_SALT_BASE64URL"
+      }
+    }
+  ]
+}

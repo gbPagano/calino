@@ -201,3 +201,11 @@ export default {
   },
 }
 ```
+
+## Self-Hosted Config
+
+For self-hosted deployments, Calino supports preconfiguring CalDAV accounts via `calino.config.json`. See [docs/SELF_HOSTED_CONFIG.md](./docs/SELF_HOSTED_CONFIG.md) for details.
+
+Config file location: `public/calino.config.json` (served at app root)
+
+Encryption script: `node scripts/encrypt-password.mjs --master "pass" --password "caldavpass"`

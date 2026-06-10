@@ -1,10 +1,12 @@
 /**
  * CalDAV Password Encryption
  *
- * Encrypts CalDAV passwords before storing in localStorage.
- * Uses a fixed app-derived key (obfuscation, not true security).
- * Protects against casual inspection, not XSS.
+ * Two modes:
+ * 1. App-level encryption (fixed key) — for localStorage CalDAV credentials
+ * 2. Master-password encryption (user-provided key) — for self-hosted config files
  */
+
+// ─── App-level encryption (existing) ─────────────────────────────────────────
 
 const APP_SECRET = 'calino-caldav-v1-2024'
 const APP_SALT = 'calino-salt-v1-2024'
@@ -14,6 +16,16 @@ export interface EncryptedData {
   iv: string
   data: string
 }
+
+// ─── Master-password encryption (self-hosted config) ─────────────────────────
+
+export interface MasterEncryptedData {
+  ciphertext: string  // base64url
+  iv: string          // base64url
+  salt: string        // base64url
+}
+
+// ─── Shared helpers ──────────────────────────────────────────────────────────
 
 let cachedKey: CryptoKey | null = null
 
@@ -106,5 +118,102 @@ export function isEncryptedPassword(value: unknown): value is EncryptedData {
     'data' in value &&
     typeof (value as EncryptedData).iv === 'string' &&
     typeof (value as EncryptedData).data === 'string'
+  )
+}
+
+// ─── Master-password encryption (for self-hosted config files) ───────────────
+
+/**
+ * Derive an AES-256-GCM key from a user-provided master password.
+ * Each password has its own random salt.
+ */
+async function deriveKeyFromPassword(
+  password: string,
+  salt: Uint8Array
+): Promise<CryptoKey> {
+  const encoder = new TextEncoder()
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  )
+
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: salt as unknown as BufferSource,
+      iterations: PBKDF2_ITERATIONS,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  )
+}
+
+/**
+ * Encrypt a CalDAV password with a master password.
+ * Returns a self-contained blob with ciphertext, iv, and salt.
+ */
+export async function encryptWithMasterPassword(
+  plaintext: string,
+  masterPassword: string
+): Promise<MasterEncryptedData> {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const key = await deriveKeyFromPassword(masterPassword, salt)
+  const encoder = new TextEncoder()
+
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encoder.encode(plaintext)
+  )
+
+  return {
+    ciphertext: toBase64(encrypted),
+    iv: toBase64(iv.buffer),
+    salt: toBase64(salt.buffer),
+  }
+}
+
+/**
+ * Decrypt a CalDAV password with a master password.
+ * Throws on wrong password or corrupted data.
+ */
+export async function decryptWithMasterPassword(
+  encrypted: MasterEncryptedData,
+  masterPassword: string
+): Promise<string> {
+  const salt = fromBase64(encrypted.salt)
+  const iv = fromBase64(encrypted.iv)
+  const ciphertext = fromBase64(encrypted.ciphertext)
+  const key = await deriveKeyFromPassword(masterPassword, salt)
+
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: new Uint8Array(iv) },
+    key,
+    new Uint8Array(ciphertext)
+  )
+
+  return new TextDecoder().decode(decrypted)
+}
+
+/**
+ * Check if a value matches the MasterEncryptedData shape.
+ */
+export function isMasterEncryptedData(value: unknown): value is MasterEncryptedData {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'ciphertext' in value &&
+    'iv' in value &&
+    'salt' in value &&
+    typeof (value as MasterEncryptedData).ciphertext === 'string' &&
+    typeof (value as MasterEncryptedData).iv === 'string' &&
+    typeof (value as MasterEncryptedData).salt === 'string'
   )
 }

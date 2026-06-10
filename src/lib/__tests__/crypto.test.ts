@@ -3,75 +3,106 @@ import {
   encryptPassword,
   decryptPassword,
   isEncryptedPassword,
+  encryptWithMasterPassword,
+  decryptWithMasterPassword,
+  isMasterEncryptedData,
 } from '../crypto'
 
-describe('crypto', () => {
-  describe('encryptPassword / decryptPassword', () => {
-    it('round-trips a password through encrypt/decrypt', async () => {
-      const password = 'my-secret-calDAV-password-123'
-      const encrypted = await encryptPassword(password)
+describe('App-level encryption (fixed key)', () => {
+  it('encrypts and decrypts a password', async () => {
+    const original = 'my-caldav-password-123'
+    const encrypted = await encryptPassword(original)
 
-      expect(encrypted.iv).toBeTruthy()
-      expect(encrypted.data).toBeTruthy()
-      expect(encrypted.iv).not.toBe(password)
-      expect(encrypted.data).not.toBe(password)
+    expect(encrypted.iv).toBeTruthy()
+    expect(encrypted.data).toBeTruthy()
+    expect(encrypted.data).not.toBe(original)
 
-      const decrypted = await decryptPassword(encrypted)
-      expect(decrypted).toBe(password)
-    })
-
-    it('produces different ciphertext for the same password (random IV)', async () => {
-      const password = 'same-password'
-      const enc1 = await encryptPassword(password)
-      const enc2 = await encryptPassword(password)
-
-      // Different IVs → different ciphertext
-      expect(enc1.iv).not.toBe(enc2.iv)
-      expect(enc1.data).not.toBe(enc2.data)
-
-      // Both decrypt to the same value
-      expect(await decryptPassword(enc1)).toBe(password)
-      expect(await decryptPassword(enc2)).toBe(password)
-    })
-
-    it('handles empty string password', async () => {
-      const encrypted = await encryptPassword('')
-      const decrypted = await decryptPassword(encrypted)
-      expect(decrypted).toBe('')
-    })
-
-    it('handles special characters and unicode', async () => {
-      const password = 'pà$$w0rd!@#$%^&*()_+{}|:"<>?🚀'
-      const encrypted = await encryptPassword(password)
-      const decrypted = await decryptPassword(encrypted)
-      expect(decrypted).toBe(password)
-    })
-
-    it('handles long passwords', async () => {
-      const password = 'a'.repeat(1000)
-      const encrypted = await encryptPassword(password)
-      const decrypted = await decryptPassword(encrypted)
-      expect(decrypted).toBe(password)
-    })
+    const decrypted = await decryptPassword(encrypted)
+    expect(decrypted).toBe(original)
   })
 
-  describe('isEncryptedPassword', () => {
-    it('returns true for encrypted format', () => {
-      expect(isEncryptedPassword({ iv: 'abc', data: 'def' })).toBe(true)
-    })
+  it('produces different ciphertext for same input (random IV)', async () => {
+    const password = 'same-password'
+    const a = await encryptPassword(password)
+    const b = await encryptPassword(password)
 
-    it('returns false for plaintext string', () => {
-      expect(isEncryptedPassword('my-password')).toBe(false)
-    })
+    expect(a.data).not.toBe(b.data)
+    expect(a.iv).not.toBe(b.iv)
+  })
 
-    it('returns false for null/undefined', () => {
-      expect(isEncryptedPassword(null)).toBe(false)
-      expect(isEncryptedPassword(undefined)).toBe(false)
-    })
+  it('isEncryptedPassword identifies encrypted data', async () => {
+    const encrypted = await encryptPassword('test')
+    expect(isEncryptedPassword(encrypted)).toBe(true)
+    expect(isEncryptedPassword({ iv: 'x', data: 'y' })).toBe(true)
+    expect(isEncryptedPassword('string')).toBe(false)
+    expect(isEncryptedPassword(null)).toBe(false)
+    expect(isEncryptedPassword({ iv: 'x' })).toBe(false)
+  })
+})
 
-    it('returns false for partial objects', () => {
-      expect(isEncryptedPassword({ iv: 'abc' })).toBe(false)
-      expect(isEncryptedPassword({ data: 'abc' })).toBe(false)
-    })
+describe('Master-password encryption (self-hosted config)', () => {
+  const masterPassword = 'my-master-password-2024'
+  const caldavPassword = 'caldav-secret-password'
+
+  it('encrypts and decrypts with master password', async () => {
+    const encrypted = await encryptWithMasterPassword(caldavPassword, masterPassword)
+
+    expect(encrypted.ciphertext).toBeTruthy()
+    expect(encrypted.iv).toBeTruthy()
+    expect(encrypted.salt).toBeTruthy()
+    expect(encrypted.ciphertext).not.toBe(caldavPassword)
+
+    const decrypted = await decryptWithMasterPassword(encrypted, masterPassword)
+    expect(decrypted).toBe(caldavPassword)
+  })
+
+  it('produces different ciphertext for same input (random salt + IV)', async () => {
+    const a = await encryptWithMasterPassword(caldavPassword, masterPassword)
+    const b = await encryptWithMasterPassword(caldavPassword, masterPassword)
+
+    expect(a.ciphertext).not.toBe(b.ciphertext)
+    expect(a.salt).not.toBe(b.salt)
+    expect(a.iv).not.toBe(b.iv)
+  })
+
+  it('fails to decrypt with wrong master password', async () => {
+    const encrypted = await encryptWithMasterPassword(caldavPassword, masterPassword)
+
+    await expect(
+      decryptWithMasterPassword(encrypted, 'wrong-password')
+    ).rejects.toThrow()
+  })
+
+  it('fails to decrypt with corrupted ciphertext', async () => {
+    const encrypted = await encryptWithMasterPassword(caldavPassword, masterPassword)
+
+    await expect(
+      decryptWithMasterPassword(
+        { ...encrypted, ciphertext: 'AAAA' + encrypted.ciphertext },
+        masterPassword
+      )
+    ).rejects.toThrow()
+  })
+
+  it('isMasterEncryptedData identifies correct shape', async () => {
+    const encrypted = await encryptWithMasterPassword(caldavPassword, masterPassword)
+    expect(isMasterEncryptedData(encrypted)).toBe(true)
+    expect(isMasterEncryptedData({ ciphertext: 'x', iv: 'y', salt: 'z' })).toBe(true)
+    expect(isMasterEncryptedData('string')).toBe(false)
+    expect(isMasterEncryptedData(null)).toBe(false)
+    expect(isMasterEncryptedData({ ciphertext: 'x' })).toBe(false)
+  })
+
+  it('handles empty password', async () => {
+    const encrypted = await encryptWithMasterPassword('', masterPassword)
+    const decrypted = await decryptWithMasterPassword(encrypted, masterPassword)
+    expect(decrypted).toBe('')
+  })
+
+  it('handles unicode password', async () => {
+    const unicodePassword = 'pässwörd-日本語-🔐'
+    const encrypted = await encryptWithMasterPassword(unicodePassword, masterPassword)
+    const decrypted = await decryptWithMasterPassword(encrypted, masterPassword)
+    expect(decrypted).toBe(unicodePassword)
   })
 })

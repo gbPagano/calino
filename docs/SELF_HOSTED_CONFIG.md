@@ -54,7 +54,7 @@ If you prefer the command line or need to automate config generation:
 **1. Encrypt your CalDAV password:**
 
 ```bash
-node scripts/encrypt-password.mjs --master "choose-a-master-password" --password "your-caldav-password"
+node scripts/encrypt-password.mjs --master "choose-a-master-password" --url "https://caldav.example.com/dav.php" --username "your-username" --password "your-caldav-password"
 ```
 
 This outputs a JSON blob. Keep the master password safe — you'll share it with users.
@@ -67,8 +67,8 @@ This outputs a JSON blob. Keep the master password safe — you'll share it with
   "accounts": [
     {
       "name": "Personal",
-      "url": "https://caldav.example.com/dav.php",
-      "username": "your-username",
+      "url": { "ciphertext": "...", "iv": "...", "salt": "..." },
+      "username": { "ciphertext": "...", "iv": "...", "salt": "..." },
       "password": { "ciphertext": "...", "iv": "...", "salt": "..." }
     }
   ]
@@ -108,15 +108,15 @@ The master password prompt limits attempts to 5 before blocking for 1 minute. Fa
 
 | What | Where | Contains |
 |------|-------|----------|
-| JS bundle | Server (minified) | Encrypted passwords, server URLs, usernames (hidden in minified code) |
+| JS bundle | Server (minified) | Encrypted URLs, usernames, and passwords (all encrypted with master password) |
 | localStorage | User's browser | Master password (encrypted with app-level key) |
 | Memory (Zustand) | User's browser tab | Decrypted CalDAV passwords |
 
 - The config is baked into the JS bundle at build time. It's not served as a separate file.
-- Server URLs and usernames are in minified JavaScript — not casually readable, but not truly secret. Don't put anything in the config you wouldn't put in a public README. The master password protects the CalDAV passwords only.
+- **Anyone who loads the page gets the encrypted config in the JS bundle.** This is by design — the URLs, usernames, and passwords are encrypted with AES-256-GCM using the master password. Without the master password, the encrypted blobs are useless. Only the account name (display label) is readable.
 - The master password is encrypted at rest in localStorage using AES-256-GCM (same as CalDAV credentials). Plaintext never touches persistent storage.
 - Decrypted CalDAV passwords exist only in memory and are re-derived from the master password + config on each page load.
-- Brute-force protection: 5 attempts, then 1-minute cooldown.
+- Brute-force protection: 5 attempts, then 1-minute cooldown. PBKDF2 with 600,000 iterations makes each attempt inherently expensive (~2 seconds).
 
 ### Multiple Accounts
 
@@ -279,7 +279,7 @@ Both the master password and CalDAV credentials are encrypted with the same app-
 
 ```bash
 # 1. Encrypt password
-node scripts/encrypt-password.mjs --master "test123" --password "your-password"
+node scripts/encrypt-password.mjs --master "test123" --url "https://caldav.example.com/dav.php" --username "user" --password "your-password"
 
 # 2. Create calino.config.json in project root with the encrypted blob
 

@@ -10,6 +10,7 @@ import {
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface DecryptedCredential {
+  url: string
   username: string
   password: string
 }
@@ -23,7 +24,7 @@ interface ConfigState {
   masterPassword: string | null
 
   // Decrypted credentials (memory only — never persisted)
-  decryptedCredentials: Map<string, DecryptedCredential>
+  decryptedCredentials: DecryptedCredential[]
 
   // Derived state
   isUnlocked: boolean
@@ -34,6 +35,7 @@ interface ConfigState {
   unlock: (masterPassword: string) => Promise<boolean>
   lock: () => Promise<void>
   getCredential: (accountUrl: string, username: string) => DecryptedCredential | null
+  getDecryptedCredentials: () => DecryptedCredential[]
 }
 
 // ─── localStorage helpers (encrypted at rest) ───────────────────────────────
@@ -67,12 +69,6 @@ async function setStoredMasterPassword(password: string | null): Promise<void> {
   }
 }
 
-// ─── Account key ─────────────────────────────────────────────────────────────
-
-function accountKey(url: string, username: string): string {
-  return `${url}|${username}`
-}
-
 // ─── Store ───────────────────────────────────────────────────────────────────
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
@@ -80,7 +76,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   config: null,
   configLoaded: false,
   masterPassword: null, // loaded async in loadConfigFile
-  decryptedCredentials: new Map(),
+  decryptedCredentials: [],
   isUnlocked: false,
   hasPreconfiguredAccounts: false,
 
@@ -120,18 +116,16 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
     try {
       // Try to decrypt all accounts
-      const decrypted = new Map<string, DecryptedCredential>()
+      const decrypted: DecryptedCredential[] = []
 
       for (const account of config.accounts) {
-        const password = await decryptWithMasterPassword(
-          account.password,
-          masterPassword
-        )
+        const [url, username, password] = await Promise.all([
+          decryptWithMasterPassword(account.url, masterPassword),
+          decryptWithMasterPassword(account.username, masterPassword),
+          decryptWithMasterPassword(account.password, masterPassword),
+        ])
 
-        decrypted.set(accountKey(account.url, account.username), {
-          username: account.username,
-          password,
-        })
+        decrypted.push({ url, username, password })
       }
 
       // All decrypted successfully
@@ -156,17 +150,26 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     await setMasterPassword(null)
     set({
       masterPassword: null,
-      decryptedCredentials: new Map(),
+      decryptedCredentials: [],
       isUnlocked: false,
     })
   },
 
   /**
-   * Get decrypted credential for an account.
+   * Get decrypted credential for an account (by URL + username).
    */
   getCredential: (accountUrl: string, username: string) => {
     const { decryptedCredentials } = get()
-    return decryptedCredentials.get(accountKey(accountUrl, username)) ?? null
+    return decryptedCredentials.find(
+      (c) => c.url === accountUrl && c.username === username
+    ) ?? null
+  },
+
+  /**
+   * Get all decrypted credentials.
+   */
+  getDecryptedCredentials: () => {
+    return get().decryptedCredentials
   },
 }))
 

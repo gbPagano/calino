@@ -452,31 +452,43 @@ export function useCalDAV(): UseCalDAVReturn {
       return
     }
 
-    const { config, getCredential } = useConfigStore.getState()
+    const { config, getDecryptedCredentials } = useConfigStore.getState()
     if (!config) return
 
     // Mark immediately to prevent any re-runs across all hook instances
     autoConnectDone = true
 
     const existingAccounts = storage.getAllAccounts()
+    const decrypted = getDecryptedCredentials()
 
     // Run sequentially to avoid localStorage race conditions in saveCredentials
     const connectAccounts = async (): Promise<void> => {
-      for (const account of config.accounts) {
+      let connected = 0
+      for (let i = 0; i < decrypted.length; i++) {
+        const credential = decrypted[i]
+        const accountName = config.accounts[i]?.name ?? credential.username
+
         // Skip if already connected (dedup by URL + username)
         const alreadyConnected = existingAccounts.some(
-          (a) => a.serverUrl === account.url && a.username === account.username
+          (a) => a.serverUrl === credential.url && a.username === credential.username
         )
         if (alreadyConnected) continue
 
-        const credential = getCredential(account.url, account.username)
-        if (!credential) continue
-
-        console.log(`[CalDAV] Auto-connecting to preconfigured account: ${account.name}`)
+        console.log(`[CalDAV] Auto-connecting to preconfigured account: ${accountName}`)
         try {
-          await addAccount(account.url, credential.username, credential.password, account.name)
+          await addAccount(credential.url, credential.username, credential.password, accountName)
+          connected++
         } catch (err) {
-          console.error(`[CalDAV] Failed to auto-connect ${account.name}:`, err)
+          console.error(`[CalDAV] Failed to auto-connect ${accountName}:`, err)
+        }
+      }
+
+      // Remove the default offline calendar if we connected at least one account
+      if (connected > 0) {
+        const { calendars, events, deleteCalendar } = useCalendarStore.getState()
+        const offlineCal = calendars.find((c) => c.id === 'default')
+        if (offlineCal && !events.some((e) => e.calendarId === 'default')) {
+          deleteCalendar('default')
         }
       }
     }

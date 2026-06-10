@@ -21,36 +21,44 @@ const PBKDF2_ITERATIONS = 600_000
 function parseArgs() {
   const args = process.argv.slice(2)
   let master = null
+  let url = null
+  let username = null
   let password = null
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--master' && args[i + 1]) {
       master = args[++i]
+    } else if (args[i] === '--url' && args[i + 1]) {
+      url = args[++i]
+    } else if (args[i] === '--username' && args[i + 1]) {
+      username = args[++i]
     } else if (args[i] === '--password' && args[i + 1]) {
       password = args[++i]
     } else if (args[i] === '--help' || args[i] === '-h') {
       console.log(`
-Usage: encrypt-password --master <master-password> --password <caldav-password>
+Usage: encrypt-password --master <master> --url <url> --username <user> --password <pass>
 
 Options:
   --master <password>     Master password to encrypt with
-  --password <password>   CalDAV password to encrypt
+  --url <url>             CalDAV server URL
+  --username <username>   CalDAV username
+  --password <password>   CalDAV password
   --help, -h              Show this help
 
 Example:
-  node scripts/encrypt-password.mjs --master "my-master-pass" --password "my-caldav-pass"
+  node scripts/encrypt-password.mjs --master "my-master" --url "https://caldav.example.com/dav.php" --username "user" --password "caldav-pass"
 `)
       process.exit(0)
     }
   }
 
-  if (!master || !password) {
-    console.error('Error: Both --master and --password are required')
+  if (!master || !url || !username || !password) {
+    console.error('Error: --master, --url, --username, and --password are all required')
     console.error('Run with --help for usage')
     process.exit(1)
   }
 
-  return { master, password }
+  return { master, url, username, password }
 }
 
 function toBase64(buffer) {
@@ -101,26 +109,27 @@ async function encrypt(plaintext, masterPassword) {
 }
 
 async function main() {
-  const { master, password } = parseArgs()
+  const { master, url, username, password } = parseArgs()
 
-  console.log('\nEncrypting CalDAV password...')
+  console.log('\nEncrypting CalDAV credentials...')
   console.log(`Master password: ${'*'.repeat(master.length)}`)
-  console.log(`CalDAV password: ${'*'.repeat(password.length)}`)
   console.log('')
 
-  const encrypted = await encrypt(password, master)
+  const [encryptedUrl, encryptedUsername, encryptedPassword] = await Promise.all([
+    encrypt(url, master),
+    encrypt(username, master),
+    encrypt(password, master),
+  ])
 
-  console.log('Encrypted blob (paste into calino.config.json):')
+  console.log('Account entry (paste into calino.config.json):')
   console.log('─'.repeat(50))
-  console.log(JSON.stringify(encrypted, null, 2))
-  console.log('─'.repeat(50))
-  console.log('\nFull account entry example:')
   console.log(JSON.stringify({
-    name: 'My Account',
-    url: 'https://caldav.example.com/dav.php',
-    username: 'user@example.com',
-    password: encrypted,
+    name: username,
+    url: encryptedUrl,
+    username: encryptedUsername,
+    password: encryptedPassword,
   }, null, 2))
+  console.log('─'.repeat(50))
 }
 
 main().catch((err) => {

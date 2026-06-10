@@ -209,7 +209,7 @@ For self-hosted deployments, Calino supports preconfiguring CalDAV accounts via 
 **Generate config:** Visit `/setup` in any Calino instance (browser-based, no Node.js required) or use the CLI script:
 
 ```bash
-node scripts/encrypt-password.mjs --master "pass" --password "caldavpass"
+node scripts/encrypt-password.mjs --master "pass" --url "https://caldav.example.com/dav.php" --username "user" --password "caldavpass"
 ```
 
 Config file location: project root (`calino.config.json`). Baked into JS bundle at build time.

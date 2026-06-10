@@ -4,8 +4,8 @@ import { isMasterEncryptedData, type MasterEncryptedData } from './crypto'
 
 export interface PreconfiguredAccount {
   name: string
-  url: string
-  username: string
+  url: MasterEncryptedData
+  username: MasterEncryptedData
   password: MasterEncryptedData
 }
 
@@ -107,11 +107,11 @@ function validateAccount(data: unknown): PreconfiguredAccount | null {
     return null
   }
 
-  if (typeof obj.url !== 'string' || obj.url.trim() === '') {
+  if (!isMasterEncryptedData(obj.url)) {
     return null
   }
 
-  if (typeof obj.username !== 'string' || obj.username.trim() === '') {
+  if (!isMasterEncryptedData(obj.username)) {
     return null
   }
 
@@ -121,8 +121,8 @@ function validateAccount(data: unknown): PreconfiguredAccount | null {
 
   return {
     name: obj.name.trim(),
-    url: obj.url.trim(),
-    username: obj.username.trim(),
+    url: obj.url,
+    username: obj.username,
     password: obj.password,
   }
 }

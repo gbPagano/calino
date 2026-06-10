@@ -2,7 +2,6 @@ import type { JSX } from 'react'
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { encryptWithMasterPassword } from '@/lib/crypto'
-import type { MasterEncryptedData } from '@/lib/crypto'
 import type { CalinoConfig, PreconfiguredAccount } from '@/lib/configLoader'
 import styles from './SetupPage.module.css'
 
@@ -180,15 +179,16 @@ export function SetupPage(): JSX.Element {
       const configAccounts: PreconfiguredAccount[] = []
 
       for (const account of accounts) {
-        const encrypted: MasterEncryptedData = await encryptWithMasterPassword(
-          account.password,
-          masterPassword
-        )
+        const [encryptedUrl, encryptedUsername, encryptedPassword] = await Promise.all([
+          encryptWithMasterPassword(account.url, masterPassword),
+          encryptWithMasterPassword(account.username, masterPassword),
+          encryptWithMasterPassword(account.password, masterPassword),
+        ])
         configAccounts.push({
           name: account.name,
-          url: account.url,
-          username: account.username,
-          password: encrypted,
+          url: encryptedUrl,
+          username: encryptedUsername,
+          password: encryptedPassword,
         })
       }
 
@@ -400,7 +400,7 @@ export function SetupPage(): JSX.Element {
                 </div>
               )}
               <div className={styles.hint}>
-                This password encrypts your CalDAV credentials. Share it with users who should have access.
+                This password will be used to unlock your calendars in Calino.
               </div>
             </div>
 

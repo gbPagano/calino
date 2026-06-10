@@ -6,8 +6,8 @@ const validConfig: CalinoConfig = {
   accounts: [
     {
       name: 'Personal',
-      url: 'https://caldav.example.com/dav.php',
-      username: 'user@example.com',
+      url: { ciphertext: 'url-encrypted', iv: 'url-iv', salt: 'url-salt' },
+      username: { ciphertext: 'user-encrypted', iv: 'user-iv', salt: 'user-salt' },
       password: {
         ciphertext: 'abc123',
         iv: 'def456',
@@ -78,7 +78,7 @@ describe('configLoader', () => {
     originalGlobal.__CALINO_CONFIG__ = {
       version: 1,
       accounts: [
-        { name: '', url: '', username: '', password: {} }, // invalid
+        { name: '', url: {}, username: {}, password: {} }, // invalid
         validConfig.accounts[0], // valid
       ],
     }

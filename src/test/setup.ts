@@ -5,6 +5,7 @@ import pkg from '../../package.json'
 // Provide the compile-time constant for tests (synced from package.json)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ;(globalThis as any).__APP_VERSION__ = pkg.version
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ;(globalThis as any).__CALINO_SELF_HOSTED__ = false
 
 const localStorageMock = {

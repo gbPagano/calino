@@ -1,14 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { loadConfig, resetConfigCache, type CalinoConfig } from '../configLoader'
-
-// Mock fetch
-const mockFetch = vi.fn()
-vi.stubGlobal('fetch', mockFetch)
-
-beforeEach(() => {
-  vi.clearAllMocks()
-  resetConfigCache()
-})
 
 const validConfig: CalinoConfig = {
   version: 1,
@@ -26,77 +17,71 @@ const validConfig: CalinoConfig = {
   ],
 }
 
+// Save original global
+const originalGlobal = globalThis as Record<string, unknown>
+
+beforeEach(() => {
+  resetConfigCache()
+})
+
+afterEach(() => {
+  // Restore original
+  if ('__CALINO_CONFIG__' in originalGlobal) {
+    delete originalGlobal.__CALINO_CONFIG__
+  }
+})
+
 describe('configLoader', () => {
-  it('loads valid config', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(validConfig),
-    })
+  it('loads valid config from global', async () => {
+    originalGlobal.__CALINO_CONFIG__ = validConfig
 
     const config = await loadConfig()
     expect(config).toEqual(validConfig)
-    expect(mockFetch).toHaveBeenCalledWith('/calino.config.json', {
-      headers: { Accept: 'application/json' },
-    })
   })
 
-  it('returns null when file not found', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 404 })
+  it('returns null when no config injected', async () => {
+    delete originalGlobal.__CALINO_CONFIG__
 
     const config = await loadConfig()
     expect(config).toBeNull()
   })
 
-  it('returns null on network error', async () => {
-    mockFetch.mockRejectedValueOnce(new Error('Network error'))
+  it('returns null when global is null', async () => {
+    originalGlobal.__CALINO_CONFIG__ = null
 
     const config = await loadConfig()
     expect(config).toBeNull()
   })
 
   it('returns null for invalid version', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ version: 2, accounts: [] }),
-    })
+    originalGlobal.__CALINO_CONFIG__ = { version: 2, accounts: [] }
 
     const config = await loadConfig()
     expect(config).toBeNull()
   })
 
   it('returns null for missing accounts array', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ version: 1 }),
-    })
+    originalGlobal.__CALINO_CONFIG__ = { version: 1 }
 
     const config = await loadConfig()
     expect(config).toBeNull()
   })
 
   it('returns null for empty accounts array', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ version: 1, accounts: [] }),
-    })
+    originalGlobal.__CALINO_CONFIG__ = { version: 1, accounts: [] }
 
     const config = await loadConfig()
     expect(config).toBeNull()
   })
 
   it('skips invalid accounts and returns valid ones', async () => {
-    const configWithInvalid = {
+    originalGlobal.__CALINO_CONFIG__ = {
       version: 1,
       accounts: [
         { name: '', url: '', username: '', password: {} }, // invalid
         validConfig.accounts[0], // valid
       ],
     }
-
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(configWithInvalid),
-    })
 
     const config = await loadConfig()
     expect(config).not.toBeNull()
@@ -105,36 +90,21 @@ describe('configLoader', () => {
   })
 
   it('caches config after first load', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(validConfig),
-    })
+    originalGlobal.__CALINO_CONFIG__ = validConfig
 
-    await loadConfig()
-    await loadConfig() // second call
+    const a = await loadConfig()
+    const b = await loadConfig()
 
-    expect(mockFetch).toHaveBeenCalledTimes(1)
-  })
-
-  it('caches null result for missing file', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 404 })
-
-    await loadConfig()
-    await loadConfig() // second call
-
-    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(a).toBe(b) // same reference
   })
 
   it('resetConfigCache clears cache', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(validConfig),
-    })
+    originalGlobal.__CALINO_CONFIG__ = validConfig
 
     await loadConfig()
     resetConfigCache()
-    await loadConfig()
+    const config = await loadConfig()
 
-    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(config).toEqual(validConfig) // re-validated
   })
 })

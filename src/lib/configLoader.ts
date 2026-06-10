@@ -14,14 +14,18 @@ export interface CalinoConfig {
   accounts: PreconfiguredAccount[]
 }
 
+// ─── Global constant injected at build time ──────────────────────────────────
+
+declare const __CALINO_CONFIG__: Record<string, unknown> | null
+
 // ─── Config loading ──────────────────────────────────────────────────────────
 
 let cachedConfig: CalinoConfig | null | undefined
 
 /**
- * Load self-hosted config from /calino.config.json.
- * Returns null if file doesn't exist or is invalid (not self-hosted mode).
- * Silent failure — no errors thrown for missing config.
+ * Load self-hosted config.
+ * The config is baked into the JS bundle at build time (not served as a separate file).
+ * Returns null if no config was provided at build time (not self-hosted mode).
  */
 export async function loadConfig(): Promise<CalinoConfig | null> {
   // Return cached result if already loaded
@@ -29,33 +33,23 @@ export async function loadConfig(): Promise<CalinoConfig | null> {
     return cachedConfig
   }
 
-  try {
-    const response = await fetch('/calino.config.json', {
-      headers: { Accept: 'application/json' },
-    })
-
-    if (!response.ok) {
-      // File doesn't exist — not self-hosted mode
-      cachedConfig = null
-      return null
-    }
-
-    const data = await response.json()
-    const config = validateConfig(data)
-
-    if (!config) {
-      console.warn('[configLoader] Invalid config file, ignoring')
-      cachedConfig = null
-      return null
-    }
-
-    cachedConfig = config
-    return config
-  } catch {
-    // Network error, invalid JSON, etc. — silent failure
+  // __CALINO_CONFIG__ is injected by Vite's define at build time
+  // It's null if calino.config.json doesn't exist
+  if (typeof __CALINO_CONFIG__ === 'undefined' || __CALINO_CONFIG__ === null) {
     cachedConfig = null
     return null
   }
+
+  const config = validateConfig(__CALINO_CONFIG__)
+
+  if (!config) {
+    console.warn('[configLoader] Invalid config, ignoring')
+    cachedConfig = null
+    return null
+  }
+
+  cachedConfig = config
+  return config
 }
 
 /**

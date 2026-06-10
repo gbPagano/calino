@@ -10,6 +10,16 @@
         "iv": "AmDPCMCxtOiRNKQJ",
         "salt": "akQRx1V244Xp1XBVSBNEQw"
       }
+    },
+    {
+      "name": "CalUser",
+      "url": "https://caldav.malinov.ski/dav.php",
+      "username": "caluser",
+      "password": {
+        "ciphertext": "mGBRUrv3hS4crZdFj6mOP9iKkS-0rTvX",
+        "iv": "QRZro07jL_9N6RFE",
+        "salt": "sseRJEcXwmeTfboyMA7rpQ"
+      }
     }
   ]
 }

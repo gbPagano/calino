@@ -9,10 +9,9 @@ services:
         - CALINO_CONTACT_EMAIL=${CALINO_CONTACT_EMAIL:-calendar@malinov.ski}
     ports:
       - "8080:8080"
-    # Uncomment to enable self-hosted CalDAV account preconfiguration.
+    # Self-hosted config: place calino.config.json in the project root before building.
+    # It gets baked into the JS bundle at build time (not served as a separate file).
     # See docs/SELF_HOSTED_CONFIG.md for setup instructions.
-    volumes:
-      - ./calino.config.json:/srv/calino.config.json:ro
     # ⚠️ All env vars are build-time only (baked into JS by Vite).
     # To change them: update .env, then `docker compose build`.
     # See docs/DOCKER.md for details.

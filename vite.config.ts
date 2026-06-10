@@ -1,5 +1,5 @@
 /// <reference types="vitest/config" />
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
@@ -7,10 +7,24 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
 
+// Load self-hosted config at build time (baked into bundle, not served as separate file)
+const configPath = new URL('./calino.config.json', import.meta.url)
+let calinoConfig: Record<string, unknown> | null = null
+if (existsSync(configPath)) {
+  try {
+    calinoConfig = JSON.parse(readFileSync(configPath, 'utf-8'))
+    const accountCount = Array.isArray(calinoConfig?.accounts) ? calinoConfig.accounts.length : 0
+    console.log('[build] Loaded calino.config.json —', accountCount, 'account(s)')
+  } catch (e) {
+    console.warn('[build] Failed to parse calino.config.json:', e)
+  }
+}
+
 export default defineConfig({
   base: '/',
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    __CALINO_CONFIG__: JSON.stringify(calinoConfig),
   },
   plugins: [react(), nodePolyfills()],
   server: {

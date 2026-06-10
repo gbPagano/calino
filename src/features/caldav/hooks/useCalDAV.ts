@@ -393,25 +393,15 @@ export function useCalDAV(): UseCalDAVReturn {
 
         // Auto-discover settings calendar (per spec: check on every account add)
         try {
-          const { getPrimaryAccountId, setPrimaryAccountId, setEtag, touchLastModified } = await import('@/lib/settingsSync')
+          const { getPrimaryAccountId, setPrimaryAccountId, setEtag, deriveCalendarHomeUrl, dtstampToISO, deserializeSettings, mergeSettings, resolveConflict, setLastSyncedAt } = await import('@/lib/settingsSync')
           const existingPrimary = getPrimaryAccountId()
-          console.log('[CalDAV] Settings auto-discovery: existing primary =', existingPrimary)
           if (!existingPrimary) {
             const { createCalDAVClient: createClient } = await import('../client/CalDAVClient')
             const settingsClient = await createClient(newAccount.serverUrl, credential, newAccount.proxyUrl)
-            const firstCalUrl = new URL(serverCalendars[0].url)
-            const pathParts = firstCalUrl.pathname.split('/').filter(Boolean)
-            pathParts.pop()
-            const homePath = '/' + pathParts.join('/') + '/'
-            const calHomeUrl = new URL(newAccount.serverUrl).origin + homePath
-            console.log('[CalDAV] Settings auto-discovery: checking', calHomeUrl)
+            const calHomeUrl = deriveCalendarHomeUrl(newAccount.serverUrl, serverCalendars[0].url)
             const discovered = await settingsClient.discoverSettingsCalendar(calHomeUrl)
-            console.log('[CalDAV] Settings auto-discovery: discovered =', discovered)
             if (discovered) {
-              console.log('[CalDAV] Settings calendar found, auto-enabling sync')
               setPrimaryAccountId(newAccount.id)
-              // Pull settings
-              const { deserializeSettings, mergeSettings, resolveConflict } = await import('@/lib/settingsSync')
               const remote = await settingsClient.fetchSettingsEvent(discovered.url)
               if (remote) {
                 const json = settingsClient.extractSettingsFromVEVENT(remote.data)
@@ -419,9 +409,7 @@ export function useCalDAV(): UseCalDAVReturn {
                   const parsed = deserializeSettings(json)
                   if (parsed) {
                     const localSettings = useSettingsStore.getState()
-                    const dtstampIso = remote.dtstamp
-                      ? `${remote.dtstamp.slice(0, 4)}-${remote.dtstamp.slice(4, 6)}-${remote.dtstamp.slice(6, 8)}T${remote.dtstamp.slice(9, 11)}:${remote.dtstamp.slice(11, 13)}:${remote.dtstamp.slice(13, 15)}Z`
-                      : ''
+                    const dtstampIso = dtstampToISO(remote.dtstamp)
                     const winner = resolveConflict(new Date(0).toISOString(), dtstampIso)
                     const merged = winner === 'remote'
                       ? mergeSettings(localSettings, parsed.settings)
@@ -431,7 +419,7 @@ export function useCalDAV(): UseCalDAVReturn {
                 }
                 setEtag(remote.etag)
               }
-              // Don't touchLastModified here — only when user changes settings locally
+              setLastSyncedAt(new Date().toISOString())
               showToast('Calino Settings found — sync enabled automatically.')
             }
           }
@@ -628,17 +616,12 @@ export function useCalDAV(): UseCalDAVReturn {
 
         // Pull CalDAV settings after calendar sync completes
         try {
-          const { getPrimaryAccountId } = await import('@/lib/settingsSync')
+          const { getPrimaryAccountId, deriveCalendarHomeUrl, dtstampToISO, deserializeSettings, mergeSettings, resolveConflict, setEtag, setLastSyncedAt, getLastSyncedAt } = await import('@/lib/settingsSync')
           if (getPrimaryAccountId() === accountId) {
             const { createCalDAVClient: createClient } = await import('../client/CalDAVClient')
-            const { deserializeSettings, mergeSettings, resolveConflict, setEtag, setLastSyncedAt, getLastSyncedAt } = await import('@/lib/settingsSync')
             const cal = accountCalendars[0]
             if (cal) {
-              const firstCalUrl = new URL(cal.url)
-              const pathParts = firstCalUrl.pathname.split('/').filter(Boolean)
-              pathParts.pop()
-              const homePath = '/' + pathParts.join('/') + '/'
-              const calHomeUrl = new URL(account.serverUrl).origin + homePath
+              const calHomeUrl = deriveCalendarHomeUrl(account.serverUrl, cal.url)
               const settingsClient = await createClient(account.serverUrl, credential, account.proxyUrl)
               const discovered = await settingsClient.discoverSettingsCalendar(calHomeUrl)
               if (discovered) {
@@ -649,9 +632,7 @@ export function useCalDAV(): UseCalDAVReturn {
                     const parsed = deserializeSettings(json)
                     if (parsed) {
                       const localSettings = useSettingsStore.getState()
-                      const dtstampIso = remote.dtstamp
-                        ? `${remote.dtstamp.slice(0, 4)}-${remote.dtstamp.slice(4, 6)}-${remote.dtstamp.slice(6, 8)}T${remote.dtstamp.slice(9, 11)}:${remote.dtstamp.slice(11, 13)}:${remote.dtstamp.slice(13, 15)}Z`
-                        : ''
+                      const dtstampIso = dtstampToISO(remote.dtstamp)
                       const localSyncedAt = getLastSyncedAt()
                       const winner = resolveConflict(localSyncedAt || '1970-01-01T00:00:00Z', dtstampIso)
                       if (winner === 'remote') {
@@ -663,7 +644,6 @@ export function useCalDAV(): UseCalDAVReturn {
                   }
                   setEtag(remote.etag)
                 }
-                // Don't touchLastModified here — only when user changes settings locally
               }
             }
           }

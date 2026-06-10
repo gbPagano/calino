@@ -389,8 +389,25 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
 
   return (
     <>
-      {isOpen && <div className={styles.overlay} onClick={onClose} />}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className={styles.overlay}
+            onClick={onClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          />
+        )}
+      </AnimatePresence>
       <div className={sidebarClass} style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+        {isOpen && (
+          <div className={styles.sidebarBrand}>
+            <div className={styles.sidebarBrandDiamond} />
+            <span className={styles.sidebarBrandName}>Calino</span>
+          </div>
+        )}
         <div className={styles.miniCalendar}>
           <div className={styles.miniHeader}>
             <button onClick={handlePrevMonth} className={styles.miniNavBtn} aria-label="Previous month">

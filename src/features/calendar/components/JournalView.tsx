@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import React, { useState, useMemo, useCallback, useRef, useEffect, useLayoutEffect } from 'react'
 import { format, parseISO } from 'date-fns'
 // useNavigate removed — unused
 import { useCalendarStore } from '@/store/calendarStore'
@@ -325,6 +325,12 @@ export function JournalView(): JSX.Element {
   const [url, setUrl] = useState('')
   const [relatedTo, setRelatedTo] = useState<string[]>([])
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'month' | 'all'>('month')
+  const [allPage, setAllPage] = useState(1)
+  const ENTRIES_PER_PAGE = 20
+  const segmentedRef = useRef<HTMLDivElement>(null)
+  const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+  const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 })
 
   // Use store's currentDate for month filtering
   const currentDate = useCalendarStore((state) => state.currentDate)
@@ -339,20 +345,42 @@ export function JournalView(): JSX.Element {
   useEffect(() => { eventsRef.current = events })
   useEffect(() => { calendarsRef.current = calendars })
 
-  // Group journal entries by month — viewed month only
+  // Group journal entries by month
   const groupedEntries = useMemo(() => {
-    const monthKey = currentDate.slice(0, 7) // yyyy-MM
-    const entries = events
-      .filter((e) => e.type === 'journal' && e.start.startsWith(monthKey))
-      .sort((a, b) => b.start.localeCompare(a.start)) // newest first
+    const journalEntries = events.filter((e) => e.type === 'journal')
 
-    if (entries.length === 0) return []
+    let filtered: typeof journalEntries
+    if (viewMode === 'month') {
+      const monthKey = currentDate.slice(0, 7) // yyyy-MM
+      filtered = journalEntries.filter((e) => e.start.startsWith(monthKey))
+    } else {
+      // All view — paginate
+      const sorted = [...journalEntries].sort((a, b) => b.start.localeCompare(a.start))
+      filtered = sorted.slice(0, allPage * ENTRIES_PER_PAGE)
+    }
 
-    return [{
-      monthKey,
-      entries,
-    }]
-  }, [events, currentDate])
+    // Group by month
+    const groups = new Map<string, typeof journalEntries>()
+    for (const entry of filtered) {
+      const monthKey = entry.start.slice(0, 7)
+      const existing = groups.get(monthKey) || []
+      existing.push(entry)
+      groups.set(monthKey, existing)
+    }
+
+    return [...groups.entries()]
+      .sort(([a], [b]) => b.localeCompare(a)) // newest month first
+      .map(([monthKey, entries]) => ({
+        monthKey,
+        entries: entries.sort((a, b) => b.start.localeCompare(a.start)),
+      }))
+  }, [events, currentDate, viewMode, allPage])
+
+  const hasMore = useMemo(() => {
+    if (viewMode !== 'all') return false
+    const total = events.filter((e) => e.type === 'journal').length
+    return allPage * ENTRIES_PER_PAGE < total
+  }, [events, viewMode, allPage])
 
   const totalCount = useMemo(
     () => events.filter((e) => e.type === 'journal').length,
@@ -370,6 +398,20 @@ export function JournalView(): JSX.Element {
   useEffect(() => {
     setConfirmDeleteId(null)
   }, [editingId, isComposing])
+
+  // Sliding indicator for view mode tabs
+  useLayoutEffect(() => {
+    const container = segmentedRef.current
+    const activeTab = tabRefs.current.get(viewMode)
+    if (container && activeTab) {
+      const containerRect = container.getBoundingClientRect()
+      const tabRect = activeTab.getBoundingClientRect()
+      setIndicatorStyle({
+        left: tabRect.left - containerRect.left,
+        width: tabRect.width,
+      })
+    }
+  }, [viewMode])
 
   const handleSaveEntry = (): void => {
     const trimmedBody = body.trim()
@@ -612,12 +654,31 @@ export function JournalView(): JSX.Element {
           <div className={styles.count}>
             <b>{totalCount}</b> {totalCount === 1 ? 'entry' : 'entries'}
           </div>
-          <button className={styles.addEntry} onClick={handleStartCompose}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M7 1v12M1 7h12" />
-            </svg>
-            New entry
-          </button>
+          <div className={styles.barControls}>
+            <div className={styles.segmentedControl} ref={segmentedRef}>
+              <div className={styles.tabIndicator} style={{ left: indicatorStyle.left, width: indicatorStyle.width }} />
+              <button
+                ref={(el) => { if (el) tabRefs.current.set('month', el) }}
+                className={`${styles.segmentTab} ${viewMode === 'month' ? styles.segmentTabActive : ''}`}
+                onClick={() => setViewMode('month')}
+              >
+                Month
+              </button>
+              <button
+                ref={(el) => { if (el) tabRefs.current.set('all', el) }}
+                className={`${styles.segmentTab} ${viewMode === 'all' ? styles.segmentTabActive : ''}`}
+                onClick={() => { setViewMode('all'); setAllPage(1) }}
+              >
+                All
+              </button>
+            </div>
+            <button className={styles.addEntry} onClick={handleStartCompose}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M7 1v12M1 7h12" />
+              </svg>
+              New entry
+            </button>
+          </div>
         </div>
 
         {/* Compose form (at top when composing new entry only) */}
@@ -761,6 +822,15 @@ export function JournalView(): JSX.Element {
               </section>
             )
           })
+        )}
+
+        {hasMore && (
+          <button
+            className={styles.loadMore}
+            onClick={() => setAllPage((p) => p + 1)}
+          >
+            Load more
+          </button>
         )}
       </div>
     </div>

@@ -5,6 +5,7 @@
  * Settings are stored as a single VEVENT in a dedicated "Calino Settings" calendar.
  */
 
+import { safeLocalStorage } from '@/lib/storage'
 import { useSettingsStore } from '@/store/settingsStore'
 import type { UserSettings } from '@/types'
 
@@ -49,18 +50,27 @@ export const SYNCABLE_SETTINGS: (keyof UserSettings)[] = [
   'journalEnabled',
 ]
 
-/** Settings that are NEVER synced (local-only / credentials). */
-export const EXCLUDED_SETTINGS: (keyof UserSettings)[] = [
-  'syncEnabled',
-  'syncIntervalMinutes',
-  'conflictResolution',
-  'hasCompletedOnboarding',
-  'sidebarWidth',
-  'sidebarCollapsed',
-  'caldavDebugMode',
-]
-
 // ─── Serialization ────────────────────────────────────────────────────────────
+
+/** Encode a UTF-8 string to base64 (safe for non-Latin1 characters). */
+export function encodeBase64(utf8: string): string {
+  const bytes = new TextEncoder().encode(utf8)
+  let binary = ''
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte)
+  }
+  return btoa(binary)
+}
+
+/** Decode a base64 string to UTF-8. */
+export function decodeBase64(base64: string): string {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return new TextDecoder().decode(bytes)
+}
 
 /**
  * Serialize the current syncable settings to a JSON string wrapped in a
@@ -71,7 +81,7 @@ export function serializeSettings(): string {
   const syncableSettings: Partial<UserSettings> = {}
   for (const key of SYNCABLE_SETTINGS) {
     if (key in state) {
-      syncableSettings[key] = state[key]
+      ;(syncableSettings as Record<string, unknown>)[key] = state[key]
     }
   }
   const payload: SettingsSyncPayload = {
@@ -182,48 +192,49 @@ export const STORAGE_KEY_LAST_SYNCED_AT = 'calino.settingsSync.lastSyncedAt'
 
 /** Get the primary account ID (null when sync is off). */
 export function getPrimaryAccountId(): string | null {
-  return localStorage.getItem(STORAGE_KEY_PRIMARY_ACCOUNT_ID)
+  return safeLocalStorage.getItem(STORAGE_KEY_PRIMARY_ACCOUNT_ID)
 }
 
 /** Set the primary account ID. */
 export function setPrimaryAccountId(id: string | null): void {
-  if (id) {
-    localStorage.setItem(STORAGE_KEY_PRIMARY_ACCOUNT_ID, id)
+  if (id !== null) {
+    safeLocalStorage.setItem(STORAGE_KEY_PRIMARY_ACCOUNT_ID, id)
   } else {
-    localStorage.removeItem(STORAGE_KEY_PRIMARY_ACCOUNT_ID)
+    safeLocalStorage.removeItem(STORAGE_KEY_PRIMARY_ACCOUNT_ID)
   }
 }
 
 /** Get the stored ETag. */
 export function getEtag(): string | null {
-  return localStorage.getItem(STORAGE_KEY_ETAG)
+  return safeLocalStorage.getItem(STORAGE_KEY_ETAG)
 }
 
 /** Store the ETag. */
 export function setEtag(etag: string | null): void {
-  if (etag) {
-    localStorage.setItem(STORAGE_KEY_ETAG, etag)
+  if (etag !== null) {
+    safeLocalStorage.setItem(STORAGE_KEY_ETAG, etag)
   } else {
-    localStorage.removeItem(STORAGE_KEY_ETAG)
+    safeLocalStorage.removeItem(STORAGE_KEY_ETAG)
   }
 }
 
 /** Get the last-local-modified timestamp (ms). */
 export function getLastModified(): number {
-  const raw = localStorage.getItem(STORAGE_KEY_LAST_MODIFIED)
+  const raw = safeLocalStorage.getItem(STORAGE_KEY_LAST_MODIFIED)
   return raw ? Number(raw) : 0
 }
 
 /** Update the last-local-modified timestamp to now. */
 export function touchLastModified(): void {
-  localStorage.setItem(STORAGE_KEY_LAST_MODIFIED, String(Date.now()))
+  safeLocalStorage.setItem(STORAGE_KEY_LAST_MODIFIED, String(Date.now()))
 }
 
 /** Clear all sync-related localStorage keys. */
 export function clearSyncKeys(): void {
-  localStorage.removeItem(STORAGE_KEY_PRIMARY_ACCOUNT_ID)
-  localStorage.removeItem(STORAGE_KEY_ETAG)
-  localStorage.removeItem(STORAGE_KEY_LAST_MODIFIED)
+  safeLocalStorage.removeItem(STORAGE_KEY_PRIMARY_ACCOUNT_ID)
+  safeLocalStorage.removeItem(STORAGE_KEY_ETAG)
+  safeLocalStorage.removeItem(STORAGE_KEY_LAST_MODIFIED)
+  safeLocalStorage.removeItem(STORAGE_KEY_LAST_SYNCED_AT)
 }
 
 /** Convenience: is sync currently active? */
@@ -233,10 +244,38 @@ export function isSyncEnabled(): boolean {
 
 /** Get the timestamp of the last successful sync. */
 export function getLastSyncedAt(): string {
-  return localStorage.getItem(STORAGE_KEY_LAST_SYNCED_AT) || ''
+  return safeLocalStorage.getItem(STORAGE_KEY_LAST_SYNCED_AT) || ''
 }
 
 /** Set the timestamp of the last successful sync. */
 export function setLastSyncedAt(iso: string): void {
-  localStorage.setItem(STORAGE_KEY_LAST_SYNCED_AT, iso)
+  safeLocalStorage.setItem(STORAGE_KEY_LAST_SYNCED_AT, iso)
+}
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+/**
+ * Derive the calendar home URL from a stored calendar URL.
+ * Strips the last path segment (calendar name) to get the home path.
+ */
+export function deriveCalendarHomeUrl(serverUrl: string, calendarUrl: string): string {
+  const storedCalUrl = new URL(calendarUrl)
+  const realServerUrl = new URL(serverUrl)
+  const pathParts = storedCalUrl.pathname.split('/').filter(Boolean)
+  if (pathParts.length <= 1) {
+    // Calendar is at the root or one level deep — use server origin as home
+    return realServerUrl.origin + '/'
+  }
+  pathParts.pop() // remove calendar name → calendar home
+  const homePath = '/' + pathParts.join('/') + '/'
+  return realServerUrl.origin + homePath
+}
+
+/**
+ * Convert an iCalendar DTSTAMP (YYYYMMDDTHHMMSSZ) to ISO 8601.
+ * Returns empty string for invalid input.
+ */
+export function dtstampToISO(dtstamp: string): string {
+  if (!dtstamp || dtstamp.length < 15) return ''
+  return `${dtstamp.slice(0, 4)}-${dtstamp.slice(4, 6)}-${dtstamp.slice(6, 8)}T${dtstamp.slice(9, 11)}:${dtstamp.slice(11, 13)}:${dtstamp.slice(13, 15)}Z`
 }

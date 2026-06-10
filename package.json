@@ -14,7 +14,9 @@
     "test": "vitest",
     "test:run": "vitest --run",
     "test:coverage": "vitest --coverage",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "pnpm typecheck && pnpm lint && pnpm test:run && pnpm build",
+    "check:docker": "pnpm check && docker build -t calino:test . && docker run --rm -d --name calino-test -p 8080:8080 calino:test && sleep 3 && curl -sf http://localhost:8080/ > /dev/null && echo '✅ Docker build and healthcheck passed' && docker stop calino-test || (docker stop calino-test 2>/dev/null; echo '❌ Docker check failed'; exit 1)"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

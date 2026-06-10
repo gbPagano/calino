@@ -29,6 +29,66 @@
   gap: 8px;
 }
 
+.barLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.barControls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Segmented control */
+.segmentedControl {
+  position: relative;
+  display: flex;
+  gap: 0;
+  padding: 4px;
+  background: rgba(44, 40, 33, 0.045);
+  border-radius: 10px;
+}
+
+.segmentTab {
+  position: relative;
+  z-index: 1;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2, #6f6a62);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.14s ease;
+  font-family: inherit;
+}
+
+.segmentTab:hover {
+  color: var(--ink, #2c2823);
+}
+
+.segmentTab:active {
+  transform: scale(0.96);
+}
+
+.segmentTabActive {
+  color: var(--ink, #2c2823);
+}
+
+.tabIndicator {
+  position: absolute;
+  top: 4px;
+  height: 30px;
+  background: var(--panel, #ffffff);
+  box-shadow: 0 1px 2px rgba(44, 40, 33, 0.08), 0 0 0 1px var(--line, rgba(44, 40, 33, 0.09));
+  border-radius: 8px;
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
 .todayBtn {
   padding: 6px 14px;
   border-radius: 8px;
@@ -92,6 +152,32 @@
 .addEntry svg {
   width: 14px;
   height: 14px;
+}
+
+/* Load more button */
+.loadMore {
+  display: block;
+  margin: 20px auto;
+  padding: 8px 24px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2, #6f6a62);
+  background: var(--panel, #fff);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.loadMore:hover {
+  background: var(--accent-soft, rgba(196, 168, 154, 0.08));
+  color: var(--ink);
+  border-color: var(--accent, #c4a89a);
+}
+
+.loadMore:active {
+  transform: translateY(1px);
 }
 
 /* Month group */

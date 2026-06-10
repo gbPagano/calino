@@ -1,0 +1,263 @@
+#!/bin/bash
+set -e
+
+# ─── Colors ────────────────────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+step() { echo -e "\n${CYAN}▶ $1${NC}"; }
+ok()   { echo -e "${GREEN}✅ $1${NC}"; }
+warn() { echo -e "${YELLOW}⚠️  $1${NC}"; }
+fail() { echo -e "${RED}❌ $1${NC}"; exit 1; }
+
+# ─── Parse args ────────────────────────────────────────────────────────────────
+BUMP=""
+SKIP_DOCKER=false
+SKIP_PUSH=false
+DRY_RUN=false
+DOCKER_PUSH=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --patch)    BUMP="patch"; shift ;;
+    --minor)    BUMP="minor"; shift ;;
+    --major)    BUMP="major"; shift ;;
+    --no-docker) SKIP_DOCKER=true; shift ;;
+    --no-push)  SKIP_PUSH=true; shift ;;
+    --docker-push) DOCKER_PUSH=true; shift ;;
+    --dry-run)  DRY_RUN=true; SKIP_PUSH=true; shift ;;
+    -h|--help)
+      echo "Usage: ./scripts/release.sh [options]"
+      echo ""
+      echo "Options:"
+      echo "  --patch       Bump patch version (0.10.2 → 0.10.3)"
+      echo "  --minor       Bump minor version (0.10.2 → 0.11.0)"
+      echo "  --major       Bump major version (0.10.2 → 1.0.0)"
+      echo "  --no-docker   Skip Docker build & test"
+      echo "  --no-push     Bump & commit locally, but don't push to GitHub"
+      echo "  --docker-push Build, tag, and push Docker image to GHCR"
+      echo "  --dry-run     Full check only — no version bump, no commit, no push"
+      echo "  -h, --help    Show this help"
+      echo ""
+      echo "Examples:"
+      echo "  ./scripts/release.sh --patch          # Bump patch, check, push"
+      echo "  ./scripts/release.sh --minor --dry-run # Bump minor, check only"
+      echo "  ./scripts/release.sh --docker-push     # Build & push Docker to GHCR"
+      echo "  ./scripts/release.sh                   # Just check, no version bump"
+      exit 0
+      ;;
+    *) echo "Unknown option: $1"; exit 1 ;;
+  esac
+done
+
+CURRENT_DIR=$(pwd)
+cd "$(dirname "$0")/.."
+
+# ─── Pre-flight checks ────────────────────────────────────────────────────────
+step "Pre-flight checks"
+
+if [ -n "$(git status --porcelain)" ]; then
+  warn "Working tree has uncommitted changes"
+  if [ -t 0 ]; then
+    read -p "Continue anyway? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      exit 1
+    fi
+  else
+    echo "  (non-interactive mode, continuing)"
+  fi
+fi
+
+BRANCH=$(git branch --show-current)
+echo "  Branch: $BRANCH"
+
+CURRENT_VERSION=$(node -p "require('./package.json').version")
+echo "  Version: $CURRENT_VERSION"
+
+if [ -n "$BUMP" ]; then
+  NEW_VERSION=$(node -e "
+    const [major, minor, patch] = '$CURRENT_VERSION'.split('.').map(Number);
+    if ('$BUMP' === 'major') console.log((major+1) + '.0.0');
+    else if ('$BUMP' === 'minor') console.log(major + '.' + (minor+1) + '.0');
+    else console.log(major + '.' + minor + '.' + (patch+1));
+  ")
+  echo -e "  New version: ${GREEN}$NEW_VERSION${NC}"
+fi
+
+# ─── Typecheck ─────────────────────────────────────────────────────────────────
+step "Typecheck"
+pnpm typecheck
+ok "Typecheck passed"
+
+# ─── Lint ──────────────────────────────────────────────────────────────────────
+step "Lint"
+LINT_OUTPUT=$(pnpm lint 2>&1)
+LINT_ERRORS=$(echo "$LINT_OUTPUT" | grep -oP '\d+ errors' | grep -oP '\d+' || echo "0")
+LINT_WARNINGS=$(echo "$LINT_OUTPUT" | grep -oP '\d+ warnings' | grep -oP '\d+' || echo "0")
+
+if [ "$LINT_ERRORS" -gt 0 ]; then
+  echo "$LINT_OUTPUT"
+  fail "Lint failed with $LINT_ERRORS errors"
+fi
+ok "Lint passed ($LINT_ERRORS errors, $LINT_WARNINGS warnings)"
+
+# ─── Tests ─────────────────────────────────────────────────────────────────────
+step "Tests"
+pnpm test:run
+ok "All tests passed"
+
+# ─── Version bump ──────────────────────────────────────────────────────────────
+if [ -n "$BUMP" ]; then
+  step "Bumping version: $CURRENT_VERSION → $NEW_VERSION"
+
+  if [ "$DRY_RUN" = true ]; then
+    warn "Dry run — would bump to $NEW_VERSION"
+  else
+    # Update package.json
+    node -e "
+      const fs = require('fs');
+      const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+      pkg.version = '$NEW_VERSION';
+      fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+    "
+    ok "package.json updated to $NEW_VERSION"
+  fi
+fi
+
+# ─── Build ─────────────────────────────────────────────────────────────────────
+step "Build"
+pnpm build
+ok "Build succeeded"
+
+# ─── Docker ────────────────────────────────────────────────────────────────────
+if [ "$SKIP_DOCKER" = false ]; then
+  step "Docker build"
+
+  # Check if Docker is running
+  if ! docker info > /dev/null 2>&1; then
+    fail "Docker is not running. Start Docker Desktop or use --no-docker"
+  fi
+
+  docker build -t calino:test . > /dev/null 2>&1
+  ok "Docker image built"
+
+  step "Docker healthcheck"
+  CONTAINER_ID=$(docker run -d --name calino-release-test -p 8080:8080 calino:test)
+
+  # Wait for container to be healthy
+  ATTEMPTS=0
+  MAX_ATTEMPTS=15
+  while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
+    STATUS=$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8080/ 2>/dev/null || echo "000")
+    if [ "$STATUS" = "200" ]; then
+      break
+    fi
+    sleep 1
+    ATTEMPTS=$((ATTEMPTS + 1))
+  done
+
+  if [ "$STATUS" != "200" ]; then
+    docker logs calino-release-test
+    docker rm -f calino-release-test > /dev/null 2>&1
+    docker rmi calino:test > /dev/null 2>&1
+    fail "Container healthcheck failed (status: $STATUS)"
+  fi
+
+  # Verify SPA routes
+  SPA_STATUS=$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8080/week 2>/dev/null || echo "000")
+  if [ "$SPA_STATUS" != "200" ]; then
+    docker rm -f calino-release-test > /dev/null 2>&1
+    docker rmi calino:test > /dev/null 2>&1
+    fail "SPA route /week returned $SPA_STATUS"
+  fi
+
+  docker rm -f calino-release-test > /dev/null 2>&1
+  docker rmi calino:test > /dev/null 2>&1
+  ok "Docker healthcheck passed"
+
+  # Show what tags CI will generate
+  echo ""
+  echo "  Docker tags (CI will generate):"
+  echo "    - ghcr.io/ivan-malinovski/calino:main"
+  echo "    - ghcr.io/ivan-malinovski/calino:latest"
+  if [ -n "$NEW_VERSION" ]; then
+    echo "    - ghcr.io/ivan-malinovski/calino:$NEW_VERSION"
+  else
+    echo "    - ghcr.io/ivan-malinovski/calino:$CURRENT_VERSION"
+  fi
+  echo "    - ghcr.io/ivan-malinovski/calino:sha-$(git rev-parse --short HEAD)"
+fi
+
+# ─── Docker push to GHCR ──────────────────────────────────────────────────────
+if [ "$DOCKER_PUSH" = true ]; then
+  step "Pushing Docker image to GHCR"
+
+  if ! docker info > /dev/null 2>&1; then
+    fail "Docker is not running"
+  fi
+
+  # Login to GHCR
+  echo "  Logging in to ghcr.io..."
+  echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin 2>/dev/null || {
+    # Fallback: try using existing credentials
+    docker pull ghcr.io/ivan-malinovski/calino:latest > /dev/null 2>&1 || true
+  }
+
+  VERSION_TAG="${NEW_VERSION:-$CURRENT_VERSION}"
+  SHA_TAG="sha-$(git rev-parse --short HEAD)"
+  IMAGE="ghcr.io/ivan-malinovski/calino"
+
+  # Build with all tags
+  step "Building with tags: main, latest, $VERSION_TAG, $SHA_TAG"
+  docker build \
+    -t "$IMAGE:main" \
+    -t "$IMAGE:latest" \
+    -t "$IMAGE:$VERSION_TAG" \
+    -t "$IMAGE:$SHA_TAG" \
+    . 
+
+  # Push all tags
+  step "Pushing tags"
+  docker push "$IMAGE:main"
+  docker push "$IMAGE:latest"
+  docker push "$IMAGE:$VERSION_TAG"
+  docker push "$IMAGE:$SHA_TAG"
+
+  ok "Docker image pushed to GHCR"
+  echo ""
+  echo "  Tags pushed:"
+  echo "    - $IMAGE:main"
+  echo "    - $IMAGE:latest"
+  echo "    - $IMAGE:$VERSION_TAG"
+  echo "    - $IMAGE:$SHA_TAG"
+fi
+
+# ─── Commit & push ─────────────────────────────────────────────────────────────
+if [ -n "$BUMP" ] && [ "$DRY_RUN" = false ]; then
+  step "Committing version bump"
+  git add package.json
+  git commit -m "chore: bump version to $CURRENT_VERSION → $NEW_VERSION"
+  ok "Version bump committed"
+fi
+
+if [ "$SKIP_PUSH" = false ]; then
+  step "Pushing to $BRANCH"
+  git push origin "$BRANCH"
+  ok "Pushed to $BRANCH"
+fi
+
+# ─── Done ──────────────────────────────────────────────────────────────────────
+echo ""
+echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}  Release check complete!${NC}"
+if [ -n "$BUMP" ]; then
+  echo -e "${GREEN}  Version: $CURRENT_VERSION → $NEW_VERSION${NC}"
+fi
+if [ "$SKIP_PUSH" = true ]; then
+  echo -e "${YELLOW}  (not pushed — use without --no-push to push)${NC}"
+fi
+echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"

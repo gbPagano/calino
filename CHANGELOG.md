@@ -2,6 +2,18 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.11.0] - 2026-06-10
+
+### New Features
+- **Settings sync via CalDAV** — sync your preferences (theme, time format, first day of week, etc.) across devices using your existing CalDAV server. Opt-in: enable in Settings → Sync. Creates a hidden "Calino Settings" calendar on your server to store preferences. Settings are pulled automatically during sync and pushed manually via the Save button.
+- **Journal view switcher** — toggle between Month and All views in the journal page. "All" shows all entries grouped by month with pagination.
+
+### Improvements
+- **Sidebar animation** — overlay now fades in/out smoothly when opening the sidebar on mobile
+- **Mobile sidebar brand** — Calino logo now appears at the top of the sidebar when opened from the burger menu
+- **Docker tags** — CI now pushes `latest` tag alongside version and branch tags
+- **Release script** — `scripts/release.sh` for running all CI checks locally before pushing
+
 ## [0.9.5] - 2026-06-06
 
 ### New Features

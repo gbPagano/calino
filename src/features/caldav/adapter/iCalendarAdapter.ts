@@ -1,5 +1,6 @@
 import ICAL from 'ical.js'
 import type { CalendarEvent } from '@/types'
+import { SETTINGS_EVENT_UID } from '@/lib/settingsSync'
 import {
   icalEventToCalendarEvent,
   icalVtodoToCalendarEvent,
@@ -101,9 +102,8 @@ export function parseICALData(iCalData: string, calendarId: string): CalendarEve
   const tasks = parseICALTask(iCalData, calendarId)
   const journals = parseICALJournal(iCalData, calendarId)
   // Filter out the Calino Settings sync event — it's not a real calendar event
-  const SETTINGS_UID = '00000000-calino-0000-calino-000000000000'
   const all = [...events, ...tasks, ...journals]
-  return all.filter((e) => e.id !== SETTINGS_UID)
+  return all.filter((e) => e.id !== SETTINGS_EVENT_UID)
 }
 
 export function eventToICAL(event: CalendarEvent): string {

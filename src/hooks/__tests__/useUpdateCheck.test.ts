@@ -144,11 +144,11 @@ describe('useUpdateCheck', () => {
   })
 
   it('shows update again when a newer version appears after dismissal', async () => {
-    memoryStore.set('calino-dismissed-version', 'v99.0.0')
+    memoryStore.set('calino-dismissed-version', 'v0.9.0')
     vi.mocked(globalThis.fetch).mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ tag_name: 'v0.10.1', html_url: 'https://example.com/v0.10.1' }),
+      json: async () => ({ tag_name: 'v99.0.0', html_url: 'https://example.com/v99.0.0' }),
     } as Response)
 
     const { result } = renderHook(() => useUpdateCheck())
@@ -158,7 +158,7 @@ describe('useUpdateCheck', () => {
     })
 
     expect(result.current.hasUpdate).toBe(true)
-    expect(result.current.latestVersion).toBe('v0.10.1')
+    expect(result.current.latestVersion).toBe('v99.0.0')
   })
 
   it('handles 404 (no releases) gracefully', async () => {

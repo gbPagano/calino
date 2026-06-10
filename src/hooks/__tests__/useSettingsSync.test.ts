@@ -7,8 +7,7 @@ import {
   getEtag,
   setPrimaryAccountId,
   clearSyncKeys,
-  setEtag,
-  touchLastModified,
+  getLastSyncedAt,
 } from '@/lib/settingsSync'
 import * as accountStorage from '@/features/caldav/sync/accountStorage'
 import { getCredentialById } from '@/features/caldav/client/credentials'
@@ -171,7 +170,6 @@ describe('useSettingsSync', () => {
       setPrimaryAccountId('account-1')
       mockDiscoverSettingsCalendar.mockResolvedValue({ url: 'https://example.com/dav.php/calendars/user/calino-settings/' })
 
-      // Remote has newer settings
       const remotePayload = {
         version: 1, syncedAt: '2099-01-01T00:00:00Z',
         settings: { timezone: 'Pacific/Auckland' },
@@ -188,18 +186,20 @@ describe('useSettingsSync', () => {
 
       const settings = useSettingsStore.getState()
       expect(settings.timezone).toBe('Pacific/Auckland')
+      expect(getLastSyncedAt()).toBeTruthy()
     })
 
-    it('should push when no remote event exists', async () => {
+    it('should return early when no remote event exists', async () => {
       setPrimaryAccountId('account-1')
       mockDiscoverSettingsCalendar.mockResolvedValue({ url: 'https://example.com/dav.php/calendars/user/calino-settings/' })
       mockFetchSettingsEvent.mockResolvedValue(null)
-      mockPutSettingsEvent.mockResolvedValue('"etag"')
 
       const { result } = renderHook(() => useSettingsSync())
+      const originalTimezone = useSettingsStore.getState().timezone
       await act(async () => { await result.current.pull() })
 
-      expect(mockPutSettingsEvent).toHaveBeenCalled()
+      // Settings should not be modified when there's no remote event
+      expect(useSettingsStore.getState().timezone).toBe(originalTimezone)
     })
   })
 })

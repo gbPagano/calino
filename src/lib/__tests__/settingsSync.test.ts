@@ -4,6 +4,10 @@ import {
   deserializeSettings,
   mergeSettings,
   resolveConflict,
+  encodeBase64,
+  decodeBase64,
+  deriveCalendarHomeUrl,
+  dtstampToISO,
   SETTINGS_EVENT_UID,
   SETTINGS_CALENDAR_NAME,
   getPrimaryAccountId,
@@ -12,6 +16,8 @@ import {
   setEtag,
   getLastModified,
   touchLastModified,
+  getLastSyncedAt,
+  setLastSyncedAt,
   clearSyncKeys,
   isSyncEnabled,
   SYNC_FORMAT_VERSION,
@@ -33,6 +39,73 @@ describe('settingsSync', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  describe('encodeBase64 / decodeBase64', () => {
+    it('should round-trip ASCII strings', () => {
+      const original = 'Hello, World!'
+      expect(decodeBase64(encodeBase64(original))).toBe(original)
+    })
+
+    it('should round-trip non-Latin1 characters (CJK)', () => {
+      const original = '你好世界'
+      expect(decodeBase64(encodeBase64(original))).toBe(original)
+    })
+
+    it('should round-trip emoji', () => {
+      const original = '📅🕐🌍'
+      expect(decodeBase64(encodeBase64(original))).toBe(original)
+    })
+
+    it('should handle empty string', () => {
+      expect(encodeBase64('')).toBe('')
+      expect(decodeBase64('')).toBe('')
+    })
+
+    it('should round-trip JSON with non-ASCII values', () => {
+      const json = JSON.stringify({ timezone: 'Europe/København', name: 'Мой календарь' })
+      expect(decodeBase64(encodeBase64(json))).toBe(json)
+    })
+  })
+
+  describe('deriveCalendarHomeUrl', () => {
+    it('should strip last path segment', () => {
+      const result = deriveCalendarHomeUrl(
+        'https://example.com/dav.php',
+        'https://example.com/dav.php/calendars/user/personal/',
+      )
+      expect(result).toBe('https://example.com/dav.php/calendars/user/')
+    })
+
+    it('should handle root calendar', () => {
+      const result = deriveCalendarHomeUrl(
+        'https://example.com',
+        'https://example.com/cal/',
+      )
+      expect(result).toBe('https://example.com/')
+    })
+
+    it('should use real server origin', () => {
+      const result = deriveCalendarHomeUrl(
+        'https://real.example.com',
+        'https://proxy.example.com/calendars/user/cal/',
+      )
+      expect(result).toBe('https://real.example.com/calendars/user/')
+    })
+  })
+
+  describe('dtstampToISO', () => {
+    it('should convert valid DTSTAMP', () => {
+      expect(dtstampToISO('20250101T120000Z')).toBe('2025-01-01T12:00:00Z')
+    })
+
+    it('should return empty string for empty input', () => {
+      expect(dtstampToISO('')).toBe('')
+    })
+
+    it('should return empty string for short input', () => {
+      expect(dtstampToISO('2025')).toBe('')
+    })
   })
 
   describe('serializeSettings', () => {
@@ -143,20 +216,33 @@ describe('settingsSync', () => {
       expect(getEtag()).toBeNull()
     })
 
+    it('should store empty string etag (not treat as clear)', () => {
+      setEtag('')
+      expect(getEtag()).toBe('')
+    })
+
     it('should manage lastModified', () => {
       expect(getLastModified()).toBe(0)
       touchLastModified()
       expect(getLastModified()).toBeGreaterThan(0)
     })
 
-    it('should clear all sync keys', () => {
+    it('should manage lastSyncedAt', () => {
+      expect(getLastSyncedAt()).toBe('')
+      setLastSyncedAt('2025-01-01T00:00:00Z')
+      expect(getLastSyncedAt()).toBe('2025-01-01T00:00:00Z')
+    })
+
+    it('should clear all sync keys including lastSyncedAt', () => {
       setPrimaryAccountId('x')
       setEtag('"y"')
       touchLastModified()
+      setLastSyncedAt('2025-01-01T00:00:00Z')
       clearSyncKeys()
       expect(getPrimaryAccountId()).toBeNull()
       expect(getEtag()).toBeNull()
       expect(getLastModified()).toBe(0)
+      expect(getLastSyncedAt()).toBe('')
     })
 
     it('isSyncEnabled should reflect primaryAccountId', () => {

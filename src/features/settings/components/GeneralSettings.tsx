@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { JSX } from 'react'
 import {
   useSettingsStore,
@@ -73,6 +73,19 @@ export function GeneralSettings(): JSX.Element {
   const [showAccountPicker, setShowAccountPicker] = useState(false)
   const [showDisableConfirm, setShowDisableConfirm] = useState(false)
   const [enablingAccountId, setEnablingAccountId] = useState<string | null>(null)
+
+  // Close modals on Escape key
+  useEffect(() => {
+    if (!showAccountPicker && !showDisableConfirm) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAccountPicker(false)
+        setShowDisableConfirm(false)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [showAccountPicker, showDisableConfirm])
 
   return (
     <section className={`${styles.section} ${styles.sectionActive}`}>
@@ -204,7 +217,7 @@ export function GeneralSettings(): JSX.Element {
             <div className={styles.rowLabel}>CalDAV Settings Sync</div>
             <div className={styles.rowDesc}>
               {syncEnabled
-                ? 'Pulls settings automatically. Push changes manually with the button below.'
+                ? 'Pulls settings automatically. Save changes manually with the button below.'
                 : 'Enable to sync your settings across devices via CalDAV'}
             </div>
             {syncError && (
@@ -278,7 +291,7 @@ export function GeneralSettings(): JSX.Element {
           <div className={styles.row}>
             <div className={styles.rowInfo}>
               <div className={styles.rowLabel}>Sync Now</div>
-              <div className={styles.rowDesc}>Push your local settings to the server</div>
+              <div className={styles.rowDesc}>Save your local settings to the server</div>
             </div>
             <div className={styles.rowControl}>
               <button
@@ -304,7 +317,7 @@ export function GeneralSettings(): JSX.Element {
                   if (!syncing) e.currentTarget.style.transform = 'translateY(-1px)'
                 }}
               >
-                {syncing ? 'Syncing...' : 'Push'}
+                {syncing ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
@@ -314,6 +327,8 @@ export function GeneralSettings(): JSX.Element {
       {/* Account Picker Modal */}
       {showAccountPicker && (
         <div
+          role="dialog"
+          aria-modal="true"
           style={{
             position: 'fixed',
             top: 0,
@@ -343,7 +358,7 @@ export function GeneralSettings(): JSX.Element {
               Enable Settings Sync
             </h3>
             <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--ink-2)' }}>
-              This will create a <strong>Calino Settings</strong> calendar on your CalDAV server. It contains a single event that stores your preferences (theme, first day of week, etc.) as encrypted data.
+              This will create a <strong>Calino Settings</strong> calendar on your CalDAV server. It contains a single event that stores your preferences (theme, first day of week, etc.) as JSON data.
             </p>
             <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5 }}>
               The calendar is hidden from Calino's sidebar but may be visible in other CalDAV clients. It does not affect your other calendars and can be deleted at any time from settings.
@@ -437,6 +452,8 @@ export function GeneralSettings(): JSX.Element {
       {/* Disable Confirmation Modal */}
       {showDisableConfirm && (
         <div
+          role="dialog"
+          aria-modal="true"
           style={{
             position: 'fixed',
             top: 0,

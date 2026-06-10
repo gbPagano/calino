@@ -15,13 +15,13 @@ import {
   deserializeSettings,
   mergeSettings,
   resolveConflict,
-  SETTINGS_CALENDAR_NAME,
-  SETTINGS_EVENT_UID,
+  encodeBase64,
+  deriveCalendarHomeUrl,
+  dtstampToISO,
   getPrimaryAccountId,
   setPrimaryAccountId,
   getEtag,
   setEtag,
-  getLastModified,
   touchLastModified,
   setLastSyncedAt,
   getLastSyncedAt,
@@ -50,7 +50,6 @@ interface UseSettingsSyncReturn {
   disable: (deleteRemote?: boolean) => Promise<void>
   push: () => Promise<void>
   pull: () => Promise<void>
-  /** Check for existing settings calendar on account add and auto-enable if found. */
   discoverSettings: (accountId: string) => Promise<void>
 }
 
@@ -64,9 +63,13 @@ export function useSettingsSync(): UseSettingsSyncReturn {
 
   const enabled = getPrimaryAccountId() !== null
 
-  const lastLocalModRef = useRef<number>(getLastModified())
-  const enabledRef = useRef(enabled)
-  enabledRef.current = enabled
+  const isMountedRef = useRef(true)
+  const inFlightRef = useRef(false)
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { isMountedRef.current = false }
+  }, [])
 
   // Load accounts on mount
   useEffect(() => {
@@ -75,103 +78,41 @@ export function useSettingsSync(): UseSettingsSyncReturn {
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
-  /** Build the settings calendar URL for the given account. */
   async function resolveSettingsCalendarUrl(accountId: string): Promise<string | null> {
     const account = accountStorage.getAccountById(accountId)
     if (!account) return null
     const credential = await getCredentialById(account.credentialId)
     if (!credential) return null
     const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
-    // Derive calendar home path from an existing calendar URL, then swap origin to the real server
     const calendars = accountStorage.getCalendarsByAccountId(accountId)
     if (calendars.length === 0) return null
-    const storedCalUrl = new URL(calendars[0].url)
-    const realServerUrl = new URL(account.serverUrl)
-    const pathParts = storedCalUrl.pathname.split('/').filter(Boolean)
-    pathParts.pop() // remove calendar name → gives us the calendar home path
-    const homePath = '/' + pathParts.join('/') + '/'
-    const calendarHomeUrl = realServerUrl.origin + homePath
-    // Discover or create settings calendar
+    const calendarHomeUrl = deriveCalendarHomeUrl(account.serverUrl, calendars[0].url)
     const discovered = await client.discoverSettingsCalendar(calendarHomeUrl)
     return discovered?.url ?? null
   }
 
-  /** Resolve conflict between local and remote, returning the winning settings. */
   function resolveAndMerge(
     localSettings: ReturnType<typeof useSettingsStore.getState>,
     remoteSettings: { settings: Partial<ReturnType<typeof useSettingsStore.getState>>; syncedAt: string },
     remoteDtstamp: string,
   ): ReturnType<typeof useSettingsStore.getState> {
-    // Use lastSyncedAt (when we last successfully synced) instead of lastModified
-    // This way remote wins if it was updated since our last sync
     const lastSynced = getLastSyncedAt() || '1970-01-01T00:00:00Z'
     const winner = resolveConflict(lastSynced, remoteDtstamp || remoteSettings.syncedAt)
     if (winner === 'remote') {
-      return mergeSettings(localSettings, remoteSettings.settings)
+      return { ...localSettings, ...mergeSettings(localSettings, remoteSettings.settings) }
     }
     return localSettings
   }
 
   // ── Core operations ─────────────────────────────────────────────────────────
 
-  const push = useCallback(async (): Promise<void> => {
-    if (!enabledRef.current) return
-    const accountId = getPrimaryAccountId()
-    if (!accountId) { setError('Sync not properly configured'); return }
-
-    setSyncing(true); setError(null)
-    try {
-      const calUrl = await resolveSettingsCalendarUrl(accountId)
-      if (!calUrl) { setError('Settings calendar not found'); return }
-
-      const account = accountStorage.getAccountById(accountId)
-      if (!account) { setError('Account not found'); return }
-      const credential = await getCredentialById(account.credentialId)
-      if (!credential) { setError('Credentials not found'); return }
-
-      const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
-      const json = serializeSettings()
-      const base64 = btoa(json)
-      const storedEtag = getEtag()
-      const newEtag = await client.putSettingsEvent(calUrl, base64, storedEtag)
-      if (newEtag) setEtag(newEtag)
-      touchLastModified()
-      // Don't setLastSyncedAt here — only pull sets it (represents when we last received remote)
-      lastLocalModRef.current = Date.now()
-      forceRender((n) => n + 1)
-      console.log('[SettingsSync] Push successful')
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Push failed'
-      console.error('[SettingsSync] Push failed:', err)
-      setError(msg)
-      // ETag mismatch → pull then retry once
-      if (msg.includes('412') || msg.includes('If-Match')) {
-        await pull()
-        try {
-          const calUrl = await resolveSettingsCalendarUrl(getPrimaryAccountId()!)
-          const account = accountStorage.getAccountById(getPrimaryAccountId()!)
-          if (calUrl && account) {
-            const credential = await getCredentialById(account.credentialId)
-            if (credential) {
-              const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
-              const base64 = btoa(serializeSettings())
-              const newEtag = await client.putSettingsEvent(calUrl, base64, getEtag() || undefined)
-              setEtag(newEtag)
-              touchLastModified()
-              setError(null)
-            }
-          }
-        } catch { /* give up */ }
-      }
-    } finally {
-      setSyncing(false)
-    }
-  }, [])
-
+  // pull is defined before push so push can reference it in its dependency array
   const pull = useCallback(async (): Promise<void> => {
+    if (inFlightRef.current) return
     const accountId = getPrimaryAccountId()
     if (!accountId) { setError('Sync not properly configured'); return }
 
+    inFlightRef.current = true
     setSyncing(true); setError(null)
     try {
       const calUrl = await resolveSettingsCalendarUrl(accountId)
@@ -186,45 +127,104 @@ export function useSettingsSync(): UseSettingsSyncReturn {
       const remote = await client.fetchSettingsEvent(calUrl)
 
       if (!remote) {
-        // No remote event yet — push local
-        await push()
+        if (useSettingsStore.getState().caldavDebugMode) console.warn('[SettingsSync] No remote settings event found — nothing to pull')
         return
       }
 
       const json = client.extractSettingsFromVEVENT(remote.data)
       if (!json) {
-        // Corrupted — push local to fix
-        await push()
+        if (useSettingsStore.getState().caldavDebugMode) console.warn('[SettingsSync] Could not extract settings from remote VEVENT')
         return
       }
 
       const parsed = deserializeSettings(json)
       if (!parsed) {
-        await push()
+        if (useSettingsStore.getState().caldavDebugMode) console.warn('[SettingsSync] Remote settings payload invalid or unsupported version')
         return
       }
 
-      // Convert iCalendar DTSTAMP (YYYYMMDDTHHMMSSZ) to ISO 8601 for Date parsing
-      const dtstampIso = remote.dtstamp
-        ? `${remote.dtstamp.slice(0, 4)}-${remote.dtstamp.slice(4, 6)}-${remote.dtstamp.slice(6, 8)}T${remote.dtstamp.slice(9, 11)}:${remote.dtstamp.slice(11, 13)}:${remote.dtstamp.slice(13, 15)}Z`
-        : ''
+      const dtstampIso = dtstampToISO(remote.dtstamp)
       const localSettings = useSettingsStore.getState()
       const merged = resolveAndMerge(localSettings, parsed, dtstampIso)
       useSettingsStore.getState().updateSettings(merged)
       setEtag(remote.etag)
-      setLastSyncedAt(new Date().toISOString())
-      // Don't touchLastModified here — only when user changes settings locally
-      lastLocalModRef.current = Date.now()
-      forceRender((n) => n + 1)
-      console.log('[SettingsSync] Pull successful')
+      // Store the actual DTSTAMP from the server — shows when settings were truly last written
+      setLastSyncedAt(dtstampIso || new Date().toISOString())
+      if (isMountedRef.current) forceRender((n) => n + 1)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Pull failed'
       console.error('[SettingsSync] Pull failed:', err)
-      setError(msg)
+      if (isMountedRef.current) setError(msg)
     } finally {
+      inFlightRef.current = false
       setSyncing(false)
     }
   }, [])
+
+  const push = useCallback(async (retryDepth = 0): Promise<void> => {
+    if (inFlightRef.current) { if (useSettingsStore.getState().caldavDebugMode) console.warn('[SettingsSync] Push skipped — already in flight'); return }
+    const accountId = getPrimaryAccountId()
+    if (!accountId) { setError('Sync not properly configured'); return }
+
+    inFlightRef.current = true
+    setSyncing(true); setError(null)
+    try {
+      if (useSettingsStore.getState().caldavDebugMode) console.log('[SettingsSync] Push: resolving calendar URL...')
+      const calUrl = await resolveSettingsCalendarUrl(accountId)
+      if (!calUrl) { setError('Settings calendar not found'); return }
+      if (useSettingsStore.getState().caldavDebugMode) console.log('[SettingsSync] Push: calendar URL =', calUrl)
+
+      const account = accountStorage.getAccountById(accountId)
+      if (!account) { setError('Account not found'); return }
+      const credential = await getCredentialById(account.credentialId)
+      if (!credential) { setError('Credentials not found'); return }
+
+      const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
+      const json = serializeSettings()
+      const base64 = encodeBase64(json)
+      const storedEtag = getEtag()
+      if (useSettingsStore.getState().caldavDebugMode) console.log('[SettingsSync] Push: putting settings event, etag =', storedEtag)
+      const newEtag = await client.putSettingsEvent(calUrl, base64, storedEtag ?? undefined)
+      if (useSettingsStore.getState().caldavDebugMode) console.log('[SettingsSync] Push: success, new etag =', newEtag)
+      if (newEtag) setEtag(newEtag)
+      touchLastModified()
+      setLastSyncedAt(new Date().toISOString())
+      if (isMountedRef.current) {
+        forceRender((n) => n + 1)
+        showToast('Settings saved to server.')
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Push failed'
+      console.error('[SettingsSync] Push failed:', err)
+      if (isMountedRef.current) setError(msg)
+      const is412 = msg.includes('412') || msg.includes('If-Match') || msg.includes('Precondition')
+      if (retryDepth < 1 && is412) {
+        if (useSettingsStore.getState().caldavDebugMode) console.log('[SettingsSync] Push: 412 detected, pulling then retrying...')
+        // Temporarily release inFlightRef so pull() can run
+        inFlightRef.current = false
+        await pull()
+        inFlightRef.current = true
+        try {
+          const calUrl = await resolveSettingsCalendarUrl(getPrimaryAccountId()!)
+          const account = accountStorage.getAccountById(getPrimaryAccountId()!)
+          if (calUrl && account) {
+            const credential = await getCredentialById(account.credentialId)
+            if (credential) {
+              const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
+              const base64 = encodeBase64(serializeSettings())
+              const newEtag = await client.putSettingsEvent(calUrl, base64, getEtag() || undefined)
+              setEtag(newEtag)
+              touchLastModified()
+              if (isMountedRef.current) setError(null)
+            }
+          }
+        } catch { /* give up */ }
+      }
+    } finally {
+      inFlightRef.current = false
+      setSyncing(false)
+    }
+  }, [pull])
 
   // ── Enable / Disable ───────────────────────────────────────────────────────
 
@@ -237,62 +237,45 @@ export function useSettingsSync(): UseSettingsSyncReturn {
       if (!credential) throw new Error('Credentials not found')
 
       const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
-
-      // Derive calendar home — use stored calendar URL path but real server origin
       const calendars = accountStorage.getCalendarsByAccountId(accountId)
       if (calendars.length === 0) throw new Error('No calendars found')
-      const storedCalUrl = new URL(calendars[0].url)
-      const realServerUrl = new URL(account.serverUrl)
-      const parts = storedCalUrl.pathname.split('/').filter(Boolean)
-      parts.pop()
-      const homePath = '/' + parts.join('/') + '/'
-      const calendarHomeUrl = realServerUrl.origin + homePath
+      const calendarHomeUrl = deriveCalendarHomeUrl(account.serverUrl, calendars[0].url)
 
-      // Discover or create settings calendar
       let settingsCal = await client.discoverSettingsCalendar(calendarHomeUrl)
       let hasExistingSettings = false
 
       if (!settingsCal) {
-        // Create fresh
         const newCalUrl = await client.createSettingsCalendar(calendarHomeUrl)
         settingsCal = { url: newCalUrl }
       } else {
-        // Check if settings VEVENT already exists
         const existing = await client.fetchSettingsEvent(settingsCal.url)
         hasExistingSettings = !!existing
       }
 
-      // Write the primary account ID so sync is considered active
       setPrimaryAccountId(accountId)
 
       if (hasExistingSettings) {
-        // Pull existing remote settings first
         await pull()
       } else {
-        // Push local settings
-        await push()
+        const json = serializeSettings()
+        const base64 = encodeBase64(json)
+        const newEtag = await client.putSettingsEvent(settingsCal!.url, base64, undefined, null)
+        if (newEtag) setEtag(newEtag)
+        touchLastModified()
       }
-
-      // Store initial ETag + lastModified
-      const freshRemote = await client.fetchSettingsEvent(settingsCal.url)
-      if (freshRemote) {
-        setEtag(freshRemote.etag)
-      }
-      // Don't touchLastModified here — only when user changes settings locally
-      lastLocalModRef.current = Date.now()
 
       showToast('Settings sync enabled.')
-      forceRender((n) => n + 1)
+      if (isMountedRef.current) forceRender((n) => n + 1)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to enable sync'
       console.error('[SettingsSync] Enable failed:', err)
-      setError(msg)
+      if (isMountedRef.current) setError(msg)
       clearSyncKeys()
       throw err
     } finally {
       setSyncing(false)
     }
-  }, [pull, push])
+  }, [pull])
 
   const disable = useCallback(async (deleteRemote: boolean = false): Promise<void> => {
     const accountId = getPrimaryAccountId()
@@ -314,19 +297,12 @@ export function useSettingsSync(): UseSettingsSyncReturn {
     }
 
     clearSyncKeys()
-    forceRender((n) => n + 1)
-    console.log('[SettingsSync] Disabled')
+    if (isMountedRef.current) forceRender((n) => n + 1)
   }, [])
 
   // ── Auto-discovery on account add ──────────────────────────────────────────
 
-  /**
-   * Check if a Calino Settings calendar exists on the given account.
-   * If found and sync is not yet active, auto-enable it.
-   * Called from useCalDAV.addAccount after successful account creation.
-   */
   const discoverSettings = useCallback(async (accountId: string): Promise<void> => {
-    // Don't do anything if sync is already active
     if (getPrimaryAccountId()) return
 
     try {
@@ -336,35 +312,21 @@ export function useSettingsSync(): UseSettingsSyncReturn {
       if (!credential) return
 
       const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
-
-      // Derive calendar home from stored calendar URLs but use real server origin
       const calendars = accountStorage.getCalendarsByAccountId(accountId)
       if (calendars.length === 0) return
-      const storedCalUrl = new URL(calendars[0].url)
-      const realServerUrl = new URL(account.serverUrl)
-      const pathParts = storedCalUrl.pathname.split('/').filter(Boolean)
-      pathParts.pop()
-      const homePath = '/' + pathParts.join('/') + '/'
-      const calendarHomeUrl = realServerUrl.origin + homePath
+      const calendarHomeUrl = deriveCalendarHomeUrl(account.serverUrl, calendars[0].url)
 
       const discovered = await client.discoverSettingsCalendar(calendarHomeUrl)
       if (!discovered) return
 
-      // Settings calendar exists — auto-enable sync
-      console.log('[SettingsSync] Settings calendar found, auto-enabling sync')
       setPrimaryAccountId(accountId)
-
-      // Pull the settings
       await pull()
 
-      // Store ETag
       const remote = await client.fetchSettingsEvent(discovered.url)
       if (remote) {
         setEtag(remote.etag)
       }
-      // Don't touchLastModified here — only when user changes settings locally
-      lastLocalModRef.current = Date.now()
-      forceRender((n) => n + 1)
+      if (isMountedRef.current) forceRender((n) => n + 1)
 
       showToast('Calino Settings found — sync enabled automatically.')
     } catch (err) {
@@ -372,13 +334,10 @@ export function useSettingsSync(): UseSettingsSyncReturn {
     }
   }, [pull])
 
-  // Note: pull is triggered from useCalDAV.syncAccount after calendar sync completes.
-  // No pull-on-mount here — settings are synced as part of the normal CalDAV sync cycle.
-
   return {
     enabled,
     syncing,
-    lastSyncAt: lastLocalModRef.current ? new Date(lastLocalModRef.current).toISOString() : null,
+    lastSyncAt: getLastSyncedAt() || null,
     error,
     accounts,
     enable,

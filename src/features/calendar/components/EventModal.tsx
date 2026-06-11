@@ -894,7 +894,7 @@ export function EventModal(): JSX.Element | null {
             <input
               ref={titleInputRef}
               type="text"
-              placeholder="Event title"
+              placeholder={isTaskMode ? 'Task title' : 'Event title'}
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
               onKeyDown={handleTitleKeyDown}

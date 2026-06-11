@@ -146,6 +146,19 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
       return { type: 'navigation', raw: input, dateRef: ref }
     }
 
+    // Check for event creation intent (has time or duration indicators)
+    const hasTimeIndicator = /\bat\s+\d|\bat\s+noon|\bat\s+midnight|\bat\s+lunch|\bat\s+dinner|\d{1,2}\s*(am|pm)|\d{1,2}:\d{2}/.test(trimmed)
+    const hasDurationIndicator = /for\s+\d+\s*(min|hour|hr)/.test(trimmed)
+    const hasLocationIndicator = /\bat\s+(?!\d|noon|midnight|lunch|dinner)/.test(trimmed)
+
+    // If has time/duration/location, try quick-add (check BEFORE month/day navigation)
+    if (hasTimeIndicator || hasDurationIndicator || hasLocationIndicator) {
+      const result = parseNaturalLanguage(input)
+      if (result.confidence > 0.6 && result.title) {
+        return { type: 'quick-add', raw: input }
+      }
+    }
+
     // Check for pure date navigation (exact or starts with date keyword)
     for (const keyword of PURE_DATE_KEYWORDS) {
       if (trimmed === keyword || trimmed.startsWith(keyword)) {
@@ -170,19 +183,6 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     // Check for year patterns ("2024", "2025")
     if (/^\d{4}$/.test(trimmed)) {
       return { type: 'navigation', raw: input, dateRef: trimmed }
-    }
-
-    // Check for event creation intent (has time or duration indicators)
-    const hasTimeIndicator = /\bat\s+\d|\bat\s+noon|\bat\s+midnight|\bat\s+lunch|\bat\s+dinner|\d{1,2}\s*(am|pm)|\d{1,2}:\d{2}/.test(trimmed)
-    const hasDurationIndicator = /for\s+\d+\s*(min|hour|hr)/.test(trimmed)
-    const hasLocationIndicator = /\bat\s+(?!\d|noon|midnight|lunch|dinner)/.test(trimmed)
-
-    // If has time/duration/location, try quick-add
-    if (hasTimeIndicator || hasDurationIndicator || hasLocationIndicator) {
-      const result = parseNaturalLanguage(input)
-      if (result.confidence > 0.6 && result.title) {
-        return { type: 'quick-add', raw: input }
-      }
     }
 
     // Default: search

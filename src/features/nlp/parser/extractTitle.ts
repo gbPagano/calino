@@ -49,6 +49,15 @@ export function extractTitle(input: string, parsedText: string): string {
     /\bat\b\s*$/i,
     /\bin\b\s*$/i,
     /\bon\b\s*$/i,
+    /\bby\b\s*$/i,
+    /\bthe\b\s*$/i,
+    /\bon\s+the\b\s*$/i,
+    /\bevery\b\s*$/i,
+    /\bthis\b\s*$/i,
+    /\bnext\b\s*$/i,
+    /\blast\b\s*$/i,
+    /\bending\b\s*$/i,
+    /\bscheduled\b\s*$/i,
   ]
 
   for (const pattern of prepositionsToRemove) {

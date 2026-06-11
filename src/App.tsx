@@ -77,22 +77,25 @@ const VIEW_ORDER: ViewType[] = ['month', 'week', 'day', 'agenda', 'todo', 'journ
 function Toast(): JSX.Element | null {
   const [message, setMessage] = useState<string | null>(null)
   const [hasUndo, setHasUndo] = useState(false)
-  // Use a ref for the callback to avoid React's functional-updater trap
-  // (passing a function to useState calls it as an updater)
+  const [linkText, setLinkText] = useState<string | null>(null)
   const undoActionRef = useRef<(() => void) | null>(null)
+  const linkClickRef = useRef<(() => void) | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const handleShowToast = (e: CustomEvent) => {
-      // Clear any existing timeout
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       setMessage(e.detail.message)
       undoActionRef.current = e.detail.onUndo ?? null
       setHasUndo(!!e.detail.onUndo)
+      setLinkText(e.detail.linkText ?? null)
+      linkClickRef.current = e.detail.onLinkClick ?? null
       timeoutRef.current = setTimeout(() => {
         setMessage(null)
         undoActionRef.current = null
+        linkClickRef.current = null
         setHasUndo(false)
+        setLinkText(null)
       }, e.detail.duration ?? TOAST_DURATION_MS)
     }
 
@@ -109,6 +112,16 @@ function Toast(): JSX.Element | null {
     <div className="toast" role="status" aria-live="polite">
       <span className="toastIcon">✓</span>
       {message}
+      {linkText && (
+        <button
+          className="toastUndo"
+          onClick={() => {
+            linkClickRef.current?.()
+          }}
+        >
+          {linkText}
+        </button>
+      )}
       {hasUndo && (
         <button
           className="toastUndo"

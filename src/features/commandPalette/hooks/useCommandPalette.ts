@@ -54,6 +54,8 @@ interface UseCommandPaletteProps {
 export interface ExecuteResult {
   success: boolean
   message: string
+  linkText?: string
+  onLinkClick?: () => void
 }
 
 export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCommandPaletteProps): {
@@ -408,7 +410,12 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
           } catch {
             // error already handled by useCalDAV
           }
-          return { success: true, message: `Created task: ${qa.title}` }
+          return {
+            success: true,
+            message: `Created task: ${qa.title}`,
+            linkText: 'Open',
+            onLinkClick: () => openModal(undefined, undefined, newEvent.id),
+          }
         }
 
         const newEvent = {
@@ -426,7 +433,12 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
         } catch {
           // error already handled by useCalDAV
         }
-        return { success: true, message: `Created event: ${qa.title}` }
+        return {
+          success: true,
+          message: `Created event: ${qa.title}`,
+          linkText: 'Open',
+          onLinkClick: () => openModal(undefined, undefined, newEvent.id),
+        }
       }
 
       return { success: false, message: '' }

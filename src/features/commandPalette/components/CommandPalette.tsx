@@ -190,7 +190,10 @@ export function CommandPalette({ isOpen, onClose, toggleSidebar, sidebarOpen }: 
     if (originalIndex === undefined) return
     const result = await executeSelected(originalIndex)
     if (result?.success && result.message) {
-      showToast(result.message)
+      showToast(result.message, {
+        linkText: result.linkText,
+        onLinkClick: result.onLinkClick,
+      })
     }
     onClose()
   }

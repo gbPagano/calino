@@ -1043,7 +1043,18 @@ export function EventModal(): JSX.Element | null {
               recurring={recurring}
               onRecurringChange={setRecurring}
               recurrence={recurrence}
-              onRecurrenceChange={setRecurrence}
+              onRecurrenceChange={(freq) => {
+                setRecurrence(freq)
+                // Clear weekday/month selections that don't apply to the new frequency
+                if (freq !== 'weekly' && freq !== 'monthly' && freq !== 'yearly') {
+                  setByWeekday([])
+                }
+                if (freq !== 'monthly' && freq !== 'yearly') {
+                  setByMonthDay(undefined)
+                  setByMonth(undefined)
+                  setBySetPos(undefined)
+                }
+              }}
               interval={interval}
               onIntervalChange={setInterval}
               byWeekday={byWeekday}

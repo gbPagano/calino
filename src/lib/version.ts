@@ -1,18 +1,23 @@
 /**
  * Compare two semver strings (with optional leading `v`).
  * Returns: -1 if a < b, 0 if equal, 1 if a > b.
+ *
+ * Delegates to the `semver` package, which handles pre-release tags and
+ * build metadata correctly (unlike a hand-rolled major/minor/patch compare).
  */
+import semver from 'semver'
+
+function toSemver(value: string): semver.SemVer | null {
+  const stripped = value.replace(/^v/, '')
+  return semver.parse(stripped) ?? semver.coerce(stripped)
+}
+
 export function compareVersions(a: string, b: string): number {
-  const parse = (v: string): [number, number, number] => {
-    const parts = v.replace(/^v/, '').split('.').map(Number)
-    return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0]
+  const sa = toSemver(a)
+  const sb = toSemver(b)
+  if (sa && sb) {
+    return sa.compare(sb)
   }
-
-  const [aMajor, aMinor, aPatch] = parse(a)
-  const [bMajor, bMinor, bPatch] = parse(b)
-
-  if (aMajor !== bMajor) return aMajor > bMajor ? 1 : -1
-  if (aMinor !== bMinor) return aMinor > bMinor ? 1 : -1
-  if (aPatch !== bPatch) return aPatch > bPatch ? 1 : -1
-  return 0
+  // Fall back to a stable string compare if either side is not parseable.
+  return a === b ? 0 : a < b ? -1 : 1
 }

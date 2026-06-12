@@ -265,6 +265,64 @@
   display: none;
 }
 
+/* Compact attachment layout (used inside "More") */
+.attachmentFieldCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.attachmentListCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attachmentItemCompact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--color-bg-tertiary, #f3f2f0);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.attachmentItemCompact .attachmentName {
+  font-size: 12px;
+}
+
+.attachmentItemCompact .attachmentSize {
+  font-size: 11px;
+}
+
+.attachmentItemCompact .removeAttachment {
+  padding: 2px;
+  font-size: 14px;
+}
+
+.addAttachmentButtonCompact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: none;
+  border: 1px dashed var(--color-border-visible, #dadce0);
+  border-radius: 6px;
+  color: var(--color-text-secondary, #5f6368);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  align-self: flex-start;
+}
+
+.addAttachmentButtonCompact:hover {
+  border-color: var(--color-accent, #1a73e8);
+  color: var(--color-accent, #1a73e8);
+  background: var(--color-accent-light, rgba(26, 115, 232, 0.04));
+}
+
 .modalBody {
   padding: 14px 22px;
   display: flex;
@@ -553,6 +611,12 @@
   gap: 12px;
 }
 
+.row.divider {
+  padding-top: 14px;
+  margin-top: 6px;
+  border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.10));
+}
+
 .row .field {
   flex: 1;
   min-width: 0;
@@ -652,6 +716,24 @@
   color: var(--color-text-primary, #1a1a1a);
 }
 
+.moreOptionsWrapper {
+  display: block;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.2s ease, opacity 0.2s ease;
+}
+
+.moreOptionsOpen {
+  max-height: 1200px;
+  opacity: 1;
+}
+
+.moreOptionsClosed {
+  max-height: 0;
+  opacity: 0;
+}
+
 .moreOptionsSection {
   display: flex;
   flex-direction: column;
@@ -659,18 +741,12 @@
   padding: 16px;
   background: var(--color-bg-tertiary, #f3f2f0);
   border-radius: 8px;
-  animation: slideDown 0.2s ease-out;
+  transform: translateY(-4px);
+  transition: transform 0.2s ease;
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.moreOptionsOpen .moreOptionsSection {
+  transform: translateY(0);
 }
 
 .weekdayField {
@@ -691,27 +767,32 @@
   min-width: 36px;
   height: 36px;
   padding: 0 10px;
-  border-radius: 18px;
-  border: 2px solid transparent;
-  background: transparent;
+  border-radius: 8px;
+  border: 1.5px solid var(--color-border, rgba(0, 0, 0, 0.12));
+  background: var(--color-bg-elevated, #fff);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   color: var(--color-text-secondary, #6b6b6b);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .weekdayBtn:hover {
   background: var(--color-bg-hover, rgba(0, 0, 0, 0.04));
+  border-color: var(--color-text-secondary, #6b6b6b);
 }
 
 .weekdayBtn.excluded {
   background: var(--color-accent);
   color: #fff;
+  border-color: var(--color-accent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .weekdayBtn.excluded:hover {
   background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
 }
 
 .weekdayBtn input {

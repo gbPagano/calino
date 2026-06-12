@@ -46,7 +46,7 @@ describe('Bug #85: Sub-daily frequencies in describeFromRecurrenceRule', () => {
 
     it('describes HOURLY with interval 2', () => {
       const event = makeEvent({ recurrence: makeRule({ frequency: 'hourly', interval: 2 }) })
-      expect(describeRecurrence(event)).toBe('Every other hour')
+      expect(describeRecurrence(event)).toBe('Every 2 hours')
     })
 
     it('describes SECONDLY with interval 30', () => {
@@ -68,7 +68,7 @@ describe('Bug #85: Sub-daily frequencies in describeFromRecurrenceRule', () => {
 
     it('describes HOURLY from rruleString', () => {
       const event = makeEvent({ rruleString: 'FREQ=HOURLY;INTERVAL=2' })
-      expect(describeRecurrence(event)).toBe('Every other hour')
+      expect(describeRecurrence(event)).toBe('Every 2 hours')
     })
 
     it('describes HOURLY with interval 1 from rruleString', () => {
@@ -96,6 +96,42 @@ describe('Bug #85: Sub-daily frequencies in describeFromRecurrenceRule', () => {
     it('describes YEARLY frequency', () => {
       const event = makeEvent({ recurrence: makeRule({ frequency: 'yearly' }) })
       expect(describeRecurrence(event)).toBe('Every year')
+    })
+  })
+
+  describe('end-of-recurrence suffixes (rrule.toText() handles them natively)', () => {
+    it('includes count when rule has count', () => {
+      const event = makeEvent({
+        recurrence: makeRule({ frequency: 'weekly', count: 5 }),
+      })
+      expect(describeRecurrence(event)).toBe('Every week for 5 times')
+    })
+
+    it('uses singular "time" for count=1', () => {
+      const event = makeEvent({
+        recurrence: makeRule({ frequency: 'daily', count: 1 }),
+      })
+      expect(describeRecurrence(event)).toBe('Every day for 1 time')
+    })
+
+    it('includes "until" when rule has endDate', () => {
+      const event = makeEvent({
+        recurrence: makeRule({
+          frequency: 'daily',
+          endDate: '2025-12-31T23:59:59',
+        }),
+      })
+      expect(describeRecurrence(event)).toBe('Every day until December 31, 2025')
+    })
+
+    it('includes count when rruleString has COUNT', () => {
+      const event = makeEvent({ rruleString: 'FREQ=WEEKLY;COUNT=10' })
+      expect(describeRecurrence(event)).toBe('Every week for 10 times')
+    })
+
+    it('includes until when rruleString has UNTIL (date only)', () => {
+      const event = makeEvent({ rruleString: 'FREQ=DAILY;UNTIL=20251231' })
+      expect(describeRecurrence(event)).toBe('Every day until December 31, 2025')
     })
   })
 })

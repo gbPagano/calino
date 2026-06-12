@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { v4 as uuidv4 } from 'uuid'
-import { renderMarkdown } from '@/lib/markdown'
+import { MarkdownView } from '@/lib/markdown'
 import { showToast } from '@/lib/toast'
 import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
 import type { CalendarEvent, CalendarAttachment } from '@/types'
@@ -365,10 +365,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                       {entry.title && (
                         <div className={styles.summary}>{entry.title}</div>
                       )}
-                      <div
-                        className={styles.body}
-                        dangerouslySetInnerHTML={{ __html: renderMarkdown(entry.description || '') }}
-                      />
+                      <MarkdownView className={styles.body} text={entry.description || ''} />
                       {entry.categories && entry.categories.length > 0 && (
                         <div className={styles.entryCategories}>
                           {entry.categories.map((cat) => (

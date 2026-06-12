@@ -381,25 +381,153 @@ describe('Bug 27: All-day DTEND rollover', () => {
     }
   })
 
-  it('handles month with 30 days correctly (April 30)', () => {
+    it('handles month with 30 days correctly (April 30)', () => {
+      const event: CalendarEvent = {
+        id: 'apr30-test',
+        calendarId: 'cal-1',
+        title: 'Apr End',
+        start: '2025-04-30',
+        end: '2025-04-30',
+        isAllDay: true,
+      }
+
+      const vevent = calendarEventToIcalComponent(event)
+      const dtendProp = vevent.getFirstProperty('dtend')
+      const dtendValue = dtendProp?.getFirstValue()
+
+      expect(dtendValue).toBeInstanceOf(ICAL.Time)
+      if (dtendValue instanceof ICAL.Time) {
+        expect(dtendValue.year).toBe(2025)
+        expect(dtendValue.month).toBe(5)
+        expect(dtendValue.day).toBe(1)
+      }
+    })
+  })
+
+// ---------------------------------------------------------------------------
+// Group B: rrule round-trip for BYMONTHDAY, BYMONTH, BYSETPOS, positional BYDAY
+// ---------------------------------------------------------------------------
+describe('rrule round-trip for new BY* parts', () => {
+  it('parses BYMONTHDAY', () => {
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:bymonthday-test',
+      'SUMMARY:Month day test',
+      'DTSTART:20250315T100000Z',
+      'DTEND:20250315T110000Z',
+      'RRULE:FREQ=MONTHLY;BYMONTHDAY=15',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const event = icalEventToCalendarEvent(createVevent(iCalStr), 'cal-1')
+    expect(event.recurrence?.byMonthDay).toEqual([15])
+  })
+
+  it('parses BYMONTH', () => {
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:bymonth-test',
+      'SUMMARY:Yearly in March',
+      'DTSTART:20250315T100000Z',
+      'DTEND:20250315T110000Z',
+      'RRULE:FREQ=YEARLY;BYMONTH=3',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const event = icalEventToCalendarEvent(createVevent(iCalStr), 'cal-1')
+    expect(event.recurrence?.byMonth).toEqual([3])
+  })
+
+  it('parses BYDAY with positional prefix into byWeekday+bySetPos', () => {
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:second-tue',
+      'SUMMARY:Second Tuesday',
+      'DTSTART:20250311T100000Z',
+      'DTEND:20250311T110000Z',
+      'RRULE:FREQ=MONTHLY;BYDAY=2TU',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const event = icalEventToCalendarEvent(createVevent(iCalStr), 'cal-1')
+    expect(event.recurrence?.byWeekday).toEqual([2])
+    expect(event.recurrence?.bySetPos).toEqual([2])
+  })
+
+  it('does not emit fake bySetPos=0 for plain BYDAY', () => {
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:plain-monday',
+      'SUMMARY:Every Monday',
+      'DTSTART:20250303T100000Z',
+      'DTEND:20250303T110000Z',
+      'RRULE:FREQ=WEEKLY;BYDAY=MO',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const event = icalEventToCalendarEvent(createVevent(iCalStr), 'cal-1')
+    expect(event.recurrence?.byWeekday).toEqual([1])
+    expect(event.recurrence?.bySetPos).toBeUndefined()
+  })
+
+  it('parses standalone BYSETPOS', () => {
+    const iCalStr = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'BEGIN:VEVENT',
+      'UID:setpos-standalone',
+      'SUMMARY:Last weekday',
+      'DTSTART:20250331T100000Z',
+      'DTEND:20250331T110000Z',
+      'RRULE:FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+
+    const event = icalEventToCalendarEvent(createVevent(iCalStr), 'cal-1')
+    expect(event.recurrence?.bySetPos).toEqual([-1])
+  })
+
+  it('serializes byMonthDay to BYMONTHDAY', () => {
     const event: CalendarEvent = {
-      id: 'apr30-test',
+      id: 'serial-bymonthday',
       calendarId: 'cal-1',
-      title: 'Apr End',
-      start: '2025-04-30',
-      end: '2025-04-30',
-      isAllDay: true,
+      title: '15th of the month',
+      start: '2025-03-15T10:00:00Z',
+      end: '2025-03-15T11:00:00Z',
+      isAllDay: false,
+      recurrence: { frequency: 'monthly', interval: 1, byMonthDay: [15] },
     }
-
     const vevent = calendarEventToIcalComponent(event)
-    const dtendProp = vevent.getFirstProperty('dtend')
-    const dtendValue = dtendProp?.getFirstValue()
+    const rrule = vevent.getFirstProperty('rrule')?.getFirstValue() as ICAL.Recur
+    expect(rrule).toBeDefined()
+    expect(rrule.getComponent('BYMONTHDAY')).toEqual([15])
+  })
 
-    expect(dtendValue).toBeInstanceOf(ICAL.Time)
-    if (dtendValue instanceof ICAL.Time) {
-      expect(dtendValue.year).toBe(2025)
-      expect(dtendValue.month).toBe(5)
-      expect(dtendValue.day).toBe(1)
+  it('serializes byMonth to BYMONTH', () => {
+    const event: CalendarEvent = {
+      id: 'serial-bymonth',
+      calendarId: 'cal-1',
+      title: 'Every March',
+      start: '2025-03-15T10:00:00Z',
+      end: '2025-03-15T11:00:00Z',
+      isAllDay: false,
+      recurrence: { frequency: 'yearly', interval: 1, byMonth: [3] },
     }
+    const vevent = calendarEventToIcalComponent(event)
+    const rrule = vevent.getFirstProperty('rrule')?.getFirstValue() as ICAL.Recur
+    expect(rrule.getComponent('BYMONTH')).toEqual([3])
   })
 })

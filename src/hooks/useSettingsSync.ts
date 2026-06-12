@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { toast as sonnerToast } from 'sonner'
 import { useSettingsStore } from '@/store/settingsStore'
 import {
   serializeSettings,
@@ -35,7 +36,7 @@ import type { CalDAVAccount } from '@/features/caldav/types'
 // ─── Toast helper ─────────────────────────────────────────────────────────────
 
 function showToast(message: string): void {
-  window.dispatchEvent(new CustomEvent('show-toast', { detail: { message } }))
+  sonnerToast(message)
 }
 
 // ─── Return type ──────────────────────────────────────────────────────────────

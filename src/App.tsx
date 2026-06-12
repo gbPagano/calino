@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { useCallback, useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useCalendarStore } from './store/calendarStore'
 import { useSettingsStore } from './store/settingsStore'
@@ -21,7 +22,6 @@ import { MasterPasswordPrompt } from './features/settings/components/MasterPassw
 import { useConfigStore } from './store/configStore'
 import { ThemeProvider } from './components/ThemeProvider'
 import type { ViewType } from './types'
-import { TOAST_DURATION_MS } from './config'
 
 import { extractOriginalEventId } from './lib/events'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -73,71 +73,6 @@ const URL_TO_VIEW: Record<string, ViewType> = {
 }
 
 const VIEW_ORDER: ViewType[] = ['month', 'week', 'day', 'agenda', 'todo', 'journal']
-
-function Toast(): JSX.Element | null {
-  const [message, setMessage] = useState<string | null>(null)
-  const [hasUndo, setHasUndo] = useState(false)
-  const [linkText, setLinkText] = useState<string | null>(null)
-  const undoActionRef = useRef<(() => void) | null>(null)
-  const linkClickRef = useRef<(() => void) | null>(null)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    const handleShowToast = (e: CustomEvent) => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      setMessage(e.detail.message)
-      undoActionRef.current = e.detail.onUndo ?? null
-      setHasUndo(!!e.detail.onUndo)
-      setLinkText(e.detail.linkText ?? null)
-      linkClickRef.current = e.detail.onLinkClick ?? null
-      timeoutRef.current = setTimeout(() => {
-        setMessage(null)
-        undoActionRef.current = null
-        linkClickRef.current = null
-        setHasUndo(false)
-        setLinkText(null)
-      }, e.detail.duration ?? TOAST_DURATION_MS)
-    }
-
-    window.addEventListener('show-toast', handleShowToast as EventListener)
-    return () => {
-      window.removeEventListener('show-toast', handleShowToast as EventListener)
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    }
-  }, [])
-
-  if (!message) return null
-
-  return (
-    <div className="toast" role="status" aria-live="polite">
-      <span className="toastIcon">✓</span>
-      {message}
-      {linkText && (
-        <button
-          className="toastUndo"
-          onClick={() => {
-            linkClickRef.current?.()
-          }}
-        >
-          {linkText}
-        </button>
-      )}
-      {hasUndo && (
-        <button
-          className="toastUndo"
-          onClick={() => {
-            undoActionRef.current?.()
-            setMessage(null)
-            undoActionRef.current = null
-            setHasUndo(false)
-          }}
-        >
-          Undo
-        </button>
-      )}
-    </div>
-  )
-}
 
 function useViewManager(): void {
   const navigate = useNavigate()
@@ -527,7 +462,7 @@ function App(): JSX.Element {
     <BrowserRouter>
       <ThemeProvider>
         <GitHubPagesRedirect />
-        <Toast />
+        <Toaster richColors position="bottom-right" />
         <CookieConsent />
         <MasterPasswordPrompt />
         <Routes>

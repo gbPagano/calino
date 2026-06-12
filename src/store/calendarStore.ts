@@ -448,6 +448,19 @@ export const useCalendarStore = create<CalendarStore>()(
                   rruleParts += `;BYDAY=${bydayParts.join(',')}`
                 }
               }
+              if (event.recurrence.byMonthDay && event.recurrence.byMonthDay.length > 0) {
+                rruleParts += `;BYMONTHDAY=${event.recurrence.byMonthDay.join(',')}`
+              }
+              if (event.recurrence.byMonth && event.recurrence.byMonth.length > 0) {
+                rruleParts += `;BYMONTH=${event.recurrence.byMonth.join(',')}`
+              }
+              if (
+                event.recurrence.bySetPos &&
+                event.recurrence.bySetPos.length > 0 &&
+                (!event.recurrence.byWeekday || event.recurrence.byWeekday.length === 0)
+              ) {
+                rruleParts += `;BYSETPOS=${event.recurrence.bySetPos.join(',')}`
+              }
               if (event.recurrence.endDate) {
                 const endDate = parseISO(event.recurrence.endDate)
                 const untilStr = endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'

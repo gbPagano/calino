@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { isMasterEncryptedData, type MasterEncryptedData } from './crypto'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -22,6 +23,23 @@ declare const __CALINO_CONFIG__: Record<string, unknown> | null
 
 let cachedConfig: CalinoConfig | null | undefined
 
+const MasterEncryptedDataSchema = z.custom<MasterEncryptedData>(
+  (value) => isMasterEncryptedData(value),
+  { message: 'Expected MasterEncryptedData shape' },
+)
+
+const PreconfiguredAccountSchema = z.object({
+  name: z.string().trim().min(1),
+  url: MasterEncryptedDataSchema,
+  username: MasterEncryptedDataSchema,
+  password: MasterEncryptedDataSchema,
+})
+
+const CalinoConfigEnvelopeSchema = z.object({
+  version: z.literal(1),
+  accounts: z.array(z.unknown()),
+})
+
 /**
  * Load self-hosted config.
  * The config is baked into the JS bundle at build time (not served as a separate file).
@@ -40,14 +58,30 @@ export async function loadConfig(): Promise<CalinoConfig | null> {
     return null
   }
 
-  const config = validateConfig(__CALINO_CONFIG__)
+  const envelope = CalinoConfigEnvelopeSchema.safeParse(__CALINO_CONFIG__)
 
-  if (!config) {
-    console.warn('[configLoader] Invalid config, ignoring')
+  if (!envelope.success) {
+    console.warn('[configLoader] Invalid config, ignoring', envelope.error.issues)
     cachedConfig = null
     return null
   }
 
+  const accounts: PreconfiguredAccount[] = []
+  for (const raw of envelope.data.accounts) {
+    const parsed = PreconfiguredAccountSchema.safeParse(raw)
+    if (parsed.success) {
+      accounts.push(parsed.data)
+    } else {
+      console.warn('[configLoader] Skipping invalid account entry', parsed.error.issues)
+    }
+  }
+
+  if (accounts.length === 0) {
+    cachedConfig = null
+    return null
+  }
+
+  const config: CalinoConfig = { version: 1, accounts }
   cachedConfig = config
   return config
 }
@@ -57,72 +91,4 @@ export async function loadConfig(): Promise<CalinoConfig | null> {
  */
 export function resetConfigCache(): void {
   cachedConfig = undefined
-}
-
-// ─── Validation ──────────────────────────────────────────────────────────────
-
-function validateConfig(data: unknown): CalinoConfig | null {
-  if (typeof data !== 'object' || data === null) {
-    return null
-  }
-
-  const obj = data as Record<string, unknown>
-
-  // Version must be 1
-  if (obj.version !== 1) {
-    return null
-  }
-
-  // Accounts must be an array
-  if (!Array.isArray(obj.accounts)) {
-    return null
-  }
-
-  const accounts: PreconfiguredAccount[] = []
-
-  for (const account of obj.accounts) {
-    const validated = validateAccount(account)
-    if (!validated) {
-      console.warn('[configLoader] Skipping invalid account entry')
-      continue
-    }
-    accounts.push(validated)
-  }
-
-  if (accounts.length === 0) {
-    return null
-  }
-
-  return { version: 1, accounts }
-}
-
-function validateAccount(data: unknown): PreconfiguredAccount | null {
-  if (typeof data !== 'object' || data === null) {
-    return null
-  }
-
-  const obj = data as Record<string, unknown>
-
-  if (typeof obj.name !== 'string' || obj.name.trim() === '') {
-    return null
-  }
-
-  if (!isMasterEncryptedData(obj.url)) {
-    return null
-  }
-
-  if (!isMasterEncryptedData(obj.username)) {
-    return null
-  }
-
-  if (!isMasterEncryptedData(obj.password)) {
-    return null
-  }
-
-  return {
-    name: obj.name.trim(),
-    url: obj.url,
-    username: obj.username,
-    password: obj.password,
-  }
 }

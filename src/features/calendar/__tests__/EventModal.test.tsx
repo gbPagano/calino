@@ -80,12 +80,12 @@ describe('EventModal', () => {
     expect(screen.getByRole('checkbox', { name: /all day/i })).toBeInTheDocument()
   })
 
-  it('shows recurrence dropdown after clicking More', () => {
+  it('shows recurrence dropdown after enabling Recurring', () => {
     const store = useCalendarStore.getState()
     store.openModal()
 
     render(<EventModal />)
-    fireEvent.click(screen.getByRole('button', { name: /more/i }))
+    fireEvent.click(screen.getByLabelText('Recurring'))
     expect(screen.getByLabelText('Repeat')).toBeInTheDocument()
   })
 

@@ -1,3 +1,4 @@
+import { RRule } from 'rrule'
 import type { CalendarEvent, RecurrenceRule } from '@/types'
 
 // byWeekday numbers stored in RecurrenceRule → BYDAY codes
@@ -21,102 +22,76 @@ export const FREQ_MAP: Record<string, string> = {
   yearly: 'YEARLY',
 }
 
-// BYDAY codes → readable names
-const BYDAY_TO_NAME: Record<string, string> = {
-  SU: 'Sunday',
-  MO: 'Monday',
-  TU: 'Tuesday',
-  WE: 'Wednesday',
-  TH: 'Thursday',
-  FR: 'Friday',
-  SA: 'Saturday',
+function capitaliseFirst(s: string): string {
+  if (!s) return s
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-const WEEKDAY_CODES = new Set(['MO', 'TU', 'WE', 'TH', 'FR'])
-const WEEKEND_CODES = new Set(['SA', 'SU'])
-
-function joinWords(words: string[]): string {
-  if (words.length === 0) return ''
-  if (words.length === 1) return words[0]
-  if (words.length === 2) return `${words[0]} and ${words[1]}`
-  return words.slice(0, -1).join(', ') + ', and ' + words[words.length - 1]
+/**
+ * RRule.toText() doesn't support secondly. Provide a fallback that uses the
+ * same wording style (every N seconds / every second).
+ */
+function describeSecondly(interval: number): string {
+  if (interval === 1) return 'Every second'
+  if (interval === 2) return 'Every other second'
+  return `Every ${interval} seconds`
 }
 
-function intervalPrefix(interval: number, singular: string, plural: string): string {
-  if (interval === 1) return `Every ${singular}`
-  if (interval === 2) return `Every other ${singular}`
-  return `Every ${interval} ${plural}`
-}
-
-function describeFromParts(freq: string, interval: number, byday: string[]): string {
-  switch (freq) {
-    case 'SECONDLY':
-      return intervalPrefix(interval, 'second', 'seconds')
-
-    case 'MINUTELY':
-      return intervalPrefix(interval, 'minute', 'minutes')
-
-    case 'HOURLY':
-      return intervalPrefix(interval, 'hour', 'hours')
-
-    case 'DAILY':
-      return intervalPrefix(interval, 'day', 'days')
-
-    case 'WEEKLY': {
-      if (byday.length === 0) {
-        return intervalPrefix(interval, 'week', 'weeks')
-      }
-      const isWeekdays = byday.length === 5 && byday.every((d) => WEEKDAY_CODES.has(d))
-      const isWeekends = byday.length === 2 && byday.every((d) => WEEKEND_CODES.has(d))
-      if (isWeekdays) return interval === 1 ? 'Every weekday' : `Every ${interval} weeks on weekdays`
-      if (isWeekends) return interval === 1 ? 'Every weekend' : `Every ${interval} weeks on weekends`
-      const names = byday.map((d) => BYDAY_TO_NAME[d] ?? d)
-      if (names.length === 1 && interval === 1) return `Every ${names[0]}`
-      const prefix = intervalPrefix(interval, 'week', 'weeks')
-      return `${prefix} on ${joinWords(names)}`
-    }
-
-    case 'MONTHLY':
-      return intervalPrefix(interval, 'month', 'months')
-
-    case 'YEARLY':
-      return intervalPrefix(interval, 'year', 'years')
-
-    default:
-      return 'Recurring'
+function ruleObjectToRRuleString(rule: RecurrenceRule): string {
+  const parts: string[] = []
+  parts.push(`FREQ=${FREQ_MAP[rule.frequency] ?? 'WEEKLY'}`)
+  if (rule.interval && rule.interval > 1) {
+    parts.push(`INTERVAL=${rule.interval}`)
   }
+  if (rule.endDate) {
+    parts.push(`UNTIL=${rule.endDate.replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`)
+  } else if (rule.count) {
+    parts.push(`COUNT=${rule.count}`)
+  }
+  if (rule.byWeekday && rule.byWeekday.length > 0) {
+    const codes = rule.byWeekday
+      .map((d) => DAY_NUM_TO_CODE[d])
+      .filter(Boolean)
+      .join(',')
+    if (codes) parts.push(`BYDAY=${codes}`)
+  }
+  if (rule.byMonthDay && rule.byMonthDay.length > 0) {
+    parts.push(`BYMONTHDAY=${rule.byMonthDay.join(',')}`)
+  }
+  if (rule.byMonth && rule.byMonth.length > 0) {
+    parts.push(`BYMONTH=${rule.byMonth.join(',')}`)
+  }
+  if (rule.bySetPos && rule.bySetPos.length > 0) {
+    parts.push(`BYSETPOS=${rule.bySetPos.join(',')}`)
+  }
+  return parts.join(';')
 }
 
 function describeFromRruleString(rruleString: string): string {
-  const parts: Record<string, string> = {}
-  // strip any RRULE: prefix that CalDAV events may include
-  const stripped = rruleString.replace(/^RRULE:/i, '')
-  stripped.split(';').forEach((part) => {
-    const eq = part.indexOf('=')
-    if (eq !== -1) parts[part.slice(0, eq)] = part.slice(eq + 1)
-  })
-
-  const freq = parts['FREQ'] ?? ''
-  const interval = parseInt(parts['INTERVAL'] ?? '1', 10)
-  const byday = parts['BYDAY'] ? parts['BYDAY'].split(',').map((d) => d.trim()) : []
-
-  return describeFromParts(freq, interval, byday)
+  if (/^FREQ=SECONDLY/i.test(rruleString) || /;FREQ=SECONDLY/i.test(rruleString)) {
+    const intervalMatch = rruleString.match(/INTERVAL=(\d+)/i)
+    const interval = intervalMatch ? parseInt(intervalMatch[1], 10) : 1
+    return describeSecondly(interval)
+  }
+  try {
+    const rrule = RRule.fromString(`RRULE:${rruleString.replace(/^RRULE:/i, '')}`)
+    return capitaliseFirst(rrule.toText())
+  } catch {
+    return 'Recurring'
+  }
 }
 
 function describeFromRecurrenceRule(rule: RecurrenceRule): string {
-  const freqMap: Record<string, string> = {
-    secondly: 'SECONDLY',
-    minutely: 'MINUTELY',
-    hourly: 'HOURLY',
-    daily: 'DAILY',
-    weekly: 'WEEKLY',
-    monthly: 'MONTHLY',
-    yearly: 'YEARLY',
+  if (rule.frequency === 'secondly') {
+    return describeSecondly(rule.interval ?? 1)
   }
-  const freq = freqMap[rule.frequency] ?? 'WEEKLY'
-  const interval = rule.interval ?? 1
-  const byday = rule.byWeekday?.map((d) => DAY_NUM_TO_CODE[d]).filter(Boolean) ?? []
-  return describeFromParts(freq, interval, byday)
+  try {
+    const rruleString = ruleObjectToRRuleString(rule)
+    const rrule = RRule.fromString(`RRULE:${rruleString}`)
+    return capitaliseFirst(rrule.toText())
+  } catch {
+    return 'Recurring'
+  }
 }
 
 export function describeRecurrence(event: CalendarEvent): string {

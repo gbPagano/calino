@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { addDays } from 'date-fns'
+import { toast as sonnerToast } from 'sonner'
 import type { CalendarEvent } from '@/types'
 import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
 import { createCalDAVClient } from '../client/CalDAVClient'
@@ -36,7 +37,7 @@ let autoConnectDone = false
 const MAX_RETRIES = 10
 
 function showToast(message: string): void {
-  window.dispatchEvent(new CustomEvent('show-toast', { detail: { message } }))
+  sonnerToast(message)
 }
 
 interface UseCalDAVReturn {

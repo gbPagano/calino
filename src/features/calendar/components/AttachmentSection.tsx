@@ -14,6 +14,7 @@ interface AttachmentSectionProps {
   onAttachmentsChange: (attachments: CalendarAttachment[]) => void
   eventId: string | null
   showLabel?: boolean
+  compact?: boolean
 }
 
 export function AttachmentSection({
@@ -21,6 +22,7 @@ export function AttachmentSection({
   onAttachmentsChange,
   eventId,
   showLabel = true,
+  compact = false,
 }: AttachmentSectionProps): JSX.Element {
   const storageKey = eventId || 'new'
 
@@ -82,23 +84,28 @@ export function AttachmentSection({
   }
 
   return (
-    <div className={styles.modalField}>
+    <div className={compact ? styles.attachmentFieldCompact : styles.modalField}>
       {showLabel && (
         <div className={styles.fieldHeader}>
           <label className={styles.label}>Attachments</label>
-          <span className={styles.attachmentCount}>{attachments.length}</span>
+          {attachments.length > 0 && (
+            <span className={styles.attachmentCount}>{attachments.length}</span>
+          )}
         </div>
       )}
-      {attachments.length > 0 && (
+      {!compact && attachments.length > 0 && (
         <p className={styles.attachmentSyncNote}>
           Attachments will be synced to the CalDAV server when you save.
         </p>
       )}
 
       {attachments.length > 0 && (
-        <div className={styles.attachmentList}>
+        <div className={compact ? styles.attachmentListCompact : styles.attachmentList}>
           {attachments.map((att, index) => (
-            <div key={index} className={styles.attachmentItem}>
+            <div
+              key={index}
+              className={compact ? styles.attachmentItemCompact : styles.attachmentItem}
+            >
               <span className={styles.attachmentIcon}>📎</span>
               <button
                 type="button"
@@ -122,8 +129,8 @@ export function AttachmentSection({
               {att.size && (
                 <span className={styles.attachmentSize}>
                   {att.size > 1024 * 1024
-                    ? `${(att.size / (1024 * 1024)).toFixed(1)} MB`
-                    : `${Math.round(att.size / 1024)} KB`}
+                    ? `${(att.size / (1024 * 1024)).toFixed(1)}MB`
+                    : `${Math.round(att.size / 1024)}KB`}
                 </span>
               )}
               <button
@@ -139,8 +146,10 @@ export function AttachmentSection({
         </div>
       )}
 
-      <label className={styles.addAttachmentButton}>
-        <span>+ Add attachment</span>
+      <label
+        className={compact ? styles.addAttachmentButtonCompact : styles.addAttachmentButton}
+      >
+        <span>{compact ? '+ Attach' : '+ Add attachment'}</span>
         <input
           type="file"
           className={styles.hiddenFileInput}

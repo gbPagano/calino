@@ -6,7 +6,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { v4 as uuidv4 } from 'uuid'
-import { renderMarkdown } from '@/lib/markdown'
+import { MarkdownView } from '@/lib/markdown'
 import { showToast } from '@/lib/toast'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
@@ -688,10 +688,7 @@ export function JournalView(): JSX.Element {
           {entry.title && (
             <div className={styles.summary}>{entry.title}</div>
           )}
-          <div
-            className={styles.body}
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(entry.description || '') }}
-          />
+          <MarkdownView className={styles.body} text={entry.description || ''} />
           {entry.categories && entry.categories.length > 0 && (
             <div className={styles.entryCategories}>
               {entry.categories.map((cat) => (

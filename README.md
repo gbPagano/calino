@@ -67,7 +67,7 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 - Sync retry: failed CalDAV operations are automatically retried; manual retry button in sidebar
 
 ### Customization
-- **Themes** — light, dark, or follow system
+- **Themes** — light, dark, or follow system. Custom themes can be added by dropping a `.css` file into `public/themes/` and rebuilding the app (themes are loaded at build time, not at runtime).
 - Configurable first day of week, date format, default duration
 - Show/hide week numbers, completed tasks
 - Adjust calendar and category colors

@@ -1,3 +1,11 @@
+/**
+ * Theme loader.
+ *
+ * Themes are loaded at build time via `import.meta.glob('/public/themes/*.css', { query: '?raw' })`.
+ * Custom themes require a rebuild — runtime theme loading is not supported.
+ * The set of available themes is frozen at the time Vite produces the bundle.
+ */
+
 import type { ThemeInfo } from './types'
 
 const BUILT_IN_THEME_ID = 'built-in'

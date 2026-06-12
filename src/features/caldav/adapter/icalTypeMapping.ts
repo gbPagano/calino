@@ -52,6 +52,8 @@ function parseRRule(rruleString: string): RecurrenceRule | undefined {
   let count: number | undefined
   let byWeekday: number[] | undefined
   let bySetPos: number[] | undefined
+  let byMonthDay: number[] | undefined
+  let byMonth: number[] | undefined
 
   for (const part of parts) {
     const [key, value] = part.split('=')
@@ -118,9 +120,24 @@ function parseRRule(rruleString: string): RecurrenceRule | undefined {
           }
           return dayMap[day] ?? 1
         })
-        if (bySetPosList.length > 0) {
+        if (bySetPosList.some((p) => p !== 0)) {
           bySetPos = bySetPosList
         }
+        break
+      }
+      case 'BYMONTHDAY': {
+        const days = value.split(',').map((d) => parseInt(d.trim(), 10)).filter((n) => !isNaN(n))
+        if (days.length > 0) byMonthDay = days
+        break
+      }
+      case 'BYMONTH': {
+        const months = value.split(',').map((m) => parseInt(m.trim(), 10)).filter((n) => !isNaN(n))
+        if (months.length > 0) byMonth = months
+        break
+      }
+      case 'BYSETPOS': {
+        const positions = value.split(',').map((p) => parseInt(p.trim(), 10)).filter((n) => !isNaN(n))
+        if (positions.length > 0) bySetPos = positions
         break
       }
     }
@@ -133,6 +150,8 @@ function parseRRule(rruleString: string): RecurrenceRule | undefined {
     count,
     byWeekday,
     bySetPos,
+    byMonthDay,
+    byMonth,
   }
 }
 
@@ -243,6 +262,18 @@ function recurrenceToRRuleString(recurrence: RecurrenceRule): string {
     if (bydayParts.length > 0) {
       parts.push(`BYDAY=${bydayParts.join(',')}`)
     }
+  }
+
+  if (recurrence.byMonthDay && recurrence.byMonthDay.length > 0) {
+    parts.push(`BYMONTHDAY=${recurrence.byMonthDay.join(',')}`)
+  }
+
+  if (recurrence.byMonth && recurrence.byMonth.length > 0) {
+    parts.push(`BYMONTH=${recurrence.byMonth.join(',')}`)
+  }
+
+  if (recurrence.bySetPos && recurrence.bySetPos.length > 0 && (!recurrence.byWeekday || recurrence.byWeekday.length === 0)) {
+    parts.push(`BYSETPOS=${recurrence.bySetPos.join(',')}`)
   }
 
   if (recurrence.endDate) {

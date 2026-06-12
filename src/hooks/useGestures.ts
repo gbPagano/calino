@@ -35,7 +35,6 @@ export function useGestures({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const touchStartPos = useRef<{ x: number; y: number } | null>(null)
   const lastDirection = useRef<'left' | 'right' | 'up' | 'down' | null>(null)
-  const hasMoved = useRef(false)
   const currentGesture = useRef<
     'idle' | 'detecting' | 'swiping' | 'pinching' | 'dragging' | 'longPress'
   >('idle')
@@ -83,6 +82,10 @@ export function useGestures({
     }
   }, [])
 
+  // @use-gesture/react handles the distance/velocity thresholds internally via
+  // its `threshold` and `swipe` config options — we no longer duplicate them
+  // here. We just translate the gesture state to our legacy `gestureState`
+  // and forward callbacks to the consumer.
   const bind = useDrag(
     (state) => {
       const {
@@ -90,6 +93,8 @@ export function useGestures({
         first,
         last,
         movement: [mx, my],
+        swipe: [sx, sy],
+        intentional,
       } = state
       const event = state.event as unknown as { clientX: number; clientY: number }
       const clientX = event.clientX
@@ -98,11 +103,10 @@ export function useGestures({
       if (first) {
         currentGesture.current = 'detecting'
         setGestureState('detecting')
-        hasMoved.current = false
         touchStartPos.current = { x: clientX, y: clientY }
 
         longPressTimer.current = setTimeout(() => {
-          if (!hasMoved.current && currentGesture.current === 'detecting') {
+          if (currentGesture.current === 'detecting') {
             currentGesture.current = 'longPress'
             setGestureState('longPress')
             onLongPressRef.current?.({ x: clientX, y: clientY })
@@ -110,23 +114,17 @@ export function useGestures({
         }, longPressDelayRef.current)
       }
 
-      const movedDistance = Math.sqrt(mx * mx + my * my)
-
-      if (active && movedDistance > 8 && !hasMoved.current) {
+      if (active && intentional) {
         clearLongPressTimer()
-        hasMoved.current = true
 
-        const isHorizontalSwipe = Math.abs(mx) > Math.abs(my)
-
-        if (isHorizontalSwipe && Math.abs(mx) > swipeThresholdRef.current) {
+        if (sx !== 0 || sy !== 0) {
+          // The library has detected a swipe past the configured distance/velocity.
           currentGesture.current = 'swiping'
           setGestureState('swiping')
-          lastDirection.current = mx > 0 ? 'right' : 'left'
-        } else if (!isHorizontalSwipe && Math.abs(my) > swipeThresholdRef.current) {
-          currentGesture.current = 'swiping'
-          setGestureState('swiping')
-          lastDirection.current = my > 0 ? 'down' : 'up'
-        } else {
+          if (sx !== 0) lastDirection.current = sx > 0 ? 'right' : 'left'
+          else if (sy !== 0) lastDirection.current = sy > 0 ? 'down' : 'up'
+        } else if (currentGesture.current === 'detecting') {
+          // Moved past the threshold but not a swipe → drag.
           currentGesture.current = 'dragging'
           setGestureState('dragging')
           onDragStartRef.current?.()
@@ -141,6 +139,9 @@ export function useGestures({
         } else if (currentGesture.current === 'dragging') {
           onDragEndRef.current?.({ x: clientX, y: clientY })
         } else if (currentGesture.current === 'detecting' && touchStartPos.current) {
+          // Tap: short, deliberate press with no significant movement.
+          // The lib's filterTaps handles the distance check; we just need to
+          // know the gesture ended without entering drag/swipe/long-press.
           const tapDistance = Math.sqrt(
             Math.pow(clientX - touchStartPos.current.x, 2) +
               Math.pow(clientY - touchStartPos.current.y, 2)
@@ -155,11 +156,19 @@ export function useGestures({
         lastDirection.current = null
         touchStartPos.current = null
       }
+
+      // Suppress unused-parameter warnings; we keep mx/my for now in case
+      // consumers want to read them via a future refactor.
+      void mx
+      void my
     },
     {
       pointer: { touch: true },
-      filterTaps: false,
-      threshold: 0,
+      filterTaps: true,
+      threshold: 8,
+      swipe: {
+        distance: swipeThreshold,
+      },
     }
   ) as unknown as {
     onPointerDown?: (e: React.PointerEvent) => void
@@ -238,18 +247,9 @@ export function useGestures({
         pinchBind.onPointerMove?.(e)
       }
 
-      if (touchStartPos.current) {
-        const dx = Math.abs(e.clientX - touchStartPos.current.x)
-        const dy = Math.abs(e.clientY - touchStartPos.current.y)
-        if (dx > 8 || dy > 8) {
-          hasMoved.current = true
-          clearLongPressTimer()
-        }
-      }
-
       bind.onPointerMove?.(e)
     },
-    [bind, pinchBind, clearLongPressTimer]
+    [bind, pinchBind]
   )
 
   const handlePointerUp = useCallback(
@@ -259,20 +259,6 @@ export function useGestures({
       const nativeEvent = e.nativeEvent as unknown as {
         changedTouches?: Array<{ clientX: number; clientY: number }>
         touches?: Array<{ clientX: number; clientY: number }>
-      }
-
-      if (e.pointerType === 'touch' && nativeEvent.changedTouches?.length === 1) {
-        if (!hasMoved.current && touchStartPos.current && currentGesture.current !== 'longPress') {
-          const touchEndX = e.clientX
-          const touchEndY = e.clientY
-          const distance = Math.sqrt(
-            Math.pow(touchEndX - touchStartPos.current.x, 2) +
-              Math.pow(touchEndY - touchStartPos.current.y, 2)
-          )
-          if (distance < 10) {
-            onTapRef.current?.(touchStartPos.current)
-          }
-        }
       }
 
       if (e.pointerType === 'touch' && (!nativeEvent.touches || nativeEvent.touches.length === 0)) {
@@ -286,7 +272,6 @@ export function useGestures({
         currentGesture.current = 'idle'
         setGestureState('idle')
         touchStartPos.current = null
-        hasMoved.current = false
       }, 50)
     },
     [bind, pinchBind, clearLongPressTimer]

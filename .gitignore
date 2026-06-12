@@ -48,6 +48,12 @@ coverage/
 PLAN.md
 PERF_AUDIT.md
 
+# Local planning / review artifacts
+.mimocode/
+graphify-out/
+feedback.txt
+scripts/rrule_test.mjs
+
 # Media files
 *.mp4
 *.mp3

@@ -25,6 +25,12 @@ export function extractLocation(input: string): string | undefined {
     'last year',
   ]
 
+  // Recurrence and other stop words that should delimit a location capture,
+  // even though they are not strictly date/time markers. The location pattern
+  // is greedy up to the next date/time word, so without these the
+  // recurrence phrase leaks into the location.
+  const stopWords = ['every', 'each', 'recurring', 'recurs']
+
   const timeWords = ['morning', 'afternoon', 'evening', 'night', 'noon', 'midnight']
 
   const isTimeLike = (text: string): boolean => {
@@ -57,6 +63,15 @@ export function extractLocation(input: string): string | undefined {
       }
     }
 
+    for (const word of stopWords) {
+      // Use a word-boundary match so "th" inside "the" doesn't trigger.
+      const re = new RegExp(`\\b${word}\\b`)
+      const match = lower.match(re)
+      if (match && match.index !== undefined && match.index < earliest) {
+        earliest = match.index
+      }
+    }
+
     return earliest
   }
 
@@ -79,10 +94,13 @@ export function extractLocation(input: string): string | undefined {
     return undefined
   }
 
+  const lookbehindWords =
+    '(?:tomorrow|yesterday|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun|at|on|for|every|each|recurring|recurs)'
+
   const patterns = [
-    /\bin\s+([a-zA-ZæøåÆØÅ]+(?:\s+[a-zA-ZæøåÆØÅ]+)*?)\b(?=\s*(?:tomorrow|yesterday|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday|at|on|for)\b)/i,
-    /\bat\s+([a-zA-ZæøåÆØÅ]+(?:\s+[a-zA-ZæøåÆØÅ]+)*?)\b(?=\s*(?:tomorrow|yesterday|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday|at|on|for)\b)/i,
-    /\b@\s*([a-zA-ZæøåÆØÅ]+(?:\s+[a-zA-ZæøåÆØÅ]+)*?)\b(?=\s*(?:tomorrow|yesterday|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday|at|on|for)\b)/i,
+    new RegExp(`\\bin\\s+([a-zA-ZæøåÆØÅ]+(?:\\s+[a-zA-ZæøåÆØÅ]+)*?)\\b(?=\\s*${lookbehindWords}\\b)`, 'i'),
+    new RegExp(`\\bat\\s+([a-zA-ZæøåÆØÅ]+(?:\\s+[a-zA-ZæøåÆØÅ]+)*?)\\b(?=\\s*${lookbehindWords}\\b)`, 'i'),
+    new RegExp(`\\b@\\s*([a-zA-ZæøåÆØÅ]+(?:\\s+[a-zA-ZæøåÆØÅ]+)*?)\\b(?=\\s*${lookbehindWords}\\b)`, 'i'),
   ]
 
   for (const pattern of patterns) {

@@ -13,7 +13,6 @@ import { TaskFormFields } from './TaskFormFields'
 import { EventFormFields } from './EventFormFields'
 import { RecurrenceDialog } from './RecurrenceDialog'
 import { DeleteDialog } from './DeleteDialog'
-import { AttachmentSection } from './AttachmentSection'
 import { extractOriginalEventId } from '@/lib/events'
 import { isUUID } from '@/lib/uuid'
 
@@ -31,7 +30,16 @@ interface InitialFormState {
   endTime: string
   isAllDay: boolean
   calendarId: string
-  recurrence: RecurrenceRule['frequency'] | 'none'
+  recurring: boolean
+  recurrence: RecurrenceRule['frequency']
+  interval: number
+  byWeekday: number[]
+  byMonthDay: number[]
+  byMonth: number[]
+  bySetPos: number[]
+  endCondition: 'never' | 'on' | 'after'
+  endOnDate: string
+  endAfterCount: number
   travelDuration: number | undefined
   reminders: Reminder[]
   transparency: 'opaque' | 'transparent'
@@ -63,7 +71,16 @@ function getInitialFormState(
       endTime: '10:00',
       isAllDay: false,
       calendarId: defaultCalendar?.id || '',
-      recurrence: 'none',
+      recurring: false,
+      recurrence: 'weekly',
+      interval: 1,
+      byWeekday: [],
+      byMonthDay: [],
+      byMonth: [],
+      bySetPos: [],
+      endCondition: 'never',
+      endOnDate: today,
+      endAfterCount: 10,
       travelDuration: undefined,
       reminders: [],
       transparency: 'opaque',
@@ -112,6 +129,16 @@ function getInitialFormState(
           }
         }
       }
+      const rule = existingEvent.recurrence
+      const bySetPosFiltered = rule?.bySetPos?.filter((p) => p !== 0)
+      const endOnDate = rule?.endDate
+        ? format(parseISO(rule.endDate), 'yyyy-MM-dd')
+        : format(parseISO(existingEvent.start), 'yyyy-MM-dd')
+      const endCondition: 'never' | 'on' | 'after' = rule?.endDate
+        ? 'on'
+        : rule?.count
+          ? 'after'
+          : 'never'
       return {
         title: existingEvent.title,
         description: existingEvent.description || '',
@@ -122,7 +149,16 @@ function getInitialFormState(
         endTime: format(parseISO(existingEvent.end), 'HH:mm'),
         isAllDay: existingEvent.isAllDay,
         calendarId: existingEvent.calendarId,
-        recurrence: existingEvent.recurrence?.frequency || 'none',
+        recurring: !!rule,
+        recurrence: rule?.frequency || 'weekly',
+        interval: rule?.interval ?? 1,
+        byWeekday: rule?.byWeekday ?? [],
+        byMonthDay: rule?.byMonthDay ?? [],
+        byMonth: rule?.byMonth ?? [],
+        bySetPos: bySetPosFiltered && bySetPosFiltered.length > 0 ? bySetPosFiltered : [],
+        endCondition,
+        endOnDate,
+        endAfterCount: rule?.count ?? 10,
         travelDuration: existingEvent.travelDuration,
         reminders: existingEvent.reminders || [],
         transparency: existingEvent.transparency || 'opaque',
@@ -182,7 +218,16 @@ function getInitialFormState(
             endTime: endTimeVal,
             isAllDay: false,
             calendarId: defaultCalendar?.id || '',
-            recurrence: 'none',
+            recurring: false,
+            recurrence: 'weekly',
+            interval: 1,
+            byWeekday: [],
+            byMonthDay: [],
+            byMonth: [],
+            bySetPos: [],
+            endCondition: 'never',
+            endOnDate: dateStr,
+            endAfterCount: 10,
             travelDuration: undefined,
             reminders: [],
             transparency: 'opaque',
@@ -205,7 +250,16 @@ function getInitialFormState(
         endTime: endTimeVal,
         isAllDay: false,
         calendarId: defaultCalendar?.id || '',
-        recurrence: 'none',
+        recurring: false,
+        recurrence: 'weekly',
+        interval: 1,
+        byWeekday: [],
+        byMonthDay: [],
+        byMonth: [],
+        bySetPos: [],
+        endCondition: 'never',
+        endOnDate: dateStr,
+        endAfterCount: 10,
         travelDuration: undefined,
         reminders: [],
         transparency: 'opaque',
@@ -229,7 +283,16 @@ function getInitialFormState(
     endTime: '10:00',
     isAllDay: false,
     calendarId: defaultCalendar?.id || '',
-    recurrence: 'none',
+    recurring: false,
+    recurrence: 'weekly',
+    interval: 1,
+    byWeekday: [],
+    byMonthDay: [],
+    byMonth: [],
+    bySetPos: [],
+    endCondition: 'never',
+    endOnDate: today,
+    endAfterCount: 10,
     travelDuration: undefined,
     reminders: [],
     transparency: 'opaque',
@@ -282,10 +345,18 @@ export function EventModal(): JSX.Element | null {
   const [endTime, setEndTime] = useState(initialState.endTime)
   const [isAllDay, setIsAllDay] = useState(initialState.isAllDay)
   const [calendarId, setCalendarId] = useState(initialState.calendarId)
-  const [recurrence, setRecurrence] = useState<RecurrenceRule['frequency'] | 'none'>(
+  const [recurring, setRecurring] = useState<boolean>(initialState.recurring)
+  const [recurrence, setRecurrence] = useState<RecurrenceRule['frequency']>(
     initialState.recurrence
   )
-  const [byWeekday, setByWeekday] = useState<number[]>([])
+  const [interval, setInterval] = useState<number>(initialState.interval)
+  const [byWeekday, setByWeekday] = useState<number[]>(initialState.byWeekday)
+  const [byMonthDay, setByMonthDay] = useState<number[]>(initialState.byMonthDay)
+  const [byMonth, setByMonth] = useState<number[]>(initialState.byMonth)
+  const [bySetPos, setBySetPos] = useState<number[]>(initialState.bySetPos)
+  const [endCondition, setEndCondition] = useState<'never' | 'on' | 'after'>(initialState.endCondition)
+  const [endOnDate, setEndOnDate] = useState<string>(initialState.endOnDate)
+  const [endAfterCount, setEndAfterCount] = useState<number>(initialState.endAfterCount)
   const [travelDuration, setTravelDuration] = useState<number | undefined>(
     initialState.travelDuration
   )
@@ -447,7 +518,16 @@ export function EventModal(): JSX.Element | null {
       setEndTime(formDefaults.endTime)
       setIsAllDay(formDefaults.isAllDay)
       setCalendarId(formDefaults.calendarId)
+      setRecurring(formDefaults.recurring)
       setRecurrence(formDefaults.recurrence)
+      setInterval(formDefaults.interval)
+      setByWeekday(formDefaults.byWeekday)
+      setByMonthDay(formDefaults.byMonthDay)
+      setByMonth(formDefaults.byMonth)
+      setBySetPos(formDefaults.bySetPos)
+      setEndCondition(formDefaults.endCondition)
+      setEndOnDate(formDefaults.endOnDate)
+      setEndAfterCount(formDefaults.endAfterCount)
       setTravelDuration(formDefaults.travelDuration)
       setTransparency(formDefaults.transparency)
       setReminders(formDefaults.reminders)
@@ -493,7 +573,7 @@ export function EventModal(): JSX.Element | null {
   }, [isModalOpen, selectedEventId])
 
   const isEditing = selectedEventId !== null
-  const isRecurringEvent = initialState.recurrence !== 'none'
+  const isRecurringEvent = initialState.recurring
   const showSuggestions = !isEditing && titleSuggestions.length > 0
   const originalEventId = initialState.originalEventId
   const existingEventForMode = selectedEventId
@@ -612,11 +692,16 @@ export function EventModal(): JSX.Element | null {
     const endDateTime = isAllDay ? `${endDate}T00:00:00` : new Date(localEnd).toISOString()
 
     const recurrenceRule: RecurrenceRule | undefined =
-      recurrence !== 'none'
+      recurring
         ? {
             frequency: recurrence,
-            interval: 1,
+            interval: interval > 1 ? interval : 1,
             byWeekday: byWeekday.length > 0 ? byWeekday : undefined,
+            byMonthDay: byMonthDay.length > 0 ? byMonthDay : undefined,
+            byMonth: byMonth.length > 0 ? byMonth : undefined,
+            bySetPos: bySetPos.length > 0 ? bySetPos : undefined,
+            endDate: endCondition === 'on' && endOnDate ? `${endOnDate}T23:59:59` : undefined,
+            count: endCondition === 'after' ? endAfterCount : undefined,
           }
         : undefined
 
@@ -966,10 +1051,26 @@ export function EventModal(): JSX.Element | null {
               onEndDateChange={setEndDate}
               endTime={endTime}
               onEndTimeChange={setEndTime}
+              recurring={recurring}
+              onRecurringChange={setRecurring}
               recurrence={recurrence}
               onRecurrenceChange={setRecurrence}
+              interval={interval}
+              onIntervalChange={setInterval}
               byWeekday={byWeekday}
               onByWeekdayChange={setByWeekday}
+              byMonthDay={byMonthDay}
+              onByMonthDayChange={setByMonthDay}
+              byMonth={byMonth}
+              onByMonthChange={setByMonth}
+              bySetPos={bySetPos}
+              onBySetPosChange={setBySetPos}
+              endCondition={endCondition}
+              onEndConditionChange={setEndCondition}
+              endOnDate={endOnDate}
+              onEndOnDateChange={setEndOnDate}
+              endAfterCount={endAfterCount}
+              onEndAfterCountChange={setEndAfterCount}
               travelDuration={travelDuration}
               onTravelDurationChange={setTravelDuration}
               reminders={reminders}
@@ -979,6 +1080,9 @@ export function EventModal(): JSX.Element | null {
               relatedTo={relatedTo}
               onRelatedToChange={setRelatedTo}
               candidateEvents={candidateEvents}
+              attachments={attachments}
+              onAttachmentsChange={setAttachments}
+              attachmentEventId={selectedEventId}
             />
           )}
 
@@ -1070,15 +1174,6 @@ export function EventModal(): JSX.Element | null {
             </div>
           )}
 
-          <AttachmentSection
-            attachments={attachments}
-            onAttachmentsChange={setAttachments}
-            eventId={selectedEventId}
-          />
-
-
-
-          <hr className={styles.modalDivider} />
           <div className={styles.modalFooter}>
             {isEditing && (
               <button type="button" className={`${styles.modalDelete} ${confirmDelete ? styles.modalDeleteConfirm : ''}`} onClick={handleDelete}>

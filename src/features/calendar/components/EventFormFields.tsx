@@ -335,7 +335,7 @@ export function EventFormFields({
                       </option>
                     ))}
                   </select>
-                  <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>every</span>
+                  <span style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>every</span>
                   <input
                     id="interval-input"
                     type="number"
@@ -350,7 +350,7 @@ export function EventFormFields({
                     style={{ width: '60px' }}
                     aria-label="Repeat interval"
                   />
-                  <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>
                     {recurrence === 'daily' ? (interval === 1 ? 'day' : 'days')
                       : recurrence === 'weekly' ? (interval === 1 ? 'week' : 'weeks')
                       : recurrence === 'monthly' ? (interval === 1 ? 'month' : 'months')
@@ -392,6 +392,7 @@ export function EventFormFields({
               <MonthlyPatternPicker
                 startDate={startDate}
                 weekdayLabels={weekdayLabels}
+                firstDayOfWeek={firstDayOfWeek}
                 byMonthDay={byMonthDay}
                 byWeekday={byWeekday}
                 bySetPos={bySetPos}
@@ -453,7 +454,7 @@ export function EventFormFields({
                         style={{ width: '70px' }}
                         aria-label="Number of occurrences"
                       />
-                      <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      <span style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>
                         occurrence{endAfterCount === 1 ? '' : 's'}
                       </span>
                     </>
@@ -554,6 +555,7 @@ export function EventFormFields({
 interface MonthlyPatternPickerProps {
   startDate: string
   weekdayLabels: string[]
+  firstDayOfWeek: number
   byMonthDay: number[]
   byWeekday: number[]
   bySetPos: number[]
@@ -565,6 +567,7 @@ interface MonthlyPatternPickerProps {
 function MonthlyPatternPicker({
   startDate,
   weekdayLabels,
+  firstDayOfWeek,
   byMonthDay,
   byWeekday,
   bySetPos,
@@ -655,11 +658,14 @@ function MonthlyPatternPicker({
             className={styles.select}
             style={{ width: '120px' }}
           >
-            {Array.from({ length: 7 }, (_, i) => i).map((d) => (
-              <option key={d} value={d}>{weekdayLabels[d]}</option>
-            ))}
+            {Array.from({ length: 7 }, (_, i) => i).map((d) => {
+              const actualWeekday = (d + firstDayOfWeek) % 7
+              return (
+                <option key={actualWeekday} value={actualWeekday}>{weekdayLabels[d]}</option>
+              )
+            })}
           </select>
-          {pattern === 'lastWeekday' && <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>of the month</span>}
+          {pattern === 'lastWeekday' && <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>of the month</span>}
         </div>
       )}
     </div>

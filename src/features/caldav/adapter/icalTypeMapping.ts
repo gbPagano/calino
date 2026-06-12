@@ -2,7 +2,7 @@ import ICAL from 'ical.js'
 import { v4 as uuidv4 } from 'uuid'
 import type { CalendarEvent, CalendarAttachment, RecurrenceRule, Reminder, TaskPriority } from '@/types'
 import { addDays } from 'date-fns'
-import { DAY_NUM_TO_CODE } from '@/lib/recurrence'
+import { buildRRuleString } from '@/lib/recurrence'
 
 export function parseAppleTravelDuration(vevent: ICAL.Component): number | undefined {
   const prop = vevent.getFirstProperty('x-apple-travel-duration')
@@ -226,72 +226,6 @@ function icalTimeToISO(icalTime: ICAL.Time): string {
     throw new Error('Invalid JS Date')
   }
   return jsDate.toISOString()
-}
-
-function recurrenceToRRuleString(recurrence: RecurrenceRule): string {
-  const freqMap: Record<string, string> = {
-    secondly: 'SECONDLY',
-    minutely: 'MINUTELY',
-    hourly: 'HOURLY',
-    daily: 'DAILY',
-    weekly: 'WEEKLY',
-    monthly: 'MONTHLY',
-    yearly: 'YEARLY',
-  }
-
-  const parts: string[] = [`FREQ=${freqMap[recurrence.frequency] || 'WEEKLY'}`]
-
-  if (recurrence.interval && recurrence.interval !== 1) {
-    parts.push(`INTERVAL=${recurrence.interval}`)
-  }
-
-  if (recurrence.byWeekday && recurrence.byWeekday.length > 0) {
-    const bydayParts: string[] = []
-    for (let i = 0; i < recurrence.byWeekday.length; i++) {
-      const dayNum = recurrence.byWeekday[i]
-      const dayCode = DAY_NUM_TO_CODE[dayNum]
-      if (dayCode) {
-        const pos = recurrence.bySetPos?.[i]
-        if (pos !== undefined && pos !== 0) {
-          bydayParts.push(`${pos}${dayCode}`)
-        } else {
-          bydayParts.push(dayCode)
-        }
-      }
-    }
-    if (bydayParts.length > 0) {
-      parts.push(`BYDAY=${bydayParts.join(',')}`)
-    }
-  }
-
-  if (recurrence.byMonthDay && recurrence.byMonthDay.length > 0) {
-    parts.push(`BYMONTHDAY=${recurrence.byMonthDay.join(',')}`)
-  }
-
-  if (recurrence.byMonth && recurrence.byMonth.length > 0) {
-    parts.push(`BYMONTH=${recurrence.byMonth.join(',')}`)
-  }
-
-  if (recurrence.bySetPos && recurrence.bySetPos.length > 0 && (!recurrence.byWeekday || recurrence.byWeekday.length === 0)) {
-    parts.push(`BYSETPOS=${recurrence.bySetPos.join(',')}`)
-  }
-
-  if (recurrence.endDate) {
-    const date = new Date(recurrence.endDate)
-    const year = date.getUTCFullYear()
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-    const day = String(date.getUTCDate()).padStart(2, '0')
-    const hour = String(date.getUTCHours()).padStart(2, '0')
-    const minute = String(date.getUTCMinutes()).padStart(2, '0')
-    const second = String(date.getUTCSeconds()).padStart(2, '0')
-    parts.push(`UNTIL=${year}${month}${day}T${hour}${minute}${second}Z`)
-  }
-
-  if (recurrence.count) {
-    parts.push(`COUNT=${recurrence.count}`)
-  }
-
-  return parts.join(';')
 }
 
 export function icalEventToCalendarEvent(
@@ -596,7 +530,7 @@ export function calendarEventToIcalComponent(event: CalendarEvent): ICAL.Compone
     const rruleProp = ICAL.Property.fromString(`RRULE:${event.rruleString}`)
     vevent.addProperty(rruleProp)
   } else if (event.recurrence) {
-    const rruleStr = recurrenceToRRuleString(event.recurrence)
+    const rruleStr = buildRRuleString(event.recurrence)
     vevent.updatePropertyWithValue('rrule', ICAL.Recur.fromString(rruleStr))
   }
 

@@ -462,7 +462,7 @@ function App(): JSX.Element {
     <BrowserRouter>
       <ThemeProvider>
         <GitHubPagesRedirect />
-        <Toaster richColors position="bottom-right" />
+        <Toaster richColors position="bottom-right" duration={5000} />
         <CookieConsent />
         <MasterPasswordPrompt />
         <Routes>

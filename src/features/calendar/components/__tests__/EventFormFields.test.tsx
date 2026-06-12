@@ -193,6 +193,130 @@ describe('EventFormFields', () => {
     })
   })
 
+  describe('MonthlyPatternPicker', () => {
+    it('renders monthly pattern picker when recurrence is monthly', () => {
+      renderWithMoreOptions({ recurrence: 'monthly' })
+      expect(screen.getByText('Monthly pattern')).toBeInTheDocument()
+    })
+
+    it('does not render monthly pattern picker when recurrence is weekly', () => {
+      renderWithMoreOptions({ recurrence: 'weekly' })
+      expect(screen.queryByText('Monthly pattern')).not.toBeInTheDocument()
+    })
+
+    it('defaults to dayOfMonth pattern when byWeekday and bySetPos are empty', () => {
+      renderWithMoreOptions({
+        recurrence: 'monthly',
+        byWeekday: [],
+        bySetPos: [],
+      })
+      expect(screen.getByDisplayValue('On day of the month')).toBeInTheDocument()
+    })
+
+    it('shows nthWeekday selectors when byWeekday and bySetPos are provided', () => {
+      renderWithMoreOptions({
+        recurrence: 'monthly',
+        byWeekday: [5],
+        bySetPos: [3],
+      })
+      expect(screen.getByDisplayValue('On the nth weekday')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('Third')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('Fri')).toBeInTheDocument()
+    })
+
+    it('shows lastWeekday selector when all bySetPos values are -1', () => {
+      renderWithMoreOptions({
+        recurrence: 'monthly',
+        byWeekday: [1],
+        bySetPos: [-1],
+      })
+      expect(screen.getByDisplayValue('On the last weekday')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('Mon')).toBeInTheDocument()
+      expect(screen.queryByDisplayValue('First')).not.toBeInTheDocument()
+    })
+
+    it('calls correct handlers when changing pattern to nthWeekday', () => {
+      const onByWeekdayChange = vi.fn()
+      const onBySetPosChange = vi.fn()
+      const onByMonthDayChange = vi.fn()
+      renderWithMoreOptions({
+        recurrence: 'monthly',
+        byWeekday: [],
+        bySetPos: [],
+        onByWeekdayChange,
+        onBySetPosChange,
+        onByMonthDayChange,
+      })
+
+      fireEvent.change(screen.getByDisplayValue('On day of the month'), {
+        target: { value: 'nthWeekday' },
+      })
+
+      expect(onByMonthDayChange).toHaveBeenCalledWith([])
+      expect(onByWeekdayChange).toHaveBeenCalled()
+      expect(onBySetPosChange).toHaveBeenCalled()
+    })
+
+    it('calls correct handlers when changing pattern to dayOfMonth', () => {
+      const onByWeekdayChange = vi.fn()
+      const onBySetPosChange = vi.fn()
+      const onByMonthDayChange = vi.fn()
+      renderWithMoreOptions({
+        recurrence: 'monthly',
+        byWeekday: [5],
+        bySetPos: [3],
+        onByWeekdayChange,
+        onBySetPosChange,
+        onByMonthDayChange,
+      })
+
+      fireEvent.change(screen.getByDisplayValue('On the nth weekday'), {
+        target: { value: 'dayOfMonth' },
+      })
+
+      expect(onByWeekdayChange).toHaveBeenCalledWith([])
+      expect(onBySetPosChange).toHaveBeenCalledWith([])
+      expect(onByMonthDayChange).toHaveBeenCalled()
+    })
+
+    it('uses Monday-first weekday order when firstDayOfWeek is 1', () => {
+      ;(useSettingsStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue(1)
+      renderWithMoreOptions({
+        recurrence: 'monthly',
+        byWeekday: [2],
+        bySetPos: [1],
+      })
+
+      expect(screen.getByDisplayValue('On the nth weekday')).toBeInTheDocument()
+
+      const weekdaySelect = screen.getByDisplayValue('Tue')
+      const options = Array.from(weekdaySelect.querySelectorAll('option'))
+      expect(options[0]).toHaveTextContent('Mon')
+      expect(options[1]).toHaveTextContent('Tue')
+      expect(options[2]).toHaveTextContent('Wed')
+      expect(options[6]).toHaveTextContent('Sun')
+    })
+
+    it('correctly maps weekday option values with firstDayOfWeek=1', () => {
+      ;(useSettingsStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue(1)
+      const onByWeekdayChange = vi.fn()
+      renderWithMoreOptions({
+        recurrence: 'monthly',
+        byWeekday: [],
+        bySetPos: [],
+        onByWeekdayChange,
+      })
+
+      fireEvent.change(screen.getByDisplayValue('On day of the month'), {
+        target: { value: 'nthWeekday' },
+      })
+
+      // After changing to nthWeekday, verify the inferred weekday value
+      // is correct for the start date (2024-03-15 = Friday)
+      expect(onByWeekdayChange).toHaveBeenCalledWith([5])
+    })
+  })
+
   describe('Bug 8: time overflow at 24:xx', () => {
     it('wraps end time to 00:xx when start time is 23:xx', () => {
       const onEndTimeChange = vi.fn()

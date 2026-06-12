@@ -6,6 +6,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
+import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 import { DeleteDialog } from './DeleteDialog'
 import { RecurrenceDialog } from './RecurrenceDialog'
 import { RecurringIcon } from '@/components/common/icons'
@@ -42,8 +43,9 @@ export function EventPreviewPopup({
   const openModal = useCalendarStore((state) => state.openModal)
   const closePreview = useCalendarStore((state) => state.closePreview)
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
+  const addEvent = useCalendarStore((state) => state.addEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
-  const { updateEvent: updateCalDAVEvent, deleteEvent: deleteCalDAVEvent } = useCalDAV()
+  const { createEvent: createCalDAVEvent, updateEvent: updateCalDAVEvent, deleteEvent: deleteCalDAVEvent } = useCalDAV()
   const originalEventId = extractOriginalEventId(clickedEventId)
   const eventIdToUse = originalEventId || event.id
 
@@ -297,26 +299,32 @@ export function EventPreviewPopup({
     closePreview()
   }
 
-  const performDelete = async (mode: 'all' | 'this' | 'future'): Promise<void> => {
+  const performDelete = (mode: 'all' | 'this' | 'future'): void => {
     if (mode === 'this' && originalEventId) {
-      // Add the clicked occurrence's date to excludedDates on the master — do not delete the series
+      // For 'this' occurrence: exclude the date from the master event
       const occurrenceStartISO = clickedEventId.slice(originalEventId.length + 1)
       const occurrenceDate = occurrenceStartISO.split('T')[0]
-      const excludedDates = event.excludedDates || []
-      if (!excludedDates.includes(occurrenceDate)) {
-        const updatedExcludedDates = [...excludedDates, occurrenceDate]
-        updateEvent(originalEventId, { excludedDates: updatedExcludedDates })
-        await safeCalDAVUpdate(
-          updateCalDAVEvent,
-          event.calendarId,
-          { ...event, excludedDates: updatedExcludedDates },
-          { excludedDates: updatedExcludedDates }
-        )
+      const masterEvent = useCalendarStore.getState().events.find((e) => e.id === originalEventId)
+      if (masterEvent) {
+        const excludedDates = masterEvent.excludedDates || []
+        if (!excludedDates.includes(occurrenceDate)) {
+          const updatedExcludedDates = [...excludedDates, occurrenceDate]
+          updateEvent(originalEventId, { excludedDates: updatedExcludedDates })
+          safeCalDAVUpdate(
+            updateCalDAVEvent,
+            masterEvent.calendarId,
+            { ...masterEvent, excludedDates: updatedExcludedDates },
+            { excludedDates: updatedExcludedDates }
+          )
+        }
       }
     } else {
+      // Delete entire series
       const idToDelete = originalEventId || event.id
       deleteEvent(idToDelete)
-      await safeCalDAVDelete(deleteCalDAVEvent, event.calendarId, idToDelete)
+      if (event.calendarId && event.calendarId !== 'default') {
+        safeCalDAVDelete(deleteCalDAVEvent, event.calendarId, idToDelete)
+      }
     }
     closePreview()
     setShowDeleteDialog(false)
@@ -355,6 +363,8 @@ export function EventPreviewPopup({
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent): void => {
       if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        // Don't close if the delete or recurrence dialog is open
+        if (showDeleteDialog || showRecurrenceDialog) return
         if (editingField) {
           cancelEditingRef.current()
         } else {
@@ -364,7 +374,7 @@ export function EventPreviewPopup({
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [closePreview, editingField])
+  }, [closePreview, editingField, showDeleteDialog, showRecurrenceDialog])
 
   useEffect(() => {
     const handleContextMenu = (): void => {
@@ -552,11 +562,13 @@ export function EventPreviewPopup({
 
   const reminderLabel = getReminderLabel()
 
-  return createPortal(
-    <AnimatePresence>
-      <motion.div
-        key="preview-popup"
-        ref={popupRef}
+  return (
+    <>
+      {createPortal(
+        <AnimatePresence>
+          <motion.div
+            key="preview-popup"
+            ref={popupRef}
         className={styles.popup}
         style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
         initial={{ opacity: 0, scale: 0.95, y: -10 }}
@@ -758,14 +770,21 @@ export function EventPreviewPopup({
         </div>
 
       </motion.div>
-
+    </AnimatePresence>,
+    document.body
+    )}
+    {createPortal(
       <DeleteDialog
         key="delete-dialog"
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
-        onConfirm={performDelete}
-      />
-
+        onConfirm={(mode) => {
+          performDelete(mode)
+        }}
+      />,
+      document.body
+    )}
+    {createPortal(
       <RecurrenceDialog
         key="recurrence-dialog"
         isOpen={showRecurrenceDialog}
@@ -774,8 +793,9 @@ export function EventPreviewPopup({
           setPendingUpdates(null)
         }}
         onConfirm={handleRecurrenceDialogConfirm}
-      />
-    </AnimatePresence>,
-    document.body
+      />,
+      document.body
+    )}
+    </>
   )
 }

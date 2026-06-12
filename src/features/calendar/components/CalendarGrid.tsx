@@ -865,7 +865,7 @@ const DroppableDay = React.memo(function DroppableDay({
               const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
               const shouldCompact =
                 isPastWeek ||
-                (compactRecurringEvents && (!!event.rruleString || event.isAllDay || isMultiDay)) ||
+                (compactRecurringEvents && (!!event.rruleString || !!event.recurrence || event.isAllDay || isMultiDay)) ||
                 event.isFragment
               return (
                 <EventCard

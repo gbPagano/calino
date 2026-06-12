@@ -1,2 +1,2 @@
 export { CommandPalette } from './CommandPalette'
-export { CommandItem } from './CommandItem'
+export { renderCommandItemContent, type CommandItemContentProps } from './CommandItem'

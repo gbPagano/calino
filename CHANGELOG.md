@@ -2,6 +2,29 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.13.0] - 2026-06-12
+
+### New Features
+- **Advanced recurrence** — set a custom interval (every 2 weeks, every 3 months), choose when a series ends (on a date, after N occurrences), and pick monthly patterns (e.g. "second Tuesday of the month") or specific months for yearly events.
+- **Recurrence checkbox** — "Recurring" is now a dedicated toggle. Enabling it reveals the recurrence controls.
+- **Attachments in the "More" panel** — file attachments live inside the collapsible "More" section with a compact layout.
+- **Rich toast notifications** — toasts now support action buttons (e.g. "Open" after creating an event, "Undo" after deleting). Powered by [sonner](https://sonner.emilkowal.ski/).
+- **Markdown journals** — journal entries now support tables, strikethrough, task lists, and autolinks via GitHub Flavored Markdown.
+
+### Improvements
+- **Command palette** — rebuilt on [cmdk](https://cmdk.paco.me/) for faster fuzzy filtering, keyboard navigation with auto-scroll, smooth open/close animations, and proper screen reader support (`role="dialog"`).
+- **Palette groups** — results are now grouped into Navigation, Actions, Settings, Calendars, and Events for easier scanning.
+
+### Notable Fixes
+- **Monthly recurrence weekday values** — selecting a weekday in the monthly pattern picker now works correctly for non-Sunday first-day-of-week locales.
+- **Recurring event edits** — changing recurrence settings (interval, end condition, weekday selection) now properly enables the Save button.
+- **"Go to today" navigation** — typing "go to today" or "show next week" in the palette navigates instead of trying to create an event.
+
+### Internal
+- Replaced hand-rolled implementations with maintained libraries: `rrule` for recurrence expansion, `semver` for version comparison, `Zod` for config validation, `Dexie` for IndexedDB access, `uuid` for UUID validation.
+- Unified RRule string generation across CalDAV sync, event storage, and recurrence descriptions.
+- Removed unused `localforage` dependency.
+
 ## [0.12.0] - 2026-06-10
 
 ### New Features

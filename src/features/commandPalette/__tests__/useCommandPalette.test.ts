@@ -157,7 +157,7 @@ describe('useCommandPalette', () => {
     expect(result.current.query).toBe('today')
   })
 
-  it('resets query and selectedIndex when closed', () => {
+  it('does not reset query immediately when closed (deferred to component)', () => {
     const { result, rerender } = renderHook(({ isOpen }) => useCommandPalette({ isOpen }), {
       initialProps: { isOpen: true },
     })
@@ -172,21 +172,67 @@ describe('useCommandPalette', () => {
 
     act(() => {})
 
-    expect(result.current.query).toBe('')
-    expect(result.current.selectedIndex).toBe(0)
+    // The hook no longer auto-resets the query on close.
+    // The component resets it after the close animation via setQuery('').
+    expect(result.current.query).toBe('test query')
   })
 
-  it('resets selectedIndex when query changes', () => {
+  it('setQuery can clear the query when called', () => {
     const { result } = renderHook(() => useCommandPalette({ isOpen: true }))
 
     act(() => {
-      result.current.setSelectedIndex(5)
+      result.current.setQuery('test query')
     })
+    expect(result.current.query).toBe('test query')
 
     act(() => {
-      result.current.setQuery('new query')
+      result.current.setQuery('')
+    })
+    expect(result.current.query).toBe('')
+  })
+
+  it('exposes items array for the command palette to render', () => {
+    const { result } = renderHook(() => useCommandPalette({ isOpen: true }))
+
+    expect(Array.isArray(result.current.items)).toBe(true)
+  })
+
+  it('parseInput returns quick-add for "hang out with batman tomorrow"', () => {
+    const { result } = renderHook(() => useCommandPalette({ isOpen: true }))
+
+    const parsed = result.current.parseInput('hang out with batman tomorrow')
+    expect(parsed.type).toBe('quick-add')
+  })
+
+  it('parseInput returns quick-add for "hang out with batman on 23rd of june at 16"', () => {
+    const { result } = renderHook(() => useCommandPalette({ isOpen: true }))
+
+    const parsed = result.current.parseInput('hang out with batman on 23rd of june at 16')
+    expect(parsed.type).toBe('quick-add')
+  })
+
+  it('parseInput returns quick-add for time/duration inputs', () => {
+    const { result } = renderHook(() => useCommandPalette({ isOpen: true }))
+
+    expect(result.current.parseInput('lunch at noon').type).toBe('quick-add')
+    expect(result.current.parseInput('meeting at 2pm').type).toBe('quick-add')
+  })
+
+  it('parseInput returns navigation for plain "tomorrow"', () => {
+    const { result } = renderHook(() => useCommandPalette({ isOpen: true }))
+
+    expect(result.current.parseInput('tomorrow').type).toBe('navigation')
+  })
+
+  it('items array contains a quick-add item for NLP-style queries', () => {
+    const { result } = renderHook(() => useCommandPalette({ isOpen: true }))
+
+    act(() => {
+      result.current.setQuery('hang out with batman tomorrow')
     })
 
-    expect(result.current.selectedIndex).toBe(0)
+    const quickAddItems = result.current.items.filter((i) => i.group === 'quick-add')
+    expect(quickAddItems.length).toBeGreaterThanOrEqual(1)
+    expect(quickAddItems[0].itemType).toBe('quick-add')
   })
 })

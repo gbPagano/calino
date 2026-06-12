@@ -37,4 +37,4 @@ export function showToast(message: string, options?: ShowToastOptions): void {
   sonner(message, opts)
 }
 
-export { sonner as toast }
+

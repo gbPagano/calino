@@ -6,7 +6,7 @@ import { RRule } from 'rrule'
 import type { CalendarStore, CalendarEvent, Calendar, ViewType, EventType } from '@/types'
 import type { Category, AutoCategoryRule } from '@/types/categories'
 import { config, DEFAULT_CALENDAR_COLOR } from '@/config'
-import { DAY_NUM_TO_CODE, FREQ_MAP } from '@/lib/recurrence'
+import { buildRRuleString } from '@/lib/recurrence'
 import { deleteAttachments } from '@/lib/attachmentStore'
 
 export const selectOpenModal = (state: CalendarStore) => state.openModal
@@ -428,48 +428,7 @@ export const useCalendarStore = create<CalendarStore>()(
             let rruleString = event.rruleString
 
             if (!rruleString && event.recurrence) {
-              const freq = FREQ_MAP[event.recurrence.frequency] || 'WEEKLY'
-              let rruleParts = `FREQ=${freq};INTERVAL=${event.recurrence.interval || 1}`
-              if (event.recurrence.byWeekday && event.recurrence.byWeekday.length > 0) {
-                const bydayParts: string[] = []
-                for (let i = 0; i < event.recurrence.byWeekday.length; i++) {
-                  const dayNum = event.recurrence.byWeekday[i]
-                  const dayCode = DAY_NUM_TO_CODE[dayNum]
-                  if (dayCode) {
-                    const pos = event.recurrence.bySetPos?.[i]
-                    if (pos !== undefined && pos !== 0) {
-                      bydayParts.push(`${pos}${dayCode}`)
-                    } else {
-                      bydayParts.push(dayCode)
-                    }
-                  }
-                }
-                if (bydayParts.length > 0) {
-                  rruleParts += `;BYDAY=${bydayParts.join(',')}`
-                }
-              }
-              if (event.recurrence.byMonthDay && event.recurrence.byMonthDay.length > 0) {
-                rruleParts += `;BYMONTHDAY=${event.recurrence.byMonthDay.join(',')}`
-              }
-              if (event.recurrence.byMonth && event.recurrence.byMonth.length > 0) {
-                rruleParts += `;BYMONTH=${event.recurrence.byMonth.join(',')}`
-              }
-              if (
-                event.recurrence.bySetPos &&
-                event.recurrence.bySetPos.length > 0 &&
-                (!event.recurrence.byWeekday || event.recurrence.byWeekday.length === 0)
-              ) {
-                rruleParts += `;BYSETPOS=${event.recurrence.bySetPos.join(',')}`
-              }
-              if (event.recurrence.endDate) {
-                const endDate = parseISO(event.recurrence.endDate)
-                const untilStr = endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-                rruleParts += `;UNTIL=${untilStr}`
-              }
-              if (event.recurrence.count) {
-                rruleParts += `;COUNT=${event.recurrence.count}`
-              }
-              rruleString = rruleParts
+              rruleString = buildRRuleString(event.recurrence)
             }
 
             try {

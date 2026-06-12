@@ -29,11 +29,8 @@ vi.mock('../hooks/useCommandPalette', () => ({
   useCommandPalette: vi.fn(() => ({
     query: '',
     setQuery: vi.fn(),
-    results: [],
-    selectedIndex: 0,
-    setSelectedIndex: vi.fn(),
-    handleKeyDown: vi.fn(),
-    executeSelected: vi.fn().mockReturnValue({ success: false, message: '' }),
+    items: [],
+    executeSelected: vi.fn().mockResolvedValue({ success: false, message: '' }),
   })),
 }))
 
@@ -69,6 +66,8 @@ describe('Bug #72: CommandPalette Ctrl+K handler', () => {
     // Simulate Ctrl+K via userEvent (more realistic)
     await user.keyboard('{Control>}{k}{/Control}')
 
+    // Close is deferred until the exit animation completes (~140ms).
+    await new Promise((r) => setTimeout(r, 200))
     expect(onClose).toHaveBeenCalled()
   })
 
@@ -79,6 +78,7 @@ describe('Bug #72: CommandPalette Ctrl+K handler', () => {
 
     await user.keyboard('{Meta>}{k}{/Meta}')
 
+    await new Promise((r) => setTimeout(r, 200))
     expect(onClose).toHaveBeenCalled()
   })
 
@@ -96,7 +96,7 @@ describe('Bug #72: CommandPalette Ctrl+K handler', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('returns early after handling Ctrl+K without triggering Escape handler', () => {
+  it('returns early after handling Ctrl+K without triggering Escape handler', async () => {
     const onClose = vi.fn()
     render(<CommandPalette isOpen={true} onClose={onClose} />)
 
@@ -108,6 +108,8 @@ describe('Bug #72: CommandPalette Ctrl+K handler', () => {
     })
     document.dispatchEvent(event)
 
+    // Close is deferred until the exit animation completes.
+    await new Promise((r) => setTimeout(r, 200))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 })

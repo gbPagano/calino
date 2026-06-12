@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useEffect } from 'react'
+import { useMemo, useCallback, useState } from 'react'
 import { format } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -14,14 +14,17 @@ import {
 import { useSettingsStore, selectThemeMode, selectUpdateSettings } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { createCommandRegistry, type Command } from '../commands'
-import { parseNaturalLanguage, type NLPParseResult } from '@/features/nlp'
+import { parseNaturalLanguage } from '@/features/nlp'
 import type {
-  CommandResult,
+  CommandPaletteItem,
+  CommandPaletteItemGroup,
   ParsedInput,
   EventResult,
   CalendarResult,
   QuickAddResult,
+  ExecuteResult,
 } from '../types'
+import type { CalendarEvent } from '@/types'
 
 // Static lookup data — moved outside component to avoid re-creation on every render
 const PURE_DATE_KEYWORDS = [
@@ -51,31 +54,25 @@ interface UseCommandPaletteProps {
   sidebarOpen?: boolean
 }
 
-export interface ExecuteResult {
-  success: boolean
-  message: string
-  linkText?: string
-  onLinkClick?: () => void
+function categoryToGroup(category: string): CommandPaletteItemGroup {
+  if (category === 'event') return 'event'
+  if (category === 'actions') return 'actions'
+  if (category === 'settings') return 'settings'
+  return 'navigation'
 }
 
-export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCommandPaletteProps): {
+export function useCommandPalette({ toggleSidebar, sidebarOpen }: UseCommandPaletteProps): {
   query: string
   setQuery: (q: string) => void
-  results: CommandResult[]
-  selectedIndex: number
-  setSelectedIndex: React.Dispatch<React.SetStateAction<number>>
-  preview: NLPParseResult | null
+  items: CommandPaletteItem[]
   executeSelected: (index?: number) => Promise<ExecuteResult | undefined>
-  handleKeyDown: (e: React.KeyboardEvent) => void
   parseInput: (query: string) => ParsedInput
 } {
   const navigate = useNavigate()
   const [query, setQueryState] = useState('')
-  const [selectedIndex, setSelectedIndex] = useState(0)
 
   const setQuery = useCallback((q: string) => {
     setQueryState(q)
-    setSelectedIndex(0)
   }, [])
   const setCurrentView = useCalendarStore(selectSetCurrentView)
   const setCurrentDate = useCalendarStore(selectSetCurrentDate)
@@ -161,6 +158,25 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
       }
     }
 
+    // If NLP produces a meaningful title with high confidence, prefer
+    // quick-add even without explicit time/duration/location indicators.
+    // This lets inputs like "hang out with batman tomorrow" become a
+    // quick-add result instead of falling through to navigation. The
+    // "New Event" placeholder from extractTitle is excluded so plain
+    // date keywords like "tomorrow" still navigate. Navigation verbs
+    // ("go to", "show", "open") are also excluded — they indicate the
+    // user wants to navigate, not create an event.
+    const NAVIGATION_VERBS = /^(go|show|open|navigate|view|switch|take me)\b/i
+    const nlpPreview = parseNaturalLanguage(input)
+    if (
+      nlpPreview.title &&
+      nlpPreview.title !== 'New Event' &&
+      nlpPreview.confidence >= 0.7 &&
+      !NAVIGATION_VERBS.test(nlpPreview.title)
+    ) {
+      return { type: 'quick-add', raw: input }
+    }
+
     // Check for pure date navigation (exact or starts with date keyword)
     for (const keyword of PURE_DATE_KEYWORDS) {
       if (trimmed === keyword || trimmed.startsWith(keyword)) {
@@ -191,7 +207,7 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     return { type: 'search', raw: input }
   }, [])
 
-  // Memoize NLP result once per query to avoid double-parsing in results + preview
+  // Memoize NLP result once per query
   const nlpResult = useMemo(() => {
     if (!query.trim()) return null
     const parsed = parseInput(query)
@@ -241,84 +257,44 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
     [calendars]
   )
 
-  const filterCommands = useCallback(
-    (searchQuery: string): Command[] => {
-      if (!searchQuery.trim()) {
-        return commands.slice(0, 8)
-      }
-
-      const lowerQuery = searchQuery.toLowerCase()
-
-      return commands
-        .filter((cmd) => {
-          const labelMatch = cmd.label.toLowerCase().includes(lowerQuery.replace(/^>/, ''))
-          const keywordMatch = cmd.keywords.some((kw) =>
-            kw.toLowerCase().includes(lowerQuery.replace(/^>/, ''))
-          )
-          const descMatch = cmd.description?.toLowerCase().includes(lowerQuery.replace(/^>/, ''))
-          return labelMatch || keywordMatch || descMatch
-        })
-        .sort((a, b) => {
-          const aExact = a.label.toLowerCase() === lowerQuery.replace(/^>/, '') ? 0 : 1
-          const bExact = b.label.toLowerCase() === lowerQuery.replace(/^>/, '') ? 0 : 1
-          return aExact - bExact
-        })
-        .slice(0, 8)
-    },
-    [commands]
-  )
-
-  const results = useMemo((): CommandResult[] => {
+  // Build the items list. cmdk's fuzzy filter operates on item.value.
+  const items = useMemo((): CommandPaletteItem[] => {
+    // Empty query: top 8 default commands
     if (!query.trim()) {
-      const defaultCommands = filterCommands('')
-      return defaultCommands.map((cmd) => ({
-        type: 'command' as const,
-        item: cmd,
-        score: 1,
-      }))
+      return commands.slice(0, 8).map(commandToItem)
     }
 
     const parsed = parseInput(query)
 
-    // Direct navigation - navigate to date
+    // Direct navigation: synthesize a "Go to ..." item
     if (parsed.type === 'navigation') {
       const dateRef = parsed.dateRef || query
       const parsedDate = parseNaturalLanguage(dateRef)
-      
-      // Create a navigation command on the fly
-      const navCmd = {
+      const navCmd: Command = {
         id: 'nav-quick',
         label: `Go to ${dateRef}`,
         description: format(parsedDate.startDate, 'EEEE, d MMMM yyyy'),
-        category: 'navigation' as const,
-        keywords: ['navigate', 'go', 'date'],
+        category: 'navigation',
+        keywords: ['navigate', 'go', 'date', dateRef],
         icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v2M10.5 1.5v2"/></svg>',
         action: () => {
           setCurrentDate(format(parsedDate.startDate, 'yyyy-MM-dd'))
-          if (parsedDate.startDate.getMonth() !== new Date().getMonth() ||
-              parsedDate.startDate.getFullYear() !== new Date().getFullYear()) {
+          if (
+            parsedDate.startDate.getMonth() !== new Date().getMonth() ||
+            parsedDate.startDate.getFullYear() !== new Date().getFullYear()
+          ) {
             setCurrentView('month')
           }
           return `Navigated to ${format(parsedDate.startDate, 'EEEE, d MMMM yyyy')}`
         },
       }
-      return [{ type: 'command' as const, item: navCmd, score: 1 }]
+      return [commandToItem(navCmd)]
     }
 
-    // Explicit command prefix
-    if (parsed.type === 'command') {
-      const filtered = filterCommands(parsed.command || query)
-      return filtered.map((cmd) => ({
-        type: 'command' as const,
-        item: cmd,
-        score:
-          cmd.label.toLowerCase() === (parsed.command || query).toLowerCase() ? 1 : 0.5,
-      }))
-    }
-
+    // Quick-add
     if (parsed.type === 'quick-add') {
       if (nlpResult && nlpResult.title) {
-        const quickAddItem: QuickAddResult = {
+        const qa: QuickAddResult = {
           title: nlpResult.title,
           startDate: nlpResult.startDate,
           endDate: nlpResult.endDate ?? undefined,
@@ -327,97 +303,141 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
           isTask: nlpResult.isTask,
           confidence: nlpResult.confidence,
         }
-        return [
-          {
-            type: 'quick-add' as const,
-            item: quickAddItem,
-            score: nlpResult.confidence,
-          },
-        ]
+        return [quickAddToItem(qa, query, calendars, addEvent, createCalDAVEvent, openModal)]
       }
       return []
     }
 
-    const commandResults = filterCommands(query).map((cmd) => ({
-      type: 'command' as const,
-      item: cmd,
-      score: 0.8,
-    }))
+    // Explicit `>` command prefix: show only commands, let cmdk filter
+    if (parsed.type === 'command') {
+      const filter = (parsed.command || query).replace(/^>/, '').toLowerCase()
+      return commands
+        .filter((cmd) => {
+          const labelMatch = cmd.label.toLowerCase().includes(filter)
+          const keywordMatch = cmd.keywords.some((kw) => kw.toLowerCase().includes(filter))
+          const descMatch = cmd.description?.toLowerCase().includes(filter)
+          return labelMatch || keywordMatch || descMatch
+        })
+        .slice(0, 8)
+        .map(commandToItem)
+    }
 
-    const eventResults = searchEvents(query).map((event) => ({
-      type: 'event' as const,
-      item: event,
-      score: 0.6,
-    }))
+    // Search/command: union of all commands + matched events + matched calendars.
+    // cmdk does the fuzzy filtering.
+    const commandItems = commands.map(commandToItem)
+    const eventItems = searchEvents(query).map((event) => eventToItem(event, openModal))
+    const calendarItems = searchCalendars(query).map((cal) => calendarToItem(cal, navigate))
 
-    const calendarResults = searchCalendars(query).map((cal) => ({
-      type: 'calendar' as const,
-      item: cal,
-      score: 0.7,
-    }))
-
-    return [...commandResults, ...calendarResults, ...eventResults]
-  }, [query, filterCommands, parseInput, nlpResult, searchEvents, searchCalendars, setCurrentDate, setCurrentView])
-
-  const preview = useMemo((): NLPParseResult | null => {
-    return nlpResult
-  }, [nlpResult])
+    return [...commandItems, ...calendarItems, ...eventItems]
+  }, [
+    query,
+    commands,
+    parseInput,
+    nlpResult,
+    searchEvents,
+    searchCalendars,
+    setCurrentDate,
+    setCurrentView,
+    calendars,
+    addEvent,
+    createCalDAVEvent,
+    openModal,
+    navigate,
+  ])
 
   const executeSelected = useCallback(
     async (index?: number) => {
-      const executeIndex = index ?? selectedIndex
-      const selected = results[executeIndex]
+      const executeIndex = index ?? 0
+      const selected = items[executeIndex]
       if (!selected) return { success: false, message: '' }
+      return selected.onSelect()
+    },
+    [items]
+  )
 
-      if (selected.type === 'command') {
-        const cmd = selected.item as Command
-        const message = cmd.action()
-        return { success: true, message: message ?? '' }
-      }
 
-      if (selected.type === 'event') {
-        const event = selected.item as EventResult
-        openModal(event.start, undefined, event.id)
-        return { success: true, message: `Opened: ${event.title}` }
-      }
 
-      if (selected.type === 'calendar') {
-        const cal = selected.item as CalendarResult
-        navigate(`/settings?tab=calendars&calendar=${cal.id}`)
-        return { success: true, message: `Opened calendar: ${cal.name}` }
-      }
+  return {
+    query,
+    setQuery,
+    items,
+    executeSelected,
+    parseInput,
+  }
+}
 
-      if (selected.type === 'quick-add') {
-        const qa = selected.item as QuickAddResult
-        const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
-        const calendarId = defaultCalendar?.id || 'default'
+// --- builders ---
 
-        if (qa.isTask) {
-          const newEvent = {
-            id: crypto.randomUUID(),
-            calendarId,
-            title: qa.title,
-            location: qa.location,
-            start: qa.startDate.toISOString(),
-            end: qa.endDate ? qa.endDate.toISOString() : qa.startDate.toISOString(),
-            isAllDay: qa.isAllDay,
-            type: 'task' as const,
-            dueDate: format(qa.startDate, 'yyyy-MM-dd'),
-          }
-          addEvent(newEvent)
-          try {
-            await createCalDAVEvent(calendarId, newEvent)
-          } catch {
-            // error already handled by useCalDAV
-          }
-          return {
-            success: true,
-            message: `Created task: ${qa.title}`,
-            linkText: 'Open',
-            onLinkClick: () => openModal(undefined, undefined, newEvent.id),
-          }
-        }
+function commandToItem(cmd: Command): CommandPaletteItem {
+  return {
+    id: cmd.id,
+    value: `${cmd.label} ${cmd.keywords.join(' ')} ${cmd.description ?? ''}`,
+    group: categoryToGroup(cmd.category),
+    keywords: cmd.keywords,
+    shortcut: cmd.shortcut,
+    onSelect: async () => {
+      const message = cmd.action()
+      return { success: true, message: message ?? '' }
+    },
+    data: cmd,
+    itemType: 'command',
+  }
+}
 
+function eventToItem(
+  event: EventResult,
+  openModal: (date?: string, endDate?: string, eventId?: string) => void
+): CommandPaletteItem {
+  return {
+    id: `event-${event.id}`,
+    value: `${event.title} ${new Date(event.start).toLocaleString()}`,
+    group: 'event',
+    keywords: [],
+    onSelect: async () => {
+      openModal(event.start, undefined, event.id)
+      return { success: true, message: `Opened: ${event.title}` }
+    },
+    data: event,
+    itemType: 'event',
+  }
+}
+
+function calendarToItem(
+  cal: CalendarResult,
+  navigate: (path: string) => void
+): CommandPaletteItem {
+  return {
+    id: `cal-${cal.id}`,
+    value: cal.name,
+    group: 'calendars',
+    keywords: [],
+    onSelect: async () => {
+      navigate(`/settings?tab=calendars&calendar=${cal.id}`)
+      return { success: true, message: `Opened calendar: ${cal.name}` }
+    },
+    data: cal,
+    itemType: 'calendar',
+  }
+}
+
+function quickAddToItem(
+  qa: QuickAddResult,
+  rawInput: string,
+  calendars: { id: string; isDefault?: boolean }[],
+  addEvent: (event: CalendarEvent) => void,
+  createCalDAVEvent: (calendarId: string, event: CalendarEvent) => Promise<unknown>,
+  openModal: (date?: string, endDate?: string, eventId?: string) => void
+): CommandPaletteItem {
+  return {
+    id: `qa-${qa.title}-${qa.startDate.toISOString()}`,
+    value: `${rawInput} ${qa.title} ${qa.location ?? ''} ${qa.isAllDay ? 'all day' : ''}`,
+    group: 'quick-add',
+    keywords: [rawInput, qa.title, qa.location ?? ''].filter(Boolean),
+    onSelect: async () => {
+      const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
+      const calendarId = defaultCalendar?.id || 'default'
+
+      if (qa.isTask) {
         const newEvent = {
           id: crypto.randomUUID(),
           calendarId,
@@ -426,6 +446,8 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
           start: qa.startDate.toISOString(),
           end: qa.endDate ? qa.endDate.toISOString() : qa.startDate.toISOString(),
           isAllDay: qa.isAllDay,
+          type: 'task' as const,
+          dueDate: format(qa.startDate, 'yyyy-MM-dd'),
         }
         addEvent(newEvent)
         try {
@@ -435,48 +457,35 @@ export function useCommandPalette({ isOpen, toggleSidebar, sidebarOpen }: UseCom
         }
         return {
           success: true,
-          message: `Created event: ${qa.title}`,
+          message: `Created task: ${qa.title}`,
           linkText: 'Open',
           onLinkClick: () => openModal(undefined, undefined, newEvent.id),
         }
       }
 
-      return { success: false, message: '' }
-    },
-    [results, selectedIndex, openModal, navigate, addEvent, calendars, createCalDAVEvent]
-  )
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setSelectedIndex((i) => Math.min(i + 1, results.length - 1))
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setSelectedIndex((i) => Math.max(i - 1, 0))
-      } else if (e.key === 'Enter') {
-        e.preventDefault()
-        executeSelected()
+      const newEvent = {
+        id: crypto.randomUUID(),
+        calendarId,
+        title: qa.title,
+        location: qa.location,
+        start: qa.startDate.toISOString(),
+        end: qa.endDate ? qa.endDate.toISOString() : qa.startDate.toISOString(),
+        isAllDay: qa.isAllDay,
+      }
+      addEvent(newEvent)
+      try {
+        await createCalDAVEvent(calendarId, newEvent)
+      } catch {
+        // error already handled by useCalDAV
+      }
+      return {
+        success: true,
+        message: `Created event: ${qa.title}`,
+        linkText: 'Open',
+        onLinkClick: () => openModal(undefined, undefined, newEvent.id),
       }
     },
-    [results.length, executeSelected]
-  )
-  useEffect(() => {
-    if (!isOpen) {
-      setQueryState('')
-      setSelectedIndex(0)
-    }
-  }, [isOpen])
-
-  return {
-    query,
-    setQuery,
-    results,
-    selectedIndex,
-    setSelectedIndex,
-    preview,
-    executeSelected,
-    handleKeyDown,
-    parseInput,
+    data: qa,
+    itemType: 'quick-add',
   }
 }

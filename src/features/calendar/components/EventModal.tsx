@@ -48,6 +48,47 @@ interface InitialFormState {
   relatedTo: string[]
 }
 
+type InitialFormStateWithMeta = InitialFormState & {
+  isRecurringInstance: boolean
+  originalEventId: string | null
+}
+
+function makeDefaultState(
+  overrides: Partial<InitialFormStateWithMeta> = {}
+): InitialFormStateWithMeta {
+  const today = format(new Date(), 'yyyy-MM-dd')
+  return {
+    title: '',
+    description: '',
+    location: '',
+    startDate: today,
+    startTime: '09:00',
+    endDate: today,
+    endTime: '10:00',
+    isAllDay: false,
+    calendarId: '',
+    recurring: false,
+    recurrence: 'weekly',
+    interval: 1,
+    byWeekday: [],
+    byMonthDay: [],
+    byMonth: [],
+    bySetPos: [],
+    endCondition: 'never',
+    endOnDate: today,
+    endAfterCount: 10,
+    travelDuration: undefined,
+    reminders: [],
+    transparency: 'opaque',
+    categories: [],
+    attachments: [],
+    relatedTo: [],
+    isRecurringInstance: false,
+    originalEventId: null,
+    ...overrides,
+  }
+}
+
 function getInitialFormState(
   isModalOpen: boolean,
   selectedEventId: string | null,
@@ -56,40 +97,11 @@ function getInitialFormState(
   events: CalendarEvent[],
   calendars: { id: string; isDefault: boolean }[],
   allCategories: { id: string; name: string }[]
-): InitialFormState & { isRecurringInstance: boolean; originalEventId: string | null } {
+): InitialFormStateWithMeta {
   // Early return when modal is closed — skip all computation
   if (!isModalOpen) {
     const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
-    const today = format(new Date(), 'yyyy-MM-dd')
-    return {
-      title: '',
-      description: '',
-      location: '',
-      startDate: today,
-      startTime: '09:00',
-      endDate: today,
-      endTime: '10:00',
-      isAllDay: false,
-      calendarId: defaultCalendar?.id || '',
-      recurring: false,
-      recurrence: 'weekly',
-      interval: 1,
-      byWeekday: [],
-      byMonthDay: [],
-      byMonth: [],
-      bySetPos: [],
-      endCondition: 'never',
-      endOnDate: today,
-      endAfterCount: 10,
-      travelDuration: undefined,
-      reminders: [],
-      transparency: 'opaque',
-      categories: [],
-      attachments: [],
-      relatedTo: [],
-      isRecurringInstance: false,
-      originalEventId: null,
-    }
+    return makeDefaultState({ calendarId: defaultCalendar?.id || '' })
   }
 
   const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
@@ -208,100 +220,29 @@ function getInitialFormState(
         const endDatePart = selectedEndDate.split('T')[0]
         endTimeVal = endTime
         if (endDatePart !== dateStr) {
-          return {
-            title: '',
-            description: '',
-            location: '',
+          return makeDefaultState({
+            calendarId: defaultCalendar?.id || '',
             startDate: dateStr,
             startTime: startTimeVal,
             endDate: endDatePart,
             endTime: endTimeVal,
-            isAllDay: false,
-            calendarId: defaultCalendar?.id || '',
-            recurring: false,
-            recurrence: 'weekly',
-            interval: 1,
-            byWeekday: [],
-            byMonthDay: [],
-            byMonth: [],
-            bySetPos: [],
-            endCondition: 'never',
             endOnDate: dateStr,
-            endAfterCount: 10,
-            travelDuration: undefined,
-            reminders: [],
-            transparency: 'opaque',
-            categories: [],
-            attachments: [],
-            relatedTo: [],
-            isRecurringInstance: false,
-            originalEventId: null,
-          }
+          })
         }
       }
 
-      return {
-        title: '',
-        description: '',
-        location: '',
+      return makeDefaultState({
+        calendarId: defaultCalendar?.id || '',
         startDate: dateStr,
         startTime: startTimeVal,
         endDate: dateStr,
         endTime: endTimeVal,
-        isAllDay: false,
-        calendarId: defaultCalendar?.id || '',
-        recurring: false,
-        recurrence: 'weekly',
-        interval: 1,
-        byWeekday: [],
-        byMonthDay: [],
-        byMonth: [],
-        bySetPos: [],
-        endCondition: 'never',
         endOnDate: dateStr,
-        endAfterCount: 10,
-        travelDuration: undefined,
-        reminders: [],
-        transparency: 'opaque',
-        categories: [],
-        attachments: [],
-        relatedTo: [],
-        isRecurringInstance: false,
-        originalEventId: null,
-      }
+      })
     }
   }
 
-  const today = format(new Date(), 'yyyy-MM-dd')
-  return {
-    title: '',
-    description: '',
-    location: '',
-    startDate: today,
-    startTime: '09:00',
-    endDate: today,
-    endTime: '10:00',
-    isAllDay: false,
-    calendarId: defaultCalendar?.id || '',
-    recurring: false,
-    recurrence: 'weekly',
-    interval: 1,
-    byWeekday: [],
-    byMonthDay: [],
-    byMonth: [],
-    bySetPos: [],
-    endCondition: 'never',
-    endOnDate: today,
-    endAfterCount: 10,
-    travelDuration: undefined,
-    reminders: [],
-    transparency: 'opaque',
-    categories: [],
-    attachments: [],
-    relatedTo: [],
-    isRecurringInstance: false,
-    originalEventId: null,
-  }
+  return makeDefaultState({ calendarId: defaultCalendar?.id || '' })
 }
 
 export function EventModal(): JSX.Element | null {
@@ -314,6 +255,7 @@ export function EventModal(): JSX.Element | null {
   const calendars = useCalendarStore((state) => state.calendars)
   const categories = useCalendarStore((state) => state.categories)
   const addEvent = useCalendarStore((state) => state.addEvent)
+  const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const closeModal = useCalendarStore((state) => state.closeModal)
   const {
@@ -612,6 +554,43 @@ export function EventModal(): JSX.Element | null {
     const existingStart = format(parseISO(existingEventForMode.start), "yyyy-MM-dd'T'HH:mm:ss")
     const existingEnd = format(parseISO(existingEventForMode.end), "yyyy-MM-dd'T'HH:mm:ss")
 
+    const existingRecurrence = existingEventForMode.recurrence
+    const buildRecurrenceJSON = (
+      recur: boolean,
+      freq: string,
+      inter: number,
+      weekdays: number[],
+      monthDays: number[],
+      months: number[],
+      setPos: number[],
+      eCond: string,
+      eDate: string,
+      eCount: number,
+    ) => recur ? JSON.stringify({
+      frequency: freq, interval: inter, byWeekday: weekdays, byMonthDay: monthDays,
+      byMonth: months, bySetPos: setPos,
+      // Only compare fields relevant to the active end condition
+      ...(eCond === 'on' ? { endOnDate: eDate } : eCond === 'after' ? { endAfterCount: eCount } : {}),
+    }) : null
+
+    const existingEndCondition = existingRecurrence?.endDate ? 'on' : existingRecurrence?.count ? 'after' : 'never'
+    const currentRecurrenceJSON = buildRecurrenceJSON(
+      recurring, recurrence, interval, byWeekday, byMonthDay, byMonth, bySetPos,
+      endCondition, endOnDate, endAfterCount,
+    )
+    const existingRecurrenceJSON = existingRecurrence ? buildRecurrenceJSON(
+      true,
+      existingRecurrence.frequency,
+      existingRecurrence.interval ?? 1,
+      existingRecurrence.byWeekday ?? [],
+      existingRecurrence.byMonthDay ?? [],
+      existingRecurrence.byMonth ?? [],
+      existingRecurrence.bySetPos ?? [],
+      existingEndCondition,
+      existingRecurrence.endDate ? format(parseISO(existingRecurrence.endDate), 'yyyy-MM-dd') : '',
+      existingRecurrence.count ?? 10,
+    ) : null
+
     return (
       title !== existingEventForMode.title ||
       description !== (existingEventForMode.description || '') ||
@@ -619,7 +598,8 @@ export function EventModal(): JSX.Element | null {
       localStart !== existingStart ||
       localEnd !== existingEnd ||
       isAllDay !== existingEventForMode.isAllDay ||
-      recurrence !== (existingEventForMode.recurrence?.frequency || 'none') ||
+      recurring !== !!existingRecurrence ||
+      currentRecurrenceJSON !== existingRecurrenceJSON ||
       travelDuration !== existingEventForMode.travelDuration ||
       calendarId !== existingEventForMode.calendarId ||
       JSON.stringify(selectedCategories) !== JSON.stringify(existingEventForMode.categories || []) ||
@@ -642,7 +622,16 @@ export function EventModal(): JSX.Element | null {
     dueAllDay,
     completed,
     priority,
+    recurring,
     recurrence,
+    interval,
+    byWeekday,
+    byMonthDay,
+    byMonth,
+    bySetPos,
+    endCondition,
+    endOnDate,
+    endAfterCount,
     travelDuration,
     calendarId,
     selectedCategories,

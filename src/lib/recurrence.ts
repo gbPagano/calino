@@ -37,33 +37,70 @@ function describeSecondly(interval: number): string {
   return `Every ${interval} seconds`
 }
 
-function ruleObjectToRRuleString(rule: RecurrenceRule): string {
+/**
+ * Build an RFC 5545 RRULE string from a RecurrenceRule object.
+ *
+ * Handles: FREQ, INTERVAL, BYDAY (with positional prefix, e.g. 2TU for
+ * second Tuesday), BYMONTHDAY, BYMONTH, BYSETPOS (only when byWeekday is
+ * empty), UNTIL (with Z suffix), and COUNT. UNTIL takes precedence over
+ * COUNT per RFC 5545.
+ *
+ * Used by:
+ *  - recurrence.ts (human-readable descriptions via rrule.toText())
+ *  - calendarStore.ts (event expansion)
+ *  - icalTypeMapping.ts (CalDAV serialization)
+ */
+export function buildRRuleString(rule: RecurrenceRule): string {
   const parts: string[] = []
   parts.push(`FREQ=${FREQ_MAP[rule.frequency] ?? 'WEEKLY'}`)
+
   if (rule.interval && rule.interval > 1) {
     parts.push(`INTERVAL=${rule.interval}`)
   }
-  if (rule.endDate) {
-    parts.push(`UNTIL=${rule.endDate.replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`)
-  } else if (rule.count) {
-    parts.push(`COUNT=${rule.count}`)
-  }
+
   if (rule.byWeekday && rule.byWeekday.length > 0) {
-    const codes = rule.byWeekday
-      .map((d) => DAY_NUM_TO_CODE[d])
-      .filter(Boolean)
-      .join(',')
-    if (codes) parts.push(`BYDAY=${codes}`)
+    const bydayParts: string[] = []
+    for (let i = 0; i < rule.byWeekday.length; i++) {
+      const dayCode = DAY_NUM_TO_CODE[rule.byWeekday[i]]
+      if (dayCode) {
+        const pos = rule.bySetPos?.[i]
+        if (pos !== undefined && pos !== 0) {
+          bydayParts.push(`${pos}${dayCode}`)
+        } else {
+          bydayParts.push(dayCode)
+        }
+      }
+    }
+    if (bydayParts.length > 0) {
+      parts.push(`BYDAY=${bydayParts.join(',')}`)
+    }
   }
+
   if (rule.byMonthDay && rule.byMonthDay.length > 0) {
     parts.push(`BYMONTHDAY=${rule.byMonthDay.join(',')}`)
   }
+
   if (rule.byMonth && rule.byMonth.length > 0) {
     parts.push(`BYMONTH=${rule.byMonth.join(',')}`)
   }
-  if (rule.bySetPos && rule.bySetPos.length > 0) {
+
+  if (rule.bySetPos && rule.bySetPos.length > 0 && (!rule.byWeekday || rule.byWeekday.length === 0)) {
     parts.push(`BYSETPOS=${rule.bySetPos.join(',')}`)
   }
+
+  if (rule.endDate) {
+    const date = new Date(rule.endDate)
+    const year = date.getUTCFullYear()
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(date.getUTCDate()).padStart(2, '0')
+    const hour = String(date.getUTCHours()).padStart(2, '0')
+    const minute = String(date.getUTCMinutes()).padStart(2, '0')
+    const second = String(date.getUTCSeconds()).padStart(2, '0')
+    parts.push(`UNTIL=${year}${month}${day}T${hour}${minute}${second}Z`)
+  } else if (rule.count) {
+    parts.push(`COUNT=${rule.count}`)
+  }
+
   return parts.join(';')
 }
 
@@ -86,7 +123,7 @@ function describeFromRecurrenceRule(rule: RecurrenceRule): string {
     return describeSecondly(rule.interval ?? 1)
   }
   try {
-    const rruleString = ruleObjectToRRuleString(rule)
+    const rruleString = buildRRuleString(rule)
     const rrule = RRule.fromString(`RRULE:${rruleString}`)
     return capitaliseFirst(rrule.toText())
   } catch {

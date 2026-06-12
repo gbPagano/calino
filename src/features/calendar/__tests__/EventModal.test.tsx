@@ -168,4 +168,161 @@ describe('EventModal', () => {
     const createButton = screen.getByRole('button', { name: /create/i })
     expect(createButton).toBeDisabled()
   })
+
+  describe('hasChanges with recurrence', () => {
+    it('shows recurrence controls when toggling Recurring on a non-recurring event', () => {
+      const store = useCalendarStore.getState()
+      store.addEvent({
+        id: 'non-recurring',
+        calendarId: 'default',
+        title: 'Plain Event',
+        start: '2024-03-15T10:00:00',
+        end: '2024-03-15T11:00:00',
+        isAllDay: false,
+      })
+      store.openModal(undefined, undefined, 'non-recurring')
+
+      render(<EventModal />)
+
+      // Recurrence controls should not be visible initially
+      expect(screen.queryByLabelText('Repeat')).not.toBeInTheDocument()
+
+      // Toggle Recurring on — this also opens the More panel
+      fireEvent.click(screen.getByLabelText('Recurring'))
+
+      // Recurrence controls should now be visible
+      expect(screen.getByLabelText('Repeat')).toBeInTheDocument()
+    })
+
+    it('pre-populates recurrence data when editing a recurring event', () => {
+      const store = useCalendarStore.getState()
+      store.addEvent({
+        id: 'recurring-prepop',
+        calendarId: 'default',
+        title: 'Weekly Meeting',
+        start: '2024-03-01T10:00:00',
+        end: '2024-03-01T11:00:00',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 2 },
+      })
+      store.openModal(undefined, undefined, 'recurring-prepop')
+
+      render(<EventModal />)
+
+      // Recurring checkbox should be checked
+      expect(screen.getByLabelText('Recurring')).toBeChecked()
+
+      // Click More to open the recurrence panel
+      fireEvent.click(screen.getByRole('button', { name: /more/i }))
+
+      // The recurrence select should show weekly
+      expect(screen.getByLabelText('Repeat')).toHaveValue('weekly')
+    })
+
+    it('does not show RecurrenceDialog when submitting unchanged recurring event', () => {
+      const store = useCalendarStore.getState()
+      store.addEvent({
+        id: 'recurring-unchanged',
+        calendarId: 'default',
+        title: 'Unchanged Meeting',
+        start: '2024-03-01T10:00:00',
+        end: '2024-03-01T11:00:00',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1, endDate: '2024-04-01T23:59:59' },
+      })
+      store.openModal(undefined, undefined, 'recurring-unchanged')
+
+      render(<EventModal />)
+
+      // Click Save without any changes
+      fireEvent.click(screen.getByRole('button', { name: /save/i }))
+
+      // RecurrenceDialog should NOT appear (hasChanges is false)
+      expect(screen.queryByText('Edit recurring event')).not.toBeInTheDocument()
+    })
+
+    it('shows RecurrenceDialog when changing interval on recurring event', () => {
+      const store = useCalendarStore.getState()
+      store.addEvent({
+        id: 'recurring-change-interval',
+        calendarId: 'default',
+        title: 'Interval Meeting',
+        start: '2024-03-01T10:00:00',
+        end: '2024-03-01T11:00:00',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+      })
+      store.openModal(undefined, undefined, 'recurring-change-interval')
+
+      render(<EventModal />)
+
+      // Click More to open recurrence controls
+      fireEvent.click(screen.getByRole('button', { name: /more/i }))
+
+      // Change interval from 1 to 2
+      const intervalInput = screen.getByLabelText('Repeat interval')
+      fireEvent.change(intervalInput, { target: { value: '2' } })
+
+      // Click Save
+      fireEvent.click(screen.getByRole('button', { name: /save/i }))
+
+      // RecurrenceDialog should appear (hasChanges is true and it is a recurring event)
+      expect(screen.getByText('Edit recurring event')).toBeInTheDocument()
+    })
+
+    it('shows RecurrenceDialog when toggling recurring off on a recurring event', () => {
+      const store = useCalendarStore.getState()
+      store.addEvent({
+        id: 'recurring-toggle-off',
+        calendarId: 'default',
+        title: 'Toggle Off Meeting',
+        start: '2024-03-01T10:00:00',
+        end: '2024-03-01T11:00:00',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+      })
+      store.openModal(undefined, undefined, 'recurring-toggle-off')
+
+      render(<EventModal />)
+
+      // Toggle recurring off
+      fireEvent.click(screen.getByLabelText('Recurring'))
+
+      // Click Save
+      fireEvent.click(screen.getByRole('button', { name: /save/i }))
+
+      // RecurrenceDialog should appear (recurring changed from true to false)
+      expect(screen.getByText('Edit recurring event')).toBeInTheDocument()
+    })
+
+    it('shows RecurrenceDialog when changing end condition on recurring event', () => {
+      const store = useCalendarStore.getState()
+      store.addEvent({
+        id: 'recurring-end-cond',
+        calendarId: 'default',
+        title: 'End Condition Meeting',
+        start: '2024-03-01T10:00:00',
+        end: '2024-03-01T11:00:00',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+      })
+      store.openModal(undefined, undefined, 'recurring-end-cond')
+
+      render(<EventModal />)
+
+      // Click More to open recurrence controls
+      fireEvent.click(screen.getByRole('button', { name: /more/i }))
+
+      // Change end condition from 'never' to 'after'
+      fireEvent.change(screen.getByLabelText('Ends'), {
+        target: { value: 'after' },
+      })
+
+      // Click Save
+      fireEvent.click(screen.getByRole('button', { name: /save/i }))
+
+      // RecurrenceDialog should appear
+      expect(screen.getByText('Edit recurring event')).toBeInTheDocument()
+    })
+  })
 })

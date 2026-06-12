@@ -86,12 +86,14 @@ describe('Bug 9: CommandPalette onClose before async', () => {
     const onClose = vi.fn()
 
     render(<CommandPalette isOpen={true} onClose={onClose} />)
-    const input = screen.getByRole('textbox')
+    const input = screen.getByRole('combobox')
 
     await act(async () => {
       fireEvent.keyDown(input, { key: 'Enter' })
     })
 
+    // Close is deferred until the exit animation completes (~140ms).
+    await new Promise((r) => setTimeout(r, 200))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
@@ -100,12 +102,14 @@ describe('Bug 9: CommandPalette onClose before async', () => {
     const onClose = vi.fn()
 
     render(<CommandPalette isOpen={true} onClose={onClose} />)
-    const input = screen.getByRole('textbox')
+    const input = screen.getByRole('combobox')
 
     await act(async () => {
       fireEvent.keyDown(input, { key: 'Enter' })
     })
 
+    // Close is deferred until the exit animation completes.
+    await new Promise((r) => setTimeout(r, 200))
     // onClose called exactly once, after the async handler completes
     expect(onClose).toHaveBeenCalledTimes(1)
   })

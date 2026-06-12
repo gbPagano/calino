@@ -1,6 +1,6 @@
 import type { ViewType } from '@/types'
 
-export type CommandCategory = 'navigation' | 'actions' | 'settings' | 'search' | 'event'
+export type CommandCategory = 'navigation' | 'actions' | 'settings' | 'event'
 
 export interface Command {
   id: string
@@ -23,12 +23,6 @@ export interface QuickAddResult {
   confidence: number
 }
 
-export interface CommandResult {
-  type: 'command' | 'event' | 'calendar' | 'quick-add'
-  item: Command | CalendarResult | EventResult | QuickAddResult
-  score: number
-}
-
 export interface CalendarResult {
   id: string
   name: string
@@ -42,12 +36,35 @@ export interface EventResult {
   calendarId: string
 }
 
-export interface CommandPaletteState {
-  isOpen: boolean
-  query: string
-  results: CommandResult[]
-  selectedIndex: number
+export interface ExecuteResult {
+  success: boolean
+  message: string
+  linkText?: string
+  onLinkClick?: () => void
 }
+
+export type CommandPaletteItemGroup =
+  | 'navigation'
+  | 'actions'
+  | 'settings'
+  | 'calendars'
+  | 'event'
+  | 'quick-add'
+
+export type CommandPaletteItemData = Command | CalendarResult | EventResult | QuickAddResult
+
+export interface CommandPaletteItem {
+  id: string
+  value: string
+  group: CommandPaletteItemGroup
+  keywords: string[]
+  shortcut?: string
+  onSelect: () => Promise<ExecuteResult | undefined>
+  data: CommandPaletteItemData
+  itemType: 'command' | 'event' | 'calendar' | 'quick-add'
+}
+
+
 
 export type DateNavigationTarget =
   | 'today'

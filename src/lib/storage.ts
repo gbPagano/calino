@@ -1,30 +1,6 @@
-import localforage from 'localforage'
 import { toast as sonnerToast } from 'sonner'
 
 const APP_KEY_PREFIX = 'calino-'
-const STORAGE_NAME = 'calino'
-
-let store: LocalForage | null = null
-let driverReady: Promise<void> | null = null
-
-function getStore(): LocalForage {
-  if (!store) {
-    store = localforage.createInstance({
-      name: STORAGE_NAME,
-      storeName: STORAGE_NAME,
-      description: 'Calino persistent key-value storage',
-    })
-    // localforage's default driver order is [WEBSQL, INDEXEDDB, LOCALSTORAGE].
-    // We use localStorage as the primary driver so the synchronous facade
-    // below works (zustand's createJSONStorage requires a sync `getItem`).
-    // IndexedDB remains an automatic fallback for quota-exceeded errors.
-    driverReady = store.setDriver([
-      localforage.LOCALSTORAGE,
-      localforage.INDEXEDDB,
-    ])
-  }
-  return store
-}
 
 function getLocalStorage(): Storage | null {
   try {
@@ -50,14 +26,10 @@ function handleStorageError(key: string, e: unknown): void {
 /**
  * Storage facade that mirrors the Web Storage `Storage` interface so it
  * can be passed directly to zustand's `createJSONStorage(() => safeLocalStorage)`.
- * Delegates to `localforage` for the underlying driver, which gives us a
- * uniform API and a graceful IndexedDB fallback when localStorage is full.
+ * Uses raw localStorage for synchronous access (required by zustand).
  */
 export const safeLocalStorage: Storage = {
   getItem(key: string): string | null {
-    // Warm the localforage instance (sets drivers, runs migration). The actual
-    // read goes straight to localStorage so the call is synchronous.
-    getStore()
     const ls = getLocalStorage()
     if (!ls) return null
     try {
@@ -68,7 +40,6 @@ export const safeLocalStorage: Storage = {
   },
 
   setItem(key: string, value: string): void {
-    getStore()
     const ls = getLocalStorage()
     if (!ls) return
     try {
@@ -79,7 +50,6 @@ export const safeLocalStorage: Storage = {
   },
 
   removeItem(key: string): void {
-    getStore()
     const ls = getLocalStorage()
     if (!ls) return
     try {
@@ -90,7 +60,6 @@ export const safeLocalStorage: Storage = {
   },
 
   clear(): void {
-    getStore()
     const ls = getLocalStorage()
     if (!ls) return
     try {
@@ -128,8 +97,3 @@ export const safeLocalStorage: Storage = {
     }
   },
 }
-
-// Ensure the localforage driver configuration kicks off at module load
-// so that any subsequent IndexedDB fallback is ready before the first quota
-// error occurs. This is fire-and-forget; the sync facade does not wait.
-void driverReady

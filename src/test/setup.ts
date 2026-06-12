@@ -24,3 +24,19 @@ Object.defineProperty(window, 'localStorage', {
 Object.defineProperty(globalThis, 'localStorage', {
   value: localStorageMock,
 })
+
+// jsdom doesn't implement ResizeObserver. cmdk uses it for layout effects.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  const ResizeObserverMock = class {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  } as unknown as typeof ResizeObserver
+  ;(globalThis as { ResizeObserver: typeof ResizeObserver }).ResizeObserver = ResizeObserverMock
+  ;(window as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver = ResizeObserverMock
+}
+
+// jsdom doesn't implement scrollIntoView. cmdk calls it on the selected item.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function scrollIntoView(): void {}
+}

@@ -476,7 +476,7 @@
 .viewDropdownMenu {
   position: absolute;
   top: calc(100% + 4px);
-  right: 8px;
+  right: 0;
   background: var(--popover-bg, var(--panel));
   border: 1px solid var(--popover-border, var(--line));
   border-radius: 11px;
@@ -613,4 +613,15 @@
 .mobileViewTab:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+/* ---- Compact Mobile (≤500px) ---- */
+@media (max-width: 500px) {
+  .rightCluster {
+    padding-right: 8px;
+  }
+
+  .viewDropdownMenu {
+    right: -8px;
+  }
 }

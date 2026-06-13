@@ -122,9 +122,8 @@
   position: fixed;
   bottom: calc(90px + var(--safe-area-bottom));
   right: calc(24px + var(--safe-area-right));
-  background: rgba(var(--color-bg-secondary-rgb, 255, 255, 255), 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border, var(--line));
   border-radius: 12px;
   box-shadow: var(--shadow-card);
   overflow: hidden;
@@ -144,9 +143,7 @@
   gap: 12px;
   padding: 14px 20px;
   border: none;
-  background: rgba(var(--color-bg-secondary-rgb, 255, 255, 255), 0.5);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: transparent;
   color: var(--color-text-primary);
   font-size: 15px;
   font-weight: 500;

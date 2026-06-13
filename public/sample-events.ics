@@ -342,4 +342,115 @@ STATUS:COMPLETED
 COMPLETED:20260603T080000Z
 END:VTODO
 
+BEGIN:VJOURNAL
+UID:journal-1@example.com
+DTSTAMP:20260601T090000Z
+DTSTART;VALUE=DATE:20260601
+SUMMARY:Week 1 Planning Notes
+DESCRIPTION:Decided to focus on the command palette feature this sprint. Met with design to review mockups. Key decisions:\n- Use cmdk for the base library\n- Support natural language input\n- Add keyboard navigation for all actions
+CATEGORIES:WORK
+END:VJOURNAL
+
+BEGIN:VJOURNAL
+UID:journal-2@example.com
+DTSTAMP:20260605T183000Z
+DTSTART;VALUE=DATE:20260605
+SUMMARY:Work Retreat Takeaways
+DESCRIPTION:Great team building session at the resort. Highlights:
+- Teams were restructured for the next quarter
+- Introduced new sprint methodology
+- Everyone seems energized about the product roadmap
+
+Action items from the retreat need to be added to the project board.
+CATEGORIES:WORK,PERSONAL
+END:VJOURNAL
+
+BEGIN:VJOURNAL
+UID:journal-3@example.com
+DTSTAMP:20260610T210000Z
+DTSTART;VALUE=DATE:20260610
+SUMMARY:Anniversary Dinner Reflections
+DESCRIPTION:Wonderful evening at Italian Place Downtown. Sarah loved the surprise. We talked about our goals for the second half of the year.
+
+Thinking about planning a trip to Italy later this year - would be a great way to celebrate.
+CATEGORIES:PERSONAL
+END:VJOURNAL
+
+BEGIN:VJOURNAL
+UID:journal-4@example.com
+DTSTAMP:20260615T080000Z
+DTSTART;VALUE=DATE:20260615
+SUMMARY:Mid-Month Review
+DESCRIPTION:Progress check on Q2 goals:
+
+**Done:**
+- Command palette MVP shipped
+- CalDAV sync improvements deployed
+- Documentation updated
+
+**In Progress:**
+- Mobile responsiveness improvements
+- Recurring event UI overhaul
+
+**Blocked:**
+- Waiting on design tokens from the design system team
+
+Overall: on track but need to pick up pace on mobile work.
+CATEGORIES:WORK
+END:VJOURNAL
+
+BEGIN:VJOURNAL
+UID:journal-5@example.com
+DTSTAMP:20260620T190000Z
+DTSTART;VALUE=DATE:20260620
+SUMMARY:Vacation Planning
+DESCRIPTION:Explored options for the family trip to the lake house:
+
+- Cabin rental confirmed for June 24-26
+- Need to pack: fishing gear, board games, sunscreen
+- Grocery run planned for Wednesday evening
+- Mom offered to water the plants while we're away
+
+So excited for a break!
+CATEGORIES:PERSONAL,TRAVEL
+END:VJOURNAL
+
+BEGIN:VJOURNAL
+UID:journal-6@example.com
+DTSTAMP:20260625T170000Z
+DTSTART;VALUE=DATE:20260625
+SUMMARY:Product Ideas Brainstorm
+DESCRIPTION:After the product planning workshop, some ideas worth exploring:
+
+1. Calendar sharing with family view
+2. Quick-add natural language for tasks
+3. Integration with todoist
+4. Dark mode improvements (more theme options)
+5. Export to PDF for printing
+
+Need to validate these with user research before committing.
+CATEGORIES:WORK,IDEAS
+END:VJOURNAL
+
+BEGIN:VJOURNAL
+UID:journal-7@example.com
+DTSTAMP:20260630T160000Z
+DTSTART;VALUE=DATE:20260630
+SUMMARY:Month-End Reflections
+DESCRIPTION:June was a productive month. Key accomplishments:
+
+- Shipped command palette feature
+- Fixed several recurring event bugs
+- Improved dark mode support
+- Team morale is high after the retreat
+
+Areas to improve:
+- Need better test coverage for edge cases
+- Documentation could be more comprehensive
+- Should automate more of the release process
+
+Looking forward to July - planning the mobile redesign sprint.
+CATEGORIES:WORK,PERSONAL
+END:VJOURNAL
+
 END:VCALENDAR

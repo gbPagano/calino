@@ -74,6 +74,15 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
 
       events.forEach((event) => addEvent(event))
 
+      // Enable journal feature if sample data contains journal entries
+      const hasJournals = events.some((e) => e.type === 'journal')
+      if (hasJournals) {
+        const { journalEnabled } = useSettingsStore.getState()
+        if (!journalEnabled) {
+          updateSettings({ journalEnabled: true })
+        }
+      }
+
       updateSettings({ hasCompletedOnboarding: true })
     } catch (error) {
       setDemoError(error instanceof Error ? error.message : 'Failed to load demo data')

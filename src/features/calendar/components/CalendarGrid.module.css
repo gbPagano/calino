@@ -435,14 +435,23 @@
 
   /* Events grid shows dots, allow wrapping */
   .events {
+    flex-direction: row;
     flex-wrap: wrap;
     gap: 3px;
+    justify-content: center;
   }
 
   /* Tasks row same */
   .tasks {
+    flex-direction: row;
     flex-wrap: wrap;
     gap: 3px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .tasks .dot {
+    align-self: center;
   }
 
   /* Tighter cell padding */

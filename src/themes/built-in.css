@@ -133,8 +133,12 @@
   --modal-shadow: 0 2px 4px rgba(0, 0, 0, 0.40), 0 20px 60px rgba(0, 0, 0, 0.65);
 }
 
-/* Global scrollbar — thin, minimal, theme-aware */
+/* Global scrollbar — hidden until hover */
 * {
+  scrollbar-width: none;
+}
+
+*:hover {
   scrollbar-width: thin;
   scrollbar-color: var(--color-scrollbar) transparent;
 }
@@ -149,8 +153,12 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--color-scrollbar);
+  background: transparent;
   border-radius: 3px;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar);
 }
 
 *::-webkit-scrollbar-thumb:hover {

@@ -244,8 +244,12 @@ export function getBuiltInThemeCSS(): string {
   --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Global scrollbar */
+/* Global scrollbar — hidden until hover */
 * {
+  scrollbar-width: none;
+}
+
+*:hover {
   scrollbar-width: thin;
   scrollbar-color: var(--color-scrollbar) transparent;
 }
@@ -260,8 +264,12 @@ export function getBuiltInThemeCSS(): string {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--color-scrollbar);
+  background: transparent;
   border-radius: 3px;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar);
 }
 
 *::-webkit-scrollbar-thumb:hover {

@@ -538,6 +538,29 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
                 ))}
               </div>
             )}
+            {dayTasks.length > 0 && (
+              <div className={styles.allDayEventsInHeader}>
+                {dayTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className={styles.allDayEvent}
+                    style={{
+                      backgroundColor: `${task.color || calendars.find((c) => c.id === task.calendarId)?.color || DEFAULT_CALENDAR_COLOR}20`,
+                      borderLeftColor:
+                        task.color ||
+                        calendars.find((c) => c.id === task.calendarId)?.color ||
+                        DEFAULT_CALENDAR_COLOR,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openModal(undefined, undefined, task.id, 'task')
+                    }}
+                  >
+                    <span className={styles.allDayEventTitle}>{task.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <div

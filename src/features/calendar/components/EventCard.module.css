@@ -485,6 +485,29 @@
   flex-shrink: 0;
 }
 
+/* Multi-day/all-day events: double dot */
+.dot.multiDay,
+.dot.multiDay.fragmentFirst,
+.dot.multiDay.fragmentMiddle,
+.dot.multiDay.fragmentLast {
+  width: 12px;
+  border-radius: 3px;
+  clip-path: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Fragment styles: reset for dot mode */
+.dot.fragmentFirst,
+.dot.fragmentMiddle,
+.dot.fragmentLast {
+  margin: 0;
+  padding: 0;
+  border-left: none;
+  border-radius: 50%;
+  width: 6px;
+}
+
 .dot::before {
   display: none;
 }

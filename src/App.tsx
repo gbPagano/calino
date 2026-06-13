@@ -315,17 +315,19 @@ function CalendarApp(): JSX.Element {
   }, [setOverlayOpen])
 
   const handleFabAction = useCallback(
-    (action: 'event' | 'task' | 'commandPalette' | 'settings') => {
+    (action: 'event' | 'task' | 'commandPalette' | 'settings' | 'sidebar') => {
       setIsFabMenuOpen(false)
       if (action === 'commandPalette') {
         handleOpenCommandPalette()
       } else if (action === 'settings') {
         navigate('/settings')
+      } else if (action === 'sidebar') {
+        handleToggleSidebar()
       } else {
         openModal(undefined, undefined, undefined, action)
       }
     },
-    [openModal, handleOpenCommandPalette, navigate]
+    [openModal, handleOpenCommandPalette, navigate, handleToggleSidebar]
   )
 
   return (
@@ -370,7 +372,7 @@ function CalendarApp(): JSX.Element {
 interface MobileFABProps {
   onClick: () => void
   isOpen: boolean
-  onAction: (action: 'event' | 'task' | 'commandPalette' | 'settings') => void
+  onAction: (action: 'event' | 'task' | 'commandPalette' | 'settings' | 'sidebar') => void
 }
 
 function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
@@ -431,6 +433,13 @@ function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
               />
             </svg>
             Create Task
+          </button>
+          <button className="mobile-fab-option" onClick={() => onAction('sidebar')}>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+              <path d="M9 3v18" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+            Calendar & CalDAV
           </button>
           <button className="mobile-fab-option" onClick={() => onAction('commandPalette')}>
             <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none">

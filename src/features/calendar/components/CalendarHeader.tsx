@@ -233,7 +233,7 @@ export function CalendarHeader({
         <span className={styles.brandName}>Calino</span>
       </div>
       <button
-        className={`${styles.hamburger} ${!isMobile && !isCompact ? styles.hamburgerHidden : ''}`}
+        className={`${styles.hamburger} ${(!isMobile && !isCompact) || isCompactMobile ? styles.hamburgerHidden : ''}`}
         onClick={onToggleSidebar}
         aria-label="Toggle menu"
       >

@@ -10,18 +10,22 @@ All notable changes to Calino will be documented in this file.
 - **Attachments in the "More" panel** - file attachments live inside the collapsible "More" section with a compact layout.
 - **Rich toast notifications** - toasts now support action buttons (e.g. "Open" after creating an event, "Undo" after deleting). Powered by [sonner](https://sonner.emilkowal.ski/).
 - **Markdown journals** - journal entries now support tables, strikethrough, task lists, and autolinks via GitHub Flavored Markdown.
+- **Compact mobile view (≤500px)** - month view now shows events and tasks as color dots instead of text cards. Tap a day to see a split view with the mini-calendar on top and an agenda/task list below.
+- **Tasks in DayView header** - tasks now appear alongside all-day events at the top of the day view, giving a complete picture of the day at a glance.
+- **Back arrow in DayView** - a back arrow appears in the compact mobile DayView header for quick navigation back to the month grid.
+- **FAB menu for compact mobile** - the floating action button now offers quick access to create events, tasks, open the command palette, settings, and toggle the sidebar — all without needing the hamburger menu.
+- **Touch-friendly split resize** - the drag handle between the mini-calendar and agenda in split view now responds to touch, letting you adjust the ratio on phones.
+- **Journal entries in sample data** - the sample ICS file now includes journal entries to demonstrate the journal feature on first load.
 
 ### Improvements
 - **Command palette** - rebuilt on [cmdk](https://cmdk.paco.me/) for faster fuzzy filtering, keyboard navigation with auto-scroll, smooth open/close animations, and proper screen reader support (`role="dialog"`).
 - **Palette groups** - results are now grouped into Navigation, Actions, Settings, Calendars, and Events for easier scanning.
-
-### Notable Fixes
-- **Delete recurring event from preview popup** — the trash icon now works correctly for recurring events in the quick preview modal
-- **Delete recurring event from modal** — the store's delete function was missing from EventModal, so deleting recurring events via the full editor did nothing
-- **Monthly recurrence weekday values** — selecting a weekday in the monthly pattern picker now works correctly for non-Sunday first-day-of-week locales.
-- **Recurring event edits** — changing recurrence settings (interval, end condition, weekday selection) now properly enables the Save button.
-- **“Go to today” navigation** — typing “go to today” or “show next week” in the palette navigates instead of trying to create an event.
-- **Dark mode fixes** — weekday buttons and recurrence labels now use theme-aware CSS variables instead of hardcoded light-mode colors.
+- **Compact mobile month view polish** - week number column hidden, multi-day fragments shown as pill dots, word overflow handled, and the grid fills the full width without horizontal scrolling down to 375px.
+- **Settings page mobile layout** - settings rows stack vertically on small screens, theme cards wrap naturally, and the back button sits above the navigation tabs.
+- **Scrollbar styling** - scrollbars are hidden by default across the app and appear on hover, giving a cleaner look while remaining accessible.
+- **Dark mode consistency** - DayEventsPopup and ContextMenu now use theme-aware CSS variables instead of hardcoded light-mode colors.
+- **Multi-day event text alignment** - fragment cards (first/middle/last) now have consistent left padding so titles align with regular single-day events.
+- **Auto-enable journal** - if the sample data contains journal entries, the journal feature is now enabled automatically during onboarding.
 
 ### Internal
 - Replaced hand-rolled implementations with maintained libraries: `rrule` for recurrence expansion, `semver` for version comparison, `Zod` for config validation, `Dexie` for IndexedDB access, `uuid` for UUID validation.

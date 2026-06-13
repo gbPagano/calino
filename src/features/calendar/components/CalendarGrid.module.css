@@ -509,10 +509,11 @@
     border-top: 1px solid var(--line);
   }
 
-  /* Remove resize handles on small screens */
+  /* Thinner resize handle on small screens */
   .splitHandle,
   .splitHandleH {
-    display: none;
+    height: 12px;
+    background: transparent;
   }
 }
 

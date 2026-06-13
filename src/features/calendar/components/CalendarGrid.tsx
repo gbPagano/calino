@@ -436,6 +436,26 @@ export function CalendarGrid(): JSX.Element {
     document.addEventListener('mouseup', onUp)
   }
 
+  const handleGridResizeTouchStart = (e: React.TouchEvent): void => {
+    e.preventDefault()
+    resizeCleanupRef.current?.()
+    const startY = e.touches[0].clientY
+    const startRatio = gridRatio
+    const containerHeight = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect().height
+    const onMove = (ev: TouchEvent): void => {
+      const delta = (ev.touches[0].clientY - startY) / containerHeight
+      setGridRatio(Math.min(0.85, Math.max(0.35, startRatio + delta)))
+    }
+    const onEnd = (): void => {
+      document.removeEventListener('touchmove', onMove)
+      document.removeEventListener('touchend', onEnd)
+      resizeCleanupRef.current = null
+    }
+    resizeCleanupRef.current = onEnd
+    document.addEventListener('touchmove', onMove, { passive: false })
+    document.addEventListener('touchend', onEnd)
+  }
+
   const handleResizeStart = (e: React.MouseEvent): void => {
     e.preventDefault()
     // Clean up any previous resize
@@ -455,6 +475,26 @@ export function CalendarGrid(): JSX.Element {
     resizeCleanupRef.current = onUp
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
+  }
+
+  const handleResizeTouchStart = (e: React.TouchEvent): void => {
+    e.preventDefault()
+    resizeCleanupRef.current?.()
+    const startX = e.touches[0].clientX
+    const startRatio = splitRatio
+    const containerWidth = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect().width
+    const onMove = (ev: TouchEvent): void => {
+      const delta = (ev.touches[0].clientX - startX) / containerWidth
+      setSplitRatio(Math.min(0.85, Math.max(0.25, startRatio + delta)))
+    }
+    const onEnd = (): void => {
+      document.removeEventListener('touchmove', onMove)
+      document.removeEventListener('touchend', onEnd)
+      resizeCleanupRef.current = null
+    }
+    resizeCleanupRef.current = onEnd
+    document.addEventListener('touchmove', onMove, { passive: false })
+    document.addEventListener('touchend', onEnd)
   }
 
   const handleDayClick = (day: Date): void => {
@@ -611,13 +651,13 @@ export function CalendarGrid(): JSX.Element {
             <DragOverlay>{activeEvent ? <EventCard event={activeEvent} /> : null}</DragOverlay>
           </DndContext>
         </div>
-        <div className={styles.splitHandleH} onMouseDown={handleGridResizeStart} />
+        <div className={styles.splitHandleH} onMouseDown={handleGridResizeStart} onTouchStart={handleGridResizeTouchStart} />
         <div className={styles.agendaBottom} style={{ flex: 1 }}>
           {bottomPanelDay ? (
             isWideWindow ? (
               <>
                 <div className={styles.splitDay} style={{ flex: `0 0 ${splitRatio * 100}%` }}><DayView key={bottomPanelDay} selectedDate={bottomPanelDay} /></div>
-                <div className={styles.splitHandle} onMouseDown={handleResizeStart} />
+                <div className={styles.splitHandle} onMouseDown={handleResizeStart} onTouchStart={handleResizeTouchStart} />
                 <div className={styles.splitAgenda} style={{ flex: 1 }}><AgendaView embedded /></div>
               </>
             ) : (

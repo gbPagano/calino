@@ -115,7 +115,7 @@ export function CalendarGrid(): JSX.Element {
   const isWideWindow = useIsWideWindow()
   const [bottomPanelDay, setBottomPanelDay] = useState<string | null>(null)
   const [splitRatio, setSplitRatio] = useState(0.65)
-  const [gridRatio, setGridRatio] = useState(0.6)
+  const [gridRatio, setGridRatio] = useState(0.4)
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollCooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentDateRef = useRef(currentDate)
@@ -863,50 +863,86 @@ const DroppableDay = React.memo(function DroppableDay({
           </button>
         )}
       </div>
-      {dayEvents.length > 0 && (
-        <div className={styles.events}>
-          <AnimatePresence>
-            {dayEvents.slice(0, monthViewEventLimit).map((event) => {
-              const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
-              const shouldCompact =
-                isPastWeek ||
-                (compactRecurringEvents && (!!event.rruleString || !!event.recurrence || event.isAllDay || isMultiDay)) ||
-                event.isFragment
-              return (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  compact={shouldCompact}
-                  isMobileMonth={isMobile}
-                  dotMode={isCompactMobile}
-                  enableResize={false}
-                  monthView
-                />
-              )
-            })}
-          </AnimatePresence>
-          {dayEvents.length > monthViewEventLimit && (
+      {isCompactMobile ? (
+        <div className={styles.dotRow}>
+          {dayEvents.slice(0, monthViewEventLimit).map((event) => {
+            const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
+            const shouldCompact =
+              isPastWeek ||
+              (compactRecurringEvents && (!!event.rruleString || !!event.recurrence || event.isAllDay || isMultiDay)) ||
+              event.isFragment
+            return (
+              <EventCard
+                key={event.id}
+                event={event}
+                compact={shouldCompact}
+                isMobileMonth={isMobile}
+                dotMode
+                enableResize={false}
+                monthView
+              />
+            )
+          })}
+          {dayTasks.slice(0, monthViewEventLimit).map((task) => (
+            <EventCard key={task.id} event={task} compact isMobileMonth={isMobile} dotMode enableResize={false} monthView />
+          ))}
+          {(dayEvents.length > monthViewEventLimit || dayTasks.length > monthViewEventLimit) && (
             <button
               ref={moreEventsRef}
               className={styles.moreEvents}
               onClick={handleMoreEventsClick}
             >
-              +{dayEvents.length - monthViewEventLimit} more
+              +{Math.max(0, dayEvents.length - monthViewEventLimit) + Math.max(0, dayTasks.length - monthViewEventLimit)}
             </button>
           )}
         </div>
-      )}
-      {dayTasks.length > 0 && (
-        <div className={styles.tasks}>
-          <AnimatePresence mode="popLayout">
-            {dayTasks.slice(0, monthViewEventLimit).map((task) => (
-              <EventCard key={task.id} event={task} compact isMobileMonth={isMobile} dotMode={isCompactMobile} enableResize={false} monthView />
-            ))}
-          </AnimatePresence>
-          {dayTasks.length > monthViewEventLimit && (
-            <div className={styles.moreEvents}>+{dayTasks.length - monthViewEventLimit} more</div>
+      ) : (
+        <>
+          {dayEvents.length > 0 && (
+            <div className={styles.events}>
+              <AnimatePresence>
+                {dayEvents.slice(0, monthViewEventLimit).map((event) => {
+                  const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
+                  const shouldCompact =
+                    isPastWeek ||
+                    (compactRecurringEvents && (!!event.rruleString || !!event.recurrence || event.isAllDay || isMultiDay)) ||
+                    event.isFragment
+                  return (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      compact={shouldCompact}
+                      isMobileMonth={isMobile}
+                      enableResize={false}
+                      monthView
+                    />
+                  )
+                })}
+              </AnimatePresence>
+              {dayEvents.length > monthViewEventLimit && (
+                <button
+                  ref={moreEventsRef}
+                  className={styles.moreEvents}
+                  onClick={handleMoreEventsClick}
+                >
+                  +{dayEvents.length - monthViewEventLimit} more
+                </button>
+              )}
+            </div>
           )}
-        </div>
+          {dayTasks.length > 0 && (
+            <div className={styles.tasks}>
+              <AnimatePresence mode="popLayout">
+                {dayTasks.slice(0, monthViewEventLimit).map((task) => (
+                  <EventCard key={task.id} event={task} compact isMobileMonth={isMobile} enableResize={false} monthView />
+                ))}
+              </AnimatePresence>
+              {dayTasks.length > monthViewEventLimit && (
+                <div className={styles.moreEvents}>+{dayTasks.length - monthViewEventLimit} more</div>
+              )}
+            </div>
+          )}
+        </>
       )}
       {showPopup && (
         <DayEventsPopup

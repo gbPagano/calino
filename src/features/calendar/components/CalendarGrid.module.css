@@ -432,6 +432,7 @@
     border-left: none;
     border-right: none;
     margin: 0;
+    overflow-x: hidden;
   }
 
   /* Hide week number column */
@@ -464,6 +465,13 @@
   .dayNumber {
     font-size: 10px;
     padding: 1px 3px;
+  }
+
+  /* Tighter weekday header */
+  .weekday {
+    padding: 8px 1px;
+    font-size: 9px;
+    letter-spacing: 0.02em;
   }
 
   /* Events grid shows dots, allow wrapping */
@@ -506,4 +514,15 @@
   .splitHandleH {
     display: none;
   }
+}
+
+/* Dot row — single merged row for events+tasks dots in compact mobile */
+.dotRow {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: center;
+  align-items: center;
+  min-height: 8px;
 }

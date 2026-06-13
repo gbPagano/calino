@@ -456,7 +456,9 @@
 
 .mobileMonth .time,
 .mobileMonth .location,
-.mobileMonth .travelTime {
+.mobileMonth .travelTime,
+.mobileMonth .metaDot,
+.mobileMonth .meta {
   display: none;
 }
 

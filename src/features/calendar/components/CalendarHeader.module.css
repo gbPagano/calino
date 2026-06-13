@@ -618,10 +618,10 @@
 /* ---- Compact Mobile (≤500px) ---- */
 @media (max-width: 500px) {
   .rightCluster {
-    padding-right: 8px;
+    padding-right: 12px;
   }
 
   .viewDropdownMenu {
-    right: -8px;
+    right: -12px;
   }
 }

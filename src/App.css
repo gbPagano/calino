@@ -122,10 +122,10 @@
   position: fixed;
   bottom: calc(90px + var(--safe-area-bottom));
   right: calc(24px + var(--safe-area-right));
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border, var(--line));
-  border-radius: 12px;
-  box-shadow: var(--shadow-card);
+  background: var(--popover-bg, var(--panel));
+  border: 1px solid var(--popover-border, var(--line));
+  border-radius: 11px;
+  box-shadow: var(--modal-shadow, 0 4px 12px rgba(var(--ink-raw, 44, 40, 33), 0.1));
   overflow: hidden;
   z-index: 99;
   flex-direction: column;
@@ -141,22 +141,23 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 20px;
+  padding: 10px 16px;
   border: none;
   background: transparent;
-  color: var(--color-text-primary);
-  font-size: 15px;
-  font-weight: 500;
+  text-align: left;
+  font-size: 14px;
+  color: var(--ink-2);
   cursor: pointer;
   width: 100%;
-  text-align: left;
-  transition: background-color 0.15s;
+  font-family: inherit;
+  transition: all 0.12s;
 }
 
 .mobile-fab-option:hover {
-  background: var(--color-bg-hover);
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.04);
+  color: var(--ink);
 }
 
 .mobile-fab-option svg {
-  color: var(--color-text-secondary);
+  color: var(--ink-3);
 }

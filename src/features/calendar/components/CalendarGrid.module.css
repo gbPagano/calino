@@ -433,6 +433,20 @@
     border-right: none;
   }
 
+  /* Hide week number column */
+  .weekNumHeader,
+  .weekNumber {
+    display: none;
+  }
+
+  .header {
+    grid-template-columns: repeat(7, 1fr);
+  }
+
+  .weekRow {
+    grid-template-columns: repeat(7, 1fr);
+  }
+
   /* Events grid shows dots, allow wrapping */
   .events {
     flex-direction: row;

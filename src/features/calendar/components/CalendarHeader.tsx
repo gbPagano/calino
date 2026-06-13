@@ -14,7 +14,7 @@ import {
 } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/store/calendarStore'
-import { MOBILE_BREAKPOINT, TABLET_BREAKPOINT } from '@/config'
+import { MOBILE_BREAKPOINT, TABLET_BREAKPOINT, COMPACT_MOBILE_BREAKPOINT } from '@/config'
 const SIDEBAR_BREAKPOINT = 950
 import { useSettingsStore } from '@/store/settingsStore'
 import { useConfigStore } from '@/store/configStore'
@@ -69,6 +69,9 @@ export function CalendarHeader({
   const [isTablet, setIsTablet] = useState(
     typeof window !== 'undefined' ? window.innerWidth < TABLET_BREAKPOINT : false
   )
+  const [isCompactMobile, setIsCompactMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < COMPACT_MOBILE_BREAKPOINT : false
+  )
   const [isCompact, setIsCompact] = useState(
     typeof window !== 'undefined' ? window.innerWidth < SIDEBAR_BREAKPOINT : false
   )
@@ -101,6 +104,7 @@ export function CalendarHeader({
       const w = window.innerWidth
       setIsMobile(w < MOBILE_BREAKPOINT)
       setIsTablet(w < TABLET_BREAKPOINT)
+      setIsCompactMobile(w < COMPACT_MOBILE_BREAKPOINT)
       setIsCompact(w < SIDEBAR_BREAKPOINT)
     }
     checkMobile()
@@ -280,14 +284,16 @@ export function CalendarHeader({
 
       {/* Right cluster */}
       <div className={styles.rightCluster}>
-        {/* Search */}
-        <button
-          className={styles.iconButton}
-          onClick={onOpenCommandPalette}
-          aria-label="Search or commands"
-        >
-          <SearchIcon />
-        </button>
+        {/* Search - hidden in compact mobile (available in FAB) */}
+        {!isCompactMobile && (
+          <button
+            className={styles.iconButton}
+            onClick={onOpenCommandPalette}
+            aria-label="Search or commands"
+          >
+            <SearchIcon />
+          </button>
+        )}
 
         {/* View Tabs - always rendered, CSS handles visibility */}
         <div className={`${styles.viewTabs} ${isMobile || isTablet ? styles.viewTabsHidden : ''}`} ref={viewTabsRef}>
@@ -357,25 +363,26 @@ export function CalendarHeader({
           )}
         </div>
 
-
-        <div
-          className={styles.settingsWrapper}
-          onMouseEnter={() => {
-            clearTimeout(quickSettingsTimeoutRef.current)
-            setShowQuickSettings(true)
-          }}
-          onMouseLeave={() => {
-            quickSettingsTimeoutRef.current = setTimeout(() => setShowQuickSettings(false), 200)
-          }}
-        >
-          <button
-            className={styles.iconButton}
-            onClick={() => navigate('/settings')}
-            aria-label="Settings"
+        {/* Settings - hidden in compact mobile (available in FAB) */}
+        {!isCompactMobile && (
+          <div
+            className={styles.settingsWrapper}
+            onMouseEnter={() => {
+              clearTimeout(quickSettingsTimeoutRef.current)
+              setShowQuickSettings(true)
+            }}
+            onMouseLeave={() => {
+              quickSettingsTimeoutRef.current = setTimeout(() => setShowQuickSettings(false), 200)
+            }}
           >
-            <SettingsIcon />
-          </button>
-          {showQuickSettings && !isMobile && (
+            <button
+              className={styles.iconButton}
+              onClick={() => navigate('/settings')}
+              aria-label="Settings"
+            >
+              <SettingsIcon />
+            </button>
+            {showQuickSettings && !isMobile && (
             <div className={styles.quickSettingsDropdown}>
               <div className={styles.quickSettingsItem}>
                 <span className={styles.quickSettingsLabel}>Week numbers</span>
@@ -432,6 +439,7 @@ export function CalendarHeader({
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Mobile view switcher */}

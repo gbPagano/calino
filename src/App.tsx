@@ -315,11 +315,17 @@ function CalendarApp(): JSX.Element {
   }, [setOverlayOpen])
 
   const handleFabAction = useCallback(
-    (action: 'event' | 'task') => {
+    (action: 'event' | 'task' | 'commandPalette' | 'settings') => {
       setIsFabMenuOpen(false)
-      openModal(undefined, undefined, undefined, action)
+      if (action === 'commandPalette') {
+        handleOpenCommandPalette()
+      } else if (action === 'settings') {
+        navigate('/settings')
+      } else {
+        openModal(undefined, undefined, undefined, action)
+      }
     },
-    [openModal]
+    [openModal, handleOpenCommandPalette, navigate]
   )
 
   return (
@@ -364,7 +370,7 @@ function CalendarApp(): JSX.Element {
 interface MobileFABProps {
   onClick: () => void
   isOpen: boolean
-  onAction: (action: 'event' | 'task') => void
+  onAction: (action: 'event' | 'task' | 'commandPalette' | 'settings') => void
 }
 
 function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
@@ -426,6 +432,20 @@ function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
               />
             </svg>
             Create Task
+          </button>
+          <button className="mobile-fab-option" onClick={() => onAction('commandPalette')}>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
+              <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            Search & Commands
+          </button>
+          <button className="mobile-fab-option" onClick={() => onAction('settings')}>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+            Settings
           </button>
         </div>
       )}

@@ -30,6 +30,26 @@
   align-items: flex-start;
 }
 
+.backButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  color: var(--ink-2);
+  cursor: pointer;
+  border-radius: 6px;
+  flex-shrink: 0;
+  margin-right: 8px;
+  transition: background 0.15s;
+}
+
+.backButton:hover {
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.06);
+}
+
 .allDayEventsInHeader {
   display: flex;
   flex-wrap: wrap;

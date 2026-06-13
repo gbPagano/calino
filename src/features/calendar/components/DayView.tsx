@@ -66,7 +66,7 @@ function HourCell({ hour, dateStr, timeFormat, onCellClick, onDragStart }: HourC
   )
 }
 
-export function DayView({ selectedDate: propDate }: { selectedDate?: string } = {}): JSX.Element {
+export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: string; onBack?: () => void } = {}): JSX.Element {
   const storeDate = useCalendarStore((state) => state.currentDate)
   const currentDate = propDate || storeDate
   const events = useCalendarStore((state) => state.events)
@@ -510,6 +510,13 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
         <div
           className={`${styles.header} ${isScrolled ? styles.headerShadow : ''} ${allDayEvents.length > 0 ? styles.hasAllDayEvents : ''}`}
         >
+          {onBack && (
+            <button className={styles.backButton} onClick={onBack} aria-label="Back to agenda">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          )}
           <div className={styles.dayInfo}>
             <div className={styles.dayName}>{format(date, 'EEEE')}</div>
             <div className={`${styles.dayNumber} ${isCurrentDay ? styles.today : ''}`}>

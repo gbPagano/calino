@@ -621,7 +621,7 @@ export function CalendarGrid(): JSX.Element {
                 <div className={styles.splitAgenda} style={{ flex: 1 }}><AgendaView embedded /></div>
               </>
             ) : (
-              <DayView key={bottomPanelDay} selectedDate={bottomPanelDay} />
+              <DayView key={bottomPanelDay} selectedDate={bottomPanelDay} onBack={isCompactMobile ? () => setBottomPanelDay(null) : undefined} />
             )
           ) : (
             <AgendaView embedded />

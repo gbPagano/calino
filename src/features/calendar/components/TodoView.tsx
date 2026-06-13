@@ -6,6 +6,7 @@ import {
   parseISO,
   startOfDay,
 } from 'date-fns'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import type { CalendarEvent } from '@/types'
@@ -90,6 +91,7 @@ export function TodoView(): JSX.Element {
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const openModal = useCalendarStore((state) => state.openModal)
   const { updateEvent: updateCalDAVEvent } = useCalDAV()
+  const isMobile = useIsMobile()
 
   const [filter, setFilter] = useState<FilterType>('active')
   const [composing, setComposing] = useState(false)
@@ -415,7 +417,7 @@ export function TodoView(): JSX.Element {
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M7 2v10M2 7h10" />
               </svg>
-              Add task
+              {isMobile ? 'Add' : 'Add task'}
             </button>
           </div>
         </div>

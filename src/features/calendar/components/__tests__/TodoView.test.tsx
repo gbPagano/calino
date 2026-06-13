@@ -1,9 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { TodoView } from '../TodoView'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
+
+vi.mock('@/hooks/useIsMobile')
 
 const renderWithRouter = (component: React.ReactElement) => {
   return render(<BrowserRouter>{component}</BrowserRouter>)

@@ -494,13 +494,10 @@
   padding: 0;
 }
 
-/* Fragment styles: all become regular dots in dot mode */
+/* Fragment styles: regular dots in dot mode */
 .dot.fragmentFirst,
 .dot.fragmentMiddle,
-.dot.fragmentLast,
-.dot.multiDay.fragmentFirst,
-.dot.multiDay.fragmentMiddle,
-.dot.multiDay.fragmentLast {
+.dot.fragmentLast {
   margin: 0 !important;
   padding: 0 !important;
   border-left: none !important;
@@ -508,6 +505,15 @@
   width: 6px !important;
   min-width: 6px !important;
   clip-path: none !important;
+}
+
+/* Multi-day fragments: wider pill dot */
+.dot.multiDay.fragmentFirst,
+.dot.multiDay.fragmentMiddle,
+.dot.multiDay.fragmentLast {
+  width: 10px !important;
+  min-width: 10px !important;
+  border-radius: 3px !important;
 }
 
 .dot::before {

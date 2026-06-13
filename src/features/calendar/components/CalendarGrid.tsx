@@ -35,7 +35,7 @@ import {
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
-import { useIsMobile } from '@/hooks/useIsMobile'
+import { useIsMobile, useIsCompactMobile } from '@/hooks/useIsMobile'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { EventCard } from './EventCard'
 import { DayEventsPopup } from './DayEventsPopup'
@@ -110,6 +110,7 @@ export function CalendarGrid(): JSX.Element {
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null)
   const [scale, setScale] = useState(1)
   const isMobile = useIsMobile()
+  const isCompactMobile = useIsCompactMobile()
   const isTallWindow = useIsTallWindow()
   const isWideWindow = useIsWideWindow()
   const [bottomPanelDay, setBottomPanelDay] = useState<string | null>(null)
@@ -458,7 +459,7 @@ export function CalendarGrid(): JSX.Element {
 
   const handleDayClick = (day: Date): void => {
     const dateStr = format(day, 'yyyy-MM-dd')
-    if (isTallWindow) {
+    if (isTallWindow || isCompactMobile) {
       setBottomPanelDay((prev) => (prev === dateStr ? null : dateStr))
     } else {
       openModal(dateStr)
@@ -509,7 +510,7 @@ export function CalendarGrid(): JSX.Element {
 
   const rowHeight = Math.round(100 * scale)
 
-  if (isTallWindow) {
+  if (isTallWindow || isCompactMobile) {
     return (
       <>
       <div className={styles.splitContainer}>
@@ -582,6 +583,7 @@ export function CalendarGrid(): JSX.Element {
                               compactRecurringEvents={compactRecurringEvents}
                               monthViewEventLimit={monthViewEventLimit}
                               isMobile={isMobile}
+                              isCompactMobile={isCompactMobile}
                               onDayClick={handleDayClick}
                               onDayDoubleClick={handleDayDoubleClick}
                               onDayNumberClick={handleDayNumberClick}
@@ -708,6 +710,7 @@ export function CalendarGrid(): JSX.Element {
                         compactRecurringEvents={compactRecurringEvents}
                         monthViewEventLimit={monthViewEventLimit}
                         isMobile={isMobile}
+                        isCompactMobile={isCompactMobile}
                         onDayClick={handleDayClick}
                         onDayDoubleClick={handleDayDoubleClick}
                         onDayNumberClick={handleDayNumberClick}
@@ -760,6 +763,7 @@ interface DroppableDayProps {
   compactRecurringEvents: boolean
   monthViewEventLimit: number
   isMobile: boolean
+  isCompactMobile: boolean
   onDayClick: (day: Date) => void
   onDayDoubleClick: (day: Date) => void
   onDayNumberClick: (day: Date) => void
@@ -782,6 +786,7 @@ const DroppableDay = React.memo(function DroppableDay({
   compactRecurringEvents,
   monthViewEventLimit,
   isMobile,
+  isCompactMobile,
   onDayClick,
   onDayDoubleClick,
   onDayNumberClick,
@@ -873,6 +878,7 @@ const DroppableDay = React.memo(function DroppableDay({
                   event={event}
                   compact={shouldCompact}
                   isMobileMonth={isMobile}
+                  dotMode={isCompactMobile}
                   enableResize={false}
                   monthView
                 />
@@ -894,7 +900,7 @@ const DroppableDay = React.memo(function DroppableDay({
         <div className={styles.tasks}>
           <AnimatePresence mode="popLayout">
             {dayTasks.slice(0, monthViewEventLimit).map((task) => (
-              <EventCard key={task.id} event={task} compact isMobileMonth={isMobile} enableResize={false} monthView />
+              <EventCard key={task.id} event={task} compact isMobileMonth={isMobile} dotMode={isCompactMobile} enableResize={false} monthView />
             ))}
           </AnimatePresence>
           {dayTasks.length > monthViewEventLimit && (

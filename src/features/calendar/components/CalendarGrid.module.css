@@ -424,3 +424,55 @@
 .day:nth-child(7n + 1):not(.today) .events {
   opacity: 0.9;
 }
+
+/* ---- Compact Mobile (≤500px) ---- */
+@media (max-width: 500px) {
+  .gridPanel {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  /* Events grid shows dots, allow wrapping */
+  .events {
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+
+  /* Tasks row same */
+  .tasks {
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+
+  /* Tighter cell padding */
+  .day {
+    padding: 3px;
+  }
+
+  /* Smaller day number */
+  .dayNumber {
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+
+  /* Reduce grid margins */
+  .gridTop {
+    max-height: none !important;
+  }
+
+  /* Split view adjustments */
+  .splitContainer {
+    border-radius: 0;
+  }
+
+  .agendaBottom {
+    border-top: 1px solid var(--line);
+  }
+
+  /* Remove resize handles on small screens */
+  .splitHandle,
+  .splitHandleH {
+    display: none;
+  }
+}

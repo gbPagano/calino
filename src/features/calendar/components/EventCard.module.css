@@ -470,3 +470,31 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Dot mode for compact mobile (≤500px) — render as a tiny colored dot */
+.dot {
+  padding: 0;
+  min-height: 0;
+  height: 6px;
+  width: 6px;
+  min-width: 6px;
+  border-radius: 50%;
+  background: var(--event-color, var(--accent));
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dot::before {
+  display: none;
+}
+
+.dot .title,
+.dot .time,
+.dot .location,
+.dot .travelTime,
+.dot .meta,
+.dot .metaDot,
+.dot .resizeHandle {
+  display: none;
+}

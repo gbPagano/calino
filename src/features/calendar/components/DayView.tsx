@@ -587,18 +587,6 @@ export function DayView({ selectedDate: propDate }: { selectedDate?: string } = 
           </div>
         </div>
       </div>
-      {dayTasks.filter((t) => t.isAllDay).length > 0 && (
-        <div className={styles.tasksFixedFooter}>
-          <div></div>
-          <div>
-            {dayTasks
-              .filter((t) => t.isAllDay)
-              .map((task) => (
-                <EventCard key={task.id} event={task} compact />
-              ))}
-          </div>
-        </div>
-      )}
       <DragOverlay>{activeEvent ? <EventCard event={activeEvent} isDragging /> : null}</DragOverlay>
       {contextMenu && (
         <ContextMenu

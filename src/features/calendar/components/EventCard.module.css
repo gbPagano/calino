@@ -450,8 +450,10 @@
 
 .mobileMonth .title {
   white-space: normal;
-  overflow: visible;
+  overflow: hidden;
   text-overflow: unset;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .mobileMonth .time,

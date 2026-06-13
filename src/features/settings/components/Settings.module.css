@@ -11,6 +11,21 @@
   background: var(--canvas);
 }
 
+.backMobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-top: var(--safe-area-top);
+  }
+
+  .backMobile {
+    display: block;
+    padding: 12px 16px 0;
+  }
+}
+
 .body {
   display: flex;
   flex: 1;
@@ -374,10 +389,12 @@
 .themeCards {
   display: flex;
   gap: 14px;
+  flex-wrap: wrap;
 }
 
 .themeCard {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   border-radius: 13px;
   border: 2px solid var(--line);
   overflow: hidden;
@@ -793,4 +810,48 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Mobile (≤768px) ────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Stack row label above control */
+  .row,
+  .actionRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .rowControl {
+    width: 100%;
+  }
+
+  .select {
+    width: 100%;
+    height: 44px;
+    font-size: 16px;
+  }
+
+  /* Smaller titles */
+  .pageTitle {
+    font-size: 28px;
+    margin-bottom: 20px;
+  }
+
+  .navTitle {
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+
+  /* Tighter group padding */
+  .group {
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* Back button visible at top */
+  .back {
+    margin-bottom: 12px;
+  }
 }

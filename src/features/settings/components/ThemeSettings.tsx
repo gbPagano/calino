@@ -64,7 +64,7 @@ export function ThemeSettings(): JSX.Element {
             <div className={styles.rowDesc}>Choose how Calino looks</div>
           </div>
           <div className={styles.rowControl} style={{ alignItems: 'flex-start', paddingTop: '2px' }}>
-            <div className={styles.themeCards} style={{ width: '420px' }}>
+            <div className={styles.themeCards}>
               {(THEME_MODE_OPTIONS as { value: ThemeMode; label: string }[]).map((opt) => {
                 const isActive = themeMode === opt.value
                 const isLight = opt.value === 'light'

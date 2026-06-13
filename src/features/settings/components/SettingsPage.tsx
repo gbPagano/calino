@@ -147,6 +147,14 @@ export function SettingsPage(): JSX.Element {
 
   return (
     <div className={styles.container}>
+      <div className={styles.backMobile}>
+        <button className={styles.back} onClick={() => navigate('/')}>
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 2L4 7l5 5" />
+          </svg>
+          Back to Calendar
+        </button>
+      </div>
       <div className={styles.body}>
         <aside className={styles.nav}>
           <h1 className={styles.navTitle}>Settings</h1>

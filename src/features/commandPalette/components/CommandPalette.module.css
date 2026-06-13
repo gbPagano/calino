@@ -184,7 +184,7 @@
   max-height: 320px;
   padding: 4px 0;
   scrollbar-width: thin;
-  scrollbar-color: rgba(44, 40, 33, 0.15) transparent;
+  scrollbar-color: var(--color-scrollbar, #d1d5db) transparent;
   min-width: 0;
 }
 
@@ -201,12 +201,12 @@
 }
 
 .results::-webkit-scrollbar-thumb {
-  background: rgba(44, 40, 33, 0.15);
+  background: var(--color-scrollbar, #d1d5db);
   border-radius: 3px;
 }
 
 .results::-webkit-scrollbar-thumb:hover {
-  background: rgba(44, 40, 33, 0.25);
+  background: var(--color-scrollbar-hover, #9ca3af);
 }
 
 .group {

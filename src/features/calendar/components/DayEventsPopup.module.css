@@ -3,11 +3,11 @@
   z-index: 1000;
   min-width: 280px;
   max-width: 320px;
-  background: #fff;
+  background: var(--color-bg-primary, #ffffff);
   border-radius: 8px;
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.15),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
+    0 0 0 1px var(--color-border-subtle, rgba(0, 0, 0, 0.05));
   overflow: hidden;
 }
 
@@ -16,19 +16,19 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #e8eaed;
-  background: #fafafa;
+  border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.09));
+  background: var(--color-bg-secondary, #fafafa);
 }
 
 .date {
   font-weight: 600;
   font-size: 14px;
-  color: #202124;
+  color: var(--color-text-primary, #202124);
 }
 
 .count {
   font-size: 12px;
-  color: #5f6368;
+  color: var(--color-text-secondary, #5f6368);
 }
 
 .eventList {
@@ -46,17 +46,17 @@
 }
 
 .eventItem:hover {
-  background: #f1f3f4;
+  background: var(--color-bg-secondary, #f1f3f4);
 }
 
 .eventItem:focus-visible {
-  outline: 2px solid #4285f4;
+  outline: 2px solid var(--color-accent, #4285f4);
   outline-offset: -2px;
-  background: #f1f3f4;
+  background: var(--color-bg-secondary, #f1f3f4);
 }
 
 .eventItem:not(:last-child) {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.05));
 }
 
 .colorDot {
@@ -75,7 +75,7 @@
 .eventTitle {
   font-size: 13px;
   font-weight: 500;
-  color: #202124;
+  color: var(--color-text-primary, #202124);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -83,13 +83,13 @@
 
 .eventTime {
   font-size: 12px;
-  color: #5f6368;
+  color: var(--color-text-secondary, #5f6368);
   margin-top: 2px;
 }
 
 .eventLocation {
   font-size: 11px;
-  color: #80868b;
+  color: var(--color-text-tertiary, #80868b);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;

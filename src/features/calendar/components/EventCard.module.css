@@ -459,3 +459,10 @@
 .mobileMonth .travelTime {
   display: none;
 }
+
+/* Compact events in mobile month view still need text truncation */
+.compact.mobileMonth .title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

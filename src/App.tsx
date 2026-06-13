@@ -385,11 +385,10 @@ function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            d="M12 5V19M5 12H19"
+            d="M4 7h16M4 12h16M4 17h16"
             stroke="currentColor"
             strokeWidth="2.5"
             strokeLinecap="round"
-            strokeLinejoin="round"
           />
         </svg>
       </button>

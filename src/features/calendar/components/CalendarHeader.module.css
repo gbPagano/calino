@@ -476,7 +476,7 @@
 .viewDropdownMenu {
   position: absolute;
   top: calc(100% + 4px);
-  right: 0;
+  right: 8px;
   background: var(--popover-bg, var(--panel));
   border: 1px solid var(--popover-border, var(--line));
   border-radius: 11px;

@@ -495,6 +495,14 @@
 .dot .travelTime,
 .dot .meta,
 .dot .metaDot,
-.dot .resizeHandle {
+.dot .resizeHandle,
+.dot .checkbox,
+.dot .taskCheckbox,
+.dot .recurringIcon,
+.dot .iconGroup,
+.dot .syncFailedIcon,
+.dot .attachmentIcon,
+.dot .dragContent,
+.dot .dueDate {
   display: none;
 }

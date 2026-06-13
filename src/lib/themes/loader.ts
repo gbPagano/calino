@@ -244,9 +244,8 @@ export function getBuiltInThemeCSS(): string {
   --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Global scrollbar — thumb hidden until hover, space always reserved */
+/* Global scrollbar — thumb hidden until hover */
 * {
-  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }

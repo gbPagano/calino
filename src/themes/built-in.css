@@ -133,9 +133,8 @@
   --modal-shadow: 0 2px 4px rgba(0, 0, 0, 0.40), 0 20px 60px rgba(0, 0, 0, 0.65);
 }
 
-/* Global scrollbar — thumb hidden until hover, space always reserved */
+/* Global scrollbar — thumb hidden until hover */
 * {
-  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }

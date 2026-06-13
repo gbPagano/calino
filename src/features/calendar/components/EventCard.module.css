@@ -333,24 +333,23 @@
 .fragmentMiddle {
   border-left: none !important;
   border-radius: 0 !important;
-  padding-left: 4px !important;
-  padding-right: 0 !important;
-  margin-left: -5px;
+  padding: 2px 0 2px 10px !important;
+  margin-left: -4px;
   margin-right: -6px;
-  width: calc(100% + 11px);
+  width: calc(100% + 10px);
 }
 
 .fragmentFirst {
   border-radius: 8px 0 0 8px !important;
-  padding: 2px 0 2px 8px !important;
+  padding: 2px 0 2px 13px !important;
   margin-right: -6px !important;
   border-left: none !important;
 }
 
 .fragmentLast {
   border-radius: 0 8px 8px 0 !important;
-  padding: 2px 4px 2px 8px !important;
-  margin-left: -5px !important;
+  padding: 2px 4px 2px 10px !important;
+  margin-left: -4px !important;
   border-left: none !important;
 }
 

@@ -844,6 +844,11 @@
     margin-bottom: 12px;
   }
 
+  /* Hide back button inside main header (shown above nav instead) */
+  .header .back {
+    display: none;
+  }
+
   /* Tighter group padding */
   .group {
     border-radius: 12px;

@@ -153,7 +153,7 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
     }
 
     return { eventsByDate: eventMap, dayGroups: groups }
-  }, [date, events, getEventsForDateRange])
+  }, [date, events, getEventsForDateRange, embedded])
 
   const handleCreateEvent = (day: Date): void => {
     openModal(format(day, 'yyyy-MM-dd'))

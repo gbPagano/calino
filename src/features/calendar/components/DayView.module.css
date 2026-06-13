@@ -17,6 +17,7 @@
 }
 
 .header {
+  position: relative;
   padding: 16px 20px;
   border-bottom: 1px solid var(--line, rgba(var(--ink-raw, 44, 40, 33), 0.09));
   background: var(--panel, #ffffff);
@@ -31,6 +32,10 @@
 }
 
 .backButton {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,7 +47,6 @@
   cursor: pointer;
   border-radius: 6px;
   flex-shrink: 0;
-  margin-right: 8px;
   transition: background 0.15s;
 }
 

@@ -13,7 +13,7 @@ import type { CalendarEvent } from '@/types'
 import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
-import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
+import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 
 import { isUUID } from '@/features/caldav/adapter/iCalendarAdapter'

@@ -6,7 +6,6 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
-import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 import { DeleteDialog } from './DeleteDialog'
 import { RecurrenceDialog } from './RecurrenceDialog'
 import { RecurringIcon } from '@/components/common/icons'
@@ -43,9 +42,8 @@ export function EventPreviewPopup({
   const openModal = useCalendarStore((state) => state.openModal)
   const closePreview = useCalendarStore((state) => state.closePreview)
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
-  const addEvent = useCalendarStore((state) => state.addEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
-  const { createEvent: createCalDAVEvent, updateEvent: updateCalDAVEvent, deleteEvent: deleteCalDAVEvent } = useCalDAV()
+  const { updateEvent: updateCalDAVEvent, deleteEvent: deleteCalDAVEvent } = useCalDAV()
   const originalEventId = extractOriginalEventId(clickedEventId)
   const eventIdToUse = originalEventId || event.id
 

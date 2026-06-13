@@ -70,7 +70,7 @@ function preprocessInput(input: string, refDate: Date = new Date()): string {
   const monthWords = 'january|february|march|april|may|june|july|august|september|october|november|december'
   processed = processed.replace(new RegExp(`\\bthe\\s+(\\d{1,2})(st|nd|rd|th)\\b(?!\\s+(?:${monthWords}))`, 'gi'), `$1 ${currentMonth}`)
   // Replace bare ordinals: split on ordinal, check preceding word is not a month
-  processed = processed.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, (match, num, suffix, offset) => {
+  processed = processed.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, (match, num, _suffix, offset) => {
     const before = processed.slice(0, offset).toLowerCase()
     const monthBefore = MONTH_NAMES.some(m => before.endsWith(m + ' '))
     if (monthBefore) return match // preceded by month, don't replace

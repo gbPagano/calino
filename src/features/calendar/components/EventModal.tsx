@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { showToast } from '@/lib/toast'
-import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
+import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 import type { CalendarEvent, CalendarAttachment, RecurrenceRule, TaskPriority, Reminder } from '@/types'
 import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
@@ -1050,9 +1050,9 @@ export function EventModal(): JSX.Element | null {
                   setByWeekday([])
                 }
                 if (freq !== 'monthly' && freq !== 'yearly') {
-                  setByMonthDay(undefined)
-                  setByMonth(undefined)
-                  setBySetPos(undefined)
+                  setByMonthDay([])
+                  setByMonth([])
+                  setBySetPos([])
                 }
               }}
               interval={interval}

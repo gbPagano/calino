@@ -32,7 +32,7 @@ interface DayGroup {
   hasEvents: boolean
 }
 
-export function AgendaView({ embedded = false, selectedDay }: { embedded?: boolean; selectedDay?: string } = {}): JSX.Element {
+export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): JSX.Element {
   const containerClass = `${styles.container} ${embedded ? styles.embedded : ''}`
   const currentDate = useCalendarStore((state) => state.currentDate)
   const calendars = useCalendarStore((state) => state.calendars)
@@ -107,13 +107,8 @@ export function AgendaView({ embedded = false, selectedDay }: { embedded?: boole
     const eventMap = new Map<string, EventWithDate[]>()
     events.forEach((event) => {
       if (event.type === 'journal') return
-      // When embedded with a selected day, skip tasks for that day (shown in DayView)
-      if (embedded && selectedDay && event.type === 'task') {
-        const taskDate = event.dueDate
-          ? format(parseISO(event.dueDate), 'yyyy-MM-dd')
-          : format(parseISO(event.start), 'yyyy-MM-dd')
-        if (taskDate === selectedDay) return
-      }
+      // When embedded, skip all tasks (shown in DayView header)
+      if (embedded && event.type === 'task') return
       const eventDate = format(parseISO(event.start), 'yyyy-MM-dd')
       const existing = eventMap.get(eventDate) || []
       eventMap.set(eventDate, [...existing, { event, date: parseISO(event.start) }])

@@ -618,13 +618,13 @@ export function CalendarGrid(): JSX.Element {
               <>
                 <div className={styles.splitDay} style={{ flex: `0 0 ${splitRatio * 100}%` }}><DayView key={bottomPanelDay} selectedDate={bottomPanelDay} /></div>
                 <div className={styles.splitHandle} onMouseDown={handleResizeStart} />
-                <div className={styles.splitAgenda} style={{ flex: 1 }}><AgendaView embedded selectedDay={bottomPanelDay} /></div>
+                <div className={styles.splitAgenda} style={{ flex: 1 }}><AgendaView embedded /></div>
               </>
             ) : (
               <DayView key={bottomPanelDay} selectedDate={bottomPanelDay} />
             )
           ) : (
-            <AgendaView embedded selectedDay={bottomPanelDay} />
+            <AgendaView embedded />
           )}
         </div>
       </div>

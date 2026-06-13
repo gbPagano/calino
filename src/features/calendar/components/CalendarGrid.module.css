@@ -431,6 +431,7 @@
     border-radius: 0;
     border-left: none;
     border-right: none;
+    margin: 0;
   }
 
   /* Hide week number column */
@@ -441,17 +442,35 @@
 
   .header {
     grid-template-columns: repeat(7, 1fr);
+    border-right: none;
   }
 
   .weekRow {
     grid-template-columns: repeat(7, 1fr);
+    border-right: none;
+  }
+
+  .day {
+    padding: 2px;
+    border-right: none;
+  }
+
+  /* Vertical dividers via left border on every cell except first */
+  .day + .day {
+    border-left: 1px solid var(--line-2);
+  }
+
+  /* Smaller day number */
+  .dayNumber {
+    font-size: 10px;
+    padding: 1px 3px;
   }
 
   /* Events grid shows dots, allow wrapping */
   .events {
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 2px;
     justify-content: center;
   }
 
@@ -459,24 +478,13 @@
   .tasks {
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 2px;
     justify-content: center;
     padding: 0;
   }
 
   .tasks .dot {
     align-self: center;
-  }
-
-  /* Tighter cell padding */
-  .day {
-    padding: 3px;
-  }
-
-  /* Smaller day number */
-  .dayNumber {
-    font-size: 10px;
-    padding: 2px 4px;
   }
 
   /* Reduce grid margins */

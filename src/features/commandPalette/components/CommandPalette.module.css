@@ -183,30 +183,11 @@
   overflow-y: auto;
   max-height: 320px;
   padding: 4px 0;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-scrollbar, #d1d5db) transparent;
   min-width: 0;
 }
 
 .results:empty {
   display: none;
-}
-
-.results::-webkit-scrollbar {
-  width: 6px;
-}
-
-.results::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.results::-webkit-scrollbar-thumb {
-  background: var(--color-scrollbar, #d1d5db);
-  border-radius: 3px;
-}
-
-.results::-webkit-scrollbar-thumb:hover {
-  background: var(--color-scrollbar-hover, #9ca3af);
 }
 
 .group {

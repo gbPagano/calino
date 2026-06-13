@@ -888,19 +888,6 @@
   transition: transform 0.2s;
 }
 
-.categoryCard::-webkit-scrollbar {
-  width: 6px;
-}
-
-.categoryCard::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.categoryCard::-webkit-scrollbar-thumb {
-  background: var(--line);
-  border-radius: 3px;
-}
-
 /* ---- Section Header ---- */
 .sectionHeader {
   display: flex;

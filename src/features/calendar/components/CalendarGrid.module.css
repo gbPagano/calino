@@ -374,51 +374,9 @@
 
 .splitDay,
 .splitAgenda {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-.splitDay:hover,
-.splitAgenda:hover {
-  scrollbar-color: auto;
-}
-
-.splitDay::-webkit-scrollbar,
-.splitAgenda::-webkit-scrollbar {
-  width: 6px;
-}
-
-.splitDay::-webkit-scrollbar-thumb,
-.splitAgenda::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.splitDay:hover::-webkit-scrollbar-thumb,
-.splitAgenda:hover::-webkit-scrollbar-thumb {
-  background: rgba(var(--ink-raw, 44, 40, 33), 0.18);
-}
-
-.agendaBottom > [class*="container"] {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-.agendaBottom:hover > [class*="container"] {
-  scrollbar-color: auto;
-}
-
-.agendaBottom > [class*="container"]::-webkit-scrollbar {
-  width: 6px;
-}
-
-.agendaBottom > [class*="container"]::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.agendaBottom:hover > [class*="container"]::-webkit-scrollbar-thumb {
-  background: rgba(var(--ink-raw, 44, 40, 33), 0.18);
+  min-height: 0;
+  overflow: auto;
+  border-right: 1px solid var(--line);
 }
 
 .splitAgenda {

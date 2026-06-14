@@ -2,6 +2,24 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.13.1] - 2026-06-14
+
+### Improvements
+- **Closing animations for modals** — both the event preview popup and the full event editor now have smooth fade-out animations when dismissed.
+- **NLP time range parsing** — typing "hang out at 16 to 17" or "meeting from 3pm to 5pm" now correctly creates a 1-hour event at the right times, instead of ignoring the end time.
+- **NLP title cleanup** — duration phrases like "for 2 hours" are now stripped from event titles ("meeting at 3pm for 2 hours" → "Meeting", not "Meeting for 2 hours").
+- **NLP location accuracy** — time ranges like "16 to 17" are no longer mistakenly extracted as a location.
+- **Event preview backdrop** — clicking outside the preview popup now properly closes it without activating elements behind it (matching the full editor's behavior).
+
+### Fixes
+- **Compact mobile day cells** — tapping the day number in month view now opens the small popup instead of navigating to the full day view.
+- **Mobile tasks button** — the "Add task" button now shows just "Add" on small screens to avoid text overflow.
+- **View dropdown on touch** — the view switcher dropdown no longer requires a double-tap on touch devices.
+- **Null guard in preview popup** — fixed a crash when the preview popup tried to extract an event ID from a null value.
+
+### Internal
+- 26 new tests covering NLP edge cases (time ranges, location extraction, full parser pipeline).
+
 ## [0.13.0] - 2026-06-12
 
 ### New Features

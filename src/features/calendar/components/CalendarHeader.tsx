@@ -321,6 +321,8 @@ export function CalendarHeader({
           className={`${styles.viewDropdown} ${!isTablet ? styles.viewDropdownHidden : ''}`}
           ref={viewDropdownRef}
           onMouseEnter={() => {
+            // Skip on touch devices — click handles toggle
+            if ('ontouchstart' in window) return
             if (viewDropdownCloseTimer.current) {
               clearTimeout(viewDropdownCloseTimer.current)
               viewDropdownCloseTimer.current = null
@@ -328,6 +330,7 @@ export function CalendarHeader({
             setIsViewDropdownOpen(true)
           }}
           onMouseLeave={() => {
+            if ('ontouchstart' in window) return
             viewDropdownCloseTimer.current = setTimeout(() => {
               setIsViewDropdownOpen(false)
               viewDropdownCloseTimer.current = null

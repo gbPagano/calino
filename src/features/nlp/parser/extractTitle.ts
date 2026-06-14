@@ -42,6 +42,10 @@ export function extractTitle(input: string, parsedText: string): string {
     .replace(/^[,\-\s]+|[,\-\s]+$/g, '')
     .trim()
 
+  // Remove duration phrases ("for 2 hours", "lasting 30 minutes") even when
+  // chrono's parsedText didn't cover them.
+  text = text.replace(/\b(?:for|duration|lasting)\s+\d+\s*(?:minute|minutes|hour|hours|day|days)\b/gi, '').trim()
+
   const prepositionsToRemove = [
     /\bwith\b\s*$/i,
     /\bfor\b\s*$/i,

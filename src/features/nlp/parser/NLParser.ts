@@ -63,6 +63,19 @@ function preprocessInput(input: string, refDate: Date = new Date()): string {
   // This handles "tomorrow between 17 and 18" and "meeting between 17 and 18"
   processed = processed.replace(/\s+between\s+(\d{1,2})\s+and\s+(\d{1,2})\b/gi, ' $1 to $2')
 
+  // Replace "N to N" time ranges with "N:00-N:00" so chrono recognises them
+  // as a start→end pair. Handles: "16 to 17", "3pm to 5pm", "9:30 to 10:30"
+  processed = processed.replace(
+    /\b(\d{1,2})(?::(\d{2}))?(?:\s*(am|pm))?\s+to\s+(\d{1,2})(?::(\d{2}))?(?:\s*(am|pm))?\b/gi,
+    (_match, h1, m1, ampm1, h2, m2, ampm2) => {
+      const mm1 = m1 ?? '00'
+      const mm2 = m2 ?? '00'
+      const suffix1 = ampm1 ? ampm1.toLowerCase() : ''
+      const suffix2 = ampm2 ? ampm2.toLowerCase() : (ampm1 ? ampm1.toLowerCase() : '')
+      return `${h1}:${mm1}${suffix1}-${h2}:${mm2}${suffix2}`
+    },
+  )
+
   // Fix ordinal dates: "the 15th", "15th", "the 1st", etc. -> add month reference
   // chrono-node handles "15th March" but not ordinal alone, so we add current month
   // But don't replace if preceded by a month name (e.g. "July 4th")

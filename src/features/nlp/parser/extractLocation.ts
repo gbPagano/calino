@@ -58,9 +58,10 @@ export function extractLocation(input: string): string | undefined {
     }
 
     for (const word of timeWords) {
-      const pos = lower.indexOf(word)
-      if (pos !== -1 && pos < earliest) {
-        earliest = pos
+      const re = new RegExp(`\\b${word}\\b`)
+      const match = lower.match(re)
+      if (match && match.index !== undefined && match.index < earliest) {
+        earliest = match.index
       }
     }
 
@@ -70,6 +71,25 @@ export function extractLocation(input: string): string | undefined {
       const match = lower.match(re)
       if (match && match.index !== undefined && match.index < earliest) {
         earliest = match.index
+      }
+    }
+
+    // Also detect standalone time patterns like "9am", "10:30", "5pm"
+    const timePatternRe = /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b/gi
+    let tm: RegExpExecArray | null
+    while ((tm = timePatternRe.exec(lower)) !== null) {
+      // Only count as time if it looks like a clock time (with colon or am/pm)
+      if (tm.index < earliest && (/[:]/.test(tm[0]) || /(?:am|pm)/i.test(tm[0]))) {
+        earliest = tm.index
+      }
+    }
+
+    // Detect "N to N" and "N-N" time ranges — find the earliest digit
+    const rangeRe = /\b(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)?\s*(?:to|-)\s*(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)?\b/gi
+    let rm: RegExpExecArray | null
+    while ((rm = rangeRe.exec(lower)) !== null) {
+      if (rm.index < earliest) {
+        earliest = rm.index
       }
     }
 

@@ -51,4 +51,9 @@ describe('Bug #102: "at the" location capture includes trailing date words', () 
     const result = extractLocation('meeting at the office')
     expect(result).toBe('office')
   })
+
+  it('does not treat "16 to 17" as a location', () => {
+    const result = extractLocation('hang out tomorrow at 16 to 17')
+    expect(result).toBeUndefined()
+  })
 })

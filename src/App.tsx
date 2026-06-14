@@ -179,16 +179,26 @@ function PreviewPopupWrapper(): JSX.Element | null {
   const previewPosition = useCalendarStore((state) => state.previewPosition)
   const events = useCalendarStore((state) => state.events)
 
-  if (!previewEventId || !previewPosition) return null
-
   const originalId = extractOriginalEventId(previewEventId)
-  const event =
-    events.find((e) => e.id === previewEventId) ??
-    events.find((e) => originalId !== null && e.id === originalId)
-  if (!event) return null
+  const event = previewEventId
+    ? (events.find((e) => e.id === previewEventId) ??
+       events.find((e) => originalId !== null && e.id === originalId))
+    : null
 
   return (
-    <EventPreviewPopup event={event} position={previewPosition} clickedEventId={previewEventId} />
+    <AnimatePresence>
+      {event && previewPosition && (
+        <motion.div
+          key={event.id}
+          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+          transition={{ duration: 0.15 }}
+        >
+          <EventPreviewPopup event={event} position={previewPosition} clickedEventId={previewEventId} />
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
 

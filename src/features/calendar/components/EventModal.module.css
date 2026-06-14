@@ -10,6 +10,11 @@
   transition: background 0.18s, backdrop-filter 0.18s;
 }
 
+.modalBackdrop.closing {
+  background: transparent;
+  backdrop-filter: none;
+}
+
 .modalCard {
   width: 520px;
   max-height: 90vh;

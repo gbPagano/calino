@@ -561,17 +561,11 @@ export function EventPreviewPopup({
               }}
             />
           )}
-          <AnimatePresence>
-            <motion.div
-              key="preview-popup"
-              ref={popupRef}
-        className={styles.popup}
-        style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
-        initial={{ opacity: 0, scale: 0.95, y: -10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: -10 }}
-        transition={{ duration: 0.15 }}
-      >
+          <div
+            ref={popupRef}
+            className={styles.popup}
+            style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
+          >
         <div className={styles.header}>
           <div className={styles.titleRow}>
             <div
@@ -765,8 +759,7 @@ export function EventPreviewPopup({
           </button>
         </div>
 
-      </motion.div>
-    </AnimatePresence>
+      </div>
         </>
     ,
     document.body

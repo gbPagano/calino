@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { format, parseISO } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -258,6 +258,14 @@ export function EventModal(): JSX.Element | null {
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const closeModal = useCalendarStore((state) => state.closeModal)
+  const [isClosing, setIsClosing] = useState(false)
+  const animateClose = useCallback(() => {
+    setIsClosing(true)
+    setTimeout(() => {
+      setIsClosing(false)
+      closeModal()
+    }, 180)
+  }, [closeModal])
   const {
     createEvent: createCalDAVEvent,
     updateEvent: updateCalDAVEvent,
@@ -941,8 +949,8 @@ export function EventModal(): JSX.Element | null {
   }
 
   return (
-    <div className={styles.modalBackdrop} onClick={closeModal}>
-      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title || 'Event modal'}>
+    <div className={`${styles.modalBackdrop} ${isClosing ? styles.closing : ''}`} onClick={animateClose}>
+      <div className={`${styles.modalCard} ${isClosing ? styles.modalClosing : ''}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title || 'Event modal'}>
         <div className={styles.modalBand} />
         <div className={styles.modalHeader}>
           <button
@@ -997,7 +1005,7 @@ export function EventModal(): JSX.Element | null {
               </div>
             )}
           </div>
-          <button className={styles.modalClose} onClick={closeModal} aria-label="Close">
+          <button className={styles.modalClose} onClick={animateClose} aria-label="Close">
             ×
           </button>
         </div>
@@ -1181,7 +1189,7 @@ export function EventModal(): JSX.Element | null {
               </button>
             )}
             <div className={styles.modalActions}>
-              <button type="button" className={styles.modalCancel} onClick={closeModal}>
+              <button type="button" className={styles.modalCancel} onClick={animateClose}>
                 Cancel
               </button>
               <button type="submit" className={styles.modalSave} disabled={!title.trim()}>

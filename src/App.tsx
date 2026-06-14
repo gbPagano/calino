@@ -179,7 +179,7 @@ function PreviewPopupWrapper(): JSX.Element | null {
   const previewPosition = useCalendarStore((state) => state.previewPosition)
   const events = useCalendarStore((state) => state.events)
 
-  const originalId = extractOriginalEventId(previewEventId)
+  const originalId = previewEventId ? extractOriginalEventId(previewEventId) : null
   const event = previewEventId
     ? (events.find((e) => e.id === previewEventId) ??
        events.find((e) => originalId !== null && e.id === originalId))

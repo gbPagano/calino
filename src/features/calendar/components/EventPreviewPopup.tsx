@@ -41,6 +41,12 @@ export function EventPreviewPopup({
   const dateFormat = useSettingsStore((state) => state.dateFormat)
   const openModal = useCalendarStore((state) => state.openModal)
   const closePreview = useCalendarStore((state) => state.closePreview)
+  const [isClosing, setIsClosing] = useState(false)
+  const animateClose = useCallback(() => {
+    if (isClosing) return
+    setIsClosing(true)
+    setTimeout(() => closePreview(), 150)
+  }, [closePreview, isClosing])
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const { updateEvent: updateCalDAVEvent, deleteEvent: deleteCalDAVEvent } = useCalDAV()
@@ -556,16 +562,23 @@ export function EventPreviewPopup({
                 if (editingField) {
                   cancelEditingRef.current()
                 } else {
-                  closePreview()
+                  animateClose()
                 }
               }}
             />
           )}
-          <div
-            ref={popupRef}
-            className={styles.popup}
-            style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
-          >
+          <AnimatePresence>
+            {!isClosing && (
+              <motion.div
+                key="preview-popup"
+                ref={popupRef}
+                className={styles.popup}
+                style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
+                initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                transition={{ duration: 0.15 }}
+              >
         <div className={styles.header}>
           <div className={styles.titleRow}>
             <div
@@ -574,7 +587,7 @@ export function EventPreviewPopup({
             />
             {renderTitle()}
           </div>
-          <button className={styles.closeBtn} onClick={closePreview} aria-label="Close">
+          <button className={styles.closeBtn} onClick={animateClose} aria-label="Close">
             <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path
                 d="M12 4L4 12M4 4L12 12"
@@ -759,7 +772,9 @@ export function EventPreviewPopup({
           </button>
         </div>
 
-      </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         </>
     ,
     document.body

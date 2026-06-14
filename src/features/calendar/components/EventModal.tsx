@@ -944,7 +944,7 @@ export function EventModal(): JSX.Element | null {
     closeModal()
   }
 
-  if (!isModalOpen) {
+  if (!isModalOpen && !isClosing) {
     return null
   }
 

@@ -513,6 +513,10 @@ export function CalendarGrid(): JSX.Element {
   }
 
   const handleDayNumberClick = (day: Date): void => {
+    if (isTallWindow || isCompactMobile) {
+      setBottomPanelDay((prev) => (prev === format(day, 'yyyy-MM-dd') ? null : format(day, 'yyyy-MM-dd')))
+      return
+    }
     setCurrentDate(format(day, 'yyyy-MM-dd'))
     setCurrentView('day')
     navigate(VIEW_ROUTES.day, { replace: true })

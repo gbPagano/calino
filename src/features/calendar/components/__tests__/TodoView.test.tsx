@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { TodoView } from '../TodoView'
 import { useCalendarStore } from '@/store/calendarStore'
-import { useIsMobile } from '@/hooks/useIsMobile'
 
 vi.mock('@/hooks/useIsMobile')
 

@@ -37,7 +37,7 @@ export function extractLocation(input: string): string | undefined {
     const timePatterns = [
       /^\d{1,2}(?::\d{2})?\s*(?:am|pm)?$/i,
       /^\d{1,2}\s*-\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?$/i,
-      /^\d{1,2}\s+to\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?$/i,
+      /^\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s+to\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?$/i,
       /^\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*-\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)?$/i,
       /^(?:morning|afternoon|evening|night|noon|midnight)$/i,
       /^\d{1,2}\s+(?:minute|minutes|hour|hours)$/i,

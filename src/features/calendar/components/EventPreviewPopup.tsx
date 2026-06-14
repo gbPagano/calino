@@ -359,22 +359,6 @@ export function EventPreviewPopup({
   }, [closePreview, editingField])
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent): void => {
-      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
-        // Don't close if the delete or recurrence dialog is open
-        if (showDeleteDialog || showRecurrenceDialog) return
-        if (editingField) {
-          cancelEditingRef.current()
-        } else {
-          closePreview()
-        }
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [closePreview, editingField, showDeleteDialog, showRecurrenceDialog])
-
-  useEffect(() => {
     const handleContextMenu = (): void => {
       closePreview()
     }
@@ -563,10 +547,24 @@ export function EventPreviewPopup({
   return (
     <>
       {createPortal(
-        <AnimatePresence>
-          <motion.div
-            key="preview-popup"
-            ref={popupRef}
+        <>
+          {/* Backdrop — closes popup, blocks clicks behind */}
+          {!showDeleteDialog && !showRecurrenceDialog && (
+            <div
+              className={styles.backdrop}
+              onClick={() => {
+                if (editingField) {
+                  cancelEditingRef.current()
+                } else {
+                  closePreview()
+                }
+              }}
+            />
+          )}
+          <AnimatePresence>
+            <motion.div
+              key="preview-popup"
+              ref={popupRef}
         className={styles.popup}
         style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
         initial={{ opacity: 0, scale: 0.95, y: -10 }}
@@ -768,7 +766,9 @@ export function EventPreviewPopup({
         </div>
 
       </motion.div>
-    </AnimatePresence>,
+    </AnimatePresence>
+        </>
+    ,
     document.body
     )}
     {createPortal(

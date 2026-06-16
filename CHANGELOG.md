@@ -2,6 +2,34 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.14.0] - 2026-06-14
+
+### New Features
+- **Attendees** — add, edit, and remove attendees on events with email validation and duplicate prevention. Each attendee shows a color-coded status badge (Accepted, Declined, Tentative, Pending, Delegated). The organizer is displayed as a read-only badge. The section is hidden by default to save space — click "+ Attendees" to expand it. Attendees sync bidirectionally through CalDAV.
+- **Recurring tasks** — tasks now support recurrence (daily, weekly, monthly, yearly) with the same controls as events: custom intervals, weekday/month pickers, and end conditions.
+- **Subtasks** — tasks can now have children. Click the "+" button on any task row to create a subtask. Subtasks render indented under their parent in the task list. Parent-child relationships sync through CalDAV via `RELATED-TO` with `RELTYPE=PARENT`.
+- **Keyboard shortcuts help** — press `?` anywhere to see all available keyboard shortcuts.
+- **Empty states** — Day, Agenda, and Journal views now show helpful empty states when there's nothing to display.
+- **URL field** — events now have a "Link" field in the "More" section for storing a URL. It round-trips through CalDAV and is parsed from imported ICS files.
+
+### Improvements
+- **Task attachments** — tasks now support file attachments, matching the event editor's attachment section.
+- **Inline task creation** — pressing Enter in the task composer now creates the task immediately instead of opening the full editor modal.
+- **Form validation** — attempting to save an event with an end time before the start time now shows a toast instead of silently dropping the save.
+- **Reduced motion support** — animations respect the system `prefers-reduced-motion` setting via CSS media queries and framer-motion configuration.
+- **Smaller bundle** — the main JavaScript bundle is split into per-library chunks, reducing the initial load from ~1.6 MB to ~360 kB.
+
+### Fixes
+- **Drag-to-create accuracy** — dragging to create events in WeekView and DayView now correctly tracks the mouse position, accounting for scroll offset and hour height scaling. Previously the selection rectangle would drift away from the cursor.
+- **Attachment removal UX** — removing an attachment now uses an inline confirmation pill instead of a browser `confirm()` dialog.
+- **CalDAV import warnings** — fixed Vite build warnings caused by dynamic imports in the CalDAV sync hook.
+- **Lint cleanup** — reduced lint warnings from 32 to 15 by fixing missing hook dependencies, wrapping unstable callbacks, and removing dead code.
+
+### Internal
+- CI now runs the full test suite on every push.
+- Dependabot configured for npm, GitHub Actions, and Docker dependencies.
+- 24 new tests (AttendeeSection, icalTypeMapping attendee round-trip, EmptyState, useReducedMotion, ShortcutsHelp).
+
 ## [0.13.1] - 2026-06-14
 
 ### Improvements

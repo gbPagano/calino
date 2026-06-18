@@ -10,8 +10,8 @@ If you've been looking for a beautiful, modern browser-based CalDAV calendar tha
 
 > **⚠️ Active project:** Calino is under active development. Breaking changes are possible. Please report bugs - they're more than welcome!
 
-<img width="1470" height="840" alt="Screenshot 2026-06-06 at 00 05 11" src="https://github.com/user-attachments/assets/17767336-2bd0-4732-a385-a7e44a79e7be" />
-<img width="1470" height="840" alt="Screenshot 2026-06-06 at 00 05 34" src="https://github.com/user-attachments/assets/f3368480-8598-4e3c-8e0d-00d1c987cff3" />
+<img width="1613" height="942" alt="image" src="https://github.com/user-attachments/assets/832356b1-0b20-4161-8083-06ff71934a16" />
+(more screenshots at the bottom)
 
 ### CalDAV Proxy
 
@@ -76,6 +76,7 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 ### Mobile
 - Swipe left/right to navigate between months/weeks/days
 - Tasks and agenda work well on mobile
+- Optimized mobile view
 
 ### Security
 - **No backend = no attack surface.** Your CalDAV credentials never touch a Calino server — they stay in your browser's localStorage, encrypted with AES-256-GCM
@@ -200,6 +201,23 @@ Access-Control-Allow-Methods: GET, PUT, POST, DELETE, PROPFIND, PROPPATCH, REPOR
 ### Self-Hosting a CORS Proxy
 
 If you can't add CORS headers to your CalDAV server, you can run a tiny proxy yourself. See [`docs/CORS_PROXY.md`](./docs/CORS_PROXY.md) for a one-file Cloudflare Worker you can deploy in a few minutes.
+
+# Screenshots
+
+## Mobile month and task view
+
+<img width="357" height="774" alt="image" src="https://github.com/user-attachments/assets/609e3443-ac80-4116-94d5-fe13b97a0673" />
+<img width="357" height="774" alt="image" src="https://github.com/user-attachments/assets/3e1d565a-a066-4452-a389-3cb847953b3e" />
+
+## Desktop tasks and journal (the journal has markdown support!)
+
+<img width="1224" height="925" alt="image" src="https://github.com/user-attachments/assets/cdd8cb01-8a5e-4a7b-b83f-dfdec8158512" />
+<img width="1221" height="925" alt="image" src="https://github.com/user-attachments/assets/4037bd13-755c-4e2a-a4a3-57544afb60c9" />
+
+## Quickly create events through Natural Language Processing in the Command Palette (no AI)
+
+<img width="640" height="244" alt="image" src="https://github.com/user-attachments/assets/7e6623f7-5f12-4b44-a74b-8cce3fb1bf94" />
+
 
 ## Tech Stack
 

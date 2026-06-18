@@ -15,7 +15,7 @@ If you've been looking for a beautiful, modern browser-based CalDAV calendar tha
 
 ### CalDAV Proxy
 
-Due to the browser based nature of Calino, if your CalDAV server doesn't support CORS, you can use Calino's hosted proxy URL during setup: https://proxy.calino.io
+Due to the browser based nature of Calino, Calino requires your CalDAV server to support CORS. If that's not an option, you can use Calino's hosted proxy URL during setup: https://proxy.calino.io
 
 With that said, I urge you to either selfhost Calino or at least use your own proxy, to minimize the amount of data being sent to servers that are not your own. `proxy.calino.io` is solely for convenience, please don't rely on it. To run your own proxy, see [`docs/CORS_PROXY.md`](./docs/CORS_PROXY.md).
 

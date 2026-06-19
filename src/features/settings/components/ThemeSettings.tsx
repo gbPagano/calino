@@ -1,17 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { JSX } from 'react'
 import { useSettingsStore, THEME_MODE_OPTIONS } from '@/store/settingsStore'
 import { useTheme } from '@/components/ThemeContext'
+import { getThemePreviewCSS } from '@/lib/themes'
 import type { ThemeMode } from '@/types'
 import styles from './Settings.module.css'
-
-const ACCENT_COLORS = [
-  { value: '#b07d4f', name: 'Warm tan' },
-  { value: '#c2697f', name: 'Rose' },
-  { value: '#5b7fb5', name: 'Blue' },
-  { value: '#5d9a78', name: 'Green' },
-  { value: '#8a6aa8', name: 'Plum' },
-]
 
 function MiniCalendarPreview({ variant }: { variant: 'light' | 'dark' | 'system' }): JSX.Element {
   const cellBg = variant === 'dark' ? '#252218' : '#f0ece5'
@@ -45,14 +38,59 @@ function MiniCalendarPreview({ variant }: { variant: 'light' | 'dark' | 'system'
   )
 }
 
+function extractThemeProps(css: string): { bg: string; panel: string; accent: string; text: string; radiusSm: string; radiusMd: string; radiusLg: string } {
+  const get = (prop: string, fallback: string): string => {
+    const match = css.match(new RegExp(`${prop}:\\s*([^;]+)`))
+    return match ? match[1].trim() : fallback
+  }
+  return {
+    bg: get('--canvas', get('--color-bg-primary', '#faf8f3')),
+    panel: get('--panel', get('--color-bg-secondary', '#ffffff')),
+    accent: get('--accent', get('--color-accent', '#b07d4f')),
+    text: get('--ink', get('--color-text-primary', '#2c2823')),
+    radiusSm: get('--radius-sm', '7px'),
+    radiusMd: get('--radius-md', '11px'),
+    radiusLg: get('--radius-lg', '16px'),
+  }
+}
+
+function ThemePreviewCard({ name, css, isActive, onClick }: { name: string; css: string; isActive: boolean; onClick: () => void }): JSX.Element {
+  const props = useMemo(() => extractThemeProps(css), [css])
+
+  return (
+    <button
+      className={`${styles.themePreviewCard} ${isActive ? styles.themePreviewCardActive : ''}`}
+      onClick={onClick}
+      type="button"
+    >
+      <div className={styles.themePreviewSwatch} style={{ background: props.bg }}>
+        <div className={styles.themePreviewPanel} style={{ background: props.panel, borderRadius: props.radiusMd }}>
+          <div className={styles.themePreviewBar} style={{ background: props.accent, width: '50%', borderRadius: props.radiusSm }} />
+          <div className={styles.themePreviewRows}>
+            <div className={styles.themePreviewRow} style={{ background: props.text, opacity: 0.15, width: '80%', borderRadius: props.radiusSm }} />
+            <div className={styles.themePreviewRow} style={{ background: props.text, opacity: 0.1, width: '60%', borderRadius: props.radiusSm }} />
+            <div className={styles.themePreviewRow} style={{ background: props.text, opacity: 0.06, width: '70%', borderRadius: props.radiusSm }} />
+          </div>
+        </div>
+      </div>
+      <div className={styles.themePreviewLabel}>{name}</div>
+    </button>
+  )
+}
+
 export function ThemeSettings(): JSX.Element {
   const themeMode = useSettingsStore((s) => s.themeMode)
+  const lightTheme = useSettingsStore((s) => s.lightTheme)
+  const darkTheme = useSettingsStore((s) => s.darkTheme)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
-  const { refetchThemes } = useTheme()
+  const { loadedThemes, refetchThemes } = useTheme()
 
   useEffect(() => {
     refetchThemes()
   }, [refetchThemes])
+
+  const lightThemes = loadedThemes.filter((t) => !t.isDark)
+  const darkThemes = loadedThemes.filter((t) => t.isDark)
 
   return (
     <section className={`${styles.section} ${styles.sectionActive}`}>
@@ -92,24 +130,39 @@ export function ThemeSettings(): JSX.Element {
             </div>
           </div>
         </div>
-        <div className={`${styles.row} ${styles.rowDisabled}`} title="Not available yet">
+        <div className={styles.row}>
           <div className={styles.rowInfo}>
-            <div className={styles.rowLabel}>Accent Color</div>
-            <div className={styles.rowDesc}>Used for today, active states, and highlights</div>
+            <div className={styles.rowLabel}>Light Theme</div>
+            <div className={styles.rowDesc}>Color palette used in light mode</div>
           </div>
-          <div className={styles.rowControl}>
-            <div className={styles.swatches}>
-              {ACCENT_COLORS.map((color, i) => (
-                <button
-                  key={color.value}
-                  className={`${styles.swatch} ${i === 0 ? styles.swatchActive : ''}`}
-                  style={{ '--swatch-color': color.value } as React.CSSProperties}
-                  title={color.name}
-                  type="button"
-                />
-              ))}
-            </div>
+        </div>
+        <div className={styles.themePreviewGrid}>
+          {lightThemes.map((t) => (
+            <ThemePreviewCard
+              key={t.id}
+              name={t.name}
+              css={getThemePreviewCSS(t.id)}
+              isActive={lightTheme === t.id}
+              onClick={() => updateSettings({ lightTheme: t.id })}
+            />
+          ))}
+        </div>
+        <div className={styles.row}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Dark Theme</div>
+            <div className={styles.rowDesc}>Color palette used in dark mode</div>
           </div>
+        </div>
+        <div className={styles.themePreviewGrid}>
+          {darkThemes.map((t) => (
+            <ThemePreviewCard
+              key={t.id}
+              name={t.name}
+              css={getThemePreviewCSS(t.id)}
+              isActive={darkTheme === t.id}
+              onClick={() => updateSettings({ darkTheme: t.id })}
+            />
+          ))}
         </div>
         <div className={`${styles.row} ${styles.rowDisabled}`} title="Not available yet">
           <div className={styles.rowInfo}>

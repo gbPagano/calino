@@ -4,7 +4,7 @@
   min-width: 280px;
   max-width: 320px;
   background: var(--color-bg-primary, #ffffff);
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.15),
     0 0 0 1px var(--color-border-subtle, rgba(0, 0, 0, 0.05));

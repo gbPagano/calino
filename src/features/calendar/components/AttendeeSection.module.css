@@ -1,0 +1,194 @@
+.attendeeSection {
+  margin-top: 4px;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-tertiary, #888);
+  margin-bottom: 6px;
+}
+
+.organizerBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--color-bg-secondary, #f5f5f5);
+  border-radius: var(--radius-sm, 8px);
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.organizerLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-tertiary, #888);
+}
+
+.organizerName {
+  color: var(--color-text-primary, #222);
+  font-weight: 500;
+}
+
+.organizerEmail {
+  color: var(--color-text-secondary, #666);
+  font-size: 12px;
+}
+
+.attendeeList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.attendeeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: var(--color-bg-secondary, #f5f5f5);
+  border-radius: var(--radius-sm, 8px);
+  font-size: 13px;
+}
+
+.attendeeAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-accent, #4a90d9);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.attendeeInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.attendeeName {
+  color: var(--color-text-primary, #222);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attendeeEmail {
+  color: var(--color-text-secondary, #666);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.partstatBadge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.partstatAccepted {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.partstatDeclined {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.partstatTentative {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.partstatNeedsAction {
+  background: var(--color-bg-tertiary, #e5e5e5);
+  color: var(--color-text-secondary, #666);
+}
+
+.partstatDelegated {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.removeAttendeeButton {
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary, #999);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.removeAttendeeButton:hover {
+  background: var(--color-bg-hover, rgba(0,0,0,0.06));
+  color: var(--color-text-primary, #222);
+}
+
+.addAttendeeRow {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.addAttendeeInput {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--color-bg-input, #fff);
+  color: var(--color-text-primary, #222);
+}
+
+.addAttendeeInput::placeholder {
+  color: var(--color-text-tertiary, #aaa);
+}
+
+.addAttendeeInput:focus {
+  outline: 2px solid var(--color-accent, #4a90d9);
+  outline-offset: -1px;
+}
+
+.addAttendeeButton {
+  padding: 6px 12px;
+  background: var(--color-accent, #4a90d9);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.addAttendeeButton:hover {
+  background: var(--color-accent-hover, #3a7bc8);
+}
+
+.addAttendeeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

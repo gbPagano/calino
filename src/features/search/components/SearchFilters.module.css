@@ -86,7 +86,7 @@
   color: #202124;
   background-color: #f8f9fa;
   border: 1px solid #e0e0e0;
-  border-radius: 16px;
+  border-radius: var(--radius-lg, 16px);
   cursor: pointer;
   transition: all 0.2s ease;
 }

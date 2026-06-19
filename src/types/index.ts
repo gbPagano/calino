@@ -2,6 +2,21 @@ export type RecurrenceFrequency = 'secondly' | 'minutely' | 'hourly' | 'daily' |
 
 import type { Category, AutoCategoryRule } from './categories'
 
+export type AttendeePartstat = 'ACCEPTED' | 'DECLINED' | 'TENTATIVE' | 'NEEDS-ACTION' | 'DELEGATED'
+
+export interface CalendarAttendee {
+  email: string
+  name?: string
+  role?: string
+  partstat?: AttendeePartstat
+  rsvp?: boolean
+}
+
+export interface CalendarOrganizer {
+  email: string
+  name?: string
+}
+
 export interface RecurrenceRule {
   frequency: RecurrenceFrequency
   interval: number

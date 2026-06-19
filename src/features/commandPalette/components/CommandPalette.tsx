@@ -264,6 +264,7 @@ export function CommandPalette({
       role="dialog"
       aria-modal="true"
       aria-label="Command palette"
+      data-component="command-palette"
       onClick={(e) => {
         if (e.target === e.currentTarget) requestClose()
       }}

@@ -949,9 +949,9 @@ export function EventModal(): JSX.Element | null {
   }
 
   return (
-    <div className={`${styles.modalBackdrop} ${isClosing ? styles.closing : ''}`} onClick={animateClose}>
-      <div className={`${styles.modalCard} ${isClosing ? styles.modalClosing : ''}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title || 'Event modal'}>
-        <div className={styles.modalBand} />
+    <div className={`${styles.modalBackdrop} ${isClosing ? styles.closing : ''}`} onClick={animateClose} data-component="modal-backdrop">
+      <div className={`${styles.modalCard} ${isClosing ? styles.modalClosing : ''}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title || 'Event modal'} data-component="modal-card">
+        <div className={styles.modalBand} data-component="modal-band" />
         <div className={styles.modalHeader}>
           <button
             type="button"
@@ -1020,6 +1020,7 @@ export function EventModal(): JSX.Element | null {
           }}
           onSubmit={handleSubmit}
           className={styles.modalBody}
+          data-component="modal-body"
         >
           {isTaskMode && (
             <TaskFormFields
@@ -1182,7 +1183,7 @@ export function EventModal(): JSX.Element | null {
             </div>
           )}
 
-          <div className={styles.modalFooter}>
+          <div className={styles.modalFooter} data-component="modal-footer">
             {isEditing && (
               <button type="button" className={`${styles.modalDelete} ${confirmDelete ? styles.modalDeleteConfirm : ''}`} onClick={handleDelete}>
                 {confirmDelete ? 'Click again to confirm' : 'Delete'}

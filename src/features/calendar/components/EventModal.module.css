@@ -18,11 +18,16 @@
 .modalCard {
   width: 520px;
   max-height: 90vh;
-  border-radius: 18px;
+  border-radius: var(--radius-lg, 18px);
   background: var(--modal-bg, #faf9f7);
   overflow-y: auto;
-  box-shadow: var(--modal-shadow, 0 24px 80px rgba(0, 0, 0, 0.18), 0 6px 20px rgba(0, 0, 0, 0.10));
-  border: 1px solid var(--modal-border, transparent);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 0 0 4px rgba(255, 255, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 24px 80px rgba(0, 0, 0, 0.15),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   font-family: var(--font-sans, 'Inter', sans-serif);
   animation: modalIn 0.18s ease forwards;
 }
@@ -50,12 +55,7 @@
 }
 
 .modalBand {
-  height: 5px;
-  background: linear-gradient(
-    90deg,
-    var(--color-accent),
-    color-mix(in srgb, var(--color-accent) 40%, transparent)
-  );
+  display: none;
 }
 
 .modalHeader {
@@ -63,7 +63,7 @@
   align-items: flex-start;
   position: relative;
   gap: 10px;
-  padding: 16px 22px 14px;
+  padding: 20px 22px 14px;
   overflow: visible;
 }
 
@@ -198,7 +198,7 @@
   gap: 8px;
   padding: 8px 12px;
   background: var(--color-bg-tertiary, #f3f2f0);
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   font-size: 13px;
 }
 
@@ -253,7 +253,7 @@
   padding: 8px 12px;
   background: none;
   border: 1px dashed var(--color-border-visible, #dadce0);
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   color: var(--color-text-secondary, #5f6368);
   font-size: 13px;
   cursor: pointer;
@@ -339,7 +339,7 @@
   width: 100%;
   padding: 8px 11px;
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
   background: var(--color-bg-tertiary, #f3f2f0);
@@ -466,7 +466,7 @@
 .modalSelect {
   padding: 8px 11px;
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   font-size: 13px;
   background: var(--color-bg-tertiary, #f3f2f0);
   color: var(--color-text-primary, #1a1a1a);
@@ -532,7 +532,7 @@
   justify-content: center;
   gap: 6px;
   padding: 7px 18px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
   background: var(--color-surface, #faf9f7);
   color: var(--color-error-muted, #c47068);
@@ -564,7 +564,7 @@
 .modalCancel {
   margin-right: auto;
   padding: 7px 18px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
   background: var(--color-surface, #faf9f7);
   color: var(--color-text-secondary, #6b6b6b);
@@ -588,7 +588,7 @@
 
 .modalSave {
   padding: 7px 22px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   border: none;
   background: var(--color-accent);
   color: #fff;
@@ -648,7 +648,7 @@
 .textarea {
   padding: 8px 11px;
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   font-size: 13px;
   font-family: var(--font-sans, 'Inter', sans-serif);
   background: var(--color-bg-tertiary, #f3f2f0);
@@ -710,7 +710,7 @@
   padding: 6px 12px;
   border: none;
   background: transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   color: var(--color-text-secondary, #6b6b6b);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -745,7 +745,7 @@
   gap: 12px;
   padding: 16px;
   background: var(--color-bg-tertiary, #f3f2f0);
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   transform: translateY(-4px);
   transition: transform 0.2s ease;
 }
@@ -772,7 +772,7 @@
   min-width: 36px;
   height: 36px;
   padding: 0 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   border: 1.5px solid var(--color-border, rgba(0, 0, 0, 0.12));
   background: var(--color-bg-secondary, #fff);
   font-size: 12px;
@@ -872,7 +872,7 @@
   align-items: center;
   gap: 5px;
   padding: 4px 10px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg, 16px);
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
   background: var(--color-bg-tertiary, #f3f2f0);
   font-size: 12px;

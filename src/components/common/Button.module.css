@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;

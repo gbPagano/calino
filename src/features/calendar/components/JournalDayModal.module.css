@@ -21,7 +21,7 @@
 .panel {
   background: var(--modal-bg, #faf9f7);
   border: 1px solid var(--modal-border, transparent);
-  border-radius: 18px;
+  border-radius: var(--radius-lg, 18px);
   box-shadow: var(--modal-shadow, 0 24px 80px rgba(0, 0, 0, 0.18), 0 6px 20px rgba(0, 0, 0, 0.10));
   width: 520px;
   max-width: calc(100vw - 40px);
@@ -46,7 +46,7 @@
   right: 16px;
   width: 32px;
   height: 32px;
-  border-radius: 9px;
+  border-radius: var(--radius-sm, 9px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,7 +58,7 @@
 }
 
 .close:hover {
-  background: rgba(44, 40, 33, 0.06);
+  background: rgba(var(--ink-raw), 0.06);
   color: var(--ink);
 }
 
@@ -142,7 +142,7 @@
   gap: 8px;
   padding-bottom: 16px;
   cursor: default;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   padding: 8px 8px 16px;
   transition: background 0.12s;
 }
@@ -206,7 +206,7 @@
 .body code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
-  background: rgba(44, 40, 33, 0.06);
+  background: rgba(var(--ink-raw), 0.06);
   border-radius: 4px;
   padding: 1px 5px;
 }
@@ -359,7 +359,7 @@
   align-items: center;
   gap: 5px;
   padding: 4px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-md, 12px);
   border: 1px solid var(--line);
   background: var(--panel);
   color: var(--ink-2);
@@ -471,7 +471,7 @@
   width: 100%;
   padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   font-size: 13px;
   font-family: inherit;
   background: var(--panel);
@@ -499,7 +499,7 @@
   gap: 8px;
   padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   background: var(--panel);
   cursor: pointer;
   text-align: left;
@@ -534,7 +534,7 @@
 
 .btnAccent {
   padding: 7px 22px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   background: var(--accent);
   color: #fff;
   font-size: 13px;
@@ -554,7 +554,7 @@
 
 .btnGhost {
   padding: 7px 18px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
   background: var(--color-surface, var(--panel));
   color: var(--color-text-secondary, var(--ink-3));
@@ -562,7 +562,7 @@
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: var(--shadow-event, 0 1px 3px rgba(44, 40, 33, 0.08));
+  box-shadow: var(--shadow-event, 0 1px 3px rgba(var(--ink-raw), 0.08));
   margin-right: auto;
   transition: background 0.14s, color 0.14s;
 }
@@ -590,7 +590,7 @@
   gap: 7px;
   margin-left: auto;
   padding: 7px 18px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
   background: var(--color-surface, var(--panel));
   color: var(--color-text-secondary, var(--ink-2));
@@ -598,7 +598,7 @@
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: var(--shadow-event, 0 1px 3px rgba(44, 40, 33, 0.08));
+  box-shadow: var(--shadow-event, 0 1px 3px rgba(var(--ink-raw), 0.08));
   transition: background 0.14s, color 0.14s;
 }
 
@@ -615,7 +615,7 @@
 
 .btnDelete {
   padding: 7px 18px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
   background: var(--color-surface, var(--panel));
   color: var(--color-error-muted, #c47068);
@@ -623,7 +623,7 @@
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: var(--shadow-event, 0 1px 3px rgba(44, 40, 33, 0.08));
+  box-shadow: var(--shadow-event, 0 1px 3px rgba(var(--ink-raw), 0.08));
   transition: background-color 0.15s, color 0.15s;
 }
 

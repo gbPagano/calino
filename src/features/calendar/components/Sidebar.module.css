@@ -97,7 +97,7 @@
   border: none;
   cursor: pointer;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   color: var(--ink-2);
   display: flex;
   align-items: center;
@@ -116,7 +116,7 @@
 .sideSec.isCard {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--radius-lg, 16px);
   padding: 16px 16px 18px;
   box-shadow: 0 1px 2px rgba(var(--ink-raw, 44, 40, 33), 0.04), 0 6px 16px rgba(var(--ink-raw, 44, 40, 33), 0.03);
 }
@@ -132,7 +132,7 @@
   flex-direction: column;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--radius-lg, 16px);
   padding: 16px 16px 18px;
   box-shadow: 0 1px 2px rgba(var(--ink-raw, 44, 40, 33), 0.04), 0 6px 16px rgba(var(--ink-raw, 44, 40, 33), 0.03);
 }
@@ -143,7 +143,7 @@
   flex-direction: column;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--radius-lg, 16px);
   padding: 16px 16px 3px;
   box-shadow: 0 1px 2px rgba(var(--ink-raw, 44, 40, 33), 0.04), 0 6px 16px rgba(var(--ink-raw, 44, 40, 33), 0.03);
 }
@@ -196,7 +196,7 @@
 .miniNav {
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   color: var(--ink-3);
   font-size: 16px;
   display: flex;
@@ -211,7 +211,7 @@
 .miniNavBtn {
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   color: var(--ink-3);
   font-size: 16px;
   display: flex;
@@ -253,7 +253,7 @@
   color: var(--ink);
   background: none;
   border: none;
-  border-radius: 9px;
+  border-radius: var(--radius-sm, 9px);
   cursor: pointer;
   font-variant-numeric: tabular-nums;
   transition: background 0.12s;
@@ -287,11 +287,11 @@
   margin-top: 14px;
   height: 38px;
   width: 100%;
-  border-radius: 10px;
+  border-radius: var(--today-btn-radius, 10px);
   border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
   color: var(--accent);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: var(--today-btn-weight, 500);
   background: color-mix(in srgb, var(--accent) 6%, var(--panel));
   cursor: pointer;
   transition: border-color 0.14s, background 0.14s;
@@ -310,7 +310,7 @@
   left: 0;
   background: var(--popover-bg, var(--panel));
   border: 1px solid var(--popover-border, var(--line));
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   box-shadow: var(--modal-shadow, 0 4px 12px rgba(var(--ink-raw, 44, 40, 33), 0.1));
   max-height: 200px;
   overflow-y: auto;
@@ -436,7 +436,7 @@
   gap: 10px;
   padding: 6px 8px;
   margin: 0 -8px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   cursor: pointer;
   transition: background-color 0.12s;
 }
@@ -534,7 +534,7 @@
   cursor: pointer;
   padding: 6px 8px;
   margin: 0 -8px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   transition: background 0.12s;
 }
 
@@ -715,7 +715,7 @@
   gap: 11px;
   padding: 6px 8px;
   margin: 0 -8px;
-  border-radius: 9px;
+  border-radius: var(--radius-sm, 9px);
   transition: background 0.12s;
   cursor: pointer;
 }
@@ -808,7 +808,7 @@
   right: 0;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md, 12px);
   box-shadow: 0 4px 12px rgba(var(--ink-raw, 44, 40, 33), 0.1);
   margin-bottom: 8px;
   max-height: 200px;
@@ -855,7 +855,7 @@
   width: 36px;
   height: 20px;
   border-radius: 10px;
-  background: rgba(44, 40, 33, 0.14);
+  background: rgba(var(--ink-raw), 0.14);
   transition: background 0.2s;
 }
 
@@ -872,7 +872,7 @@
   height: 16px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(44, 40, 33, 0.25);
+  box-shadow: 0 1px 3px rgba(var(--ink-raw), 0.25);
 }
 
 .categoryToggleSwitch .categoryTogglePill::after {
@@ -884,7 +884,7 @@
   height: 16px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(44, 40, 33, 0.25);
+  box-shadow: 0 1px 3px rgba(var(--ink-raw), 0.25);
   transition: transform 0.2s;
 }
 
@@ -959,7 +959,7 @@
 .miniCalendar {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--radius-lg, 16px);
   padding: 16px 16px 18px;
   box-shadow: 0 1px 2px rgba(var(--ink-raw, 44, 40, 33), 0.04), 0 6px 16px rgba(var(--ink-raw, 44, 40, 33), 0.03);
 }
@@ -971,7 +971,7 @@
   left: 0;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   box-shadow: 0 4px 12px rgba(var(--ink-raw, 44, 40, 33), 0.1);
   max-height: 200px;
   overflow-y: auto;
@@ -1149,7 +1149,7 @@
   z-index: 9999;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md, 12px);
   padding: 14px;
   box-shadow: 0 4px 16px rgba(var(--ink-raw, 44, 40, 33), 0.12);
   display: flex;
@@ -1182,7 +1182,7 @@
 
 .updateDismissBtn {
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   border: 1px solid var(--line);
   background: transparent;
   color: var(--ink-2);
@@ -1198,7 +1198,7 @@
 
 .updateViewBtn {
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   border: none;
   background: var(--accent);
   color: #fff;

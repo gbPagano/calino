@@ -87,11 +87,9 @@ export function CalendarHeader({
     const container = viewTabsRef.current
     const activeTab = viewTabRefs.current.get(currentView)
     if (container && activeTab) {
-      const containerRect = container.getBoundingClientRect()
-      const tabRect = activeTab.getBoundingClientRect()
       setIndicatorStyle({
-        left: tabRect.left - containerRect.left,
-        width: tabRect.width,
+        left: activeTab.offsetLeft,
+        width: activeTab.offsetWidth,
       })
     }
   }, [currentView])
@@ -226,7 +224,7 @@ export function CalendarHeader({
   })
 
   return (
-    <div className={styles.header} {...bind}>
+    <div className={styles.header} {...bind} data-component="header">
       {/* Brand + Hamburger — both always rendered, CSS handles visibility */}
       <div className={`${styles.brand} ${isMobile || isCompact ? styles.brandHidden : ''}`}>
         <div className={styles.brandDiamond} />
@@ -251,7 +249,7 @@ export function CalendarHeader({
             <ChevronLeft />
           </button>
           {!isCompact && (
-            <button className={styles.navToday} onClick={handleToday}>
+            <button className={styles.navToday} onClick={handleToday} data-component="today-button">
               Today
             </button>
           )}
@@ -296,7 +294,7 @@ export function CalendarHeader({
         )}
 
         {/* View Tabs - always rendered, CSS handles visibility */}
-        <div className={`${styles.viewTabs} ${isMobile || isTablet ? styles.viewTabsHidden : ''}`} ref={viewTabsRef}>
+        <div className={`${styles.viewTabs} ${isMobile || isTablet ? styles.viewTabsHidden : ''}`} ref={viewTabsRef} data-component="view-switcher">
           <div
             className={styles.viewTabIndicator}
             style={{ left: indicatorStyle.left, width: indicatorStyle.width }}

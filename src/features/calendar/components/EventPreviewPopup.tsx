@@ -573,6 +573,7 @@ export function EventPreviewPopup({
                 key="preview-popup"
                 ref={popupRef}
                 className={styles.popup}
+                data-component="event-preview"
                 style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
                 initial={{ opacity: 0, scale: 0.95, y: -10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}

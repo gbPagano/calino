@@ -10,13 +10,13 @@
   overflow: hidden;
   background: var(--canvas, #faf8f3);
   border-radius: var(--radius-lg, 16px);
-  border: 1px solid var(--line, rgba(44, 40, 33, 0.09));
-  box-shadow: var(--shadow-card, 0 1px 2px rgba(44, 40, 33, 0.04), 0 6px 16px rgba(44, 40, 33, 0.03));
+  border: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
+  box-shadow: var(--shadow-card, 0 1px 2px rgba(var(--ink-raw), 0.04), 0 6px 16px rgba(var(--ink-raw), 0.03));
 }
 
 .header {
   display: flex;
-  border-bottom: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  border-bottom: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
   position: sticky;
   top: 0;
   background: var(--panel, #ffffff);
@@ -43,7 +43,7 @@
 .allDayEvent {
   font-size: 11px;
   padding: 2px 6px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm, 7px);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -69,13 +69,13 @@
 }
 
 .headerShadow {
-  box-shadow: 0 2px 8px rgba(44, 40, 33, 0.05);
+  box-shadow: 0 2px 8px rgba(var(--ink-raw), 0.05);
 }
 
 .weekNumberColumn {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  border-right: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
   background: var(--panel, #ffffff);
 }
 
@@ -89,7 +89,7 @@
   text-transform: uppercase;
   color: var(--ink-3, #a39d93);
   background: var(--panel, #ffffff);
-  border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  border-right: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
   min-height: 48px;
   min-width: 45px;
   max-width: 45px;
@@ -98,7 +98,7 @@
 .timeColumn {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  border-right: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
   min-width: 45px;
   max-width: 45px;
 }
@@ -115,12 +115,12 @@
   justify-content: center;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
+  border-bottom: 1px solid var(--line-2, rgba(var(--ink-raw), 0.05));
   box-sizing: border-box;
 }
 
 .timeGutter {
-  border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  border-right: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -135,7 +135,7 @@
   flex-direction: column;
   align-items: center;
   padding: var(--space-1, 4px);
-  border-right: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
+  border-right: 1px solid var(--line-2, rgba(var(--ink-raw), 0.05));
   min-height: 48px;
   overflow: hidden;
 }
@@ -206,7 +206,7 @@
   position: relative;
   min-height: calc(24 * var(--hour-height, 60px));
   height: 100%;
-  border-right: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
+  border-right: 1px solid var(--line-2, rgba(var(--ink-raw), 0.05));
 }
 
 .dayColumn:last-child {
@@ -222,14 +222,14 @@
 .cell {
   height: var(--hour-height, 60px);
   flex: none;
-  border-bottom: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
+  border-bottom: 1px solid var(--line-2, rgba(var(--ink-raw), 0.05));
   cursor: pointer;
   transition: background 0.12s ease;
   box-sizing: border-box;
 }
 
 .cell:hover {
-  background: rgba(44, 40, 33, 0.03);
+  background: rgba(var(--ink-raw), 0.03);
 }
 
 .cell:active {
@@ -261,7 +261,7 @@
 
 .eventTransparent {
   z-index: 1;
-  border-radius: 7px;
+  border-radius: var(--radius-sm, 7px);
 }
 
 .selectionOverlay {
@@ -331,7 +331,7 @@
   position: sticky;
   bottom: 0;
   background: var(--panel, #ffffff);
-  border-top: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+  border-top: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
   padding: 8px 0;
   display: grid;
   grid-template-columns: 60px repeat(7, 1fr);
@@ -376,7 +376,7 @@
     top: 0;
     z-index: 10;
     background: var(--panel, #ffffff);
-    border-bottom: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+    border-bottom: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
   }
 
   .mobileBody {
@@ -399,7 +399,7 @@
     text-transform: uppercase;
     color: var(--ink-3, #a39d93);
     background: var(--panel, #ffffff);
-    border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+    border-right: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
     min-height: 48px;
   }
 
@@ -416,7 +416,7 @@
     flex-direction: column;
     align-items: center;
     padding: var(--space-1, 4px);
-    border-right: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
+    border-right: 1px solid var(--line-2, rgba(var(--ink-raw), 0.05));
   }
 
   .dayHeader:last-child {
@@ -436,7 +436,7 @@
     min-width: 45px;
     max-width: 45px;
     flex-shrink: 0;
-    border-right: 1px solid var(--line, rgba(44, 40, 33, 0.09));
+    border-right: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
   }
 
   .timeCell {
@@ -451,7 +451,7 @@
     justify-content: center;
     display: flex;
     align-items: center;
-    border-bottom: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
+    border-bottom: 1px solid var(--line-2, rgba(var(--ink-raw), 0.05));
     box-sizing: border-box;
   }
 
@@ -467,7 +467,7 @@
     min-height: calc(24 * var(--hour-height, 60px));
     height: 100%;
     position: relative;
-    border-right: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
+    border-right: 1px solid var(--line-2, rgba(var(--ink-raw), 0.05));
   }
 
   .dayColumn:last-child {

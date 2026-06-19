@@ -401,7 +401,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
           />
         )}
       </AnimatePresence>
-      <div className={sidebarClass} style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+      <div className={sidebarClass} style={{ width: sidebarWidth, minWidth: sidebarWidth }} data-component="sidebar">
         {isOpen && (
           <div className={styles.sidebarBrand}>
             <div className={styles.sidebarBrandDiamond} />
@@ -483,7 +483,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
               )
             })}
           </div>
-          <button className={styles.todayBtn} onClick={handleToday}>
+          <button className={styles.todayBtn} onClick={handleToday} data-component="sidebar-today-button">
             Today
           </button>
         </div>

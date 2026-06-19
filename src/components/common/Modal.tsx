@@ -38,11 +38,12 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
   if (!isOpen) return null
 
   return createPortal(
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} onClick={onClose} data-component="modal-backdrop">
       <div
         className={clsx(styles.modal, className)}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        data-component="modal-card"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
       >

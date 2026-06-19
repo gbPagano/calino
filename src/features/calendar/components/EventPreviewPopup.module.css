@@ -8,8 +8,10 @@
   position: fixed;
   z-index: 1000;
   width: 300px;
-  background: var(--popover-bg, #fff);
-  border-radius: 12px;
+  background: var(--popover-glass, var(--popover-bg, #fff));
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  border-radius: var(--radius-md, 12px);
   box-shadow: var(--modal-shadow, 0 8px 32px rgba(0, 0, 0, 0.2));
   border: 1px solid var(--popover-border, rgba(0, 0, 0, 0.05));
   overflow: hidden;
@@ -21,7 +23,7 @@
   align-items: flex-start;
   padding: 14px 16px;
   border-bottom: 1px solid var(--popover-border, #e8eaed);
-  background: var(--popover-bg, #fafafa);
+  background: transparent;
 }
 
 .titleRow {
@@ -64,7 +66,7 @@
   font-weight: 600;
   color: var(--color-text-primary, #202124);
   border: none;
-  border-bottom: 2px solid var(--color-accent, #4285f4);
+  border-bottom: 2px solid var(--color-accent);
   background: transparent;
   outline: none;
   padding: 2px 4px;
@@ -163,7 +165,7 @@
   font-size: 13px;
   color: var(--color-text-primary, #202124);
   border: none;
-  border-bottom: 2px solid var(--color-accent, #4285f4);
+  border-bottom: 2px solid var(--color-accent);
   background: transparent;
   outline: none;
   padding: 2px 0;
@@ -219,7 +221,7 @@
   font-size: 13px;
   color: var(--color-text-primary, #202124);
   border: none;
-  border-bottom: 2px solid var(--color-accent, #4285f4);
+  border-bottom: 2px solid var(--color-accent);
   background: transparent;
   outline: none;
   padding: 4px 0;
@@ -297,7 +299,7 @@
   font-size: 13px;
   font-weight: 500;
   color: #fff;
-  background: var(--color-primary, #4285f4);
+  background: var(--color-accent);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -305,5 +307,5 @@
 }
 
 .openBtn:hover {
-  background: var(--color-accent-hover, #3367d6);
+  background: var(--color-accent-hover);
 }

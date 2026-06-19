@@ -563,6 +563,7 @@ export function CalendarGrid(): JSX.Element {
             <div className={styles.gridPanel} ref={containerRef} {...bind} style={{ touchAction: 'none' as const }}>
               <div
                 className={styles.grid}
+                data-component="calendar-grid"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
                 style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
@@ -690,6 +691,7 @@ export function CalendarGrid(): JSX.Element {
       <div className={styles.gridPanel} ref={containerRef} {...bind} style={{ touchAction: 'none' as const }}>
         <div
           className={styles.grid}
+          data-component="calendar-grid"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
@@ -868,6 +870,10 @@ const DroppableDay = React.memo(function DroppableDay({
     <div
       ref={setNodeRef}
       className={`${styles.day} ${!isCurrentMonth ? styles.otherMonth : ''} ${isTodayDate ? styles.today : ''} ${isWeekend ? styles.weekend : ''} ${isOver ? styles.dropTarget : ''}`}
+      {...(isTodayDate ? { 'data-today': '' } : {})}
+      {...(!isCurrentMonth ? { 'data-other-month': '' } : {})}
+      {...(isWeekend ? { 'data-weekend': '' } : {})}
+      {...(isOver ? { 'data-drop-target': '' } : {})}
       role="button"
       tabIndex={0}
       onClick={() => onDayClick(day)}
@@ -975,7 +981,7 @@ const DroppableDay = React.memo(function DroppableDay({
             </div>
           )}
           {dayTasks.length > 0 && (
-            <div className={styles.tasks}>
+            <div className={styles.tasks} data-component="day-tasks">
               <AnimatePresence mode="popLayout">
                 {dayTasks.slice(0, monthViewEventLimit).map((task) => (
                   <EventCard key={task.id} event={task} compact isMobileMonth={isMobile} enableResize={false} monthView />

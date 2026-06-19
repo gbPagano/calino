@@ -83,7 +83,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
   const hoveredTaskData = hoveredTask ? upcomingTasks.find((t) => t.id === hoveredTask) : null
 
   return (
-    <div className={styles.tasksSection}>
+    <div className={styles.tasksSection} data-component="tasks-section">
       <button className={styles.tasksHeader} onClick={onToggle}>
         <div className={styles.tasksHeaderLeft}>
           <span className={styles.tasksTitle}>Tasks</span>

@@ -9,12 +9,13 @@
 import type { ThemeInfo } from './types'
 
 const BUILT_IN_THEME_ID = 'built-in'
+const BUILT_IN_DARK_THEME_ID = 'built-in-dark'
 
 let cachedThemes: ThemeInfo[] | null = null
 const cachedCSS: Map<string, string> = new Map()
 
-export function extractThemeName(css: string, filename: string): { name: string; isDark: boolean } {
-  const themeCommentMatch = css.match(/\/\*\s*Theme:\s*(.+?)\s*(?:\|?\s*(dark|light))?\s*\*\//i)
+export function extractThemeName(css: string, filename: string): { name: string; isDark: boolean; isBoth: boolean } {
+  const themeCommentMatch = css.match(/\/\*\s*Theme:\s*(.+?)\s*(?:\|?\s*(dark|light|both))?\s*\*\//i)
 
   if (themeCommentMatch) {
     const name = themeCommentMatch[1].trim()
@@ -22,6 +23,7 @@ export function extractThemeName(css: string, filename: string): { name: string;
     return {
       name,
       isDark: mode === 'dark',
+      isBoth: mode === 'both',
     }
   }
 
@@ -31,7 +33,36 @@ export function extractThemeName(css: string, filename: string): { name: string;
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
 
-  return { name, isDark: false }
+  return { name, isDark: false, isBoth: false }
+}
+
+function extractCSSSection(css: string, mode: 'light' | 'dark'): string {
+  const lines = css.split('\n')
+  const result: string[] = []
+  let inSection = false
+  let braceDepth = 0
+
+  for (const line of lines) {
+    const matchesMode = line.includes(`[data-theme='${mode}']`)
+    const matchesRoot = mode === 'light' && line.includes(':root,') && !line.includes('data-theme-id')
+
+    if (matchesMode || matchesRoot) {
+      inSection = true
+      braceDepth = 0
+    }
+
+    if (inSection) {
+      result.push(line)
+      braceDepth += (line.match(/\{/g) || []).length
+      braceDepth -= (line.match(/\}/g) || []).length
+
+      if (braceDepth <= 0 && result.length > 1) {
+        inSection = false
+      }
+    }
+  }
+
+  return result.join('\n') || css
 }
 
 export async function loadThemes(): Promise<ThemeInfo[]> {
@@ -45,6 +76,11 @@ export async function loadThemes(): Promise<ThemeInfo[]> {
       name: 'Default Light',
       isDark: false,
     },
+    {
+      id: BUILT_IN_DARK_THEME_ID,
+      name: 'Default Dark',
+      isDark: true,
+    },
   ]
 
   const themeFiles = import.meta.glob('/public/themes/*.css', {
@@ -57,27 +93,49 @@ export async function loadThemes(): Promise<ThemeInfo[]> {
     const css = themeFiles[path] as string
     const filename = path.split('/').pop() || ''
     const themeId = filename.replace(/\.css$/, '')
-    const { name, isDark } = extractThemeName(css, filename)
+    const { name, isDark, isBoth } = extractThemeName(css, filename)
 
-    themes.push({
-      id: themeId,
-      name,
-      isDark,
-    })
-
-    cachedCSS.set(themeId, css)
+    if (isBoth) {
+      themes.push({ id: `${themeId}-light`, name, isDark: false })
+      themes.push({ id: `${themeId}-dark`, name, isDark: true })
+      cachedCSS.set(`${themeId}-light`, css)
+      cachedCSS.set(`${themeId}-dark`, css)
+    } else {
+      themes.push({ id: themeId, name, isDark })
+      cachedCSS.set(themeId, css)
+    }
   }
 
   cachedThemes = themes
   return themes
 }
 
+const BUILT_IN_DARK_CSS = `--canvas: #1a1816; --panel: #242220; --ink: #f0ece6; --accent: #c9956a; --radius-sm: 7px; --radius-md: 11px; --radius-lg: 16px;`
+
+/** Returns full CSS for DOM injection */
 export function getThemeCSS(themeId: string): string {
   if (themeId === BUILT_IN_THEME_ID) {
     return ''
   }
+  if (themeId === BUILT_IN_DARK_THEME_ID) {
+    return BUILT_IN_DARK_CSS
+  }
 
   return cachedCSS.get(themeId) || ''
+}
+
+/** Returns extracted CSS section for preview cards */
+export function getThemePreviewCSS(themeId: string): string {
+  if (themeId === BUILT_IN_THEME_ID) {
+    return ''
+  }
+  if (themeId === BUILT_IN_DARK_THEME_ID) {
+    return BUILT_IN_DARK_CSS
+  }
+
+  const fullCSS = cachedCSS.get(themeId) || ''
+  const mode = themeId.endsWith('-dark') ? 'dark' : 'light'
+  return extractCSSSection(fullCSS, mode)
 }
 
 export async function refetchThemes(): Promise<void> {
@@ -158,14 +216,23 @@ export function getBuiltInThemeCSS(): string {
   --event-bg-mix: 9%;
   --event-bg-mix-hover: 12%;
   --color-error-muted: #c47068;
+  --event-border-radius: 7px;
+  --event-gap: 3px;
+
+  /* Motion */
+  --duration-fast: 180ms;
+  --duration-normal: 320ms;
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
   /* Modal / popover tokens */
   --modal-bg: var(--color-bg-secondary);
-  --popover-bg: var(--color-surface-raised);
+  --popover-bg: var(--canvas);
+  --popover-glass: rgba(250, 248, 243, 0.85);
   --modal-scrim: rgba(26, 26, 26, 0.25);
   --modal-blur: blur(3px);
   --modal-border: rgba(0, 0, 0, 0.06);
-  --popover-border: rgba(0, 0, 0, 0.08);
+  --popover-border: rgba(0, 0, 0, 0.06);
   --modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.18), 0 6px 20px rgba(0, 0, 0, 0.10);
 
   /* Shadows */
@@ -232,10 +299,19 @@ export function getBuiltInThemeCSS(): string {
   --event-bg-mix: 18%;
   --event-bg-mix-hover: 22%;
   --color-error-muted: #d4877f;
+  --event-border-radius: 7px;
+  --event-gap: 3px;
+
+  /* Motion */
+  --duration-fast: 180ms;
+  --duration-normal: 320ms;
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
   /* Modal / popover tokens */
   --modal-bg: #2d2a24;
   --popover-bg: #383229;
+  --popover-glass: rgba(56, 50, 41, 0.85);
   --modal-scrim: rgba(0, 0, 0, 0.60);
   --modal-blur: blur(4px);
   --modal-border: rgba(255, 247, 235, 0.10);

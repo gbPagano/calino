@@ -403,7 +403,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
       const calendar = calendars.find((c: Calendar) => c.id === event.calendarId)
       const eventColor = event.color || calendar?.color || DEFAULT_CALENDAR_COLOR
 
-      const gap = 2
+      const gap = 4
       const leftPercent = gap / 2
       const widthPercent = 100 - gap
 

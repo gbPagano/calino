@@ -24,7 +24,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const currentThemeId = effectiveMode === 'dark' ? darkTheme : lightTheme
 
   const builtInCSS = useMemo(() => getBuiltInThemeCSS(), [])
-  const customCSS = currentThemeId !== 'built-in' ? getThemeCSS(currentThemeId) : ''
+  const isBuiltIn = currentThemeId === 'built-in' || currentThemeId === 'built-in-dark'
+  const customCSS = !isBuiltIn ? getThemeCSS(currentThemeId) : ''
 
   useEffect(() => {
     const styleElement =
@@ -42,6 +43,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', effectiveMode)
     document.documentElement.setAttribute('data-theme-mode', themeMode)
+    if (!isBuiltIn) {
+      const themeId = currentThemeId.replace(/-(light|dark)$/, '')
+      document.documentElement.setAttribute('data-theme-id', themeId)
+    } else {
+      document.documentElement.removeAttribute('data-theme-id')
+    }
 
     const updateThemeColor = () => {
       const style = getComputedStyle(document.documentElement)

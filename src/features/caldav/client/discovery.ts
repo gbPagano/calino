@@ -152,10 +152,12 @@ async function probeWellKnownViaProxy(
 /** Build a normalized base URL from the server's origin + discovered path. */
 function buildBaseUrl(serverBaseUrl: string, discoveredPath: string): string {
   const origin = new URL(serverBaseUrl).origin
-  // CalDAV base URLs should not end with / (tsdav appends paths like /principals/...)
-  const path = discoveredPath.endsWith('/') ? discoveredPath.slice(0, -1) : discoveredPath
+  // Keep trailing slash if the server redirected to one (e.g. Davis → /dav/).
+  // Some servers (Davis) require the trailing slash for PROPFIND to work;
+  // others (Baikal, Radicale) work either way. tsdav uses new URL() which
+  // handles both forms correctly.
   // Root path becomes just the origin (e.g. https://radicale.example.com)
-  return path === '' ? origin : `${origin}${path}`
+  return discoveredPath === '' || discoveredPath === '/' ? origin : `${origin}${discoveredPath}`
 }
 
 export async function testConnection(

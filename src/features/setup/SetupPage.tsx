@@ -32,9 +32,13 @@ async function testConnection(
 
     let fetchUrl = baseUrl
     if (proxyUrl) {
-      const encodedTarget = encodeURIComponent(baseUrl)
+      // The proxy expects the server origin encoded as the first path segment,
+      // with the rest of the path as unencoded segments.
+      const parsed = new URL(baseUrl)
+      const encodedOrigin = encodeURIComponent(parsed.origin)
+      const path = parsed.pathname + parsed.search + parsed.hash
       const proxyBase = proxyUrl.replace(/\/$/, '')
-      fetchUrl = `${proxyBase}/${encodedTarget}`
+      fetchUrl = `${proxyBase}/${encodedOrigin}${path}`
     }
 
     const response = await fetch(fetchUrl, {

@@ -153,7 +153,7 @@ describe('discovery', () => {
       const fetchSpy = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        url: 'https://proxy.example.com/https%3A%2F%2Fcaldav.example.com%2Fdav.php',
+        url: 'https://proxy.example.com/https%3A%2F%2Fcaldav.example.com/.well-known/caldav',
         headers: new Headers({
           'X-Target-URL': 'https://caldav.example.com/dav.php',
         }),
@@ -164,11 +164,12 @@ describe('discovery', () => {
       const target = 'https://caldav.example.com'
       await discoverServerUrl(target, proxyUrl)
 
-      // Should have fetched through the proxy
+      // Should have fetched through the proxy with origin encoded as first segment
       expect(fetchSpy).toHaveBeenCalledTimes(1)
       const callUrl = fetchSpy.mock.calls[0][0] as string
       expect(callUrl).toContain('proxy.example.com')
-      expect(callUrl).toContain(encodeURIComponent('https://caldav.example.com/.well-known/caldav'))
+      expect(callUrl).toContain(encodeURIComponent('https://caldav.example.com'))
+      expect(callUrl).toContain('/.well-known/caldav')
     })
 
     it('follows redirect manually through proxy', async () => {

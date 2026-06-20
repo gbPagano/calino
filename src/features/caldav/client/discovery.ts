@@ -204,9 +204,14 @@ async function proxyFetch(
   targetUrl: string,
   init?: RequestInit
 ): Promise<Response> {
-  const encodedTarget = encodeURIComponent(targetUrl)
+  // The proxy expects the server origin encoded as the first path segment,
+  // with the rest of the path as unencoded segments.
+  // e.g. proxy.calino.io/https%3A%2F%2Fdav.example.com/principals/user
+  const parsed = new URL(targetUrl)
+  const encodedOrigin = encodeURIComponent(parsed.origin)
+  const path = parsed.pathname + parsed.search + parsed.hash
   const proxyBase = proxyUrl.replace(/\/$/, '')
-  const proxiedUrl = `${proxyBase}/${encodedTarget}`
+  const proxiedUrl = `${proxyBase}/${encodedOrigin}${path}`
   return fetch(proxiedUrl, init)
 }
 

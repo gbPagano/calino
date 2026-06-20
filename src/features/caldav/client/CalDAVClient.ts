@@ -23,9 +23,14 @@ function escapeXml(str: string): string {
 }
 
 export function buildProxyUrl(proxyBase: string, targetUrl: string): string {
-  const encodedTarget = encodeURIComponent(targetUrl)
+  // The proxy expects the server origin encoded as the first path segment,
+  // with the rest of the path as unencoded segments.
+  // e.g. proxy.calino.io/https%3A%2F%2Fdav.example.com/principals/user
+  const parsed = new URL(targetUrl)
+  const encodedOrigin = encodeURIComponent(parsed.origin)
+  const path = parsed.pathname + parsed.search + parsed.hash
   const proxyBaseClean = proxyBase.replace(/\/$/, '')
-  return `${proxyBaseClean}/${encodedTarget}`
+  return `${proxyBaseClean}/${encodedOrigin}${path}`
 }
 
 function prefixUrlWithProxy(url: string, proxyBase: string): string {

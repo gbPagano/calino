@@ -557,16 +557,16 @@ END:VCALENDAR`,
   })
 
   describe('buildProxyUrl', () => {
-    it('encodes the target URL', () => {
+    it('encodes only the origin, path stays unencoded', () => {
       const result = buildProxyUrl('https://proxy.example.com', 'https://caldav.example.com/dav')
       expect(result).toBe(
-        `https://proxy.example.com/${encodeURIComponent('https://caldav.example.com/dav')}`
+        `https://proxy.example.com/${encodeURIComponent('https://caldav.example.com')}/dav`
       )
     })
 
     it('strips trailing slash from proxy base', () => {
       const result = buildProxyUrl('https://proxy.example.com/', 'https://target.com')
-      expect(result).toBe(`https://proxy.example.com/${encodeURIComponent('https://target.com')}`)
+      expect(result).toBe(`https://proxy.example.com/${encodeURIComponent('https://target.com')}/`)
     })
   })
 })

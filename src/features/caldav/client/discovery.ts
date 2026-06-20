@@ -58,6 +58,16 @@ async function probeWellKnown(
   return probeWellKnownDirect(wellKnownUrl, baseUrl)
 }
 
+/**
+ * Check whether a path is (or contains) the .well-known/caldav endpoint.
+ * If the server responded at .well-known itself (no redirect happened),
+ * we treat it as unsupported and fall back to the base URL.
+ */
+function isWellKnownPath(pathname: string): boolean {
+  const wellKnownSuffix = '/.well-known/caldav'
+  return pathname === wellKnownSuffix || pathname === wellKnownSuffix + '/'
+}
+
 /** Direct fetch: follow redirect and compare final URL to detect .well-known discovery. */
 async function probeWellKnownDirect(
   wellKnownUrl: string,
@@ -75,28 +85,18 @@ async function probeWellKnownDirect(
     })
 
     const finalUrl = new URL(response.url)
-    const finalPath = finalUrl.pathname.replace(/\/$/, '')
-    const wellKnownBase = new URL(wellKnownUrl).origin + '/.well-known/caldav'
-    const finalBase = finalUrl.origin + finalPath
+    // Keep trailing slash — some servers (Davis) require it for PROPFIND.
+    const finalPath = finalUrl.pathname
 
-    // If the final URL differs from .well-known/caldav, we were redirected
-    // to the real CalDAV endpoint (even if it returned 401/403 for auth).
-    if (finalBase !== wellKnownBase) {
-      return buildBaseUrl(baseUrl, finalPath)
-    }
-
-    // 200 at .well-known itself — server responds directly (unusual)
-    if (response.ok) {
-      return buildBaseUrl(baseUrl, finalPath)
-    }
-
-    // 404/405 at .well-known — server doesn't support well-known discovery
-    if (response.status === 404 || response.status === 405) {
+    // If the final URL is still .well-known/caldav, no redirect happened.
+    // RFC 5785 says the actual service MUST NOT be at .well-known, so this
+    // means the server doesn't support well-known discovery.
+    if (isWellKnownPath(finalPath)) {
       return null
     }
 
-    // Other status at .well-known itself — treat as unsupported
-    return null
+    // We were redirected to a different path — that's the real CalDAV endpoint.
+    return buildBaseUrl(baseUrl, finalPath)
   } finally {
     clearTimeout(timer)
   }
@@ -118,28 +118,27 @@ async function probeWellKnownViaProxy(
     })
 
     // Same logic as probeWellKnownDirect: check if we ended up somewhere else.
-    // If the proxy followed a redirect, response.url will be the proxy URL
-    // but the actual target path differs from .well-known/caldav.
-    // We detect this via the X-Target-URL header the proxy sets, or by
-    // status code (401/403 means the endpoint exists after redirect).
+    // If the proxy followed a redirect, the X-Target-URL header reveals the
+    // real endpoint. Preserve trailing slash — some servers (Davis) require it.
     const targetUrl = response.headers.get('X-Target-URL')
     if (targetUrl) {
       const finalUrl = new URL(targetUrl)
-      const finalPath = finalUrl.pathname.replace(/\/$/, '')
-      const wellKnownPath = '/.well-known/caldav'
-      if (finalUrl.origin + finalPath !== new URL(wellKnownUrl).origin + wellKnownPath) {
+      const finalPath = finalUrl.pathname
+      if (!isWellKnownPath(finalPath)) {
         return buildBaseUrl(baseUrl, finalPath)
       }
     }
 
-    // No X-Target-URL: infer from status. 401/403 means auth-gated redirect succeeded.
+    // No X-Target-URL: infer from status.
+    // 401/403 could mean the redirect requires authentication — we can't
+    // determine the actual path, so fall back to base URL.
     if (response.status === 401 || response.status === 403) {
-      return null // discovery succeeded but path unknown — caller uses well-known as starting point
+      return null
     }
 
-    // 200 at .well-known itself (unusual)
+    // 200 at .well-known itself — server doesn't redirect (unsupported)
     if (response.ok) {
-      return buildBaseUrl(baseUrl, new URL(wellKnownUrl).pathname)
+      return null
     }
 
     // 404/405 — not supported

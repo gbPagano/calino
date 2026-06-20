@@ -102,10 +102,12 @@ describe('discovery', () => {
   })
 
   // -----------------------------------------------------------------------
-  // Well-known probe — direct 200 response (no redirect)
+  // Well-known probe — direct 200 response (no redirect, unsupported)
   // -----------------------------------------------------------------------
-  describe('well-known probe: direct 200 response', () => {
-    it('uses the response URL path', async () => {
+  describe('well-known probe: direct 200 response (no redirect)', () => {
+    it('falls back to base URL when server responds at .well-known without redirecting', async () => {
+      // RFC 5785: the actual service MUST NOT be at .well-known, so a 200
+      // at .well-known/caldav means the server doesn't support discovery.
       const responseUrl = 'https://caldav.example.com/.well-known/caldav'
       const mockResponse = {
         status: 200,
@@ -120,7 +122,7 @@ describe('discovery', () => {
 
       const result = await discoverServerUrl('https://caldav.example.com')
 
-      // 200 at .well-known/caldav means the server responds directly at the origin
+      // Falls back to base URL since .well-known/caldav is not a valid endpoint
       expect(result).toBe('https://caldav.example.com')
     })
   })
@@ -186,6 +188,26 @@ describe('discovery', () => {
       )
 
       expect(result).toBe('https://caldav.example.com/dav.php')
+    })
+
+    it('preserves trailing slash from proxy redirect (Davis)', async () => {
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        url: 'https://proxy.example.com/https%3A%2F%2Fdavis.example.com%2Fdav%2F',
+        headers: new Headers({
+          'X-Target-URL': 'https://davis.example.com/dav/',
+        }),
+      } as unknown as Response
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse))
+
+      const result = await discoverServerUrl(
+        'https://davis.example.com',
+        'https://proxy.example.com'
+      )
+
+      // Davis requires trailing slash — must be preserved
+      expect(result).toBe('https://davis.example.com/dav/')
     })
 
     it('falls back when proxy followed redirect (returned 200 at .well-known)', async () => {

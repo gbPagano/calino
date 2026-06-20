@@ -298,6 +298,7 @@ export function CalendarHeader({
           <div
             className={styles.viewTabIndicator}
             style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+            data-component="view-switcher-indicator"
           />
           {VIEWS.filter(v => journalEnabled || v.value !== 'journal').map((view, index) => (
             <React.Fragment key={view.value}>

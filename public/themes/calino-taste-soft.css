@@ -1,0 +1,587 @@
+/* Theme: Taste Soft | light */
+
+/* ═══════════════════════════════════════════════════════════════════
+   CALINO THEME — TASTE SOFT
+   Apple-tier soft: cream canvas, squircle radii, frosted-glass
+   surfaces, ambient mesh, spring motion, frosted-glass modals.
+   ═══════════════════════════════════════════════════════════════════ */
+
+
+/* ================================================================
+   PART 1: CSS VARIABLES (tokens)
+   ================================================================ */
+
+/* ── Light Theme ──────────────────────────────────────────────── */
+:root,
+[data-theme='light'] {
+
+  /* Canvas & Surfaces */
+  --canvas: #faf8f3;
+  --panel: #ffffff;
+  --side: #f6f3ed;
+
+  --color-bg: var(--canvas);
+  --color-bg-primary: var(--canvas);
+  --color-bg-secondary: var(--panel);
+  --color-bg-tertiary: #f0efe9;
+  --color-bg-hover: rgba(0, 0, 0, 0.035);
+  --color-bg-input: #ffffff;
+
+  --color-surface: var(--panel);
+  --color-surface-raised: var(--panel);
+  --color-surface-glass: rgba(255, 255, 255, 0.75);
+
+  /* Text */
+  --ink: #1d1b17;
+  --ink-2: #6b6560;
+  --ink-3: #a09a93;
+
+  --color-text-primary: var(--ink);
+  --color-text-secondary: var(--ink-2);
+  --color-text-muted: var(--ink-3);
+  --color-text-tertiary: var(--ink-3);
+
+  /* Borders */
+  --line: rgba(0, 0, 0, 0.08);
+  --line-2: rgba(0, 0, 0, 0.04);
+
+  --color-border: var(--line);
+  --color-border-light: var(--line-2);
+  --color-border-subtle: var(--line-2);
+  --color-border-visible: var(--line);
+  --color-border-glass: rgba(255, 255, 255, 0.35);
+
+  /* Accent */
+  --accent: #b07d4f;
+  --accent-soft: rgba(176, 125, 79, 0.12);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: #9a6c42;
+  --color-accent-light: var(--accent-soft);
+  --color-primary: var(--accent);
+  --color-primary-hover: #9a6c42;
+  --color-primary-light: var(--accent-soft);
+
+  /* Status */
+  --color-success: #5d9a78;
+  --color-success-light: rgba(93, 154, 120, 0.12);
+  --color-warning: #bf944e;
+  --color-error: #c2697f;
+  --color-error-muted: #c47068;
+  --color-danger: #c2697f;
+  --color-danger-bg: rgba(194, 105, 127, 0.08);
+  --color-info: #5b7fb5;
+
+  /* Event Cards */
+  --ink-raw: 44, 40, 33;
+  --event-bg-mix: 9%;
+  --event-bg-mix-hover: 14%;
+
+  /* Overlay & Focus */
+  --color-overlay: rgba(0, 0, 0, 0.3);
+  --color-focus: var(--accent);
+
+  /* Scrollbar */
+  --color-scrollbar: #d5d0c8;
+  --color-scrollbar-hover: #a39d93;
+
+  /* Shadows */
+  --shadow-event: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-event-hover: 0 4px 14px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 20px rgba(0, 0, 0, 0.04);
+  --shadow-sidebar: none;
+  --shadow-topbar: none;
+  --shadow-today: none;
+  --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-bezel-outer: 0 1px 3px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.04);
+  --shadow-bezel-inner: inset 0 1px 2px rgba(255, 255, 255, 0.7), 0 1px 2px rgba(0, 0, 0, 0.03);
+
+  /* Modal / Popover */
+  --modal-bg: var(--panel);
+  --popover-bg: var(--panel);
+  --modal-scrim: rgba(0, 0, 0, 0.3);
+  --modal-blur: blur(8px);
+  --modal-border: rgba(0, 0, 0, 0.05);
+  --popover-border: rgba(0, 0, 0, 0.06);
+  --modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.15), 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* Typography */
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  /* Safe Area (iOS) */
+  --safe-area-top: 0px;
+  --safe-area-bottom: 0px;
+  --safe-area-right: 0px;
+
+  /* Scrollbar */
+  --scrollbar-width: thin;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+
+  /* Border Radius — squircle (bigger than default) */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 40px;
+
+  /* Event Pill */
+  --event-border-radius: 8px;
+  --event-gap: 3px;
+
+  /* Sidebar Today Button */
+  --today-btn-radius: 10px;
+  --today-btn-weight: 500;
+
+  /* Multi-day Event Shape */
+  --multi-day-clip: polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%);
+
+  /* Calendar Grid */
+  --day-cell-radius: var(--radius-sm);
+  --day-cell-hover-bg: rgba(var(--ink-raw), 0.025);
+  --day-cell-today-bg: color-mix(in srgb, var(--accent) 5%, transparent);
+  --day-cell-other-month-bg: rgba(var(--ink-raw), 0.02);
+
+  /* View Switcher */
+  --view-switcher-bg: rgba(var(--ink-raw), 0.04);
+  --view-switcher-radius: 12px;
+  --view-switcher-indicator-bg: var(--panel);
+  --view-switcher-indicator-shadow: 0 1px 3px rgba(var(--ink-raw), 0.06), 0 0 0 1px var(--line-2);
+  --view-switcher-indicator-radius: 9px;
+
+  /* Spring Motion */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --duration-fast: 180ms;
+  --duration-normal: 320ms;
+  --duration-slow: 500ms;
+}
+
+/* ── Dark Theme ───────────────────────────────────────────────── */
+[data-theme='dark'] {
+
+  /* Canvas & Surfaces */
+  --canvas: #1a1816;
+  --panel: #242220;
+  --side: #1e1c1a;
+
+  --color-bg: var(--canvas);
+  --color-bg-primary: var(--canvas);
+  --color-bg-secondary: var(--panel);
+  --color-bg-tertiary: #2a2826;
+  --color-bg-hover: rgba(255, 255, 255, 0.06);
+  --color-bg-input: #2a2826;
+
+  --color-surface: var(--panel);
+  --color-surface-raised: #2a2826;
+  --color-surface-glass: rgba(36, 34, 32, 0.8);
+
+  /* Text */
+  --ink: #f0ece6;
+  --ink-2: #a39d93;
+  --ink-3: #6f6a62;
+
+  --color-text-primary: var(--ink);
+  --color-text-secondary: var(--ink-2);
+  --color-text-muted: var(--ink-3);
+  --color-text-tertiary: var(--ink-3);
+
+  /* Borders */
+  --line: rgba(240, 236, 230, 0.09);
+  --line-2: rgba(240, 236, 230, 0.05);
+
+  --color-border: var(--line);
+  --color-border-light: var(--line-2);
+  --color-border-subtle: var(--line-2);
+  --color-border-visible: var(--line);
+  --color-border-glass: var(--line);
+
+  /* Accent */
+  --accent: #c9956a;
+  --accent-soft: rgba(201, 149, 106, 0.12);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: #d4a575;
+  --color-accent-light: var(--accent-soft);
+  --color-primary: var(--accent);
+  --color-primary-hover: #d4a575;
+  --color-primary-light: var(--accent-soft);
+
+  /* Status */
+  --color-success: #6aaa85;
+  --color-success-light: rgba(106, 170, 133, 0.12);
+  --color-warning: #d4a54f;
+  --color-error: #d4877f;
+  --color-error-muted: #d4877f;
+  --color-danger: #d4877f;
+  --color-danger-bg: rgba(212, 135, 127, 0.12);
+  --color-info: #7b9fd4;
+
+  /* Event Cards */
+  --ink-raw: 240, 236, 230;
+  --event-bg-mix: 18%;
+  --event-bg-mix-hover: 22%;
+
+  /* Overlay & Focus */
+  --color-overlay: rgba(0, 0, 0, 0.6);
+  --color-focus: var(--accent);
+
+  /* Scrollbar */
+  --color-scrollbar: #3a3836;
+  --color-scrollbar-hover: #4a4846;
+
+  /* Shadows */
+  --shadow-event: 0 1px 2px rgba(0, 0, 0, 0.12);
+  --shadow-event-hover: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.12), 0 6px 16px rgba(0, 0, 0, 0.08);
+  --shadow-sidebar: none;
+  --shadow-topbar: none;
+  --shadow-today: none;
+  --shadow-glass: none;
+  --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-bezel-outer: 0 1px 3px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-bezel-inner: inset 0 1px 2px rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.08);
+
+  /* Modal / Popover */
+  --modal-bg: #2d2a24;
+  --popover-bg: #383229;
+  --modal-scrim: rgba(0, 0, 0, 0.6);
+  --modal-blur: blur(10px);
+  --modal-border: rgba(255, 247, 235, 0.10);
+  --popover-border: rgba(255, 247, 235, 0.14);
+  --modal-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 20px 60px rgba(0, 0, 0, 0.65);
+
+  /* Typography */
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  /* Safe Area (iOS) */
+  --safe-area-top: 0px;
+  --safe-area-bottom: 0px;
+  --safe-area-right: 0px;
+
+  /* Scrollbar */
+  --scrollbar-width: thin;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 40px;
+
+  /* Event Pill */
+  --event-border-radius: 8px;
+  --event-gap: 3px;
+
+  /* Sidebar Today Button */
+  --today-btn-radius: 10px;
+  --today-btn-weight: 500;
+
+  /* Multi-day Event Shape */
+  --multi-day-clip: polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%);
+
+  /* Calendar Grid */
+  --day-cell-radius: var(--radius-sm);
+  --day-cell-hover-bg: rgba(var(--ink-raw), 0.04);
+  --day-cell-today-bg: color-mix(in srgb, var(--accent) 8%, transparent);
+  --day-cell-other-month-bg: rgba(var(--ink-raw), 0.04);
+
+  /* View Switcher */
+  --view-switcher-bg: rgba(var(--ink-raw), 0.06);
+  --view-switcher-radius: 12px;
+  --view-switcher-indicator-bg: var(--panel);
+  --view-switcher-indicator-shadow: 0 1px 2px rgba(var(--ink-raw), 0.12), 0 0 0 1px var(--line);
+  --view-switcher-indicator-radius: 9px;
+
+  /* Spring Motion */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --duration-fast: 180ms;
+  --duration-normal: 320ms;
+  --duration-slow: 500ms;
+}
+
+
+/* ================================================================
+   PART 2: COMPONENT OVERRIDES
+   Scoped to [data-theme-id="calino-taste-soft"].
+   Uses template data-component selectors.
+   ================================================================ */
+
+/* ── Ambient mesh gradient ──────────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] body::before {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 20%, rgba(176, 125, 79, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 85% 75%, rgba(93, 154, 120, 0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 50% at 50% 10%, rgba(176, 125, 79, 0.03) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Sidebar — matches header bg ───────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="sidebar"] {
+  background: var(--side);
+  border-right: 1px solid var(--line-2);
+  transition: width var(--duration-slow) var(--ease-spring),
+              min-width var(--duration-slow) var(--ease-spring),
+              padding var(--duration-slow) var(--ease-spring);
+}
+
+/* ── Header — matches sidebar bg ───────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="header"] {
+  background: var(--side);
+  border-bottom: 1px solid var(--line-2);
+}
+
+/* ── Sidebar cards — double-bezel ──────────────────────────────── */
+[data-theme-id="calino-taste-soft"] .sb-card {
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-bezel-outer);
+  overflow: hidden;
+  transition: box-shadow var(--duration-normal) var(--ease-spring);
+}
+
+[data-theme-id="calino-taste-soft"] .sb-card:hover {
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Sidebar today button — pill CTA ───────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="sidebar-today-button"] {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 2px 8px rgba(176, 125, 79, 0.25);
+  transition: box-shadow var(--duration-fast) var(--ease-spring),
+              transform var(--duration-fast) var(--ease-spring);
+}
+
+[data-theme-id="calino-taste-soft"] [data-component="sidebar-today-button"]:hover {
+  box-shadow: 0 4px 16px rgba(176, 125, 79, 0.3);
+  transform: translateY(-1px);
+}
+
+/* ── Tasks section ─────────────────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="tasks-section"] {
+  border-top: 1px solid var(--line-2);
+  padding-top: 12px;
+}
+
+/* ── Spring transitions on buttons ─────────────────────────────── */
+[data-theme-id="calino-taste-soft"] button,
+[data-theme-id="calino-taste-soft"] [role="button"] {
+  transition: all var(--duration-fast) var(--ease-out-soft);
+}
+
+[data-theme-id="calino-taste-soft"] button:active,
+[data-theme-id="calino-taste-soft"] [role="button"]:active {
+  transition-duration: 100ms;
+  transform: scale(0.98);
+}
+
+/* ── Primary CTA — pill with glow ──────────────────────────────── */
+[data-theme-id="calino-taste-soft"] .new-event-btn,
+[data-theme-id="calino-taste-soft"] [class*="new-event"],
+[data-theme-id="calino-taste-soft"] .primary-btn {
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  box-shadow: 0 2px 8px rgba(176, 125, 79, 0.25);
+}
+
+[data-theme-id="calino-taste-soft"] .new-event-btn:hover,
+[data-theme-id="calino-taste-soft"] [class*="new-event"]:hover,
+[data-theme-id="calino-taste-soft"] .primary-btn:hover {
+  box-shadow: 0 4px 16px rgba(176, 125, 79, 0.3);
+  transform: translateY(-1px);
+}
+
+/* ── Today button (header) — pill CTA ──────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="today-button"] {
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 2px 8px rgba(176, 125, 79, 0.25);
+}
+
+/* ── View switcher — frosted pills ─────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="view-switcher"] {
+  background: var(--view-switcher-bg);
+  border-radius: var(--view-switcher-radius);
+  padding: 3px;
+  gap: 2px;
+}
+
+/* ── Calendar grid — squircle cells ────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="calendar-grid"] > div {
+  border-radius: var(--day-cell-radius);
+}
+
+[data-theme-id="calino-taste-soft"] [data-component="calendar-grid"] [data-other-month] {
+  background: var(--day-cell-other-month-bg);
+}
+
+[data-theme-id="calino-taste-soft"] [data-component="calendar-grid"] [data-weekend] {
+  opacity: 0.85;
+}
+
+[data-theme-id="calino-taste-soft"] [data-component="calendar-grid"] [data-drop-target] {
+  background: var(--accent-soft);
+  outline: 2px dashed var(--accent);
+}
+
+/* ── Day tasks row ─────────────────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="day-tasks"] {
+  gap: 2px;
+}
+
+/* ── Event cards — squircle + subtle border + per-color tint ───── */
+[data-theme-id="calino-taste-soft"] [data-component="event-card"] {
+  border-radius: var(--event-border-radius);
+  border: 1px solid rgba(var(--ink-raw), 0.06);
+  box-shadow: var(--shadow-event);
+  transition: box-shadow var(--duration-fast) var(--ease-out-soft),
+              transform var(--duration-fast) var(--ease-spring);
+}
+
+[data-theme-id="calino-taste-soft"] [data-component="event-card"]:hover {
+  box-shadow: var(--shadow-event-hover);
+  transform: translateY(-1px);
+}
+
+/* ── Per-color event borders ───────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="event-card"].cal-work,
+[data-theme-id="calino-taste-soft"] [data-component="event-card"][class*="work"] {
+  border-color: rgba(91, 127, 181, 0.12);
+  background: rgba(91, 127, 181, 0.08);
+}
+
+[data-theme-id="calino-taste-soft"] [data-component="event-card"].cal-personal,
+[data-theme-id="calino-taste-soft"] [data-component="event-card"][class*="personal"] {
+  border-color: rgba(93, 154, 120, 0.12);
+  background: rgba(93, 154, 120, 0.08);
+}
+
+[data-theme-id="calino-taste-soft"] [data-component="event-card"].cal-birthday,
+[data-theme-id="calino-taste-soft"] [data-component="event-card"][class*="birthday"] {
+  border-color: rgba(194, 105, 127, 0.12);
+  background: rgba(194, 105, 127, 0.08);
+}
+
+[data-theme-id="calino-taste-soft"] [data-component="event-card"].cal-holiday,
+[data-theme-id="calino-taste-soft"] [data-component="event-card"][class*="holiday"] {
+  border-color: rgba(176, 125, 79, 0.12);
+  background: rgba(176, 125, 79, 0.08);
+}
+
+[data-theme-id="calino-taste-soft"] [data-component="event-card"].cal-default,
+[data-theme-id="calino-taste-soft"] [data-component="event-card"][class*="default"] {
+  border-color: rgba(var(--ink-raw), 0.06);
+  background: rgba(var(--ink-raw), 0.05);
+}
+
+/* ── Multi-day event ───────────────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-multi-day] {
+  border-radius: var(--event-border-radius);
+  opacity: 0.9;
+}
+
+/* ── Today cell — accent ring + glow ───────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-today] {
+  box-shadow: inset 0 0 0 2px var(--accent),
+              0 0 16px rgba(176, 125, 79, 0.15);
+  border-radius: var(--day-cell-radius);
+}
+
+/* ── Modal backdrop — frosted blur ─────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="modal-backdrop"] {
+  backdrop-filter: var(--modal-blur);
+  -webkit-backdrop-filter: var(--modal-blur);
+}
+
+/* ── Modal card — frosted glass border ───────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="modal-card"] {
+  background: var(--modal-bg);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--modal-shadow);
+}
+
+/* ── Modal accent band ─────────────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="modal-band"] {
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), rgba(176, 125, 79, 0.2));
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+/* ── Modal body ────────────────────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="modal-body"] {
+  padding: 0 24px;
+}
+
+/* ── Modal footer ──────────────────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="modal-footer"] {
+  border-top: 1px solid var(--line-2);
+  background: var(--modal-bg);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+}
+
+/* ── Command palette ───────────────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [data-component="command-palette"] {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ── Popover — frosted ─────────────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] [class*="popover"],
+[data-theme-id="calino-taste-soft"] [class*="Popover"] {
+  backdrop-filter: var(--modal-blur);
+  -webkit-backdrop-filter: var(--modal-blur);
+}
+
+/* ── Focus rings — accent-tinted ───────────────────────────────── */
+[data-theme-id="calino-taste-soft"] :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Selection — accent-tinted ─────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] ::selection {
+  background: rgba(176, 125, 79, 0.18);
+  color: var(--ink);
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────── */
+[data-theme-id="calino-taste-soft"] ::-webkit-scrollbar { width: 6px; }
+[data-theme-id="calino-taste-soft"] ::-webkit-scrollbar-track { background: transparent; }
+[data-theme-id="calino-taste-soft"] ::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: var(--radius-pill); }
+[data-theme-id="calino-taste-soft"] ::-webkit-scrollbar-thumb:hover { background: var(--color-scrollbar-hover); }

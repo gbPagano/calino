@@ -46,7 +46,9 @@ export default {
     }
 
     const targetBase = decodeURIComponent(pathParts[0])
-    const targetPath = '/' + pathParts.slice(1).join('/')
+    // Reconstruct path from raw pathname to preserve trailing slashes
+    const rawPath = url.pathname.substring(url.pathname.indexOf('/', 1))
+    const targetPath = rawPath || '/'
 
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {

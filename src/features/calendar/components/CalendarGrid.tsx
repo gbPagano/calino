@@ -876,6 +876,8 @@ const DroppableDay = React.memo(function DroppableDay({
       {...(isOver ? { 'data-drop-target': '' } : {})}
       role="button"
       tabIndex={0}
+      aria-label={format(day, 'EEEE, MMMM d, yyyy')}
+      data-date={dateKey}
       onClick={() => onDayClick(day)}
       onDoubleClick={() => onDayDoubleClick(day)}
       onKeyDown={(e) => {

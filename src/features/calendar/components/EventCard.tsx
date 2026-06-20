@@ -259,6 +259,14 @@ export const EventCard = React.memo(function EventCard({
         style={style}
         data-event-card
         data-component="event-card"
+        role="button"
+        tabIndex={0}
+        aria-label={isTask
+          ? `${event.title}${event.completed ? ' (completed)' : ''}${event.dueDate ? ` due ${formatTime(event.dueDate)}` : ''}`
+          : event.isAllDay
+          ? `${event.title}, all day`
+          : `${event.title}, ${formatTime(event.start)} to ${formatTime(event.end)}`
+        }
         {...(isMultiDay ? { 'data-multi-day': '' } : {})}
         {...(isFragmentFirst ? { 'data-fragment-first': '' } : {})}
         {...(isFragmentMiddle ? { 'data-fragment-middle': '' } : {})}

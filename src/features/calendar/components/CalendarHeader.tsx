@@ -224,7 +224,7 @@ export function CalendarHeader({
   })
 
   return (
-    <div className={styles.header} {...bind} data-component="header">
+    <header className={styles.header} {...bind} data-component="header">
       {/* Brand + Hamburger — both always rendered, CSS handles visibility */}
       <div className={`${styles.brand} ${isMobile || isCompact ? styles.brandHidden : ''}`}>
         <div className={styles.brandDiamond} />
@@ -458,7 +458,7 @@ export function CalendarHeader({
           ))}
         </div>
       )}
-    </div>
+    </header>
   )
 }
 

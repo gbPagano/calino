@@ -161,7 +161,7 @@ export function SettingsPage(): JSX.Element {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} data-component="settings-page">
       <div className={styles.backMobile}>
         <button className={styles.back} onClick={() => navigate('/')}>
           <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -171,13 +171,16 @@ export function SettingsPage(): JSX.Element {
         </button>
       </div>
       <div className={styles.body}>
-        <aside className={styles.nav}>
+        <aside className={styles.nav} data-component="settings-sidebar">
           <h1 className={styles.navTitle}>Settings</h1>
-          <nav className={styles.navList}>
+          <nav className={styles.navList} aria-label="Settings">
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
                 className={`${styles.navItem} ${activeTab === item.id ? styles.navItemActive : ''}`}
+                data-component="settings-nav-item"
+                data-tab={item.id}
+                aria-current={activeTab === item.id ? 'page' : undefined}
                 onClick={() => setActiveTab(item.id)}
               >
                 {item.icon}
@@ -189,7 +192,7 @@ export function SettingsPage(): JSX.Element {
             ))}
           </nav>
         </aside>
-        <main className={styles.main}>
+        <main className={styles.main} data-component="settings-panel">
           <div className={styles.header}>
             <button className={styles.back} onClick={() => navigate('/')}>
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">

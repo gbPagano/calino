@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { addDays } from 'date-fns'
 import { toast as sonnerToast } from 'sonner'
 import type { CalendarEvent } from '@/types'
+import { showBrokenEventsNotification } from '@/lib/toast'
 import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
 import { createCalDAVClient } from '../client/CalDAVClient'
 import { testConnection, discoverServerUrl } from '../client/discovery'
@@ -390,6 +391,12 @@ export function useCalDAV(): UseCalDAVReturn {
         storage.updateAccountLastSync(newAccount.id)
         processPendingChanges()
 
+        // Check for broken events after addAccount and notify
+        const brokenEventsAfterAdd = useCalendarStore.getState().brokenEvents
+        if (brokenEventsAfterAdd.length > 0) {
+          showBrokenEventsNotification(brokenEventsAfterAdd.length)
+        }
+
         setSyncState((prev) => ({
           ...prev,
           status: 'idle',
@@ -648,6 +655,12 @@ export function useCalDAV(): UseCalDAVReturn {
 
         storage.updateAccountLastSync(accountId)
         processPendingChanges()
+
+        // Check for broken events after sync and notify
+        const brokenEventsAfterSync = useCalendarStore.getState().brokenEvents
+        if (brokenEventsAfterSync.length > 0) {
+          showBrokenEventsNotification(brokenEventsAfterSync.length)
+        }
 
         // After sync, check if any journal entries exist and enable journaling if so
         const allEvents = useCalendarStore.getState().events

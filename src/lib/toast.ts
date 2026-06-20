@@ -37,4 +37,18 @@ export function showToast(message: string, options?: ShowToastOptions): void {
   sonner(message, opts)
 }
 
+export function showBrokenEventsNotification(count: number): void {
+  const message = count === 1
+    ? 'Found 1 broken event with invalid dates.'
+    : `Found ${count} broken events with invalid dates.`
+
+  showToast(message, {
+    duration: 8000,
+    linkText: 'View',
+    onLinkClick: () => {
+      window.location.href = '/settings?tab=data-issues'
+    },
+  })
+}
+
 

@@ -45,6 +45,12 @@ export interface CalendarAttachment {
   filename?: string   // display name
 }
 
+export interface BrokenEvent {
+  event: CalendarEvent
+  reason: string
+  detectedAt: string
+}
+
 export interface CalendarEvent {
   id: string
   calendarId: string
@@ -97,6 +103,7 @@ export type ViewType = 'month' | 'week' | 'day' | 'agenda' | 'todo' | 'journal'
 
 export interface CalendarState {
   events: CalendarEvent[]
+  brokenEvents: BrokenEvent[]
   calendars: Calendar[]
   categories: Category[]
   autoCategoryRules: AutoCategoryRule[]
@@ -121,6 +128,9 @@ export interface CalendarActions {
   addEvent: (event: CalendarEvent) => void
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => void
   deleteEvent: (id: string) => void
+  addBrokenEvent: (event: CalendarEvent, reason: string) => void
+  removeBrokenEvent: (eventId: string) => void
+  fixBrokenEvent: (eventId: string) => void
   duplicateEvent: (id: string) => string | null
   addCalendar: (calendar: Calendar) => void
   updateCalendar: (id: string, updates: Partial<Calendar>) => void

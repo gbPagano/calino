@@ -118,5 +118,13 @@ describe('SettingsPage', () => {
     expect(nav!.textContent).toContain('Notifications')
     expect(nav!.textContent).toContain('Sync')
     expect(nav!.textContent).toContain('Data')
+    expect(nav!.textContent).toContain('Data Issues')
+  })
+
+  it('initializes to data-issues tab from URL query param', () => {
+    renderWithProviders(['/settings?tab=data-issues'])
+
+    const matches = screen.getAllByText('Data Issues')
+    expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 })

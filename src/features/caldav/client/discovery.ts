@@ -58,7 +58,7 @@ async function probeWellKnown(
   return probeWellKnownDirect(wellKnownUrl, baseUrl)
 }
 
-/** Direct fetch (no probe): use redirect: 'manual' and resolve Location ourselves. */
+/** Direct fetch: follow redirect and compare final URL to detect .well-known discovery. */
 async function probeWellKnownDirect(
   wellKnownUrl: string,
   baseUrl: string
@@ -66,42 +66,43 @@ async function probeWellKnownDirect(
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), DISCOVERY_TIMEOUT_MS)
   try {
+    // Use redirect:'follow' — cross-origin redirect:'manual' returns an opaque
+    // response (status 0, empty headers) in browsers, even with CORS exposed headers.
     const response = await fetch(wellKnownUrl, {
       method: 'GET',
-      redirect: 'manual',
+      redirect: 'follow',
       signal: controller.signal,
     })
 
-    // 3xx redirect — extract Location and resolve against the target server
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get('Location')
-      if (location) {
-        const resolved = new URL(location, baseUrl)
-        const path = resolved.pathname
-        return buildBaseUrl(baseUrl, path)
-      }
+    const finalUrl = new URL(response.url)
+    const finalPath = finalUrl.pathname.replace(/\/$/, '')
+    const wellKnownBase = new URL(wellKnownUrl).origin + '/.well-known/caldav'
+    const finalBase = finalUrl.origin + finalPath
+
+    // If the final URL differs from .well-known/caldav, we were redirected
+    // to the real CalDAV endpoint (even if it returned 401/403 for auth).
+    if (finalBase !== wellKnownBase) {
+      return buildBaseUrl(baseUrl, finalPath)
     }
 
-    // 200 direct response at .well-known (no redirect needed)
+    // 200 at .well-known itself — server responds directly (unusual)
     if (response.ok) {
-      const finalUrl = new URL(response.url)
-      const path = finalUrl.pathname
-      return buildBaseUrl(baseUrl, path)
+      return buildBaseUrl(baseUrl, finalPath)
     }
 
-    // 404/405 — server doesn't support well-known
+    // 404/405 at .well-known — server doesn't support well-known discovery
     if (response.status === 404 || response.status === 405) {
       return null
     }
 
-    // Other non-redirect status — treat as unsupported
+    // Other status at .well-known itself — treat as unsupported
     return null
   } finally {
     clearTimeout(timer)
   }
 }
 
-/** Proxy fetch: follow redirects manually since Location is relative to target. */
+/** Proxy fetch: same logic as direct — the proxy handles redirects. */
 async function probeWellKnownViaProxy(
   wellKnownUrl: string,
   baseUrl: string,
@@ -112,31 +113,36 @@ async function probeWellKnownViaProxy(
   try {
     const response = await proxyFetch(proxyUrl, wellKnownUrl, {
       method: 'GET',
-      redirect: 'manual', // don't follow — Location is relative to target
+      redirect: 'follow',
       signal: controller.signal,
     })
 
-    // 3xx redirect — extract Location and resolve against the target server
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get('Location')
-      if (location) {
-        const resolved = new URL(location, baseUrl)
-        const path = resolved.pathname
-        return buildBaseUrl(baseUrl, path)
+    // Same logic as probeWellKnownDirect: check if we ended up somewhere else.
+    // If the proxy followed a redirect, response.url will be the proxy URL
+    // but the actual target path differs from .well-known/caldav.
+    // We detect this via the X-Target-URL header the proxy sets, or by
+    // status code (401/403 means the endpoint exists after redirect).
+    const targetUrl = response.headers.get('X-Target-URL')
+    if (targetUrl) {
+      const finalUrl = new URL(targetUrl)
+      const finalPath = finalUrl.pathname.replace(/\/$/, '')
+      const wellKnownPath = '/.well-known/caldav'
+      if (finalUrl.origin + finalPath !== new URL(wellKnownUrl).origin + wellKnownPath) {
+        return buildBaseUrl(baseUrl, finalPath)
       }
     }
 
-    // 200 direct response at .well-known (no redirect needed)
+    // No X-Target-URL: infer from status. 401/403 means auth-gated redirect succeeded.
+    if (response.status === 401 || response.status === 403) {
+      return null // discovery succeeded but path unknown — caller uses well-known as starting point
+    }
+
+    // 200 at .well-known itself (unusual)
     if (response.ok) {
-      const path = new URL(wellKnownUrl).pathname
-      return buildBaseUrl(baseUrl, path)
+      return buildBaseUrl(baseUrl, new URL(wellKnownUrl).pathname)
     }
 
-    // 404/405 — server doesn't support well-known
-    if (response.status === 404 || response.status === 405) {
-      return null
-    }
-
+    // 404/405 — not supported
     return null
   } finally {
     clearTimeout(timer)

@@ -907,7 +907,7 @@ describe('calendarStore', () => {
       expect(event).toBeDefined()
     })
 
-    it('silently skips updateEvent when start becomes after end', () => {
+    it('moves event to brokenEvents when update creates start > end', () => {
       const store = useCalendarStore.getState()
 
       store.addEvent({
@@ -924,13 +924,16 @@ describe('calendarStore', () => {
         end: '2024-03-15T10:00:00',
       })
 
-      // Original event should be unchanged (update was skipped)
+      // Event should be moved from events to brokenEvents
       const event = useCalendarStore.getState().events.find((e) => e.id === 'update-bad')
-      expect(event?.start).toBe('2024-03-15T10:00:00')
-      expect(event?.end).toBe('2024-03-15T11:00:00')
+      expect(event).toBeUndefined()
+      const brokenEvent = useCalendarStore.getState().brokenEvents.find((be) => be.event.id === 'update-bad')
+      expect(brokenEvent).toBeDefined()
+      expect(brokenEvent?.event.start).toBe('2024-03-15T12:00:00')
+      expect(brokenEvent?.event.end).toBe('2024-03-15T10:00:00')
     })
 
-    it('silently skips updateEvent when only start exceeds end', () => {
+    it('moves event to brokenEvents when only start exceeds end', () => {
       const store = useCalendarStore.getState()
 
       store.addEvent({
@@ -946,12 +949,14 @@ describe('calendarStore', () => {
         start: '2024-03-15T12:00:00',
       })
 
-      // Event unchanged
+      // Event should be moved to brokenEvents
       const event = useCalendarStore.getState().events.find((e) => e.id === 'update-start-only')
-      expect(event?.start).toBe('2024-03-15T10:00:00')
+      expect(event).toBeUndefined()
+      const brokenEvent = useCalendarStore.getState().brokenEvents.find((be) => be.event.id === 'update-start-only')
+      expect(brokenEvent).toBeDefined()
     })
 
-    it('silently skips updateEvent when only end makes start exceed it', () => {
+    it('moves event to brokenEvents when only end makes start exceed it', () => {
       const store = useCalendarStore.getState()
 
       store.addEvent({
@@ -967,9 +972,11 @@ describe('calendarStore', () => {
         end: '2024-03-15T09:00:00',
       })
 
-      // Event unchanged
+      // Event should be moved to brokenEvents
       const event = useCalendarStore.getState().events.find((e) => e.id === 'update-end-only')
-      expect(event?.end).toBe('2024-03-15T11:00:00')
+      expect(event).toBeUndefined()
+      const brokenEvent = useCalendarStore.getState().brokenEvents.find((be) => be.event.id === 'update-end-only')
+      expect(brokenEvent).toBeDefined()
     })
 
     it('allows updateEvent to change only title without validation error', () => {

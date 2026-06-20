@@ -209,13 +209,13 @@ describe('AddCalendarModal', () => {
   it('disables submit button while testing', async () => {
     const user = userEvent.setup()
 
-    let resolveFetch: (value: Response) => void
+    const fetchCalls: ((value: Response) => void)[] = []
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation(
         () =>
           new Promise((resolve) => {
-            resolveFetch = resolve
+            fetchCalls.push(resolve)
           })
       )
     )
@@ -238,7 +238,15 @@ describe('AddCalendarModal', () => {
       expect(screen.getByRole('button', { name: /testing/i })).toBeDisabled()
     })
 
-    resolveFetch!({ ok: true, status: 207 } as Response)
+    // Resolve discovery probe first, then wait for PROPFIND to be called
+    fetchCalls[0]({ ok: true, status: 200, url: 'https://caldav.example.com/.well-known/caldav', headers: new Headers() } as Response)
+
+    await waitFor(() => {
+      expect(fetchCalls.length).toBe(2)
+    })
+
+    // Now resolve the PROPFIND
+    fetchCalls[1]({ ok: true, status: 207 } as Response)
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /add calendar/i })).toBeEnabled()

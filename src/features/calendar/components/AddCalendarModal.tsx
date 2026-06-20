@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
+import { discoverServerUrl } from '@/features/caldav/client/discovery'
 import styles from './AddCalendarModal.module.css'
 
 interface AddCalendarModalProps {
@@ -28,21 +29,17 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
     setConnectionError('')
 
     try {
-      let baseUrl = serverUrl
-      if (serverUrl.includes('/calendars/')) {
-        const match = serverUrl.match(/^https?:\/\/[^/]+/)
-        if (match) {
-          baseUrl = match[0] + '/dav.php'
-        }
-      }
+      // Discover the actual CalDAV endpoint via .well-known/caldav
+      const baseUrl = await discoverServerUrl(serverUrl, proxyUrl)
 
+      let fetchUrl = baseUrl
       if (proxyUrl) {
         const encodedTarget = encodeURIComponent(baseUrl)
         const proxyBase = proxyUrl.replace(/\/$/, '')
-        baseUrl = `${proxyBase}/${encodedTarget}`
+        fetchUrl = `${proxyBase}/${encodedTarget}`
       }
 
-      const response = await fetch(baseUrl, {
+      const response = await fetch(fetchUrl, {
         method: 'PROPFIND',
         headers: {
           Authorization: `Basic ${btoa(`${username}:${password}`)}`,

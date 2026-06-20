@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { encryptWithMasterPassword } from '@/lib/crypto'
+import { discoverServerUrl } from '@/features/caldav/client/discovery'
 import type { CalinoConfig, PreconfiguredAccount } from '@/lib/configLoader'
 import styles from './SetupPage.module.css'
 
@@ -26,21 +27,17 @@ async function testConnection(
   proxyUrl?: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    let baseUrl = serverUrl
-    if (serverUrl.includes('/calendars/')) {
-      const match = serverUrl.match(/^https?:\/\/[^/]+/)
-      if (match) {
-        baseUrl = match[0] + '/dav.php'
-      }
-    }
+    // Discover the actual CalDAV endpoint via .well-known/caldav
+    const baseUrl = await discoverServerUrl(serverUrl, proxyUrl)
 
+    let fetchUrl = baseUrl
     if (proxyUrl) {
       const encodedTarget = encodeURIComponent(baseUrl)
       const proxyBase = proxyUrl.replace(/\/$/, '')
-      baseUrl = `${proxyBase}/${encodedTarget}`
+      fetchUrl = `${proxyBase}/${encodedTarget}`
     }
 
-    const response = await fetch(baseUrl, {
+    const response = await fetch(fetchUrl, {
       method: 'PROPFIND',
       headers: {
         Authorization: `Basic ${btoa(`${username}:${password}`)}`,

@@ -15,15 +15,15 @@ describe('discovery', () => {
   // -----------------------------------------------------------------------
   describe('well-known probe: Baikal (redirects to /dav.php)', () => {
     it('follows 301 redirect to /dav.php', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue(
-          new Response(null, {
-            status: 301,
-            headers: { Location: '/dav.php' },
-          })
-        )
-      )
+      // With redirect:'follow', browser follows the redirect and returns
+      // the final response at /dav.php with the redirected URL
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        url: 'https://caldav.example.com/dav.php',
+        headers: new Headers(),
+      } as unknown as Response
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse))
 
       const result = await discoverServerUrl('https://caldav.example.com')
 
@@ -31,15 +31,13 @@ describe('discovery', () => {
     })
 
     it('follows 302 redirect to /dav.php', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue(
-          new Response(null, {
-            status: 302,
-            headers: { Location: '/dav.php' },
-          })
-        )
-      )
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        url: 'https://caldav.example.com/dav.php',
+        headers: new Headers(),
+      } as unknown as Response
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse))
 
       const result = await discoverServerUrl('https://caldav.example.com')
 
@@ -52,15 +50,13 @@ describe('discovery', () => {
   // -----------------------------------------------------------------------
   describe('well-known probe: Radicale (redirects to /)', () => {
     it('follows 301 redirect to /', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue(
-          new Response(null, {
-            status: 301,
-            headers: { Location: '/' },
-          })
-        )
-      )
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        url: 'https://radicale.example.com/',
+        headers: new Headers(),
+      } as unknown as Response
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse))
 
       const result = await discoverServerUrl('https://radicale.example.com')
 
@@ -73,15 +69,13 @@ describe('discovery', () => {
   // -----------------------------------------------------------------------
   describe('well-known probe: Nextcloud (redirects to /remote.php/dav)', () => {
     it('follows 301 redirect to /remote.php/dav', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue(
-          new Response(null, {
-            status: 301,
-            headers: { Location: '/remote.php/dav' },
-          })
-        )
-      )
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        url: 'https://nextcloud.example.com/remote.php/dav',
+        headers: new Headers(),
+      } as unknown as Response
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse))
 
       const result = await discoverServerUrl('https://nextcloud.example.com')
 
@@ -154,12 +148,14 @@ describe('discovery', () => {
   // -----------------------------------------------------------------------
   describe('proxy support', () => {
     it('probes well-known through proxy', async () => {
-      const fetchSpy = vi.fn().mockResolvedValue(
-        new Response(null, {
-          status: 301,
-          headers: { Location: '/dav.php' },
-        })
-      )
+      const fetchSpy = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        url: 'https://proxy.example.com/https%3A%2F%2Fcaldav.example.com%2Fdav.php',
+        headers: new Headers({
+          'X-Target-URL': 'https://caldav.example.com/dav.php',
+        }),
+      } as unknown as Response)
       vi.stubGlobal('fetch', fetchSpy)
 
       const proxyUrl = 'https://proxy.example.com'
@@ -174,15 +170,15 @@ describe('discovery', () => {
     })
 
     it('follows redirect manually through proxy', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue(
-          new Response(null, {
-            status: 301,
-            headers: { Location: '/dav.php' },
-          })
-        )
-      )
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        url: 'https://proxy.example.com/https%3A%2F%2Fcaldav.example.com%2Fdav.php',
+        headers: new Headers({
+          'X-Target-URL': 'https://caldav.example.com/dav.php',
+        }),
+      } as unknown as Response
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse))
 
       const result = await discoverServerUrl(
         'https://caldav.example.com',
@@ -222,15 +218,13 @@ describe('discovery', () => {
   // -----------------------------------------------------------------------
   describe('URL normalization', () => {
     it('adds https:// if missing', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue(
-          new Response(null, {
-            status: 301,
-            headers: { Location: '/dav.php' },
-          })
-        )
-      )
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        url: 'https://caldav.example.com/dav.php',
+        headers: new Headers(),
+      } as unknown as Response
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse))
 
       const result = await discoverServerUrl('caldav.example.com')
 
@@ -238,15 +232,13 @@ describe('discovery', () => {
     })
 
     it('preserves existing protocol', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue(
-          new Response(null, {
-            status: 301,
-            headers: { Location: '/dav.php' },
-          })
-        )
-      )
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        url: 'http://localhost:5233/dav.php',
+        headers: new Headers(),
+      } as unknown as Response
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse))
 
       const result = await discoverServerUrl('http://localhost:5233')
 
@@ -254,15 +246,13 @@ describe('discovery', () => {
     })
 
     it('strips trailing slash from base URL before well-known probe', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue(
-          new Response(null, {
-            status: 301,
-            headers: { Location: '/dav.php' },
-          })
-        )
-      )
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        url: 'https://caldav.example.com/dav.php',
+        headers: new Headers(),
+      } as unknown as Response
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse))
 
       const result = await discoverServerUrl('https://caldav.example.com/')
 

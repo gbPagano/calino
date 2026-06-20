@@ -152,6 +152,21 @@
   font-weight: 500;
 }
 
+.navBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #bb5d6e;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: auto;
+}
+
 .navIcon {
   width: 17px;
   height: 17px;
@@ -864,6 +879,76 @@
 
 .dangerZoneLabel {
   color: #bb5d6e;
+}
+
+/* ── Broken Events ───────────────────────────────────────────────────── */
+.brokenList {
+  display: flex;
+  flex-direction: column;
+}
+
+.brokenItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line-2);
+  gap: 16px;
+}
+
+.brokenItem:last-child {
+  border-bottom: none;
+}
+
+.brokenInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.brokenTitle {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.brokenDates {
+  font-size: 13px;
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.brokenArrow {
+  color: var(--ink-3);
+}
+
+.brokenReason {
+  font-size: 12px;
+  color: #bb5d6e;
+  margin-top: 4px;
+}
+
+.brokenActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.brokenBatchActions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--line-2);
+}
+
+.emptyState {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 14px;
 }
 
 /* ── Notification dependency ────────────────────────────────────────────── */

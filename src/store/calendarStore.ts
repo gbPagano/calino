@@ -38,6 +38,7 @@ export const useCalendarStore = create<CalendarStore>()(
   persist(
     (set, get) => ({
       events: [],
+      brokenEvents: [],
       calendars: [DEFAULT_CALENDAR],
       categories: [],
       autoCategoryRules: [],
@@ -58,16 +59,24 @@ export const useCalendarStore = create<CalendarStore>()(
       journalStartInCompose: false,
 
       addEvent: (event: CalendarEvent): void => {
-        // Skip events with invalid date ranges instead of blocking the entire import
+        // Capture events with invalid date ranges as broken instead of dropping them
         if (event.start > event.end && !event.isAllDay) {
+          const reason = `start (${event.start}) > end (${event.end})`
           console.warn(
-            `[Calendar] Skipping event with start > end:\n` +
+            `[Calendar] Broken event detected:\n` +
             `  id: ${event.id}\n` +
             `  title: ${event.title}\n` +
             `  calendar: ${event.calendarId}\n` +
             `  start: ${event.start}\n` +
             `  end: ${event.end}`
           )
+          // Store as broken event (deduplicate by id)
+          const existingBroken = get().brokenEvents.find((be) => be.event.id === event.id)
+          if (!existingBroken) {
+            set((state) => ({
+              brokenEvents: [...state.brokenEvents, { event, reason, detectedAt: new Date().toISOString() }],
+            }))
+          }
           return
         }
         const state = get()
@@ -86,7 +95,19 @@ export const useCalendarStore = create<CalendarStore>()(
         const safeUpdates = { ...updates }
         if (safeUpdates.start !== undefined && safeUpdates.end !== undefined) {
           if (safeUpdates.start > safeUpdates.end && !safeUpdates.isAllDay) {
-            console.warn('[Calendar] Skipping update: start > end for', id)
+            const reason = `start (${safeUpdates.start}) > end (${safeUpdates.end})`
+            console.warn('[Calendar] Broken event update:', id)
+            const existingEvent = get().events.find((e) => e.id === id)
+            if (existingEvent) {
+              const mergedEvent = { ...existingEvent, ...safeUpdates }
+              const existingBroken = get().brokenEvents.find((be) => be.event.id === id)
+              if (!existingBroken) {
+                set((state) => ({
+                  events: state.events.filter((e) => e.id !== id),
+                  brokenEvents: [...state.brokenEvents, { event: mergedEvent, reason, detectedAt: new Date().toISOString() }],
+                }))
+              }
+            }
             return
           }
         } else if (safeUpdates.start !== undefined || safeUpdates.end !== undefined) {
@@ -95,7 +116,16 @@ export const useCalendarStore = create<CalendarStore>()(
             const start = safeUpdates.start ?? existingEvent.start
             const end = safeUpdates.end ?? existingEvent.end
             if (start > end && !existingEvent.isAllDay) {
-              console.warn('[Calendar] Skipping update: start > end for', id)
+              const reason = `start (${start}) > end (${end})`
+              console.warn('[Calendar] Broken event update:', id)
+              const mergedEvent = { ...existingEvent, ...safeUpdates }
+              const existingBroken = get().brokenEvents.find((be) => be.event.id === id)
+              if (!existingBroken) {
+                set((state) => ({
+                  events: state.events.filter((e) => e.id !== id),
+                  brokenEvents: [...state.brokenEvents, { event: mergedEvent, reason, detectedAt: new Date().toISOString() }],
+                }))
+              }
               return
             }
           }
@@ -120,6 +150,41 @@ export const useCalendarStore = create<CalendarStore>()(
         set((state) => ({
           events: state.events.filter((e) => e.id !== id),
         }))
+      },
+
+      addBrokenEvent: (event: CalendarEvent, reason: string): void => {
+        const existing = get().brokenEvents.find((be) => be.event.id === event.id)
+        if (!existing) {
+          set((state) => ({
+            brokenEvents: [...state.brokenEvents, { event, reason, detectedAt: new Date().toISOString() }],
+          }))
+        }
+      },
+
+      removeBrokenEvent: (eventId: string): void => {
+        set((state) => ({
+          brokenEvents: state.brokenEvents.filter((be) => be.event.id !== eventId),
+        }))
+      },
+
+      fixBrokenEvent: (eventId: string): void => {
+        const brokenEvent = get().brokenEvents.find((be) => be.event.id === eventId)
+        if (!brokenEvent) return
+
+        const { event } = brokenEvent
+        const fixedEvent: CalendarEvent = {
+          ...event,
+          start: event.end,
+          end: event.start,
+        }
+
+        // Remove from broken events
+        set((state) => ({
+          brokenEvents: state.brokenEvents.filter((be) => be.event.id !== eventId),
+        }))
+
+        // Add to normal events
+        get().addEvent(fixedEvent)
       },
 
       duplicateEvent: (id: string): string | null => {
@@ -547,6 +612,7 @@ export const useCalendarStore = create<CalendarStore>()(
             })),
           }
         }),
+        brokenEvents: state.brokenEvents,
         calendars: state.calendars,
         categories: state.categories,
         autoCategoryRules: state.autoCategoryRules,

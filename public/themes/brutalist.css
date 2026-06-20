@@ -565,7 +565,8 @@
 }
 
 [data-theme-id="brutalist"] [data-component="view-switcher-indicator"] {
-  height: 31px;
+  height: 28px;
+  top: 6px;
 }
 
 [data-theme='dark'] [data-component="today-button"] {

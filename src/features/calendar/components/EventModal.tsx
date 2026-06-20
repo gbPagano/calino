@@ -1193,7 +1193,7 @@ export function EventModal(): JSX.Element | null {
               <button type="button" className={styles.modalCancel} onClick={animateClose}>
                 Cancel
               </button>
-              <button type="submit" className={styles.modalSave} disabled={!title.trim()}>
+              <button type="submit" className={styles.modalSave} disabled={!title.trim()} data-component="modal-save">
                 {isEditing ? 'Save' : 'Create'}
               </button>
             </div>

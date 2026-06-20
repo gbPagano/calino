@@ -364,9 +364,9 @@
   font-size: 12px;
 }
 
-/* ── Event cards — sharp, border-left accent ─────────────────── */
+/* ── Event cards — sharp, all-side border ────────────────────── */
 [data-theme-id="bauhaus"] [data-component="event-card"] {
-  border-left: 3px solid var(--color-accent);
+  border-left: 1px solid rgba(var(--ink-raw, 44, 40, 33), 0.06);
   border-radius: 0;
 }
 

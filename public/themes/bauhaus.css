@@ -159,6 +159,7 @@
   --view-switcher-indicator-bg: var(--panel);
   --view-switcher-indicator-shadow: 0 0 0 1px var(--line);
   --view-switcher-indicator-radius: 0;
+  --view-switcher-indicator-height: 28px;
 
   /* Sidebar Today Button */
   --today-btn-radius: 0;
@@ -309,6 +310,7 @@
   --view-switcher-indicator-bg: var(--panel);
   --view-switcher-indicator-shadow: 0 0 0 1px var(--line);
   --view-switcher-indicator-radius: 0;
+  --view-switcher-indicator-height: 28px;
 
   /* Sidebar Today Button */
   --today-btn-radius: 0;
@@ -364,9 +366,7 @@
   font-size: 12px;
 }
 
-[data-theme-id="bauhaus"] [data-component="view-switcher-indicator"] {
-  height: 28px;
-}
+
 
 
 /* ── Event cards — sharp, all-side border ────────────────────── */

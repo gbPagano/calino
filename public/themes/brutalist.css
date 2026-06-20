@@ -124,6 +124,7 @@
   --view-switcher-indicator-bg: #ffffff;
   --view-switcher-indicator-shadow: 2px 2px 0 #000000;
   --view-switcher-indicator-radius: 0px;
+  --view-switcher-indicator-height: 28px;
 
   /* Panel alias */
   --panel: #ffffff;
@@ -560,6 +561,7 @@
   --view-switcher-indicator-bg: #222222;
   --view-switcher-indicator-shadow: 2px 2px 0 #000000;
   --view-switcher-indicator-radius: 0px;
+  --view-switcher-indicator-height: 28px;
 
   /* Panel alias */
   --panel: #222222;
@@ -602,13 +604,7 @@
   box-shadow: var(--view-switcher-indicator-shadow);
 }
 
-[data-theme-id="brutalist"] [data-component="view-switcher-indicator"] {
-  height: 31px;
-}
 
-[data-theme-id="brutalist"] [data-component="view-switcher-indicator"] {
-  height: 28px;
-}
 
 [data-theme='dark'] [data-component="today-button"] {
   background: #d4652a;

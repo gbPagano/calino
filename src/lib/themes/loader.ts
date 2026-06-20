@@ -245,6 +245,14 @@ export function getBuiltInThemeCSS(): string {
   --shadow-glass: none;
   --shadow-inset: inset 0 1px 2px rgba(44, 40, 33, 0.06);
 
+  /* View Switcher */
+  --view-switcher-indicator-height: 32px;
+
+  /* Modal */
+  --modal-card-border: 1px solid rgba(255, 255, 255, 0.4);
+  --modal-save-shadow: 0 2px 8px rgba(196, 168, 154, 0.4);
+  --modal-save-shadow-hover: 0 4px 14px rgba(196, 168, 154, 0.5);
+
   /* Spacing */
   --sidebar-width: 300px;
   --space-1: 4px;
@@ -318,6 +326,14 @@ export function getBuiltInThemeCSS(): string {
   --popover-border: rgba(255, 247, 235, 0.14);
   --modal-shadow: 0 2px 4px rgba(0, 0, 0, 0.40), 0 20px 60px rgba(0, 0, 0, 0.65);
   --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+
+  /* View Switcher */
+  --view-switcher-indicator-height: 32px;
+
+  /* Modal */
+  --modal-card-border: 1px solid rgba(255, 255, 255, 0.1);
+  --modal-save-shadow: 0 2px 8px rgba(196, 168, 154, 0.2);
+  --modal-save-shadow-hover: 0 4px 14px rgba(196, 168, 154, 0.3);
 }
 
 /* Global scrollbar — thumb hidden until hover */

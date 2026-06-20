@@ -21,13 +21,8 @@
   border-radius: var(--radius-lg, 18px);
   background: var(--modal-bg, #faf9f7);
   overflow-y: auto;
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.06),
-    0 0 0 4px rgba(255, 255, 255, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 24px 80px rgba(0, 0, 0, 0.15),
-    0 8px 24px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: var(--modal-shadow);
+  border: var(--modal-card-border, 1px solid rgba(255, 255, 255, 0.4));
   font-family: var(--font-sans, 'Inter', sans-serif);
   animation: modalIn 0.18s ease forwards;
 }
@@ -597,13 +592,13 @@
   font-family: var(--font-sans, 'Inter', sans-serif);
   cursor: pointer;
   letter-spacing: -0.01em;
-  box-shadow: 0 2px 8px rgba(196, 168, 154, 0.4);
+  box-shadow: var(--modal-save-shadow, 0 2px 8px rgba(196, 168, 154, 0.4));
   transition: background 0.12s, box-shadow 0.12s, transform 0.1s;
 }
 
 .modalSave:hover {
   background: var(--color-accent-hover);
-  box-shadow: 0 4px 14px rgba(196, 168, 154, 0.5);
+  box-shadow: var(--modal-save-shadow-hover, 0 4px 14px rgba(196, 168, 154, 0.5));
 }
 
 .modalSave:active {

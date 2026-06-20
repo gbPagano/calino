@@ -369,6 +369,12 @@
   margin: 0 1px;
 }
 
+[data-theme-id="bauhaus"] [data-component="todo-segmented"] {
+  padding: 2px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
 
 /* ── Event cards — sharp, all-side border ────────────────────── */
 [data-theme-id="bauhaus"] [data-component="event-card"] {

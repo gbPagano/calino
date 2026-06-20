@@ -565,8 +565,13 @@
 }
 
 [data-theme-id="brutalist"] [data-component="view-switcher-indicator"] {
-  height: 28px;
-  top: 6px;
+  height: 31px;
+}
+
+[data-theme-id="brutalist"] [data-component="todo-segmented"] {
+  padding: 2px;
+  border: 2px solid #000;
+  overflow: hidden;
 }
 
 [data-theme='dark'] [data-component="today-button"] {

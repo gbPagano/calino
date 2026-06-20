@@ -389,7 +389,7 @@ export function TodoView(): JSX.Element {
             <b>{activeCount}</b> active <span className={styles.dim}>·</span> {completedCount} completed
           </div>
           <div className={styles.tpControls}>
-            <div className={styles.segmentedControl} ref={segmentedRef}>
+            <div className={styles.segmentedControl} ref={segmentedRef} data-component="todo-segmented">
               <div className={styles.tabIndicator} style={{ left: indicatorStyle.left, width: indicatorStyle.width }} data-component="view-switcher-indicator" />
               <button
                 ref={(el) => { if (el) tabRefs.current.set('all', el) }}

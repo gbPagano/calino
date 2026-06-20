@@ -573,7 +573,7 @@
 }
 
 [data-theme-id="brutalist"] [data-component="todo-segmented"] {
-  overflow: hidden;
+  padding: 2px;
 }
 
 [data-theme='dark'] [data-component="today-button"] {

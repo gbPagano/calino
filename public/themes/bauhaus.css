@@ -366,6 +366,7 @@
 
 [data-theme-id="bauhaus"] [data-component="view-switcher-indicator"] {
   height: 31px;
+  margin: 0 1px;
 }
 
 

@@ -365,7 +365,7 @@
 }
 
 [data-theme-id="bauhaus"] [data-component="view-switcher-indicator"] {
-  box-shadow: 0 -1px 0 0 var(--line), -1px 0 0 0 var(--line), 1px 0 0 0 var(--line) !important;
+  height: 30px;
 }
 
 

@@ -164,3 +164,15 @@
 *::-webkit-scrollbar-thumb:hover {
   background: var(--color-scrollbar-hover);
 }
+
+/* ── Modal card — double-bezel edge (default theme) ─────────── */
+:root:not([data-theme-id]) [data-component="modal-card"],
+[data-theme='light']:not([data-theme-id]) [data-component="modal-card"],
+[data-theme='dark']:not([data-theme-id]) [data-component="modal-card"] {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 0 0 4px rgba(255, 255, 255, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    var(--modal-shadow);
+}

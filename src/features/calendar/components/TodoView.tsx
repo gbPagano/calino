@@ -390,7 +390,7 @@ export function TodoView(): JSX.Element {
           </div>
           <div className={styles.tpControls}>
             <div className={styles.segmentedControl} ref={segmentedRef}>
-              <div className={styles.tabIndicator} style={{ left: indicatorStyle.left, width: indicatorStyle.width }} />
+              <div className={styles.tabIndicator} style={{ left: indicatorStyle.left, width: indicatorStyle.width }} data-component="view-switcher-indicator" />
               <button
                 ref={(el) => { if (el) tabRefs.current.set('all', el) }}
                 className={`${styles.tab} ${filter === 'all' ? styles.tabActive : ''}`}

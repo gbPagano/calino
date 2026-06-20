@@ -308,6 +308,7 @@ export function CalendarHeader({
                   else viewTabRefs.current.delete(view.value)
                 }}
                 className={`${styles.viewTab} ${currentView === view.value ? styles.viewTabActive : ''}`}
+                {...(currentView === view.value ? { 'data-active': '' } : {})}
                 onClick={() => handleViewChange(view.value)}
               >
                 {view.label}

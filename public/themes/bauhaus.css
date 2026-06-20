@@ -364,6 +364,10 @@
   font-size: 12px;
 }
 
+[data-theme-id="bauhaus"] [data-component="view-switcher"] [data-active] {
+  box-shadow: 0 0 0 1px var(--line), inset 0 -2px 0 var(--ink);
+}
+
 /* ── Event cards — sharp, all-side border ────────────────────── */
 [data-theme-id="bauhaus"] [data-component="event-card"] {
   border-left: 1px solid rgba(var(--ink-raw, 44, 40, 33), 0.06);

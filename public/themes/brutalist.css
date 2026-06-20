@@ -564,6 +564,10 @@
   box-shadow: var(--view-switcher-indicator-shadow);
 }
 
+[data-theme-id="brutalist"] [data-component="view-switcher-indicator"] {
+  height: 31px;
+}
+
 [data-theme='dark'] [data-component="today-button"] {
   background: #d4652a;
   color: #ffffff;

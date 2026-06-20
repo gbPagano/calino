@@ -413,7 +413,7 @@ export function TodoView(): JSX.Element {
                 Completed
               </button>
             </div>
-            <button className={styles.addTask} onClick={handleCreateTask}>
+            <button className={styles.addTask} onClick={handleCreateTask} data-component="add-task-button">
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M7 2v10M2 7h10" />
               </svg>

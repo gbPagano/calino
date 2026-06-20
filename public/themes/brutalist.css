@@ -104,6 +104,7 @@
   --sidebar-collapsed-width: 40px;
   --event-border-radius: 0px;
   --event-gap: 2px;
+  --today-btn-radius: 0px;
 
   /* Calendar Grid */
   --day-cell-radius: 0px;
@@ -302,6 +303,18 @@
 [data-theme-id="brutalist"] [data-theme='light'] [data-component="modal-footer"] {
   border-top: 2px solid #000000;
   background: #ffffff;
+}
+
+[data-theme-id="brutalist"] [data-theme='light'] [data-component="modal-footer"] button[type="submit"] {
+  box-shadow: 2px 2px 0 #000000;
+}
+
+[data-theme-id="brutalist"] [data-theme='light'] [data-component="modal-footer"] button[type="submit"]:hover {
+  box-shadow: 3px 3px 0 #000000;
+}
+
+[data-theme-id="brutalist"] [data-component="add-task-button"] {
+  border-radius: 0px;
 }
 
 /* Command palette — industrial overlay */
@@ -503,6 +516,7 @@
   --sidebar-collapsed-width: 40px;
   --event-border-radius: 0px;
   --event-gap: 2px;
+  --today-btn-radius: 0px;
 
   /* Calendar Grid */
   --day-cell-radius: 0px;
@@ -697,6 +711,14 @@
   background: #2a2a2a;
 }
 
+[data-theme='dark'] [data-component="modal-footer"] button[type="submit"] {
+  box-shadow: 2px 2px 0 #000000;
+}
+
+[data-theme='dark'] [data-component="modal-footer"] button[type="submit"]:hover {
+  box-shadow: 3px 3px 0 #000000;
+}
+
 [data-theme='dark'] [data-component="command-palette"] {
   background: rgba(0, 0, 0, 0.85);
 }
@@ -801,11 +823,6 @@
 
 /* ── Sidebar: no soft shadows ───────────────────────────────── */
 [data-theme-id="brutalist"] [data-component="sidebar"] * {
-  box-shadow: none !important;
-}
-
-/* ── Save button: no soft glow ──────────────────────────────── */
-[data-theme-id="brutalist"] [data-component="modal-footer"] button[type="submit"]:hover {
   box-shadow: none !important;
 }
 

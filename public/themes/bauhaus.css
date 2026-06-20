@@ -370,10 +370,8 @@
   border-radius: 0;
 }
 
-/* ── Event fragments — restore left border for spanning events ── */
-[data-theme-id="bauhaus"] [data-component="event-card"][data-fragment-first],
-[data-theme-id="bauhaus"] [data-component="event-card"][data-fragment-middle],
-[data-theme-id="bauhaus"] [data-component="event-card"][data-fragment-last] {
+/* ── Event fragments — restore left border for first fragment only ─ */
+[data-theme-id="bauhaus"] [data-component="event-card"][data-fragment-first] {
   border-left: 1px solid rgba(var(--ink-raw, 44, 40, 33), 0.06) !important;
 }
 

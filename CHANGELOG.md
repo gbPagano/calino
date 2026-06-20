@@ -2,6 +2,20 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.15.2] - 2026-06-20
+
+### Bug Fixes
+- **CalDAV URL discovery** — server URL input is now respected. Uses RFC 6764 `.well-known/caldav` discovery instead of hardcoded `/dav.php`. (#11)
+- **Broken events** — events with start > end are now stored instead of silently dropped. New "Data Issues" tab in Settings shows and lets you fix/delete them.
+- **Spanning day pills** — multi-day events in month view connect properly into one visual pill again.
+- **Bauhaus theme** — fixed component overrides not matching (missing descendant combinator in selectors), event card left border, view switcher indicator height/position.
+- **Brutalist theme** — fixed Today/AddTask border-radius, modal Save button styling, dark mode white borders toned down.
+
+### Improvements
+- **Theme system** — extracted `--view-switcher-indicator-height`, `--modal-card-border`, `--modal-save-shadow` variables to reduce theme override duplication.
+- **View switcher indicator** — shared `data-component` between CalendarHeader and TodoView so one theme rule covers both.
+- **Removed flaky `barrelExports` test** — redundant with TypeScript compilation.
+
 ## [0.15.0] - 2026-06-19
 
 ### New Features

@@ -981,6 +981,7 @@ export function EventModal(): JSX.Element | null {
               onChange={(e) => handleTitleChange(e.target.value)}
               onKeyDown={handleTitleKeyDown}
               className={styles.modalTitle}
+              data-component="event-title-input"
               required
               onInvalid={(e) => {
                 e.preventDefault()
@@ -1102,6 +1103,7 @@ export function EventModal(): JSX.Element | null {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               className={styles.modalInput}
+              data-component="event-location-input"
             />
 
             <select
@@ -1109,6 +1111,7 @@ export function EventModal(): JSX.Element | null {
               value={calendarId}
               onChange={(e) => setCalendarId(e.target.value)}
               className={styles.modalSelect}
+              data-component="event-calendar-select"
             >
               {calendars.map((cal) => (
                 <option key={cal.id} value={cal.id}>
@@ -1178,6 +1181,7 @@ export function EventModal(): JSX.Element | null {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className={`${styles.modalInput} ${styles.modalTextarea}`}
+                data-component="event-description-input"
                 rows={3}
               />
             </div>

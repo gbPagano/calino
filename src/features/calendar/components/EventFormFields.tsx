@@ -209,6 +209,7 @@ export function EventFormFields({
                 }
               }}
               className={styles.input}
+              data-component="event-start-date"
               required
             />
             {!isAllDay && (
@@ -227,6 +228,7 @@ export function EventFormFields({
                   }
                 }}
                 className={styles.input}
+                data-component="event-start-time"
                 required
               />
             )}
@@ -242,6 +244,7 @@ export function EventFormFields({
               value={endDate}
               onChange={(e) => onEndDateChange(e.target.value)}
               className={styles.input}
+              data-component="event-end-date"
               required
             />
             {!isAllDay && (
@@ -251,6 +254,7 @@ export function EventFormFields({
                 value={endTime}
                 onChange={(e) => onEndTimeChange(e.target.value)}
                 className={styles.input}
+                data-component="event-end-time"
                 required
               />
             )}

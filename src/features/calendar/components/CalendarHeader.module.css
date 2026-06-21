@@ -379,14 +379,13 @@
   flex-shrink: 0;
 }
 
-/* ---- View Dropdown — tablet only 768–1220px ---- */
+/* ---- View Dropdown — ≤1220px ---- */
 .viewDropdown {
   position: relative;
   display: flex;
   align-items: center;
   opacity: 0;
   width: 0;
-  overflow: hidden;
   pointer-events: none;
   transition: opacity 0.2s ease, width 0.2s ease;
 }
@@ -511,6 +510,7 @@
   padding: 0;
   pointer-events: auto;
   grid-column: 2;
+  margin-left: 10px;
 }
 
 [data-sidebar-collapsed] .navigator {
@@ -568,6 +568,7 @@
     width: 36px;
     padding: 0;
     pointer-events: auto;
+    margin-left: 10px;
   }
 }
 

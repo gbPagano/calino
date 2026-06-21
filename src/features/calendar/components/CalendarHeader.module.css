@@ -502,12 +502,13 @@
   color: var(--ink);
 }
 
-/* Show hamburger when sidebar collapsed */
+/* Show hamburger when sidebar collapsed — position it at calendar edge */
 [data-sidebar-collapsed] .hamburger {
   opacity: 1;
   width: 36px;
   padding: 0;
   pointer-events: auto;
+  margin-left: calc(var(--sidebar-collapsed-width, 40px) - 36px + 4px);
 }
 
 /* ---- Mobile View Tabs — mobile only ≤768px ---- */

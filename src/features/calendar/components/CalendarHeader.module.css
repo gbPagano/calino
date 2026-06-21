@@ -607,6 +607,11 @@
 
 /* ≤500px (compact mobile): hide Today, search/settings, smaller year */
 @media (max-width: 500px) {
+  .header {
+    gap: 4px;
+    padding-bottom: 6px;
+  }
+
   .navToday {
     display: none;
   }

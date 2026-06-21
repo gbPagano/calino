@@ -336,7 +336,7 @@ function CalendarApp(): JSX.Element {
         onToggleSidebar={handleToggleSidebar}
         onOpenCommandPalette={handleOpenCommandPalette}
       />
-      <div className="appContent">
+      <div className="appContent" data-sidebar-collapsed={sidebarCollapsed || undefined}>
         <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} isCollapsed={sidebarCollapsed} onCollapsedChange={(v) => updateSettings({ sidebarCollapsed: v })} />
         <main className="main">{renderView()}</main>
       </div>

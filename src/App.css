@@ -12,6 +12,11 @@
   overflow: hidden;
 }
 
+/* When sidebar collapsed, match grid right margin to sidebar width */
+.appContent[data-sidebar-collapsed] {
+  --grid-margin: var(--sidebar-collapsed-width, 32px);
+}
+
 @media (max-width: 768px) { /* sync with config.ts MOBILE_BREAKPOINT */
   .appContent {
     flex-direction: column;

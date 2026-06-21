@@ -600,8 +600,8 @@
     height: 36px;
   }
 
-  .hamburger {
-    margin-left: 4px;
+  .quickSettingsDropdown {
+    display: none;
   }
 }
 

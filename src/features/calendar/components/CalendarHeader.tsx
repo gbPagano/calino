@@ -14,7 +14,6 @@ import {
 } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/store/calendarStore'
-import { MOBILE_BREAKPOINT } from '@/config'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useConfigStore } from '@/store/configStore'
 import { useGestures } from '@/hooks/useGestures'
@@ -64,10 +63,6 @@ export function CalendarHeader({
   const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
   const lock = useConfigStore((state) => state.lock)
 
-  // Only need JS state for things that affect behavior (not just visibility)
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
-  )
   const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false)
   const viewDropdownRef = useRef<HTMLDivElement>(null)
   const viewDropdownCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -89,15 +84,6 @@ export function CalendarHeader({
 
   const [showQuickSettings, setShowQuickSettings] = useState(false)
   const quickSettingsTimeoutRef = useState(() => ({ current: undefined as ReturnType<typeof setTimeout> | undefined }))[0]
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
 
   useEffect(() => {
     if (!isViewDropdownOpen) return
@@ -213,7 +199,6 @@ export function CalendarHeader({
   })
 
   // Calculate brand column width based on sidebar state
-  // isMobile is handled by CSS (grid → flex), so we only need to handle desktop states
   const brandColumnWidth = sidebarCollapsed ? 'var(--sidebar-collapsed-width, 40px)' : `${sidebarWidth}px`
 
   return (
@@ -380,7 +365,7 @@ export function CalendarHeader({
           >
             <SettingsIcon />
           </button>
-            {showQuickSettings && !isMobile && (
+            {showQuickSettings && (
             <div className={styles.quickSettingsDropdown}>
               <div className={styles.quickSettingsItem}>
                 <span className={styles.quickSettingsLabel}>Week numbers</span>

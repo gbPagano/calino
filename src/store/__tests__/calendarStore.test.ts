@@ -1233,4 +1233,174 @@ describe('calendarStore', () => {
       expect(updated?.name).toBe('Work')
     })
   })
+
+  describe('auto-categorization', () => {
+    it('auto-categorizes new events based on keyword rules', () => {
+      const store = useCalendarStore.getState()
+
+      // Add category
+      store.addCategory({ id: 'cat-work', name: 'Work', color: '#FF0000' })
+
+      // Add auto-category rule
+      store.addAutoCategoryRule({
+        id: 'rule-1',
+        keywords: ['meeting', 'standup'],
+        categoryId: 'cat-work',
+      })
+
+      // Add event that matches
+      store.addEvent({
+        id: 'evt-1',
+        calendarId: 'default',
+        title: 'Team Meeting',
+        start: '2024-03-15T10:00:00',
+        end: '2024-03-15T11:00:00',
+        isAllDay: false,
+      })
+
+      const event = useCalendarStore.getState().events.find((e) => e.id === 'evt-1')
+      expect(event?.categories).toContain('Work')
+    })
+
+    it('auto-categorizes on title update', () => {
+      const store = useCalendarStore.getState()
+
+      store.addCategory({ id: 'cat-work', name: 'Work', color: '#FF0000' })
+      store.addAutoCategoryRule({
+        id: 'rule-1',
+        keywords: ['standup'],
+        categoryId: 'cat-work',
+      })
+
+      // Add event without matching title
+      store.addEvent({
+        id: 'evt-1',
+        calendarId: 'default',
+        title: 'Lunch',
+        start: '2024-03-15T10:00:00',
+        end: '2024-03-15T11:00:00',
+        isAllDay: false,
+      })
+
+      // Update title to match
+      store.updateEvent('evt-1', { title: 'Morning Standup' })
+
+      const event = useCalendarStore.getState().events.find((e) => e.id === 'evt-1')
+      expect(event?.categories).toContain('Work')
+    })
+
+    it('does not remove existing categories when title changes', () => {
+      const store = useCalendarStore.getState()
+
+      store.addCategory({ id: 'cat-work', name: 'Work', color: '#FF0000' })
+      store.addCategory({ id: 'cat-personal', name: 'Personal', color: '#00FF00' })
+
+      store.addAutoCategoryRule({
+        id: 'rule-1',
+        keywords: ['meeting'],
+        categoryId: 'cat-work',
+      })
+
+      // Add event with existing Personal category
+      store.addEvent({
+        id: 'evt-1',
+        calendarId: 'default',
+        title: 'Personal Chat',
+        start: '2024-03-15T10:00:00',
+        end: '2024-03-15T11:00:00',
+        isAllDay: false,
+        categories: ['Personal'],
+      })
+
+      // Update title to match Work rule
+      store.updateEvent('evt-1', { title: 'Work Meeting' })
+
+      const event = useCalendarStore.getState().events.find((e) => e.id === 'evt-1')
+      // Should have both Personal (existing) and Work (auto-added)
+      expect(event?.categories).toContain('Personal')
+      expect(event?.categories).toContain('Work')
+    })
+
+    it('case-insensitive keyword matching', () => {
+      const store = useCalendarStore.getState()
+
+      store.addCategory({ id: 'cat-work', name: 'Work', color: '#FF0000' })
+      store.addAutoCategoryRule({
+        id: 'rule-1',
+        keywords: ['meeting'],
+        categoryId: 'cat-work',
+      })
+
+      // Title with different case
+      store.addEvent({
+        id: 'evt-1',
+        calendarId: 'default',
+        title: 'Team MEETING',
+        start: '2024-03-15T10:00:00',
+        end: '2024-03-15T11:00:00',
+        isAllDay: false,
+      })
+
+      const event = useCalendarStore.getState().events.find((e) => e.id === 'evt-1')
+      expect(event?.categories).toContain('Work')
+    })
+
+    it('multiple rules can match the same event', () => {
+      const store = useCalendarStore.getState()
+
+      store.addCategory({ id: 'cat-work', name: 'Work', color: '#FF0000' })
+      store.addCategory({ id: 'cat-urgent', name: 'Urgent', color: '#FF6600' })
+
+      store.addAutoCategoryRule({
+        id: 'rule-1',
+        keywords: ['meeting'],
+        categoryId: 'cat-work',
+      })
+      store.addAutoCategoryRule({
+        id: 'rule-2',
+        keywords: ['urgent'],
+        categoryId: 'cat-urgent',
+      })
+
+      // Event matches both rules
+      store.addEvent({
+        id: 'evt-1',
+        calendarId: 'default',
+        title: 'Urgent Meeting',
+        start: '2024-03-15T10:00:00',
+        end: '2024-03-15T11:00:00',
+        isAllDay: false,
+      })
+
+      const event = useCalendarStore.getState().events.find((e) => e.id === 'evt-1')
+      expect(event?.categories).toContain('Work')
+      expect(event?.categories).toContain('Urgent')
+    })
+
+    it('does not duplicate categories if event already has them', () => {
+      const store = useCalendarStore.getState()
+
+      store.addCategory({ id: 'cat-work', name: 'Work', color: '#FF0000' })
+      store.addAutoCategoryRule({
+        id: 'rule-1',
+        keywords: ['meeting'],
+        categoryId: 'cat-work',
+      })
+
+      // Event already has Work category
+      store.addEvent({
+        id: 'evt-1',
+        calendarId: 'default',
+        title: 'Team Meeting',
+        start: '2024-03-15T10:00:00',
+        end: '2024-03-15T11:00:00',
+        isAllDay: false,
+        categories: ['Work'],
+      })
+
+      const event = useCalendarStore.getState().events.find((e) => e.id === 'evt-1')
+      // Should have exactly one 'Work', not two
+      expect(event?.categories?.filter((c) => c === 'Work')).toHaveLength(1)
+    })
+  })
 })

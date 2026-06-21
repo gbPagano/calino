@@ -83,7 +83,10 @@ export function CategoriesSettings(): JSX.Element {
                         key={color}
                         className={`${styles.swatch} ${editCategoryColor === color ? styles.swatchActive : ''}`}
                         style={{ '--swatch-color': color, width: '20px', height: '20px' } as React.CSSProperties}
-                        onClick={() => setEditCategoryColor(color)}
+                        onMouseDown={(e) => {
+                          e.preventDefault() // Prevent input blur
+                          setEditCategoryColor(color)
+                        }}
                         type="button"
                       />
                     ))}

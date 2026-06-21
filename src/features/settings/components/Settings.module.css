@@ -215,8 +215,7 @@
   }
 
   .navTitle {
-    font-size: 22px;
-    padding: 0;
+    display: none;
   }
 
   .navItem {
@@ -227,7 +226,7 @@
     display: flex;
     align-items: center;
     gap: 2px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     position: relative;
   }
 

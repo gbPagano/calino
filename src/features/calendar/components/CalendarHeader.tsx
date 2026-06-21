@@ -14,8 +14,7 @@ import {
 } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/store/calendarStore'
-import { MOBILE_BREAKPOINT, TABLET_BREAKPOINT, COMPACT_MOBILE_BREAKPOINT } from '@/config'
-const SIDEBAR_BREAKPOINT = 950
+import { MOBILE_BREAKPOINT } from '@/config'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useConfigStore } from '@/store/configStore'
 import { useGestures } from '@/hooks/useGestures'
@@ -65,17 +64,9 @@ export function CalendarHeader({
   const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
   const lock = useConfigStore((state) => state.lock)
 
+  // Only need JS state for things that affect behavior (not just visibility)
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
-  )
-  const [isTablet, setIsTablet] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < TABLET_BREAKPOINT : false
-  )
-  const [isCompactMobile, setIsCompactMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < COMPACT_MOBILE_BREAKPOINT : false
-  )
-  const [isCompact, setIsCompact] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < SIDEBAR_BREAKPOINT : false
   )
   const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false)
   const viewDropdownRef = useRef<HTMLDivElement>(null)
@@ -101,11 +92,7 @@ export function CalendarHeader({
 
   useEffect(() => {
     const checkMobile = () => {
-      const w = window.innerWidth
-      setIsMobile(w < MOBILE_BREAKPOINT)
-      setIsTablet(w < TABLET_BREAKPOINT)
-      setIsCompactMobile(w < COMPACT_MOBILE_BREAKPOINT)
-      setIsCompact(w < SIDEBAR_BREAKPOINT)
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     }
     checkMobile()
     window.addEventListener('resize', checkMobile)
@@ -226,17 +213,25 @@ export function CalendarHeader({
   })
 
   // Calculate brand column width based on sidebar state
-  const brandColumnWidth = isMobile || isCompact ? 'auto' : (sidebarCollapsed ? 'var(--sidebar-collapsed-width, 40px)' : `${sidebarWidth}px`)
+  // isMobile is handled by CSS (grid → flex), so we only need to handle desktop states
+  const brandColumnWidth = sidebarCollapsed ? 'var(--sidebar-collapsed-width, 40px)' : `${sidebarWidth}px`
 
   return (
-    <header className={styles.header} style={{ '--header-brand-col': brandColumnWidth } as React.CSSProperties} {...bind} data-component="header">
-      {/* Brand + Hamburger — both always rendered, CSS handles visibility */}
-      <div className={`${styles.brand} ${(isMobile || isCompact || sidebarCollapsed) ? styles.brandHidden : ''}`}>
+    <header
+      className={styles.header}
+      style={{ '--header-brand-col': brandColumnWidth } as React.CSSProperties}
+      data-sidebar-collapsed={sidebarCollapsed || undefined}
+      {...bind}
+      data-component="header"
+    >
+      {/* Brand — hidden by CSS when sidebar collapsed or at compact breakpoint */}
+      <div className={styles.brand}>
         <div className={styles.brandDiamond} />
         <span className={styles.brandName}>Calino</span>
       </div>
+      {/* Hamburger — shown by CSS when sidebar collapsed or at compact breakpoint */}
       <button
-        className={`${styles.hamburger} ${(!isMobile && !isCompact && !sidebarCollapsed) || isCompactMobile ? styles.hamburgerHidden : ''}`}
+        className={styles.hamburger}
         onClick={onToggleSidebar}
         aria-label="Toggle menu"
       >
@@ -253,11 +248,9 @@ export function CalendarHeader({
           >
             <ChevronLeft />
           </button>
-          {!isCompact && (
-            <button className={styles.navToday} onClick={handleToday} data-component="today-button">
-              Today
-            </button>
-          )}
+          <button className={styles.navToday} onClick={handleToday} data-component="today-button">
+            Today
+          </button>
           <button
             className={styles.navArrow}
             onClick={() => handleNavigate('next')}
@@ -287,19 +280,17 @@ export function CalendarHeader({
 
       {/* Right cluster */}
       <div className={styles.rightCluster}>
-        {/* Search - hidden in compact mobile (available in FAB) */}
-        {!isCompactMobile && (
-          <button
-            className={styles.iconButton}
-            onClick={onOpenCommandPalette}
-            aria-label="Search or commands"
-          >
-            <SearchIcon />
-          </button>
-        )}
+        {/* Search - CSS handles hiding at compact mobile */}
+        <button
+          className={styles.iconButton}
+          onClick={onOpenCommandPalette}
+          aria-label="Search or commands"
+        >
+          <SearchIcon />
+        </button>
 
-        {/* View Tabs - always rendered, CSS handles visibility */}
-        <div className={`${styles.viewTabs} ${isMobile || isTablet ? styles.viewTabsHidden : ''}`} ref={viewTabsRef} data-component="view-switcher">
+        {/* View Tabs - CSS handles visibility at breakpoints */}
+        <div className={styles.viewTabs} ref={viewTabsRef} data-component="view-switcher">
           <div
             className={styles.viewTabIndicator}
             style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
@@ -321,8 +312,9 @@ export function CalendarHeader({
             </React.Fragment>
           ))}
         </div>
+        {/* View Dropdown - CSS handles visibility at tablet breakpoint */}
         <div
-          className={`${styles.viewDropdown} ${!isTablet ? styles.viewDropdownHidden : ''}`}
+          className={styles.viewDropdown}
           ref={viewDropdownRef}
           onMouseEnter={() => {
             // Skip on touch devices — click handles toggle
@@ -370,25 +362,24 @@ export function CalendarHeader({
           )}
         </div>
 
-        {/* Settings - hidden in compact mobile (available in FAB) */}
-        {!isCompactMobile && (
-          <div
-            className={styles.settingsWrapper}
-            onMouseEnter={() => {
-              clearTimeout(quickSettingsTimeoutRef.current)
-              setShowQuickSettings(true)
-            }}
-            onMouseLeave={() => {
-              quickSettingsTimeoutRef.current = setTimeout(() => setShowQuickSettings(false), 200)
-            }}
+        {/* Settings - CSS handles hiding at compact mobile */}
+        <div
+          className={styles.settingsWrapper}
+          onMouseEnter={() => {
+            clearTimeout(quickSettingsTimeoutRef.current)
+            setShowQuickSettings(true)
+          }}
+          onMouseLeave={() => {
+            quickSettingsTimeoutRef.current = setTimeout(() => setShowQuickSettings(false), 200)
+          }}
+        >
+          <button
+            className={styles.iconButton}
+            onClick={() => navigate('/settings')}
+            aria-label="Settings"
           >
-            <button
-              className={styles.iconButton}
-              onClick={() => navigate('/settings')}
-              aria-label="Settings"
-            >
-              <SettingsIcon />
-            </button>
+            <SettingsIcon />
+          </button>
             {showQuickSettings && !isMobile && (
             <div className={styles.quickSettingsDropdown}>
               <div className={styles.quickSettingsItem}>
@@ -446,23 +437,20 @@ export function CalendarHeader({
             </div>
           )}
         </div>
-        )}
       </div>
 
-      {/* Mobile view switcher */}
-      {isMobile && (
-        <div className={styles.mobileViewTabs}>
-          {VIEWS.map((view) => (
-            <button
-              key={view.value}
-              className={`${styles.mobileViewTab} ${currentView === view.value ? styles.mobileViewTabActive : ''}`}
-              onClick={() => handleViewChange(view.value)}
-            >
-              {view.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Mobile view switcher — hidden by CSS above 768px */}
+      <div className={styles.mobileViewTabs}>
+        {VIEWS.map((view) => (
+          <button
+            key={view.value}
+            className={`${styles.mobileViewTab} ${currentView === view.value ? styles.mobileViewTabActive : ''}`}
+            onClick={() => handleViewChange(view.value)}
+          >
+            {view.label}
+          </button>
+        ))}
+      </div>
     </header>
   )
 }

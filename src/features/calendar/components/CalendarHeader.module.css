@@ -1,5 +1,7 @@
 /* ============================================================================
    CalendarHeader — Editorial Design
+   Responsive visibility is CSS-only via data attributes and media queries.
+   Breakpoints: ≤1220 (tablet), ≤950 (compact/sidebar), ≤768 (mobile), ≤500 (compact mobile)
    ============================================================================ */
 
 .header {
@@ -13,15 +15,6 @@
   transition: padding 0.25s ease;
 }
 
-@media (max-width: 768px) {
-  .header {
-    display: flex;
-    align-items: center;
-    padding: 12px 0;
-    gap: 8px;
-  }
-}
-
 /* ---- Brand Mark ---- */
 .brand {
   display: flex;
@@ -33,12 +26,16 @@
   grid-row: 1;
 }
 
-.brandHidden {
-  opacity: 0;
-  width: 0;
-  overflow: hidden;
-  padding: 0;
-  pointer-events: none;
+/* Hidden when sidebar collapsed or at compact breakpoint */
+[data-sidebar-collapsed] .brand,
+@media (max-width: 950px) {
+  .brand {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    padding: 0;
+    pointer-events: none;
+  }
 }
 
 .brandDiamond {
@@ -56,63 +53,6 @@
   font-size: 27px;
   letter-spacing: -0.01em;
   color: var(--ink);
-}
-
-/* ---- Title Group ---- */
-.titleGroup {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  white-space: nowrap;
-  padding-top: 6px;
-  padding-left: 22px;
-  align-self: center;
-}
-
-.monthTitle {
-  font-family: var(--font-serif, 'Newsreader', Georgia, serif);
-  font-weight: 400;
-  font-size: 32px;
-  letter-spacing: -0.018em;
-  color: var(--ink);
-  margin: 0;
-  line-height: 1;
-}
-
-.yearTitle {
-  font-family: var(--font-serif, 'Newsreader', Georgia, serif);
-  font-weight: 400;
-  font-size: 22px;
-  color: var(--ink-3);
-  letter-spacing: 0;
-  line-height: 1;
-}
-
-.viewTitle {
-  font-family: var(--font-serif, 'Newsreader', Georgia, serif);
-  font-weight: 400;
-  font-size: 32px;
-  letter-spacing: -0.018em;
-  color: var(--ink);
-  margin: 0;
-  line-height: 1;
-}
-
-@media (max-width: 768px) {
-  .monthTitle,
-  .yearTitle,
-  .viewTitle {
-    font-size: 22px;
-  }
-}
-
-@media (max-width: 430px) {
-  .yearTitle {
-    opacity: 0;
-    width: 0;
-    overflow: hidden;
-    transition: opacity 0.2s ease, width 0.2s ease;
-  }
 }
 
 /* ---- Navigator (Grouped Segmented Control) ---- */
@@ -174,6 +114,46 @@
   transition-duration: 0.05s;
 }
 
+/* ---- Title Group ---- */
+.titleGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+  padding-top: 6px;
+  padding-left: 22px;
+  align-self: center;
+}
+
+.monthTitle {
+  font-family: var(--font-serif, 'Newsreader', Georgia, serif);
+  font-weight: 400;
+  font-size: 32px;
+  letter-spacing: -0.018em;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1;
+}
+
+.yearTitle {
+  font-family: var(--font-serif, 'Newsreader', Georgia, serif);
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--ink-3);
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.viewTitle {
+  font-family: var(--font-serif, 'Newsreader', Georgia, serif);
+  font-weight: 400;
+  font-size: 32px;
+  letter-spacing: -0.018em;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1;
+}
+
 /* ---- Spacer ---- */
 .spacer {
   min-width: 0;
@@ -186,12 +166,6 @@
   align-items: center;
   gap: 14px;
   padding-left: 22px;
-}
-
-@media (max-width: 768px) {
-  .rightCluster {
-    gap: 8px;
-  }
 }
 
 /* ---- Icon Button ---- */
@@ -217,13 +191,6 @@
 .iconButton:active {
   transform: scale(0.9);
   transition-duration: 0.05s;
-}
-
-@media (max-width: 768px) {
-  .iconButton {
-    width: 36px;
-    height: 36px;
-  }
 }
 
 /* ---- Quick Settings Dropdown ---- */
@@ -348,7 +315,7 @@
   background: rgba(234, 67, 53, 0.08);
 }
 
-/* ---- View Tabs (Segmented Control) ---- */
+/* ---- View Tabs (Segmented Control) — desktop only >1220px ---- */
 .viewTabs {
   display: flex;
   align-items: center;
@@ -409,41 +376,16 @@
   flex-shrink: 0;
 }
 
-.viewTabsHidden {
-  opacity: 0;
-  max-width: 0;
-  padding: 0;
-  pointer-events: none;
-}
-
-@media (max-width: 1220px) {
-  .viewTabs {
-    opacity: 0;
-    max-width: 0;
-    padding: 0;
-    pointer-events: none;
-  }
-}
-
-@media (max-width: 950px) {
-  .header {
-    grid-template-columns: auto auto auto 1fr auto;
-  }
-}
-
-/* ---- Tablet View Dropdown ---- */
+/* ---- View Dropdown — tablet only 768–1220px ---- */
 .viewDropdown {
   position: relative;
   display: flex;
   align-items: center;
-  transition: opacity 0.2s ease, width 0.2s ease;
-}
-
-.viewDropdownHidden {
   opacity: 0;
   width: 0;
   overflow: hidden;
   pointer-events: none;
+  transition: opacity 0.2s ease, width 0.2s ease;
 }
 
 .viewDropdownButton {
@@ -531,7 +473,7 @@
   margin: 4px 12px;
 }
 
-/* ---- Mobile Hamburger ---- */
+/* ---- Hamburger — hidden by default, shown when sidebar collapsed or ≤950px ---- */
 .hamburger {
   display: flex;
   align-items: center;
@@ -547,20 +489,6 @@
   margin-left: 12px;
   grid-column: 1;
   grid-row: 1;
-}
-
-@media (max-width: 768px) {
-  .hamburger {
-    margin-left: 0;
-  }
-}
-
-.hamburger:hover {
-  background: rgba(var(--ink-raw, 44, 40, 33), 0.05);
-  color: var(--ink);
-}
-
-.hamburgerHidden {
   opacity: 0;
   width: 0;
   overflow: hidden;
@@ -568,17 +496,12 @@
   pointer-events: none;
 }
 
-@media (min-width: 950px) {
-  .hamburger {
-    opacity: 0;
-    width: 0;
-    overflow: hidden;
-    padding: 0;
-    pointer-events: none;
-  }
+.hamburger:hover {
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.05);
+  color: var(--ink);
 }
 
-/* ---- Mobile View Tabs ---- */
+/* ---- Mobile View Tabs — mobile only ≤768px ---- */
 .mobileViewTabs {
   display: none;
 }
@@ -616,10 +539,110 @@
   outline-offset: 1px;
 }
 
-/* ---- Compact Mobile (≤500px) ---- */
+/* ============================================================================
+   BREAKPOINTS
+   ============================================================================ */
+
+/* ≤1220px (tablet): view tabs → dropdown */
+@media (max-width: 1220px) {
+  .viewTabs {
+    opacity: 0;
+    max-width: 0;
+    padding: 0;
+    pointer-events: none;
+  }
+
+  .viewDropdown {
+    opacity: 1;
+    width: auto;
+    pointer-events: auto;
+  }
+}
+
+/* ≤950px (compact): sidebar goes overlay, brand → hamburger */
+@media (max-width: 950px) {
+  .header {
+    grid-template-columns: auto auto auto 1fr auto;
+  }
+
+  .brand {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    padding: 0;
+    pointer-events: none;
+  }
+
+  .hamburger {
+    opacity: 1;
+    width: 36px;
+    padding: 0;
+    pointer-events: auto;
+  }
+}
+
+/* Sidebar collapsed → hamburger */
+[data-sidebar-collapsed] .brand {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  padding: 0;
+  pointer-events: none;
+}
+
+[data-sidebar-collapsed] .hamburger {
+  opacity: 1;
+  width: 36px;
+  padding: 0;
+  pointer-events: auto;
+}
+
+/* ≤768px (mobile): flex layout, smaller fonts, mobile tabs */
+@media (max-width: 768px) {
+  .header {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    gap: 8px;
+  }
+
+  .monthTitle,
+  .yearTitle,
+  .viewTitle {
+    font-size: 22px;
+  }
+
+  .rightCluster {
+    gap: 8px;
+  }
+
+  .iconButton {
+    width: 36px;
+    height: 36px;
+  }
+
+  .hamburger {
+    margin-left: 0;
+  }
+
+  .mobileViewTabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 8px;
+  }
+}
+
+/* ≤500px (compact mobile): hide search/settings, smaller year */
 @media (max-width: 500px) {
   .rightCluster {
     padding-right: 12px;
+  }
+
+  .yearTitle {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    transition: opacity 0.2s ease, width 0.2s ease;
   }
 
   .viewDropdownMenu {

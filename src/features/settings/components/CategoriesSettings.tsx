@@ -98,7 +98,7 @@ function KeywordInput({
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={keywords.length === 0 ? 'Type keywords, press Enter' : ''}
+        placeholder={keywords.length === 0 ? 'Type keywords separated by comma' : ''}
         style={{
           flex: 1,
           minWidth: '80px',
@@ -431,8 +431,8 @@ export function CategoriesSettings(): JSX.Element {
       {/* Auto-categorize Rules */}
       <div className={styles.group}>
         <div style={{ marginBottom: '12px' }}>
-          <div className={styles.label} style={{ fontSize: '14px', fontWeight: 600 }}>Auto-categorize</div>
-          <div className={styles.hint}>Automatically add categories based on event title keywords</div>
+          <div className={styles.label}>Auto-categorize</div>
+          <div className={styles.hint}>Assign categories to events automatically based on keywords in the title</div>
         </div>
 
         <div className={styles.catList}>

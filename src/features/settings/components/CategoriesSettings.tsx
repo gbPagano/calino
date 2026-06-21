@@ -453,7 +453,7 @@ export function CategoriesSettings(): JSX.Element {
         </div>
 
         <div className={styles.catList}>
-          {rulePreviews.map(({ rule, matchingCount, uncategorizedCount, categoryName }) => (
+          {rulePreviews.map(({ rule, matchingCount, uncategorizedCount, categoryName, byCalendar }) => (
             <div key={rule.id} className={styles.catRow} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
               {editingRuleId === rule.id ? (
                 <>

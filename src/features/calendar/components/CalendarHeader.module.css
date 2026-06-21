@@ -412,6 +412,7 @@
 
 .viewDropdownArrow {
   transition: transform 0.14s;
+  margin-top: 2px;
 }
 
 .viewDropdownArrowOpen {

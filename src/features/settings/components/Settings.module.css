@@ -216,22 +216,8 @@
   .header {
     display: none;
   }
-}
-
-@media (max-width: 500px) {
-  .main {
-    padding: 8px 12px;
-  }
-
-  .nav {
-    display: none;
-  }
 
   .backMobile {
-    display: none;
-  }
-
-  .header {
     display: none;
   }
 
@@ -259,6 +245,16 @@
     display: flex;
     align-items: center;
     gap: 2px;
+  }
+}
+
+@media (max-width: 500px) {
+  .main {
+    padding: 8px 12px;
+  }
+
+  .nav {
+    display: none;
   }
 
   .sectionTitle {

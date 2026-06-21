@@ -251,6 +251,7 @@
   .navTitleRow {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 4px;
     padding: 0;
     margin: 0 0 12px;
@@ -264,7 +265,8 @@
     display: block;
     position: absolute;
     top: calc(100% + 4px);
-    left: 0;
+    right: 0;
+    left: auto;
     min-width: 180px;
     background: var(--popover-bg, var(--panel));
     border: 1px solid var(--popover-border, var(--line));

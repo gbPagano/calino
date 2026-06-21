@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { GeneralSettings } from './GeneralSettings'
 import { ThemeSettings } from './ThemeSettings'
@@ -113,6 +113,21 @@ export function SettingsPage(): JSX.Element {
   })()
 
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isDropdownOpen) return
+    const handleClickOutside = (e: MouseEvent): void => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isDropdownOpen])
+
+  const activeItem = NAV_ITEMS.find((item) => item.id === activeTab)
 
   const renderContent = (): JSX.Element => {
     switch (activeTab) {
@@ -148,6 +163,43 @@ export function SettingsPage(): JSX.Element {
       <div className={styles.body}>
         <aside className={styles.nav} data-component="settings-sidebar">
           <h1 className={styles.navTitle}>Settings</h1>
+          {/* Dropdown for ≤500px */}
+          <div className={styles.navDropdown} ref={dropdownRef}>
+            <button
+              className={styles.navDropdownButton}
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              aria-label="Select settings category"
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {activeItem?.icon}
+                {activeItem?.label}
+              </span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 4.5L6 7.5L9 4.5" />
+              </svg>
+            </button>
+            {isDropdownOpen && (
+              <div className={styles.navDropdownMenu}>
+                {NAV_ITEMS.map((item) => (
+                  <button
+                    key={item.id}
+                    className={`${styles.navDropdownItem} ${activeTab === item.id ? styles.navDropdownItemActive : ''}`}
+                    onClick={() => {
+                      setActiveTab(item.id)
+                      setIsDropdownOpen(false)
+                    }}
+                  >
+                    {item.icon}
+                    {item.label}
+                    {item.id === 'data' && brokenEventsCount > 0 && (
+                      <span className={styles.navBadge}>{brokenEventsCount}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Regular nav items for >500px */}
           <nav className={styles.navList} aria-label="Settings">
             {NAV_ITEMS.map((item) => (
               <button

@@ -107,6 +107,9 @@
   .nav {
     padding: 8px 12px;
     border-bottom: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .navTitle {
@@ -114,25 +117,75 @@
   }
 
   .navList {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     overflow-x: visible;
   }
 
-  .navItem {
-    flex-direction: column;
-    gap: 4px;
-    padding: 8px 4px;
-    font-size: 10px;
-    justify-content: center;
-    text-align: center;
-    border-radius: 8px;
+  .navDropdown {
+    position: relative;
+    flex: 1;
   }
 
-  .navIcon {
-    width: 18px;
-    height: 18px;
+  .navDropdownButton {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .navDropdownMenu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--popover-bg, var(--panel));
+    border: 1px solid var(--popover-border, var(--line));
+    border-radius: 10px;
+    box-shadow: var(--modal-shadow, 0 4px 12px rgba(var(--ink-raw, 44, 40, 33), 0.1));
+    overflow: hidden;
+    z-index: 100;
+  }
+
+  .navDropdownItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    color: var(--ink-2);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+  }
+
+  .navDropdownItem:hover {
+    background: rgba(var(--ink-raw, 44, 40, 33), 0.04);
+    color: var(--ink);
+  }
+
+  .navDropdownItemActive {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .navItem {
+    display: none;
   }
 }
 

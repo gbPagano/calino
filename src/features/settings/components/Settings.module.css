@@ -240,6 +240,7 @@
   .nav {
     padding: 8px 12px;
     border-bottom: none;
+    overflow: visible;
   }
 
   .navTitle {

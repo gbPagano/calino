@@ -45,49 +45,15 @@ function KeywordInput({
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '4px',
-        padding: '4px 8px',
-        borderRadius: '6px',
-        border: '1px solid var(--line)',
-        background: 'var(--canvas)',
-        minHeight: '32px',
-        alignItems: 'center',
-        flex: 1,
-      }}
-    >
+    <div className={styles.keywordInput} role="list" aria-label="Keywords">
       {keywords.map((keyword) => (
-        <span
-          key={keyword}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '2px 8px',
-            borderRadius: '4px',
-            background: 'var(--accent-soft)',
-            color: 'var(--accent)',
-            fontSize: '12px',
-            fontWeight: 500,
-          }}
-        >
+        <span key={keyword} className={styles.keywordTag} role="listitem">
           {keyword}
           <button
             type="button"
+            className={styles.keywordRemove}
+            aria-label={`Remove keyword ${keyword}`}
             onClick={() => removeKeyword(keyword)}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              color: 'inherit',
-              opacity: 0.6,
-              fontSize: '14px',
-              lineHeight: 1,
-            }}
           >
             ×
           </button>
@@ -95,20 +61,12 @@ function KeywordInput({
       ))}
       <input
         type="text"
+        className={styles.keywordField}
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={keywords.length === 0 ? 'Type keywords separated by comma' : ''}
-        style={{
-          flex: 1,
-          minWidth: '80px',
-          border: 'none',
-          outline: 'none',
-          background: 'transparent',
-          fontSize: '13px',
-          color: 'var(--ink)',
-          padding: '2px 0',
-        }}
+        aria-label="Add keyword"
       />
     </div>
   )
@@ -318,19 +276,20 @@ export function CategoriesSettings(): JSX.Element {
   }, [newRuleKeywords, newRuleCategoryId, categories, events, calendars])
 
   return (
-    <section className={`${styles.section} ${styles.sectionActive}`}>
+    <section className={`${styles.section} ${styles.sectionActive}`} data-component="categories-settings">
       <h1 className={styles.pageTitle}>Categories</h1>
 
       <div className={styles.group}>
-        <div className={styles.row}>
+        <div className={styles.row} data-component="setting-row" data-setting="use-category-colors" data-value={String(useCategoryColors)}>
           <div>
-            <div className={styles.label}>Use category colors for events</div>
-            <div className={styles.hint}>When disabled, events use their calendar color</div>
+            <div className={styles.rowLabel}>Use category colors for events</div>
+            <div className={styles.rowDesc}>When disabled, events use their calendar color</div>
           </div>
-          <label className={styles.toggle}>
+          <label className={styles.toggle} data-component="toggle" data-setting="use-category-colors">
             <input
               type="checkbox"
               checked={useCategoryColors}
+              aria-label="Use category colors for events"
               onChange={() => updateSettings({ useCategoryColors: !useCategoryColors })}
             />
             <span className={styles.pill} />
@@ -340,10 +299,17 @@ export function CategoriesSettings(): JSX.Element {
       </div>
 
       {/* Categories List */}
-      <div className={styles.group}>
+      <div className={styles.group} data-component="categories-list">
         <div className={styles.catList}>
           {categories.map((category) => (
-            <div key={category.id} className={styles.catRow}>
+            <div
+              key={category.id}
+              className={styles.catRow}
+              data-component="category-row"
+              data-category-id={category.id}
+              data-category-name={category.name}
+              data-category-color={category.color}
+            >
               {editingCategoryId === category.id ? (
                 <>
                   <div className={styles.swatches} style={{ gap: '4px' }}>
@@ -352,6 +318,7 @@ export function CategoriesSettings(): JSX.Element {
                         key={color}
                         className={`${styles.swatch} ${editCategoryColor === color ? styles.swatchActive : ''}`}
                         style={{ '--swatch-color': color, width: '20px', height: '20px' } as React.CSSProperties}
+                        aria-label={`Color ${color}`}
                         onMouseDown={(e) => {
                           e.preventDefault()
                           setEditCategoryColor(color)
@@ -362,12 +329,13 @@ export function CategoriesSettings(): JSX.Element {
                   </div>
                   <input
                     type="text"
+                    className={styles.catEditInput}
                     value={editCategoryName}
                     onChange={(e) => setEditCategoryName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleUpdateCategory(category.id)}
                     onBlur={() => handleUpdateCategory(category.id)}
                     autoFocus
-                    style={{ flex: 1, padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--accent)', fontSize: '14px', fontWeight: 500, background: 'var(--canvas)', color: 'var(--ink)' }}
+                    aria-label="Category name"
                   />
                   <span className={styles.catCount}>{getEventCountForCategory(category.name)} events</span>
                 </>
@@ -376,20 +344,39 @@ export function CategoriesSettings(): JSX.Element {
                   <div
                     className={styles.catSwatch}
                     style={{ '--cat-color': category.color, cursor: 'pointer' } as React.CSSProperties}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Edit category ${category.name}`}
                     onClick={() => {
                       setEditingCategoryId(category.id)
                       setEditCategoryName(category.name)
                       setEditCategoryColor(category.color)
                     }}
-                    title="Click to change color"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setEditingCategoryId(category.id)
+                        setEditCategoryName(category.name)
+                        setEditCategoryColor(category.color)
+                      }
+                    }}
                   />
                   <span
                     className={styles.catName}
                     style={{ cursor: 'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Edit category ${category.name}`}
                     onClick={() => {
                       setEditingCategoryId(category.id)
                       setEditCategoryName(category.name)
                       setEditCategoryColor(category.color)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setEditingCategoryId(category.id)
+                        setEditCategoryName(category.name)
+                        setEditCategoryColor(category.color)
+                      }
                     }}
                   >
                     {category.name}
@@ -399,6 +386,7 @@ export function CategoriesSettings(): JSX.Element {
                     <button
                       className={`${styles.catBtn} ${styles.catBtnDanger}`}
                       onClick={() => handleDeleteCategory(category.id)}
+                      aria-label={`Delete category ${category.name}`}
                       type="button"
                     >
                       Delete
@@ -410,15 +398,16 @@ export function CategoriesSettings(): JSX.Element {
           ))}
 
           {showAddCategory ? (
-            <div className={styles.catRow}>
+            <div className={styles.catRow} data-component="add-category-form">
               <input
                 type="text"
+                className={styles.formInput}
                 placeholder="Category name"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
                 autoFocus
-                style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--line)', fontSize: '14px', background: 'var(--canvas)', color: 'var(--ink)' }}
+                aria-label="New category name"
               />
               <div className={styles.swatches} style={{ gap: '4px' }}>
                 {EVENT_COLORS.slice(0, 6).map((color) => (
@@ -426,6 +415,7 @@ export function CategoriesSettings(): JSX.Element {
                     key={color}
                     className={`${styles.swatch} ${newCategoryColor === color ? styles.swatchActive : ''}`}
                     style={{ '--swatch-color': color, width: '22px', height: '22px' } as React.CSSProperties}
+                    aria-label={`Color ${color}`}
                     onClick={() => setNewCategoryColor(color)}
                     type="button"
                   />
@@ -435,8 +425,14 @@ export function CategoriesSettings(): JSX.Element {
               <button className={styles.actionBtn} onClick={() => setShowAddCategory(false)} type="button">Cancel</button>
             </div>
           ) : (
-            <button className={styles.catAdd} onClick={() => setShowAddCategory(true)} type="button">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <button
+              className={styles.catAdd}
+              onClick={() => setShowAddCategory(true)}
+              data-component="action-button"
+              data-action="add-category"
+              type="button"
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
                 <path d="M8 2v12M2 8h12" />
               </svg>
               Add category
@@ -446,32 +442,32 @@ export function CategoriesSettings(): JSX.Element {
       </div>
 
       {/* Auto-categorize Rules */}
-      <div className={styles.group}>
-        <div style={{ padding: '16px 20px 12px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>Auto-categorize</div>
-          <div style={{ fontSize: '13px', color: 'var(--ink-3)', marginTop: '4px' }}>Assign categories to events automatically based on keywords in the title</div>
+      <div className={styles.group} data-component="auto-categorize-rules">
+        <div className={styles.autoCatHeader}>
+          <div className={styles.autoCatTitle}>Auto-categorize</div>
+          <div className={styles.autoCatDesc}>Assign categories to events automatically based on keywords in the title</div>
         </div>
 
         <div className={styles.catList}>
           {rulePreviews.map(({ rule, matchingCount, uncategorizedCount, categoryName, byCalendar }) => (
-            <div key={rule.id} className={styles.catRow} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+            <div
+              key={rule.id}
+              className={`${styles.catRow} ${styles.ruleRow}`}
+              data-component="auto-rule-row"
+              data-rule-id={rule.id}
+              data-rule-keywords={rule.keywords.join(',')}
+              data-rule-category-id={rule.categoryId}
+            >
               {editingRuleId === rule.id ? (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className={styles.formRow}>
                     <KeywordInput keywords={editRuleKeywords} onChange={setEditRuleKeywords} />
-                    <span style={{ fontSize: '13px', color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>→</span>
+                    <span className={styles.ruleArrow}>→</span>
                     <select
+                      className={styles.ruleSelect}
                       value={editRuleCategoryId}
                       onChange={(e) => setEditRuleCategoryId(e.target.value)}
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--line)',
-                        fontSize: '13px',
-                        background: 'var(--canvas)',
-                        color: 'var(--ink)',
-                        minWidth: '120px',
-                      }}
+                      aria-label="Select category"
                     >
                       <option value="">Select category</option>
                       {categories.map((cat) => (
@@ -484,36 +480,14 @@ export function CategoriesSettings(): JSX.Element {
                 </>
               ) : (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', flex: 1 }}>
+                  <div className={styles.ruleMainRow}>
+                    <div className={styles.ruleKeywords}>
                       {rule.keywords.map((kw) => (
-                        <span
-                          key={kw}
-                          style={{
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            background: 'var(--accent-soft)',
-                            color: 'var(--accent)',
-                            fontSize: '12px',
-                            fontWeight: 500,
-                          }}
-                        >
-                          {kw}
-                        </span>
+                        <span key={kw} className={styles.ruleKeywordTag}>{kw}</span>
                       ))}
                     </div>
-                    <span style={{ fontSize: '13px', color: 'var(--ink-2)' }}>→</span>
-                    <span style={{
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      background: 'var(--accent-soft)',
-                      color: 'var(--accent)',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {categoryName}
-                    </span>
+                    <span className={styles.ruleArrow}>→</span>
+                    <span className={styles.ruleCategoryBadge}>{categoryName}</span>
                     <span className={styles.catCount}>
                       {matchingCount} match{matchingCount !== 1 ? 'es' : ''}
                       {uncategorizedCount > 0 && (
@@ -523,7 +497,7 @@ export function CategoriesSettings(): JSX.Element {
                       )}
                     </span>
                     {byCalendar.length > 0 && (
-                      <div style={{ fontSize: '11px', color: 'var(--ink-3)', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <div className={styles.rulePreviewCalendar}>
                         {byCalendar.map((cal) => (
                           <span key={cal.name}>{cal.count} in {cal.name}</span>
                         ))}
@@ -540,22 +514,15 @@ export function CategoriesSettings(): JSX.Element {
           ))}
 
           {showAddRule ? (
-            <div className={styles.catRow} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className={`${styles.catRow} ${styles.ruleRow}`} data-component="add-rule-form">
+              <div className={styles.formRow}>
                 <KeywordInput keywords={newRuleKeywords} onChange={setNewRuleKeywords} />
-                <span style={{ fontSize: '13px', color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>→</span>
+                <span className={styles.ruleArrow}>→</span>
                 <select
+                  className={styles.ruleSelect}
                   value={newRuleCategoryId}
                   onChange={(e) => setNewRuleCategoryId(e.target.value)}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--line)',
-                    fontSize: '13px',
-                    background: 'var(--canvas)',
-                    color: 'var(--ink)',
-                    minWidth: '120px',
-                  }}
+                  aria-label="Select category for new rule"
                 >
                   <option value="">Select category</option>
                   {categories.map((cat) => (
@@ -566,13 +533,13 @@ export function CategoriesSettings(): JSX.Element {
                 <button className={styles.actionBtn} onClick={cancelAddRule} type="button">Cancel</button>
               </div>
               {newRulePreview && (
-                <div style={{ fontSize: '12px', color: 'var(--ink-3)', paddingLeft: '4px' }}>
+                <div className={styles.rulePreview}>
                   Will match {newRulePreview.matchingCount} event{newRulePreview.matchingCount !== 1 ? 's' : ''}
                   {newRulePreview.uncategorizedCount > 0 && (
                     <span> ({newRulePreview.uncategorizedCount} currently uncategorized)</span>
                   )}
                   {newRulePreview.byCalendar.length > 0 && (
-                    <div style={{ marginTop: '4px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <div className={styles.rulePreviewCalendar}>
                       {newRulePreview.byCalendar.map((cal) => (
                         <span key={cal.name}>{cal.count} in {cal.name}</span>
                       ))}
@@ -582,8 +549,14 @@ export function CategoriesSettings(): JSX.Element {
               )}
             </div>
           ) : (
-            <button className={styles.catAdd} onClick={() => setShowAddRule(true)} type="button">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <button
+              className={styles.catAdd}
+              onClick={() => setShowAddRule(true)}
+              data-component="action-button"
+              data-action="add-auto-rule"
+              type="button"
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
                 <path d="M8 2v12M2 8h12" />
               </svg>
               Add auto-categorize rule
@@ -591,15 +564,17 @@ export function CategoriesSettings(): JSX.Element {
           )}
 
           {autoCategoryRules.length > 0 && (
-            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--line)' }}>
+            <div className={styles.applySection}>
               <button
                 className={styles.actionBtn}
                 onClick={handleApplyToExisting}
+                data-component="action-button"
+                data-action="apply-rules-to-existing"
                 type="button"
               >
                 Apply rules to existing events
               </button>
-              <span style={{ fontSize: '12px', color: 'var(--ink-3)', marginLeft: '8px' }}>
+              <span className={styles.applySectionText}>
                 Retroactively categorize events that match your rules
               </span>
             </div>

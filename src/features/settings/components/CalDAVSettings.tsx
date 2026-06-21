@@ -26,18 +26,18 @@ export function CalDAVSettings(): JSX.Element {
   }
 
   return (
-    <section className={`${styles.section} ${styles.sectionActive}`}>
+    <section className={`${styles.section} ${styles.sectionActive}`} data-component="caldav-settings">
       <h1 className={styles.pageTitle}>Sync</h1>
 
-      <div className={styles.group}>
+      <div className={styles.group} data-component="connected-accounts">
         <div className={styles.groupLabel}>Connected Accounts</div>
         {accounts.map((account) => (
-          <div key={account.id} className={styles.accountRow}>
+          <div key={account.id} className={styles.accountRow} data-component="account-row" data-account-id={account.id} data-account-name={account.name}>
             <div
               className={styles.accountIcon}
               style={{ background: 'color-mix(in srgb, var(--accent) 10%, var(--canvas))' }}
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                 <rect width="20" height="20" rx="5" fill="var(--accent)" opacity="0.8" />
                 <text x="10" y="14" textAnchor="middle" fontSize="11" fill="white" fontFamily="sans-serif">
                   {account.name.charAt(0)}
@@ -56,6 +56,7 @@ export function CalDAVSettings(): JSX.Element {
             <button
               className={styles.disconnect}
               onClick={() => handleDeleteAccount(account.id)}
+              aria-label={`Disconnect ${account.name}`}
               type="button"
             >
               Disconnect
@@ -63,8 +64,14 @@ export function CalDAVSettings(): JSX.Element {
           </div>
         ))}
 
-        <button className={styles.connectBtn} onClick={() => setIsAddingAccount(true)} type="button">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+        <button
+          className={styles.connectBtn}
+          onClick={() => setIsAddingAccount(true)}
+          data-component="action-button"
+          data-action="add-account"
+          type="button"
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
             <path d="M8 2v12M2 8h12" />
           </svg>
           Add calendar account
@@ -73,7 +80,7 @@ export function CalDAVSettings(): JSX.Element {
 
       <div className={styles.group}>
         <div className={styles.groupLabel}>Sync Settings</div>
-        <div className={`${styles.row} ${styles.rowDisabled}`} title="Not available yet">
+        <div className={`${styles.row} ${styles.rowDisabled}`} data-component="setting-row" data-setting="sync-frequency" data-value={String(syncIntervalMinutes)} title="Not available yet">
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Sync Frequency</div>
             <div className={styles.rowDesc}>How often to pull changes from connected accounts</div>
@@ -82,6 +89,7 @@ export function CalDAVSettings(): JSX.Element {
             <select
               className={styles.select}
               value={syncIntervalMinutes}
+              aria-label="Sync frequency"
               onChange={(e) => updateSettings({ syncIntervalMinutes: Number(e.target.value) })}
             >
               {SYNC_INTERVAL_OPTIONS.map((opt) => (
@@ -92,16 +100,17 @@ export function CalDAVSettings(): JSX.Element {
             </select>
           </div>
         </div>
-        <div className={`${styles.row} ${styles.rowDisabled}`} title="Not available yet">
+        <div className={`${styles.row} ${styles.rowDisabled}`} data-component="setting-row" data-setting="sync-on-launch" data-value={String(syncEnabled)} title="Not available yet">
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Sync on Launch</div>
             <div className={styles.rowDesc}>Always refresh when you open the app</div>
           </div>
           <div className={styles.rowControl}>
-            <label className={styles.toggle}>
+            <label className={styles.toggle} data-component="toggle" data-setting="sync-on-launch">
               <input
                 type="checkbox"
                 checked={syncEnabled}
+                aria-label="Sync on launch"
                 onChange={() => updateSettings({ syncEnabled: !syncEnabled })}
               />
               <span className={styles.pill} />

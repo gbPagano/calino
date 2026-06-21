@@ -1024,3 +1024,449 @@
     margin-bottom: 12px;
   }
 }
+
+/* ============================================================================
+   Modals (Account Picker, Disable Confirm)
+   =========================================================================== */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalPanel {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modalTitle {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.modalText {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.modalTextSmall {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+
+.modalFooter {
+  display: flex;
+  gap: 8px;
+}
+
+.modalCancelBtn {
+  margin-top: 16px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink-2);
+  width: 100%;
+  font-family: inherit;
+}
+
+.modalCancelBtn:hover {
+  color: var(--ink);
+}
+
+.confirmBtn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--canvas);
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+
+.confirmBtn:hover {
+  background: rgba(var(--ink-raw), 0.04);
+}
+
+.confirmBtnDanger {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #c2697f 22%, transparent);
+  background: color-mix(in srgb, #c2697f 8%, var(--panel));
+  color: #bb5d6e;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+
+.confirmBtnDanger:hover {
+  background: color-mix(in srgb, #c2697f 14%, var(--panel));
+}
+
+/* Account picker buttons */
+.accountPickerBtn {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--canvas);
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s, opacity 0.15s;
+  transform: scale(1);
+  box-shadow: 0 1px 2px rgba(44, 40, 33, 0.04);
+}
+
+.accountPickerBtn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(44, 40, 33, 0.08);
+  transform: scale(1.01);
+}
+
+.accountPickerBtn:active {
+  transform: scale(0.98);
+}
+
+.accountPickerBtnLoading {
+  background: var(--accent-soft);
+  cursor: wait;
+}
+
+.accountPickerBtnDisabled {
+  opacity: 0.5;
+}
+
+.accountPickerBtnName {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.accountPickerBtnLoadingText {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.accountPickerBtnServer {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
+/* Sync error box */
+.syncError {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #c2697f 8%, var(--panel));
+  border: 1px solid color-mix(in srgb, #c2697f 20%, transparent);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.syncErrorTitle {
+  font-weight: 600;
+  color: #9e4a5e;
+  margin-bottom: 4px;
+}
+
+.syncErrorBody {
+  color: var(--ink-2);
+}
+
+.syncInfo {
+  font-size: 12px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.syncTime {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* ============================================================================
+   KeywordInput (Auto-categorize tags)
+   =========================================================================== */
+.keywordInput {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--canvas);
+  min-height: 32px;
+  align-items: center;
+  flex: 1;
+}
+
+.keywordInput:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.keywordTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.keywordRemove {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.keywordRemove:hover {
+  opacity: 1;
+}
+
+.keywordField {
+  flex: 1;
+  min-width: 80px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 2px 0;
+  font-family: inherit;
+}
+
+/* ============================================================================
+   Auto-categorize section
+   =========================================================================== */
+.autoCatHeader {
+  padding: 16px 20px 12px;
+}
+
+.autoCatTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.autoCatDesc {
+  font-size: 13px;
+  color: var(--ink-3);
+  margin-top: 4px;
+}
+
+/* Rule rows */
+.ruleRow {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.ruleMainRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ruleKeywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+}
+
+.ruleKeywordTag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ruleArrow {
+  font-size: 13px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.ruleCategoryBadge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ruleSelect {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  font-size: 13px;
+  background: var(--canvas);
+  color: var(--ink);
+  min-width: 120px;
+  font-family: inherit;
+}
+
+.rulePreview {
+  font-size: 12px;
+  color: var(--ink-3);
+  padding-left: 4px;
+}
+
+.rulePreviewCalendar {
+  margin-top: 4px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Add rule/category form rows */
+.formRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.formInput {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  font-size: 14px;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Apply section */
+.applySection {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.applySectionText {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-left: 8px;
+}
+
+/* Category edit input */
+.catEditInput {
+  flex: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.catEditInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Import status */
+.importStatus {
+  padding: 0 20px 16px;
+  font-size: 13px;
+}
+
+.importStatusSuccess {
+  color: var(--color-success, #5d9a78);
+}
+
+.importStatusError {
+  color: var(--color-error, #bb5d6e);
+}
+
+/* Action button enhanced hover (replaces inline mouse handlers) */
+.actionBtnElevated {
+  position: relative;
+  z-index: 1;
+}
+
+.actionBtnElevated:hover {
+  background: rgba(var(--ink-raw), 0.06);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(44, 40, 33, 0.08);
+}
+
+.actionBtnElevated:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: none;
+  transition-duration: 0.05s;
+}
+
+.actionBtnElevated:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Toggle with label text */
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.toggleLabel {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* Synced badge */
+.syncedBadge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

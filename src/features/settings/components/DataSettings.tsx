@@ -124,7 +124,7 @@ export function DataSettings(): JSX.Element {
           </button>
         </div>
         {importStatus && (
-          <div style={{ padding: '0 20px 16px', fontSize: '13px', color: importStatus.type === 'success' ? 'var(--color-success)' : 'var(--color-error)' }}>
+          <div className={`${styles.importStatus} ${importStatus.type === 'success' ? styles.importStatusSuccess : styles.importStatusError}`} data-component="import-status">
             {importStatus.message}
           </div>
         )}
@@ -146,6 +146,8 @@ export function DataSettings(): JSX.Element {
                 allEvents.forEach((e) => useCalendarStore.getState().deleteEvent(e.id))
               }
             }}
+            data-component="action-button"
+            data-action="delete-all-events"
             type="button"
           >
             Delete all events
@@ -156,7 +158,7 @@ export function DataSettings(): JSX.Element {
             <div className={styles.rowLabel}>Reset Calino</div>
             <div className={styles.rowDesc}>Erase all data, settings, and connected accounts and start fresh.</div>
           </div>
-          <button className={`${styles.actionBtn} ${styles.actionBtnDanger}`} onClick={handleClearData} type="button">
+          <button className={`${styles.actionBtn} ${styles.actionBtnDanger}`} onClick={handleClearData} data-component="action-button" data-action="reset-app" type="button">
             Reset app
           </button>
         </div>

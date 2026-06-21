@@ -32,7 +32,7 @@ export function BrokenEventsSettings(): JSX.Element {
 
   if (brokenEvents.length === 0) {
     return (
-      <section className={`${styles.section} ${styles.sectionActive}`}>
+      <section className={`${styles.section} ${styles.sectionActive}`} data-component="broken-events-settings">
         <h1 className={styles.pageTitle}>Data Issues</h1>
         <div className={styles.group}>
           <div className={styles.emptyState}>
@@ -44,7 +44,7 @@ export function BrokenEventsSettings(): JSX.Element {
   }
 
   return (
-    <section className={`${styles.section} ${styles.sectionActive}`}>
+    <section className={`${styles.section} ${styles.sectionActive}`} data-component="broken-events-settings">
       <h1 className={styles.pageTitle}>Data Issues</h1>
 
       <div className={styles.group}>
@@ -56,7 +56,7 @@ export function BrokenEventsSettings(): JSX.Element {
 
         <div className={styles.brokenList}>
           {brokenEvents.map((broken) => (
-            <div key={broken.event.id} className={styles.brokenItem}>
+            <div key={broken.event.id} className={styles.brokenItem} data-component="broken-event-row" data-event-id={broken.event.id}>
               <div className={styles.brokenInfo}>
                 <div className={styles.brokenTitle}>{broken.event.title || 'Untitled Event'}</div>
                 <div className={styles.brokenDates}>

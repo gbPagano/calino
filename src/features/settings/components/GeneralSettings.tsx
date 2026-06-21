@@ -88,10 +88,10 @@ export function GeneralSettings(): JSX.Element {
   }, [showAccountPicker, showDisableConfirm])
 
   return (
-    <section className={`${styles.section} ${styles.sectionActive}`}>
+    <section className={`${styles.section} ${styles.sectionActive}`} data-component="general-settings">
       <h1 className={styles.pageTitle}>General</h1>
       <div className={styles.group}>
-        <div className={styles.row}>
+        <div className={styles.row} data-component="setting-row" data-setting="timezone" data-value={timezone}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Timezone</div>
             <div className={styles.rowDesc}>All events will be displayed in this timezone</div>
@@ -100,6 +100,7 @@ export function GeneralSettings(): JSX.Element {
             <select
               className={styles.select}
               value={timezone}
+              aria-label="Timezone"
               onChange={(e) => updateSettings({ timezone: e.target.value })}
             >
               {TIMEZONE_OPTIONS.map((opt) => (
@@ -110,7 +111,7 @@ export function GeneralSettings(): JSX.Element {
             </select>
           </div>
         </div>
-        <div className={styles.row}>
+        <div className={styles.row} data-component="setting-row" data-setting="date-format" data-value={dateFormat}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Date Format</div>
             <div className={styles.rowDesc}>How dates appear throughout the app</div>
@@ -119,6 +120,7 @@ export function GeneralSettings(): JSX.Element {
             <select
               className={styles.select}
               value={dateFormat}
+              aria-label="Date format"
               onChange={(e) =>
                 updateSettings({
                   dateFormat: e.target.value as 'MM/dd/yyyy' | 'dd/MM/yyyy' | 'yyyy-MM-dd',
@@ -133,17 +135,20 @@ export function GeneralSettings(): JSX.Element {
             </select>
           </div>
         </div>
-        <div className={styles.row}>
+        <div className={styles.row} data-component="setting-row" data-setting="time-format" data-value={timeFormat}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Time Format</div>
             <div className={styles.rowDesc}>12-hour or 24-hour time display</div>
           </div>
           <div className={styles.rowControl}>
-            <div className={styles.seg}>
+            <div className={styles.seg} role="radiogroup" aria-label="Time format">
               {TIME_FORMAT_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   className={`${styles.segTab} ${timeFormat === opt.value ? styles.segTabActive : ''}`}
+                  role="radio"
+                  aria-checked={timeFormat === opt.value}
+                  data-active={timeFormat === opt.value ? 'true' : undefined}
                   onClick={() => updateSettings({ timeFormat: opt.value as '12h' | '24h' })}
                 >
                   {opt.label}
@@ -152,13 +157,13 @@ export function GeneralSettings(): JSX.Element {
             </div>
           </div>
         </div>
-        <div className={styles.row}>
+        <div className={styles.row} data-component="setting-row" data-setting="first-day-of-week" data-value={String(firstDayOfWeek)}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>First Day of Week</div>
             <div className={styles.rowDesc}>Start of the week in week and day views</div>
           </div>
           <div className={styles.rowControl}>
-            <div className={styles.seg}>
+            <div className={styles.seg} role="radiogroup" aria-label="First day of week">
               {(
                 [
                   { value: 6 as const, label: 'Saturday' },
@@ -169,6 +174,9 @@ export function GeneralSettings(): JSX.Element {
                 <button
                   key={opt.value}
                   className={`${styles.segTab} ${firstDayOfWeek === opt.value ? styles.segTabActive : ''}`}
+                  role="radio"
+                  aria-checked={firstDayOfWeek === opt.value}
+                  data-active={firstDayOfWeek === opt.value ? 'true' : undefined}
                   onClick={() =>
                     updateSettings({ firstDayOfWeek: opt.value })
                   }
@@ -179,27 +187,28 @@ export function GeneralSettings(): JSX.Element {
             </div>
           </div>
         </div>
-        <div className={styles.row}>
+        <div className={styles.row} data-component="setting-row" data-setting="language" data-value="en">
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Language</div>
             <div className={styles.rowDesc}>Interface language</div>
           </div>
           <div className={styles.rowControl}>
-            <select className={styles.select} defaultValue="en">
+            <select className={styles.select} defaultValue="en" aria-label="Language">
               <option value="en">English</option>
             </select>
           </div>
         </div>
-        <div className={styles.row}>
+        <div className={styles.row} data-component="setting-row" data-setting="journal" data-value={String(journalEnabled)}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Journal</div>
             <div className={styles.rowDesc}>Attach freeform notes to days in your calendar</div>
           </div>
           <div className={styles.rowControl}>
-            <label className={styles.toggle}>
+            <label className={styles.toggle} data-component="toggle" data-setting="journal">
               <input
                 type="checkbox"
                 checked={journalEnabled}
+                aria-label="Journal"
                 onChange={(e) => updateSettings({ journalEnabled: e.target.checked })}
               />
               <span className={styles.pill} />
@@ -212,7 +221,7 @@ export function GeneralSettings(): JSX.Element {
       {/* CalDAV Settings Sync */}
       <div className={styles.groupLabel}>Sync</div>
       <div className={styles.group}>
-        <div className={styles.row}>
+        <div className={styles.row} data-component="setting-row" data-setting="settings-sync" data-value={String(syncEnabled)}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>CalDAV Settings Sync</div>
             <div className={styles.rowDesc}>
@@ -221,39 +230,31 @@ export function GeneralSettings(): JSX.Element {
                 : 'Enable to sync your settings across devices via CalDAV'}
             </div>
             {syncError && (
-              <div style={{
-                marginTop: 12,
-                padding: '12px 14px',
-                borderRadius: 10,
-                background: 'color-mix(in srgb, #c2697f 8%, var(--panel))',
-                border: '1px solid color-mix(in srgb, #c2697f 20%, transparent)',
-                fontSize: 13,
-                lineHeight: 1.5,
-                color: 'var(--ink)',
-              }}>
-                <div style={{ fontWeight: 600, color: '#9e4a5e', marginBottom: 4 }}>Something went wrong</div>
-                <div style={{ color: 'var(--ink-2)' }}>{formatSyncError(syncError)}</div>
+              <div className={styles.syncError} data-component="sync-error">
+                <div className={styles.syncErrorTitle}>Something went wrong</div>
+                <div className={styles.syncErrorBody}>{formatSyncError(syncError)}</div>
               </div>
             )}
           </div>
           <div className={styles.rowControl}>
             {syncEnabled ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className={styles.syncedBadge}>
                 {syncing && (
-                  <span style={{ fontSize: 12, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className={styles.syncInfo}>
                     <span className={styles.spinner} />
                     Syncing…
                   </span>
                 )}
                 {lastSyncAt && !syncing && (
-                  <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+                  <span className={styles.syncTime}>
                     Synced {new Date(lastSyncAt).toLocaleTimeString()}
                   </span>
                 )}
-                <label className={styles.toggle}>
+                <label className={styles.toggle} data-component="toggle" data-setting="settings-sync-toggle">
                   <input
                     type="checkbox"
                     checked={syncEnabled}
+                    aria-label="Disable settings sync"
                     onChange={() => setShowDisableConfirm(true)}
                   />
                   <span className={styles.pill} />
@@ -262,25 +263,11 @@ export function GeneralSettings(): JSX.Element {
               </div>
             ) : (
               <button
-                className={styles.actionBtn}
+                className={`${styles.actionBtn} ${styles.actionBtnElevated}`}
                 onClick={() => setShowAccountPicker(true)}
                 disabled={syncAccounts.length === 0}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(44,40,33,0.06)'
-                  e.currentTarget.style.transform = 'translateY(-1px)'
-                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(44,40,33,0.08)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = ''
-                  e.currentTarget.style.transform = ''
-                  e.currentTarget.style.boxShadow = ''
-                }}
-                onMouseDown={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0) scale(0.97)'
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-1px)'
-                }}
+                data-component="action-button"
+                data-action="enable-sync"
               >
                 Enable
               </button>
@@ -288,34 +275,18 @@ export function GeneralSettings(): JSX.Element {
           </div>
         </div>
         {syncEnabled && (
-          <div className={styles.row}>
+          <div className={styles.row} data-component="setting-row" data-setting="sync-now">
             <div className={styles.rowInfo}>
               <div className={styles.rowLabel}>Sync Now</div>
               <div className={styles.rowDesc}>Save your local settings to the server</div>
             </div>
             <div className={styles.rowControl}>
               <button
-                className={styles.actionBtn}
+                className={`${styles.actionBtn} ${styles.actionBtnElevated}`}
                 onClick={() => pushSync()}
                 disabled={syncing}
-                onMouseEnter={(e) => {
-                  if (!syncing) {
-                    e.currentTarget.style.background = 'rgba(44,40,33,0.06)'
-                    e.currentTarget.style.transform = 'translateY(-1px)'
-                    e.currentTarget.style.boxShadow = '0 2px 6px rgba(44,40,33,0.08)'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = ''
-                  e.currentTarget.style.transform = ''
-                  e.currentTarget.style.boxShadow = ''
-                }}
-                onMouseDown={(e) => {
-                  if (!syncing) e.currentTarget.style.transform = 'translateY(0) scale(0.97)'
-                }}
-                onMouseUp={(e) => {
-                  if (!syncing) e.currentTarget.style.transform = 'translateY(-1px)'
-                }}
+                data-component="action-button"
+                data-action="sync-now"
               >
                 {syncing ? 'Saving...' : 'Save'}
               </button>
@@ -327,43 +298,29 @@ export function GeneralSettings(): JSX.Element {
       {/* Account Picker Modal */}
       {showAccountPicker && (
         <div
+          className={styles.modalBackdrop}
           role="dialog"
           aria-modal="true"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
+          aria-labelledby="account-picker-title"
+          data-component="modal-backdrop"
+          data-modal="account-picker"
           onClick={() => setShowAccountPicker(false)}
         >
           <div
-            style={{
-              background: 'var(--panel)',
-              borderRadius: 16,
-              padding: 24,
-              maxWidth: 400,
-              width: '90%',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-            }}
+            className={styles.modalPanel}
+            data-component="modal-panel"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600 }}>
+            <h3 className={styles.modalTitle} id="account-picker-title">
               Enable Settings Sync
             </h3>
-            <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--ink-2)' }}>
+            <p className={styles.modalText}>
               This will create a <strong>Calino Settings</strong> calendar on your CalDAV server. It contains a single event that stores your preferences (theme, first day of week, etc.) as JSON data.
             </p>
-            <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+            <p className={styles.modalTextSmall}>
               The calendar is hidden from Calino's sidebar but may be visible in other CalDAV clients. It does not affect your other calendars and can be deleted at any time from settings.
             </p>
-            <p style={{ margin: '0 0 16px', fontSize: 14, color: 'var(--ink-2)' }}>
+            <p className={styles.modalText}>
               Choose an account to sync with:
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -372,38 +329,11 @@ export function GeneralSettings(): JSX.Element {
                 return (
                   <button
                     key={account.id}
-                    style={{
-                      padding: '12px 16px',
-                      borderRadius: 10,
-                      border: '1px solid var(--line)',
-                      background: isLoading ? 'var(--accent-soft)' : 'var(--canvas)',
-                      cursor: isLoading ? 'wait' : 'pointer',
-                      textAlign: 'left',
-                      fontSize: 14,
-                      opacity: enablingAccountId && !isLoading ? 0.5 : 1,
-                      transition: 'all 0.15s ease',
-                      transform: 'scale(1)',
-                      boxShadow: '0 1px 2px rgba(44,40,33,0.04)',
-                    }}
+                    className={`${styles.accountPickerBtn} ${isLoading ? styles.accountPickerBtnLoading : ''} ${enablingAccountId && !isLoading ? styles.accountPickerBtnDisabled : ''}`}
                     disabled={enablingAccountId !== null}
-                    onMouseEnter={(e) => {
-                      if (!isLoading && !enablingAccountId) {
-                        e.currentTarget.style.borderColor = 'var(--accent)'
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(44,40,33,0.08)'
-                        e.currentTarget.style.transform = 'scale(1.01)'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--line)'
-                      e.currentTarget.style.boxShadow = '0 1px 2px rgba(44,40,33,0.04)'
-                      e.currentTarget.style.transform = 'scale(1)'
-                    }}
-                    onMouseDown={(e) => {
-                      if (!isLoading) e.currentTarget.style.transform = 'scale(0.98)'
-                    }}
-                    onMouseUp={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.01)'
-                    }}
+                    data-component="account-picker-option"
+                    data-account-id={account.id}
+                    data-account-name={account.name}
                     onClick={async () => {
                       setEnablingAccountId(account.id)
                       try {
@@ -416,13 +346,13 @@ export function GeneralSettings(): JSX.Element {
                       }
                     }}
                   >
-                    <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className={styles.accountPickerBtnName}>
                       {account.name}
                       {isLoading && (
-                        <span style={{ fontSize: 12, color: 'var(--accent)' }}>Setting up…</span>
+                        <span className={styles.accountPickerBtnLoadingText}>Setting up…</span>
                       )}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>
+                    <div className={styles.accountPickerBtnServer}>
                       {account.serverUrl}
                     </div>
                   </button>
@@ -430,17 +360,7 @@ export function GeneralSettings(): JSX.Element {
               })}
             </div>
             <button
-              style={{
-                marginTop: 16,
-                padding: '10px 16px',
-                borderRadius: 10,
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-                fontSize: 14,
-                color: 'var(--ink-2)',
-                width: '100%',
-              }}
+              className={styles.modalCancelBtn}
               onClick={() => setShowAccountPicker(false)}
             >
               Cancel
@@ -452,50 +372,28 @@ export function GeneralSettings(): JSX.Element {
       {/* Disable Confirmation Modal */}
       {showDisableConfirm && (
         <div
+          className={styles.modalBackdrop}
           role="dialog"
           aria-modal="true"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
+          aria-labelledby="disable-sync-title"
+          data-component="modal-backdrop"
+          data-modal="disable-sync"
           onClick={() => setShowDisableConfirm(false)}
         >
           <div
-            style={{
-              background: 'var(--panel)',
-              borderRadius: 16,
-              padding: 24,
-              maxWidth: 400,
-              width: '90%',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-            }}
+            className={styles.modalPanel}
+            data-component="modal-panel"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600 }}>
+            <h3 className={styles.modalTitle} id="disable-sync-title">
               Disable Settings Sync?
             </h3>
-            <p style={{ margin: '0 0 16px', fontSize: 14, color: 'var(--ink-2)' }}>
+            <p className={styles.modalText}>
               Your settings will no longer sync across devices. Would you also like to delete the settings file from your server?
             </p>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className={styles.modalFooter}>
               <button
-                style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  borderRadius: 10,
-                  border: '1px solid var(--line)',
-                  background: 'var(--canvas)',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                }}
+                className={styles.confirmBtn}
                 onClick={async () => {
                   await disableSync(false)
                   setShowDisableConfirm(false)
@@ -504,22 +402,13 @@ export function GeneralSettings(): JSX.Element {
                 Keep File
               </button>
               <button
-                style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  borderRadius: 10,
-                  border: '1px solid color-mix(in srgb, #c2697f 22%, transparent)',
-                  background: 'color-mix(in srgb, #c2697f 8%, var(--panel))',
-                  color: '#bb5d6e',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                }}
+                className={styles.confirmBtnDanger}
                 onClick={async () => {
                   await disableSync(true)
                   setShowDisableConfirm(false)
                 }}
               >
-                Delete & Disable
+                Delete &amp; Disable
               </button>
             </div>
           </div>

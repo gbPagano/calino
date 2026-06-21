@@ -56,7 +56,6 @@ export function GeneralSettings(): JSX.Element {
   const dateFormat = useSettingsStore((s) => s.dateFormat)
   const timeFormat = useSettingsStore((s) => s.timeFormat)
   const firstDayOfWeek = useSettingsStore((s) => s.firstDayOfWeek)
-  const journalEnabled = useSettingsStore((s) => s.journalEnabled)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
   
   // Settings sync
@@ -196,24 +195,6 @@ export function GeneralSettings(): JSX.Element {
             <select className={styles.select} defaultValue="en" aria-label="Language">
               <option value="en">English</option>
             </select>
-          </div>
-        </div>
-        <div className={styles.row} data-component="setting-row" data-setting="journal" data-value={String(journalEnabled)}>
-          <div className={styles.rowInfo}>
-            <div className={styles.rowLabel}>Journal</div>
-            <div className={styles.rowDesc}>Attach freeform notes to days in your calendar</div>
-          </div>
-          <div className={styles.rowControl}>
-            <label className={styles.toggle} data-component="toggle" data-setting="journal">
-              <input
-                type="checkbox"
-                checked={journalEnabled}
-                aria-label="Journal"
-                onChange={(e) => updateSettings({ journalEnabled: e.target.checked })}
-              />
-              <span className={styles.pill} />
-              <span className={styles.knob} />
-            </label>
           </div>
         </div>
       </div>

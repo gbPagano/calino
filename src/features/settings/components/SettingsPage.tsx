@@ -4,16 +4,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { GeneralSettings } from './GeneralSettings'
 import { ThemeSettings } from './ThemeSettings'
 import { CalendarSettings } from './CalendarSettings'
-import { EventDefaultsSettings } from './EventDefaultsSettings'
 import { NotificationSettings } from './NotificationSettings'
 import { DataSettings } from './DataSettings'
 import { CalDAVSettings } from './CalDAVSettings'
 import { CategoriesSettings } from './CategoriesSettings'
-import { BrokenEventsSettings } from './BrokenEventsSettings'
 import { useCalendarStore } from '@/store/calendarStore'
 import styles from './Settings.module.css'
 
-type SettingsTab = 'general' | 'theme' | 'calendar' | 'events' | 'categories' | 'notifications' | 'caldav' | 'data' | 'data-issues'
+type SettingsTab = 'general' | 'theme' | 'calendar' | 'categories' | 'notifications' | 'caldav' | 'data'
 
 interface NavItem {
   id: SettingsTab
@@ -34,7 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'theme',
-    label: 'Theme',
+    label: 'Appearance',
     icon: (
       <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 2a7 7 0 100 14A4 4 0 009 2z" />
@@ -52,15 +50,6 @@ const NAV_ITEMS: NavItem[] = [
       <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="14" height="13" rx="3" />
         <path d="M2 7h14M6 2v2M12 2v2" />
-      </svg>
-    ),
-  },
-  {
-    id: 'events',
-    label: 'Events',
-    icon: (
-      <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 2l1.8 4 4.2.6-3 3 .7 4.2L9 12l-3.7 1.8.7-4.2-3-3 4.2-.6L9 2z" />
       </svg>
     ),
   },
@@ -106,19 +95,9 @@ const NAV_ITEMS: NavItem[] = [
       </svg>
     ),
   },
-  {
-    id: 'data-issues',
-    label: 'Data Issues',
-    icon: (
-      <svg className={styles.navIcon} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="9" cy="9" r="7" />
-        <path d="M9 5v4M9 12h.01" />
-      </svg>
-    ),
-  },
 ]
 
-const VALID_TABS: SettingsTab[] = ['general', 'theme', 'calendar', 'events', 'categories', 'notifications', 'caldav', 'data', 'data-issues']
+const VALID_TABS: SettingsTab[] = ['general', 'theme', 'calendar', 'categories', 'notifications', 'caldav', 'data']
 
 export function SettingsPage(): JSX.Element {
   const navigate = useNavigate()
@@ -143,8 +122,6 @@ export function SettingsPage(): JSX.Element {
         return <ThemeSettings />
       case 'calendar':
         return <CalendarSettings />
-      case 'events':
-        return <EventDefaultsSettings />
       case 'categories':
         return <CategoriesSettings />
       case 'notifications':
@@ -153,8 +130,6 @@ export function SettingsPage(): JSX.Element {
         return <CalDAVSettings />
       case 'data':
         return <DataSettings />
-      case 'data-issues':
-        return <BrokenEventsSettings />
       default:
         return <GeneralSettings />
     }
@@ -185,7 +160,7 @@ export function SettingsPage(): JSX.Element {
               >
                 {item.icon}
                 {item.label}
-                {item.id === 'data-issues' && brokenEventsCount > 0 && (
+                {item.id === 'data' && brokenEventsCount > 0 && (
                   <span className={styles.navBadge}>{brokenEventsCount}</span>
                 )}
               </button>

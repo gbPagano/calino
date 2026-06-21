@@ -41,54 +41,60 @@ describe('SettingsPage', () => {
   it('renders default General tab when no URL param', () => {
     renderWithProviders(['/settings'])
 
-    // Page title should say "General"
     const pageTitles = screen.getAllByText('General')
     expect(pageTitles.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('initializes to calendar tab from URL query param ?tab=calendar (Bug #69)', () => {
+  it('initializes to calendar tab from URL query param ?tab=calendar', () => {
     renderWithProviders(['/settings?tab=calendar'])
 
     const matches = screen.getAllByText('Calendar')
     expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('initializes to theme tab from URL query param (Bug #69)', () => {
+  it('initializes to theme tab from URL query param', () => {
     renderWithProviders(['/settings?tab=theme'])
 
-    const matches = screen.getAllByText('Theme')
+    const matches = screen.getAllByText('Appearance')
     expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('initializes to caldav tab from URL query param (Bug #69)', () => {
+  it('initializes to caldav tab from URL query param', () => {
     renderWithProviders(['/settings?tab=caldav'])
 
     const matches = screen.getAllByText('Sync')
     expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('initializes to events tab from URL query param (Bug #69)', () => {
-    renderWithProviders(['/settings?tab=events'])
-
-    const matches = screen.getAllByText('Events')
-    expect(matches.length).toBeGreaterThanOrEqual(1)
-  })
-
-  it('initializes to data tab from URL query param (Bug #69)', () => {
+  it('initializes to data tab from URL query param', () => {
     renderWithProviders(['/settings?tab=data'])
 
     const matches = screen.getAllByText('Data')
     expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('falls back to general tab for invalid URL param (Bug #69)', () => {
+  it('falls back to general tab for invalid URL param', () => {
     renderWithProviders(['/settings?tab=nonexistent'])
 
     const matches = screen.getAllByText('General')
     expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('falls back to general tab for empty tab param (Bug #69)', () => {
+  it('falls back to general tab for removed tabs', () => {
+    renderWithProviders(['/settings?tab=events'])
+
+    const matches = screen.getAllByText('General')
+    expect(matches.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('falls back to general tab for data-issues', () => {
+    renderWithProviders(['/settings?tab=data-issues'])
+
+    const matches = screen.getAllByText('General')
+    expect(matches.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('falls back to general tab for empty tab param', () => {
     renderWithProviders(['/settings?tab='])
 
     const matches = screen.getAllByText('General')
@@ -98,10 +104,10 @@ describe('SettingsPage', () => {
   it('can switch tabs via sidebar buttons', () => {
     renderWithProviders(['/settings'])
 
-    // Click on Events tab
-    fireEvent.click(screen.getByText('Events'))
+    // Click on Categories tab
+    fireEvent.click(screen.getByText('Categories'))
 
-    const matches = screen.getAllByText('Events')
+    const matches = screen.getAllByText('Categories')
     expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
@@ -111,20 +117,11 @@ describe('SettingsPage', () => {
     const nav = document.querySelector('nav')
     expect(nav).toBeInTheDocument()
     expect(nav!.textContent).toContain('General')
-    expect(nav!.textContent).toContain('Theme')
+    expect(nav!.textContent).toContain('Appearance')
     expect(nav!.textContent).toContain('Calendar')
-    expect(nav!.textContent).toContain('Events')
     expect(nav!.textContent).toContain('Categories')
     expect(nav!.textContent).toContain('Notifications')
     expect(nav!.textContent).toContain('Sync')
     expect(nav!.textContent).toContain('Data')
-    expect(nav!.textContent).toContain('Data Issues')
-  })
-
-  it('initializes to data-issues tab from URL query param', () => {
-    renderWithProviders(['/settings?tab=data-issues'])
-
-    const matches = screen.getAllByText('Data Issues')
-    expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 })

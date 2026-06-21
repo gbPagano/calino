@@ -85,6 +85,7 @@ export function ThemeSettings(): JSX.Element {
   const themeMode = useSettingsStore((s) => s.themeMode)
   const lightTheme = useSettingsStore((s) => s.lightTheme)
   const darkTheme = useSettingsStore((s) => s.darkTheme)
+  const journalEnabled = useSettingsStore((s) => s.journalEnabled)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
   const { loadedThemes, refetchThemes } = useTheme()
 
@@ -97,7 +98,7 @@ export function ThemeSettings(): JSX.Element {
 
   return (
     <section className={`${styles.section} ${styles.sectionActive}`} data-component="theme-settings">
-      <h1 className={styles.pageTitle}>Theme</h1>
+      <h1 className={styles.pageTitle}>Appearance</h1>
       <div className={styles.group}>
         <div className={`${styles.row} ${styles.rowTop}`} data-component="setting-row" data-setting="theme-mode" data-value={themeMode}>
           <div className={styles.rowInfo}>
@@ -170,6 +171,26 @@ export function ThemeSettings(): JSX.Element {
             />
           ))}
         </div>
+        <div className={styles.group}>
+        <div className={styles.row} data-component="setting-row" data-setting="journal" data-value={String(journalEnabled)}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Journal</div>
+            <div className={styles.rowDesc}>Attach freeform notes to days in your calendar</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle} data-component="toggle" data-setting="journal">
+              <input
+                type="checkbox"
+                checked={journalEnabled}
+                aria-label="Journal"
+                onChange={(e) => updateSettings({ journalEnabled: e.target.checked })}
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
+        </div>
+      </div>
         <div className={`${styles.row} ${styles.rowDisabled}`} title="Not available yet">
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Font Size</div>

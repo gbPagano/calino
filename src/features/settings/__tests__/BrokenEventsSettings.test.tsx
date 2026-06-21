@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BrokenEventsSettings } from '../components/BrokenEventsSettings'
+import { DataSettings } from '../components/DataSettings'
 import { useCalendarStore } from '@/store/calendarStore'
 import type { CalendarEvent, BrokenEvent } from '@/types'
 
@@ -15,7 +15,7 @@ const createBrokenEvent = (overrides: Partial<CalendarEvent> = {}): CalendarEven
   ...overrides,
 })
 
-describe('BrokenEventsSettings', () => {
+describe('DataSettings — broken events section', () => {
   beforeEach(() => {
     useCalendarStore.setState({
       events: [],
@@ -33,10 +33,9 @@ describe('BrokenEventsSettings', () => {
     })
   })
 
-  it('shows empty state when no broken events', () => {
-    render(<BrokenEventsSettings />)
-
-    expect(screen.getByText('No broken events found. All events have valid date ranges.')).toBeInTheDocument()
+  it('hides broken events section when none exist', () => {
+    render(<DataSettings />)
+    expect(screen.queryByText('Data Issues')).not.toBeInTheDocument()
   })
 
   it('displays broken events list', () => {
@@ -55,10 +54,9 @@ describe('BrokenEventsSettings', () => {
 
     useCalendarStore.setState({ brokenEvents })
 
-    render(<BrokenEventsSettings />)
+    render(<DataSettings />)
 
-    expect(screen.getByText('Data Issues')).toBeInTheDocument()
-    expect(screen.getByText('Broken Events (2)')).toBeInTheDocument()
+    expect(screen.getByText('Data Issues (2)')).toBeInTheDocument()
     expect(screen.getByText('Meeting')).toBeInTheDocument()
     expect(screen.getByText('Lunch')).toBeInTheDocument()
   })
@@ -74,7 +72,7 @@ describe('BrokenEventsSettings', () => {
 
     useCalendarStore.setState({ brokenEvents })
 
-    render(<BrokenEventsSettings />)
+    render(<DataSettings />)
 
     const fixButtons = screen.getAllByText('Fix')
     const deleteButtons = screen.getAllByText('Delete')
@@ -95,9 +93,9 @@ describe('BrokenEventsSettings', () => {
 
     useCalendarStore.setState({ brokenEvents })
 
-    render(<BrokenEventsSettings />)
+    render(<DataSettings />)
 
-    const deleteBtn = screen.getAllByText('Delete')[0]
+    const deleteBtn = screen.getByRole('button', { name: 'Delete' })
     await user.click(deleteBtn)
 
     const state = useCalendarStore.getState()
@@ -123,9 +121,9 @@ describe('BrokenEventsSettings', () => {
 
     useCalendarStore.setState({ brokenEvents })
 
-    render(<BrokenEventsSettings />)
+    render(<DataSettings />)
 
-    const fixBtn = screen.getAllByText('Fix')[0]
+    const fixBtn = screen.getByRole('button', { name: 'Fix' })
     await user.click(fixBtn)
 
     const state = useCalendarStore.getState()
@@ -151,7 +149,7 @@ describe('BrokenEventsSettings', () => {
 
     useCalendarStore.setState({ brokenEvents })
 
-    render(<BrokenEventsSettings />)
+    render(<DataSettings />)
 
     expect(screen.getByText('Fix All (2)')).toBeInTheDocument()
     expect(screen.getByText('Delete All')).toBeInTheDocument()
@@ -184,7 +182,7 @@ describe('BrokenEventsSettings', () => {
 
     useCalendarStore.setState({ brokenEvents })
 
-    render(<BrokenEventsSettings />)
+    render(<DataSettings />)
 
     await user.click(screen.getByText('Fix All (2)'))
 
@@ -210,7 +208,7 @@ describe('BrokenEventsSettings', () => {
 
     useCalendarStore.setState({ brokenEvents })
 
-    render(<BrokenEventsSettings />)
+    render(<DataSettings />)
 
     await user.click(screen.getByText('Delete All'))
 
@@ -230,9 +228,9 @@ describe('BrokenEventsSettings', () => {
 
     useCalendarStore.setState({ brokenEvents })
 
-    render(<BrokenEventsSettings />)
+    render(<DataSettings />)
 
     expect(screen.queryByText('Fix All')).not.toBeInTheDocument()
-    expect(screen.queryByText('Delete All')).not.toBeInTheDocument()
+    expect(screen.queryByText('Delete All', { selector: '.brokenBatchActions button' })).not.toBeInTheDocument()
   })
 })

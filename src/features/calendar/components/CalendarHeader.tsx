@@ -229,14 +229,14 @@ export function CalendarHeader({
   const brandColumnWidth = isMobile || isCompact ? 'auto' : (sidebarCollapsed ? '40px' : `${sidebarWidth}px`)
 
   return (
-    <header className={styles.header} style={{ gridTemplateColumns: `${brandColumnWidth} auto auto 1fr auto` }} {...bind} data-component="header">
+    <header className={styles.header} style={{ '--header-brand-col': brandColumnWidth } as React.CSSProperties} {...bind} data-component="header">
       {/* Brand + Hamburger — both always rendered, CSS handles visibility */}
-      <div className={`${styles.brand} ${isMobile || isCompact ? styles.brandHidden : ''}`}>
+      <div className={`${styles.brand} ${(isMobile || isCompact || sidebarCollapsed) ? styles.brandHidden : ''}`}>
         <div className={styles.brandDiamond} />
         <span className={styles.brandName}>Calino</span>
       </div>
       <button
-        className={`${styles.hamburger} ${(!isMobile && !isCompact) || isCompactMobile ? styles.hamburgerHidden : ''}`}
+        className={`${styles.hamburger} ${(!isMobile && !isCompact && !sidebarCollapsed) || isCompactMobile ? styles.hamburgerHidden : ''}`}
         onClick={onToggleSidebar}
         aria-label="Toggle menu"
       >

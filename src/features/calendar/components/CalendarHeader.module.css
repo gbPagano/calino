@@ -4,13 +4,12 @@
 
 .header {
   display: grid;
-  grid-template-columns: 277px auto auto 1fr auto;
+  grid-template-columns: var(--header-brand-col, 277px) auto auto 1fr auto;
   align-items: center;
   padding: 18px 16px 18px 0;
   background: var(--canvas);
   position: relative;
   z-index: 100;
-  gap: 22px;
   transition: padding 0.25s ease;
 }
 
@@ -66,6 +65,7 @@
   gap: 6px;
   white-space: nowrap;
   padding-top: 6px;
+  padding-left: 22px;
   align-self: center;
 }
 
@@ -185,6 +185,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  padding-left: 22px;
 }
 
 @media (max-width: 768px) {

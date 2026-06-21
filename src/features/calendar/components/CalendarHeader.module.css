@@ -32,16 +32,13 @@
   grid-row: 1;
 }
 
-/* Hidden when sidebar collapsed or at compact breakpoint */
-[data-sidebar-collapsed] .brand,
-@media (max-width: 950px) {
-  .brand {
-    opacity: 0;
-    width: 0;
-    overflow: hidden;
-    padding: 0;
-    pointer-events: none;
-  }
+/* Hidden when sidebar collapsed */
+[data-sidebar-collapsed] .brand {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  padding: 0;
+  pointer-events: none;
 }
 
 .brandDiamond {

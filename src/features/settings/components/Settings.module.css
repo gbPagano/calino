@@ -197,9 +197,17 @@
   background: var(--canvas);
 }
 
+.sectionHeader {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .main {
     padding: 16px;
+  }
+
+  .header {
+    display: none;
   }
 }
 
@@ -217,6 +225,10 @@
   }
 
   .header {
+    display: none;
+  }
+
+  .pageTitle {
     display: none;
   }
 

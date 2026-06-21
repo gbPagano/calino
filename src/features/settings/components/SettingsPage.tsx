@@ -181,6 +181,22 @@ export function SettingsPage(): JSX.Element {
           </nav>
         </aside>
         <main className={styles.main} data-component="settings-panel">
+          <div className={styles.backMobile}>
+            <button className={styles.back} onClick={() => navigate('/')}> 
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 2L4 7l5 5" />
+              </svg>
+              Back to Calendar
+            </button>
+          </div>
+          <div className={styles.header}>
+            <button className={styles.back} onClick={() => navigate('/')}> 
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 2L4 7l5 5" />
+              </svg>
+              Back to Calendar
+            </button>
+          </div>
           <div className={styles.sectionHeader} ref={dropdownRef}>
             <button className={styles.back} onClick={() => navigate('/')}> 
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">

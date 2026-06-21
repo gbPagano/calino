@@ -366,12 +366,32 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  const sidebarClass = `${styles.sidebar}${isOpen ? ` ${styles.open}` : ''}${isCollapsed && !isCompact ? ` ${styles.collapsed}` : ''}`
+  const sidebarClass = `${styles.sidebar}${isOpen ? ` ${styles.open}` : ''}${isCollapsed && !isCompact ? ` ${styles.sidebarCollapsed}` : ''}`
 
   return (
     <>
-      {isCollapsed && !isCompact ? (
-        <div className={styles.collapsedBar}>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className={styles.overlay}
+            onClick={onClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          />
+        )}
+      </AnimatePresence>
+      <div
+        className={sidebarClass}
+        style={{
+          width: isCollapsed && !isCompact ? undefined : sidebarWidth,
+          minWidth: isCollapsed && !isCompact ? undefined : sidebarWidth,
+        }}
+        data-component="sidebar"
+      >
+        {/* Expand button — only visible when collapsed */}
+        {isCollapsed && !isCompact && (
           <button
             className={styles.expandButton}
             onClick={() => {
@@ -384,28 +404,16 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
           >
             <ChevronRight />
           </button>
-        </div>
-      ) : (
-        <>
-          <AnimatePresence>
-            {isOpen && (
-              <motion.div
-                className={styles.overlay}
-                onClick={onClose}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              />
-            )}
-          </AnimatePresence>
-          <div className={sidebarClass} style={{ width: isCollapsed ? undefined : sidebarWidth, minWidth: isCollapsed ? undefined : sidebarWidth }} data-component="sidebar">
-        {isOpen && (
-          <div className={styles.sidebarBrand}>
-            <div className={styles.sidebarBrandDiamond} />
-            <span className={styles.sidebarBrandName}>Calino</span>
-          </div>
         )}
+
+        {/* Sidebar content — hidden when collapsed via CSS */}
+        <div className={styles.sidebarContent}>
+          {isOpen && (
+            <div className={styles.sidebarBrand}>
+              <div className={styles.sidebarBrandDiamond} />
+              <span className={styles.sidebarBrandName}>Calino</span>
+            </div>
+          )}
         <div className={styles.miniCalendar}>
           <div className={styles.miniHeader}>
             <button onClick={handlePrevMonth} className={styles.miniNavBtn} aria-label="Previous month">
@@ -765,15 +773,14 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
             />,
             document.body
           )}
-      {!isCompact && !isCollapsed && (
-        <div
-          className={styles.resizer}
-          onMouseDown={handleSidebarResizeStart}
-        />
-      )}
+        {!isCompact && !isCollapsed && (
+          <div
+            className={styles.resizer}
+            onMouseDown={handleSidebarResizeStart}
+          />
+        )}
+        </div>
       </div>
-      </>
-      )}
     </>
   )
 }

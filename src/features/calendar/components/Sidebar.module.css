@@ -16,21 +16,51 @@
   position: relative;
 }
 
-.sidebar.collapsed {
+.sidebar.sidebarCollapsed {
   width: var(--sidebar-collapsed-width, 40px);
   min-width: var(--sidebar-collapsed-width, 40px);
   padding: 4px 0;
+  justify-content: flex-start;
+  align-items: center;
 }
 
-.sidebar.collapsed > *:not(.expandButtonWrapper) {
+.sidebarContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.sidebarCollapsed .sidebarContent {
   opacity: 0;
   pointer-events: none;
+  position: absolute;
+  width: calc(var(--sidebar-width, 300px) - 40px);
 }
 
-.expandButtonWrapper {
+.expandButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-sm, 8px);
+  color: var(--ink-2);
   display: flex;
+  align-items: center;
   justify-content: center;
-  padding-top: 12px;
+  transition: background 0.12s, color 0.12s;
+  opacity: 0;
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: opacity 0.2s ease;
+}
+
+.sidebarCollapsed .expandButton {
+  opacity: 1;
 }
 
 @media (max-width: 950px) {
@@ -90,23 +120,6 @@
   font-size: 27px;
   letter-spacing: -0.01em;
   color: var(--ink);
-}
-
-.collapsedBar {
-  width: var(--sidebar-collapsed-width, 40px);
-  min-width: var(--sidebar-collapsed-width, 40px);
-  background: var(--canvas);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 16px;
-  transition: width 0.3s cubic-bezier(0.32, 0.72, 0, 1), min-width 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-@media (max-width: 950px) {
-  .collapsedBar {
-    display: none;
-  }
 }
 
 .expandButton,

@@ -150,14 +150,6 @@ export function SettingsPage(): JSX.Element {
 
   return (
     <div className={styles.container} data-component="settings-page">
-      <div className={styles.backMobile}>
-        <button className={styles.back} onClick={() => navigate('/')}>
-          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 2L4 7l5 5" />
-          </svg>
-          Back to Calendar
-        </button>
-      </div>
       <div className={styles.body}>
         <aside className={styles.nav} data-component="settings-sidebar">
           <h1 className={styles.navTitle}>Settings</h1>
@@ -182,7 +174,7 @@ export function SettingsPage(): JSX.Element {
         </aside>
         <main className={styles.main} data-component="settings-panel">
           <div className={styles.backMobile}>
-            <button className={styles.back} onClick={() => navigate('/')}> 
+            <button className={styles.back} onClick={() => navigate('/')}>
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 2L4 7l5 5" />
               </svg>
@@ -190,7 +182,7 @@ export function SettingsPage(): JSX.Element {
             </button>
           </div>
           <div className={styles.header}>
-            <button className={styles.back} onClick={() => navigate('/')}> 
+            <button className={styles.back} onClick={() => navigate('/')}>
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 2L4 7l5 5" />
               </svg>
@@ -198,7 +190,7 @@ export function SettingsPage(): JSX.Element {
             </button>
           </div>
           <div className={styles.sectionHeader} ref={dropdownRef}>
-            <button className={styles.back} onClick={() => navigate('/')}> 
+            <button className={styles.back} onClick={() => navigate('/')}>
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 2L4 7l5 5" />
               </svg>

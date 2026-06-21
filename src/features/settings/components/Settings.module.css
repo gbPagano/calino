@@ -201,6 +201,13 @@
   display: none;
 }
 
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
 @media (max-width: 768px) {
   .main {
     padding: 16px;
@@ -327,13 +334,6 @@
   .pageTitle {
     display: none;
   }
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 28px;
 }
 
 .section {

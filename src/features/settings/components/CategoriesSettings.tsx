@@ -430,9 +430,9 @@ export function CategoriesSettings(): JSX.Element {
 
       {/* Auto-categorize Rules */}
       <div className={styles.group}>
-        <div style={{ marginBottom: '12px' }}>
-          <div className={styles.label}>Auto-categorize</div>
-          <div className={styles.hint}>Assign categories to events automatically based on keywords in the title</div>
+        <div style={{ padding: '16px 20px 12px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>Auto-categorize</div>
+          <div style={{ fontSize: '13px', color: 'var(--ink-3)', marginTop: '4px' }}>Assign categories to events automatically based on keywords in the title</div>
         </div>
 
         <div className={styles.catList}>

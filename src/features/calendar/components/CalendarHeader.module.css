@@ -529,44 +529,6 @@
   grid-column: 6;
 }
 
-/* ---- Mobile View Tabs — mobile only ≤768px ---- */
-.mobileViewTabs {
-  display: none;
-}
-
-.mobileViewTab {
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-2);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm, 8px);
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s, transform 0.1s;
-  font-family: inherit;
-}
-
-.mobileViewTab:hover {
-  background: rgba(var(--ink-raw, 44, 40, 33), 0.05);
-  color: var(--ink);
-}
-
-.mobileViewTab:active {
-  transform: scale(0.95);
-  transition-duration: 0.05s;
-}
-
-.mobileViewTabActive {
-  background: rgba(var(--ink-raw, 44, 40, 33), 0.08);
-  color: var(--ink);
-}
-
-.mobileViewTab:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
 /* ============================================================================
    BREAKPOINTS
    ============================================================================ */
@@ -587,7 +549,7 @@
   }
 }
 
-/* ≤950px (compact): sidebar goes overlay, mobile tabs */
+/* ≤950px (compact): sidebar goes overlay */
 @media (max-width: 950px) {
   .header {
     grid-template-columns: auto auto auto 1fr auto;
@@ -606,16 +568,6 @@
     width: 36px;
     padding: 0;
     pointer-events: auto;
-  }
-
-  .viewDropdown {
-    display: none;
-  }
-
-  .mobileViewTabs {
-    display: flex;
-    gap: 2px;
-    padding: 0 8px;
   }
 }
 
@@ -649,11 +601,6 @@
 
   .hamburger {
     margin-left: 4px;
-  }
-
-  .mobileViewTabs {
-    flex-wrap: wrap;
-    justify-content: center;
   }
 }
 

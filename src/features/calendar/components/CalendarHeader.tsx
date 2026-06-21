@@ -438,19 +438,6 @@ export function CalendarHeader({
           )}
         </div>
       </div>
-
-      {/* Mobile view switcher — hidden by CSS above 768px */}
-      <div className={styles.mobileViewTabs}>
-        {VIEWS.map((view) => (
-          <button
-            key={view.value}
-            className={`${styles.mobileViewTab} ${currentView === view.value ? styles.mobileViewTabActive : ''}`}
-            onClick={() => handleViewChange(view.value)}
-          >
-            {view.label}
-          </button>
-        ))}
-      </div>
     </header>
   )
 }

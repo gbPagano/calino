@@ -22,6 +22,29 @@ function escapeXml(str: string): string {
     .replace(/'/g, '&apos;')
 }
 
+const DEFAULT_CALENDAR_COLOR = '#4285F4'
+
+/**
+ * Normalize a color string from a CalDAV server into a valid 6-digit hex color.
+ * Handles: alpha-suffixed hex (#RRGGBBAA), shorthand (#RGB), case variations.
+ * Returns DEFAULT_CALENDAR_COLOR for null/undefined/invalid input.
+ */
+export function normalizeColor(color: string | null | undefined): string {
+  if (!color) return DEFAULT_CALENDAR_COLOR
+  let c = color.trim()
+  // Strip alpha channel (e.g. #FF5722FF → #FF5722)
+  if (/^#[0-9A-Fa-f]{8}$/.test(c)) {
+    c = c.slice(0, 7)
+  }
+  // Full hex
+  if (/^#[0-9A-Fa-f]{6}$/.test(c)) return c.toUpperCase()
+  // Shorthand hex (#F52 → #FF5522)
+  if (/^#[0-9A-Fa-f]{3}$/.test(c)) {
+    return `#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}`.toUpperCase()
+  }
+  return DEFAULT_CALENDAR_COLOR
+}
+
 export function buildProxyUrl(proxyBase: string, targetUrl: string): string {
   // The proxy expects the server origin encoded as the first path segment,
   // with the rest of the path as unencoded segments.
@@ -136,7 +159,7 @@ export class CalDAVClient {
       // this.credentials.id is the credential ID, not the account ID
       url: cal.url || '',
       name: typeof cal.displayName === 'string' ? cal.displayName : 'Unnamed Calendar',
-      color: '#4285F4',
+      color: normalizeColor(cal.calendarColor as string | null | undefined),
       ctag: null,
       syncToken: null,
       isVisible: true,
@@ -319,9 +342,8 @@ export class CalDAVClient {
 
     let colorXml = ''
     if (options.color) {
-      // Try standard calendar-color first, fall back to Apple extension
       colorXml = `
-        <C:calendar-color>${escapeXml(options.color)}</C:calendar-color>`
+        <ICAL:calendar-color xmlns:ICAL="http://apple.com/ns/ical/">${escapeXml(options.color)}</ICAL:calendar-color>`
     }
 
     let descriptionXml = ''
@@ -516,7 +538,9 @@ export class CalDAVClient {
       propXml += `\n      <C:calendar-description xmlns:C="urn:ietf:params:xml:ns:caldav">${escapeXml(options.description)}</C:calendar-description>`
     }
     if (options.color !== undefined) {
-      propXml += `\n      <C:calendar-color xmlns:C="urn:ietf:params:xml:ns:caldav">${escapeXml(options.color)}</C:calendar-color>`
+      const normalizedColor = escapeXml(options.color)
+      propXml += `\n      <ICAL:calendar-color xmlns:ICAL="http://apple.com/ns/ical/">${normalizedColor}</ICAL:calendar-color>`
+      propXml += `\n      <ICAL:COLOR xmlns:ICAL="urn:ietf:params:xml:ns:icalendar">${normalizedColor}</ICAL:COLOR>`
     }
     propXml += '\n    </prop>'
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { CalDAVClient, createCalDAVClient, buildProxyUrl } from '../CalDAVClient'
+import { CalDAVClient, createCalDAVClient, buildProxyUrl, normalizeColor } from '../CalDAVClient'
 import type { CalDAVCredentials } from '../../types'
 
 vi.mock('tsdav', () => ({
@@ -143,6 +143,26 @@ END:VCALENDAR`,
       // Should be the raw URL, NOT proxy-prefixed
       expect(calendars[0].url).toBe(mockCalendar.url)
       expect(calendars[0].url).not.toContain('proxy.example.com')
+    })
+
+    it('reads calendarColor from server and normalizes it', async () => {
+      mockClientMethods.fetchCalendars.mockResolvedValue([
+        { ...mockCalendar, calendarColor: '#ff5722ff' },
+      ])
+      await client.connect()
+      const calendars = await client.fetchCalendars()
+
+      expect(calendars[0].color).toBe('#FF5722')
+    })
+
+    it('uses default color when server returns no calendarColor', async () => {
+      mockClientMethods.fetchCalendars.mockResolvedValue([
+        { ...mockCalendar, calendarColor: null },
+      ])
+      await client.connect()
+      const calendars = await client.fetchCalendars()
+
+      expect(calendars[0].color).toBe('#4285F4')
     })
 
     // Bug 20: offline detection
@@ -567,6 +587,40 @@ END:VCALENDAR`,
     it('strips trailing slash from proxy base', () => {
       const result = buildProxyUrl('https://proxy.example.com/', 'https://target.com')
       expect(result).toBe(`https://proxy.example.com/${encodeURIComponent('https://target.com')}/`)
+    })
+  })
+
+  describe('normalizeColor', () => {
+    it('normalizes 6-digit hex to uppercase', () => {
+      expect(normalizeColor('#ff5722')).toBe('#FF5722')
+    })
+
+    it('strips alpha channel from 8-digit hex', () => {
+      expect(normalizeColor('#FF5722FF')).toBe('#FF5722')
+    })
+
+    it('expands 3-digit shorthand hex', () => {
+      expect(normalizeColor('#F52')).toBe('#FF5522')
+    })
+
+    it('returns default for null', () => {
+      expect(normalizeColor(null)).toBe('#4285F4')
+    })
+
+    it('returns default for undefined', () => {
+      expect(normalizeColor(undefined)).toBe('#4285F4')
+    })
+
+    it('returns default for empty string', () => {
+      expect(normalizeColor('')).toBe('#4285F4')
+    })
+
+    it('returns default for invalid color', () => {
+      expect(normalizeColor('not-a-color')).toBe('#4285F4')
+    })
+
+    it('trims whitespace', () => {
+      expect(normalizeColor('  #FF5722  ')).toBe('#FF5722')
     })
   })
 })

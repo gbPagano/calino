@@ -618,6 +618,10 @@
     gap: 8px;
   }
 
+  .viewTabs {
+    display: none;
+  }
+
   .monthTitle,
   .yearTitle,
   .viewTitle {

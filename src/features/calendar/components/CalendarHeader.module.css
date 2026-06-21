@@ -473,7 +473,7 @@
   margin: 4px 12px;
 }
 
-/* ---- Hamburger — mobile only ≤950px ---- */
+/* ---- Hamburger — mobile ≤950px, or when sidebar collapsed ---- */
 .hamburger {
   display: flex;
   align-items: center;
@@ -486,7 +486,7 @@
   color: var(--ink-2);
   cursor: pointer;
   transition: background 0.14s, color 0.14s, opacity 0.2s ease, width 0.2s ease, padding 0.2s ease;
-  margin-left: 0;
+  margin-left: 12px;
   margin-right: 8px;
   grid-column: 1;
   grid-row: 1;
@@ -500,6 +500,14 @@
 .hamburger:hover {
   background: rgba(var(--ink-raw, 44, 40, 33), 0.05);
   color: var(--ink);
+}
+
+/* Show hamburger when sidebar collapsed */
+[data-sidebar-collapsed] .hamburger {
+  opacity: 1;
+  width: 36px;
+  padding: 0;
+  pointer-events: auto;
 }
 
 /* ---- Mobile View Tabs — mobile only ≤768px ---- */

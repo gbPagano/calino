@@ -390,22 +390,6 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
         }}
         data-component="sidebar"
       >
-        {/* Expand button — only visible when collapsed */}
-        {isCollapsed && !isCompact && (
-          <button
-            className={styles.expandButton}
-            onClick={() => {
-              setIsCollapsed(false)
-              if (sidebarWidth < COLLAPSE_THRESHOLD) {
-                updateSettings({ sidebarWidth: 300 })
-              }
-            }}
-            title="Expand sidebar"
-          >
-            <ChevronRight />
-          </button>
-        )}
-
         {/* Sidebar content — hidden when collapsed via CSS */}
         <div className={styles.sidebarContent}>
           {isOpen && (

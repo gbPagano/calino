@@ -248,8 +248,8 @@ export function CalendarHeader({
         <div />
       )}
 
-      {/* Month Title */}
-      <div className={styles.titleGroup}>
+      {/* Month Title — tappable to go to today on mobile */}
+      <div className={styles.titleGroup} onClick={handleToday} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handleToday() }}>
         {typeof title === 'object' ? (
           <>
             <h1 className={styles.monthTitle}>{title.month}</h1>

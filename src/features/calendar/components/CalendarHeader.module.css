@@ -605,10 +605,18 @@
   }
 }
 
-/* ≤500px (compact mobile): hide search/settings, smaller year */
+/* ≤500px (compact mobile): hide Today, search/settings, smaller year */
 @media (max-width: 500px) {
+  .navToday {
+    display: none;
+  }
+
   .rightCluster {
     padding-right: 12px;
+  }
+
+  .iconButton {
+    display: none;
   }
 
   .yearTitle {
@@ -620,5 +628,9 @@
 
   .viewDropdownMenu {
     right: -12px;
+  }
+
+  .titleGroup {
+    cursor: pointer;
   }
 }

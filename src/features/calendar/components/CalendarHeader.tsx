@@ -59,6 +59,8 @@ export function CalendarHeader({
   const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
   const themeMode = useSettingsStore((state) => state.themeMode)
   const journalEnabled = useSettingsStore((state) => state.journalEnabled)
+  const sidebarWidth = useSettingsStore((state) => state.sidebarWidth)
+  const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
   const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
   const lock = useConfigStore((state) => state.lock)
@@ -223,8 +225,11 @@ export function CalendarHeader({
     swipeThreshold: 50,
   })
 
+  // Calculate brand column width based on sidebar state
+  const brandColumnWidth = isMobile || isCompact ? 'auto' : (sidebarCollapsed ? '40px' : `${sidebarWidth}px`)
+
   return (
-    <header className={styles.header} {...bind} data-component="header">
+    <header className={styles.header} style={{ gridTemplateColumns: `${brandColumnWidth} auto auto 1fr auto` }} {...bind} data-component="header">
       {/* Brand + Hamburger — both always rendered, CSS handles visibility */}
       <div className={`${styles.brand} ${isMobile || isCompact ? styles.brandHidden : ''}`}>
         <div className={styles.brandDiamond} />

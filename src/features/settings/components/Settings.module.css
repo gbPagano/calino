@@ -205,21 +205,20 @@
 
 @media (max-width: 500px) {
   .main {
-    padding: 12px;
+    padding: 8px 12px;
   }
 
   .nav {
-    padding: 8px 12px;
-    border-bottom: none;
-    overflow: visible;
-  }
-
-  .navTitle {
     display: none;
   }
 
-  .navItem {
-    display: none;
+  .backMobile {
+    margin-bottom: 4px;
+    padding-top: 4px;
+  }
+
+  .header {
+    margin-bottom: 4px;
   }
 
   .sectionHeader {

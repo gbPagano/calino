@@ -302,3 +302,10 @@
 .tasksFixedFooter > *:first-child {
   visibility: hidden;
 }
+
+/* ≤500px wide AND ≤1000px tall: compact day header */
+@media (max-width: 500px) and (max-height: 1000px) {
+  .header {
+    padding: 4px 12px;
+  }
+}

@@ -110,37 +110,8 @@
   letter-spacing: -0.018em;
   color: var(--ink);
   padding: 0 10px;
-  margin: 0;
-  line-height: 1;
-}
-
-.navTitleRow {
-  position: relative;
-  padding: 0 10px;
   margin: 0 0 20px;
-}
-
-.navChevron {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: var(--ink-2);
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.12s, color 0.12s;
-}
-
-.navChevron:hover {
-  background: rgba(var(--ink-raw, 44, 40, 33), 0.05);
-  color: var(--ink);
-}
-
-.navDropdownMenu {
-  display: none;
+  line-height: 1;
 }
 
 .navList {
@@ -248,24 +219,46 @@
     padding: 0;
   }
 
-  .navTitleRow {
+  .navItem {
+    display: none;
+  }
+
+  .sectionHeader {
     display: flex;
     align-items: center;
     gap: 2px;
-    padding: 0;
-    margin: 0 0 12px;
+    margin-bottom: 20px;
+    position: relative;
   }
 
-  .navChevron {
+  .sectionTitle {
+    font-size: 26px;
+  }
+
+  .sectionChevron {
     display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.12s, color 0.12s;
+    flex-shrink: 0;
   }
 
-  .navTitleRow .navDropdownMenu {
-    display: block;
+  .sectionChevron:hover {
+    background: rgba(var(--ink-raw, 44, 40, 33), 0.05);
+    color: var(--ink);
+  }
+
+  .sectionDropdownMenu {
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    right: auto;
     min-width: 180px;
     background: var(--popover-bg, var(--panel));
     border: 1px solid var(--popover-border, var(--line));
@@ -274,7 +267,7 @@
     z-index: 100;
   }
 
-  .navDropdownItem {
+  .sectionDropdownItem {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -289,26 +282,26 @@
     text-align: left;
   }
 
-  .navDropdownItem:first-child {
+  .sectionDropdownItem:first-child {
     border-radius: 10px 10px 0 0;
   }
 
-  .navDropdownItem:last-child {
+  .sectionDropdownItem:last-child {
     border-radius: 0 0 10px 10px;
   }
 
-  .navDropdownItem:hover {
+  .sectionDropdownItem:hover {
     background: rgba(var(--ink-raw, 44, 40, 33), 0.04);
     color: var(--ink);
   }
 
-  .navDropdownItemActive {
+  .sectionDropdownItemActive {
     background: var(--accent-soft);
     color: var(--accent);
     font-weight: 500;
   }
 
-  .navItem {
+  .pageTitle {
     display: none;
   }
 }

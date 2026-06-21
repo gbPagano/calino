@@ -160,39 +160,7 @@ export function SettingsPage(): JSX.Element {
       </div>
       <div className={styles.body}>
         <aside className={styles.nav} data-component="settings-sidebar">
-          <div className={styles.navTitleRow} ref={dropdownRef}>
-            <h1 className={styles.navTitle}>Settings</h1>
-            <button
-              className={styles.navChevron}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              aria-label="Select settings category"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 5.5L7 8.5L10 5.5" />
-              </svg>
-            </button>
-            {isDropdownOpen && (
-              <div className={styles.navDropdownMenu}>
-                {NAV_ITEMS.map((item) => (
-                  <button
-                    key={item.id}
-                    className={`${styles.navDropdownItem} ${activeTab === item.id ? styles.navDropdownItemActive : ''}`}
-                    onClick={() => {
-                      setActiveTab(item.id)
-                      setIsDropdownOpen(false)
-                    }}
-                  >
-                    {item.icon}
-                    {item.label}
-                    {item.id === 'data' && brokenEventsCount > 0 && (
-                      <span className={styles.navBadge}>{brokenEventsCount}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          {/* Regular nav items for >500px */}
+          <h1 className={styles.navTitle}>Settings</h1>
           <nav className={styles.navList} aria-label="Settings">
             {NAV_ITEMS.map((item) => (
               <button
@@ -214,12 +182,41 @@ export function SettingsPage(): JSX.Element {
         </aside>
         <main className={styles.main} data-component="settings-panel">
           <div className={styles.header}>
-            <button className={styles.back} onClick={() => navigate('/')}>
+            <button className={styles.back} onClick={() => navigate('/')}> 
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 2L4 7l5 5" />
               </svg>
               Back to Calendar
             </button>
+          </div>
+          <div className={styles.sectionHeader} ref={dropdownRef}>
+            <h1 className={styles.sectionTitle}>{NAV_ITEMS.find(i => i.id === activeTab)?.label}</h1>
+            <button
+              className={styles.sectionChevron}
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              aria-label="Switch settings section"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 5.5L7 8.5L10 5.5" />
+              </svg>
+            </button>
+            {isDropdownOpen && (
+              <div className={styles.sectionDropdownMenu}>
+                {NAV_ITEMS.map((item) => (
+                  <button
+                    key={item.id}
+                    className={`${styles.sectionDropdownItem} ${activeTab === item.id ? styles.sectionDropdownItemActive : ''}`}
+                    onClick={() => {
+                      setActiveTab(item.id)
+                      setIsDropdownOpen(false)
+                    }}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {renderContent()}
         </main>

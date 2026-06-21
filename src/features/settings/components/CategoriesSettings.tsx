@@ -116,6 +116,7 @@ function KeywordInput({
 
 export function CategoriesSettings(): JSX.Element {
   const categories = useCalendarStore((s) => s.categories)
+  const calendars = useCalendarStore((s) => s.calendars)
   const addCategory = useCalendarStore((s) => s.addCategory)
   const updateCategory = useCalendarStore((s) => s.updateCategory)
   const deleteCategory = useCalendarStore((s) => s.deleteCategory)
@@ -255,11 +256,12 @@ export function CategoriesSettings(): JSX.Element {
   const rulePreviews = useMemo(() => {
     return autoCategoryRules.map((rule) => {
       const category = categories.find((c) => c.id === rule.categoryId)
-      if (!category) return { rule, matchingCount: 0, uncategorizedCount: 0 }
+      if (!category) return { rule, matchingCount: 0, uncategorizedCount: 0, byCalendar: [] }
 
       const lowerKeywords = rule.keywords.map((k) => k.toLowerCase())
       let matchingCount = 0
       let uncategorizedCount = 0
+      const byCalendar = new Map<string, number>()
 
       for (const event of events) {
         const lowerTitle = event.title.toLowerCase()
@@ -269,12 +271,19 @@ export function CategoriesSettings(): JSX.Element {
           if (!event.categories?.includes(category.name)) {
             uncategorizedCount++
           }
+          const calId = event.calendarId
+          byCalendar.set(calId, (byCalendar.get(calId) || 0) + 1)
         }
       }
 
-      return { rule, matchingCount, uncategorizedCount, categoryName: category.name }
+      const byCalendarArray = Array.from(byCalendar.entries()).map(([calId, count]) => {
+        const cal = calendars.find((c) => c.id === calId)
+        return { name: cal?.name || 'Unknown', count }
+      })
+
+      return { rule, matchingCount, uncategorizedCount, categoryName: category.name, byCalendar: byCalendarArray }
     })
-  }, [autoCategoryRules, categories, events])
+  }, [autoCategoryRules, categories, events, calendars])
 
   // Preview for new rule being created
   const newRulePreview = useMemo(() => {
@@ -285,6 +294,7 @@ export function CategoriesSettings(): JSX.Element {
     const lowerKeywords = newRuleKeywords.map((k) => k.toLowerCase())
     let matchingCount = 0
     let uncategorizedCount = 0
+    const byCalendar = new Map<string, number>()
 
     for (const event of events) {
       const lowerTitle = event.title.toLowerCase()
@@ -294,11 +304,18 @@ export function CategoriesSettings(): JSX.Element {
         if (!event.categories?.includes(category.name)) {
           uncategorizedCount++
         }
+        const calId = event.calendarId
+        byCalendar.set(calId, (byCalendar.get(calId) || 0) + 1)
       }
     }
 
-    return { matchingCount, uncategorizedCount, categoryName: category.name }
-  }, [newRuleKeywords, newRuleCategoryId, categories, events])
+    const byCalendarArray = Array.from(byCalendar.entries()).map(([calId, count]) => {
+      const cal = calendars.find((c) => c.id === calId)
+      return { name: cal?.name || 'Unknown', count }
+    })
+
+    return { matchingCount, uncategorizedCount, categoryName: category.name, byCalendar: byCalendarArray }
+  }, [newRuleKeywords, newRuleCategoryId, categories, events, calendars])
 
   return (
     <section className={`${styles.section} ${styles.sectionActive}`}>
@@ -505,6 +522,13 @@ export function CategoriesSettings(): JSX.Element {
                         </span>
                       )}
                     </span>
+                    {byCalendar.length > 0 && (
+                      <div style={{ fontSize: '11px', color: 'var(--ink-3)', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {byCalendar.map((cal) => (
+                          <span key={cal.name}>{cal.count} in {cal.name}</span>
+                        ))}
+                      </div>
+                    )}
                     <div className={styles.catActions}>
                       <button className={styles.catBtn} onClick={() => startEditRule(rule)} type="button">Edit</button>
                       <button className={`${styles.catBtn} ${styles.catBtnDanger}`} onClick={() => handleDeleteRule(rule.id)} type="button">Delete</button>
@@ -546,6 +570,13 @@ export function CategoriesSettings(): JSX.Element {
                   Will match {newRulePreview.matchingCount} event{newRulePreview.matchingCount !== 1 ? 's' : ''}
                   {newRulePreview.uncategorizedCount > 0 && (
                     <span> ({newRulePreview.uncategorizedCount} currently uncategorized)</span>
+                  )}
+                  {newRulePreview.byCalendar.length > 0 && (
+                    <div style={{ marginTop: '4px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {newRulePreview.byCalendar.map((cal) => (
+                        <span key={cal.name}>{cal.count} in {cal.name}</span>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}

@@ -220,7 +220,6 @@ export function CalendarHeader({
     <header
       className={styles.header}
       style={{ '--header-brand-col': brandColumnWidth } as React.CSSProperties}
-      data-sidebar-collapsed={sidebarCollapsed || undefined}
       {...bind}
       data-component="header"
     >

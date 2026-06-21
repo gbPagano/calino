@@ -181,25 +181,25 @@ export function SettingsPage(): JSX.Element {
           </nav>
         </aside>
         <main className={styles.main} data-component="settings-panel">
-          <div className={styles.header}>
+          <div className={styles.sectionHeader} ref={dropdownRef}>
             <button className={styles.back} onClick={() => navigate('/')}> 
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 2L4 7l5 5" />
               </svg>
-              Back to Calendar
+              Back
             </button>
-          </div>
-          <div className={styles.sectionHeader} ref={dropdownRef}>
-            <h1 className={styles.sectionTitle}>{NAV_ITEMS.find(i => i.id === activeTab)?.label}</h1>
-            <button
-              className={styles.sectionChevron}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              aria-label="Switch settings section"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 5.5L7 8.5L10 5.5" />
-              </svg>
-            </button>
+            <div className={styles.sectionTitleGroup}>
+              <h1 className={styles.sectionTitle}>{NAV_ITEMS.find(i => i.id === activeTab)?.label}</h1>
+              <button
+                className={styles.sectionChevron}
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                aria-label="Switch settings section"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 5.5L7 8.5L10 5.5" />
+                </svg>
+              </button>
+            </div>
             {isDropdownOpen && (
               <div className={styles.sectionDropdownMenu}>
                 {NAV_ITEMS.map((item) => (

@@ -215,9 +215,18 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       addCalendar: (calendar: Calendar): void => {
-        set((state) => ({
-          calendars: [...state.calendars, calendar],
-        }))
+        set((state) => {
+          const exists = state.calendars.some((c) => c.id === calendar.id)
+          if (exists) {
+            // Update existing calendar instead of duplicating
+            return {
+              calendars: state.calendars.map((c) =>
+                c.id === calendar.id ? { ...c, ...calendar } : c
+              ),
+            }
+          }
+          return { calendars: [...state.calendars, calendar] }
+        })
       },
 
       updateCalendar: (id: string, updates: Partial<Calendar>): void => {

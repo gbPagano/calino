@@ -201,6 +201,16 @@
   display: none;
 }
 
+.sectionTitle {
+  font-family: var(--font-serif, 'Newsreader', Georgia, serif);
+  font-size: 40px;
+  font-weight: 400;
+  letter-spacing: -0.018em;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1;
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -221,6 +231,10 @@
     display: none;
   }
 
+  .nav {
+    display: none;
+  }
+
   .pageTitle {
     display: none;
   }
@@ -237,7 +251,7 @@
   .sectionHeader .back {
     display: flex;
     margin: 0;
-    padding: 0;
+    padding: 0 8px 0 0;
     font-size: 14px;
   }
 
@@ -245,20 +259,7 @@
     display: flex;
     align-items: center;
     gap: 2px;
-  }
-}
-
-@media (max-width: 500px) {
-  .main {
-    padding: 8px 12px;
-  }
-
-  .nav {
-    display: none;
-  }
-
-  .sectionTitle {
-    font-size: 26px;
+    position: relative;
   }
 
   .sectionChevron {
@@ -326,9 +327,15 @@
     color: var(--accent);
     font-weight: 500;
   }
+}
 
-  .pageTitle {
-    display: none;
+@media (max-width: 500px) {
+  .main {
+    padding: 8px 12px;
+  }
+
+  .sectionTitle {
+    font-size: 26px;
   }
 }
 

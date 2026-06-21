@@ -207,24 +207,24 @@ export function SettingsPage(): JSX.Element {
                   <path d="M4 5.5L7 8.5L10 5.5" />
                 </svg>
               </button>
+              {isDropdownOpen && (
+                <div className={styles.sectionDropdownMenu}>
+                  {NAV_ITEMS.map((item) => (
+                    <button
+                      key={item.id}
+                      className={`${styles.sectionDropdownItem} ${activeTab === item.id ? styles.sectionDropdownItemActive : ''}`}
+                      onClick={() => {
+                        setActiveTab(item.id)
+                        setIsDropdownOpen(false)
+                      }}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            {isDropdownOpen && (
-              <div className={styles.sectionDropdownMenu}>
-                {NAV_ITEMS.map((item) => (
-                  <button
-                    key={item.id}
-                    className={`${styles.sectionDropdownItem} ${activeTab === item.id ? styles.sectionDropdownItemActive : ''}`}
-                    onClick={() => {
-                      setActiveTab(item.id)
-                      setIsDropdownOpen(false)
-                    }}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
           {renderContent()}
         </main>

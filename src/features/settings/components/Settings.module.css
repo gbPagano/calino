@@ -107,54 +107,35 @@
   .nav {
     padding: 8px 12px;
     border-bottom: none;
-    display: flex;
-    align-items: center;
-    gap: 8px;
   }
 
   .navTitle {
-    display: none;
+    font-size: 22px;
+    padding: 0;
   }
 
-  .navList {
-    flex: 1;
+  .navTitleRow {
     display: flex;
     align-items: center;
-    gap: 8px;
-    overflow-x: visible;
+    gap: 4px;
+    padding: 0;
+    margin: 0 0 12px;
   }
 
-  .navDropdown {
-    position: relative;
-    flex: 1;
-  }
-
-  .navDropdownButton {
+  .navChevron {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid var(--line);
-    background: var(--panel);
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--ink);
-    cursor: pointer;
-    font-family: inherit;
   }
 
-  .navDropdownMenu {
+  .navTitleRow .navDropdownMenu {
+    display: block;
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    right: 0;
+    min-width: 180px;
     background: var(--popover-bg, var(--panel));
     border: 1px solid var(--popover-border, var(--line));
     border-radius: 10px;
     box-shadow: var(--modal-shadow, 0 4px 12px rgba(var(--ink-raw, 44, 40, 33), 0.1));
-    overflow: hidden;
     z-index: 100;
   }
 
@@ -163,7 +144,7 @@
     align-items: center;
     gap: 10px;
     width: 100%;
-    padding: 12px 14px;
+    padding: 10px 14px;
     border: none;
     background: transparent;
     font-size: 14px;
@@ -171,6 +152,14 @@
     cursor: pointer;
     font-family: inherit;
     text-align: left;
+  }
+
+  .navDropdownItem:first-child {
+    border-radius: 10px 10px 0 0;
+  }
+
+  .navDropdownItem:last-child {
+    border-radius: 0 0 10px 10px;
   }
 
   .navDropdownItem:hover {
@@ -196,8 +185,37 @@
   letter-spacing: -0.018em;
   color: var(--ink);
   padding: 0 10px;
-  margin: 0 0 20px;
+  margin: 0;
   line-height: 1;
+}
+
+.navTitleRow {
+  position: relative;
+  padding: 0 10px;
+  margin: 0 0 20px;
+}
+
+.navChevron {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.navChevron:hover {
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.05);
+  color: var(--ink);
+}
+
+.navDropdownMenu {
+  display: none;
 }
 
 .navList {

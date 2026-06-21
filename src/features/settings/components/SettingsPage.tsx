@@ -127,8 +127,6 @@ export function SettingsPage(): JSX.Element {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isDropdownOpen])
 
-  const activeItem = NAV_ITEMS.find((item) => item.id === activeTab)
-
   const renderContent = (): JSX.Element => {
     switch (activeTab) {
       case 'general':
@@ -162,20 +160,15 @@ export function SettingsPage(): JSX.Element {
       </div>
       <div className={styles.body}>
         <aside className={styles.nav} data-component="settings-sidebar">
-          <h1 className={styles.navTitle}>Settings</h1>
-          {/* Dropdown for ≤500px */}
-          <div className={styles.navDropdown} ref={dropdownRef}>
+          <div className={styles.navTitleRow} ref={dropdownRef}>
+            <h1 className={styles.navTitle}>Settings</h1>
             <button
-              className={styles.navDropdownButton}
+              className={styles.navChevron}
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               aria-label="Select settings category"
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {activeItem?.icon}
-                {activeItem?.label}
-              </span>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 4.5L6 7.5L9 4.5" />
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 5.5L7 8.5L10 5.5" />
               </svg>
             </button>
             {isDropdownOpen && (

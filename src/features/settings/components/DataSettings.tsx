@@ -156,15 +156,20 @@ export function DataSettings(): JSX.Element {
       </div>
 
       {/* Broken Events */}
-      {brokenEvents.length > 0 && (
-        <div className={styles.group} data-component="broken-events">
-          <div className={styles.groupLabel}>Data Issues ({brokenEvents.length})</div>
-          <p className={styles.rowDesc} style={{ padding: '12px 20px 0' }}>
-            These events have a start date after their end date and cannot be displayed.
-            You can fix them by swapping the dates, or delete them entirely.
-          </p>
+      <div className={styles.group} data-component="broken-events">
+        <div className={styles.groupLabel}>Data Issues</div>
+        {brokenEvents.length === 0 ? (
+          <div className={styles.rowDesc} style={{ padding: '12px 20px 16px' }}>
+            Invalid or broken events (e.g. start date after end date) will appear here, allowing you to fix or delete them.
+          </div>
+        ) : (
+          <>
+            <p className={styles.rowDesc} style={{ padding: '12px 20px 0' }}>
+              These events have a start date after their end date and cannot be displayed.
+              You can fix them by swapping the dates, or delete them entirely.
+            </p>
 
-          <div className={styles.brokenList}>
+            <div className={styles.brokenList}>
             {brokenEvents.map((broken) => (
               <div key={broken.event.id} className={styles.brokenItem} data-component="broken-event-row" data-event-id={broken.event.id}>
                 <div className={styles.brokenInfo}>
@@ -210,8 +215,9 @@ export function DataSettings(): JSX.Element {
               </button>
             </div>
           )}
-        </div>
-      )}
+        </>
+        )}
+      </div>
 
       <div className={`${styles.group} ${styles.dangerZone}`}>
         <div className={`${styles.groupLabel} ${styles.dangerZoneLabel}`}>Danger Zone</div>

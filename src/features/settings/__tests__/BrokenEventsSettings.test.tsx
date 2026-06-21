@@ -33,9 +33,14 @@ describe('DataSettings — broken events section', () => {
     })
   })
 
-  it('hides broken events section when none exist', () => {
+  it('always shows the Data Issues section', () => {
     render(<DataSettings />)
-    expect(screen.queryByText('Data Issues')).not.toBeInTheDocument()
+    expect(screen.getByText('Data Issues')).toBeInTheDocument()
+  })
+
+  it('shows description when no broken events', () => {
+    render(<DataSettings />)
+    expect(screen.getByText(/Invalid or broken events/)).toBeInTheDocument()
   })
 
   it('displays broken events list', () => {
@@ -56,7 +61,7 @@ describe('DataSettings — broken events section', () => {
 
     render(<DataSettings />)
 
-    expect(screen.getByText('Data Issues (2)')).toBeInTheDocument()
+    expect(screen.getByText('Data Issues')).toBeInTheDocument()
     expect(screen.getByText('Meeting')).toBeInTheDocument()
     expect(screen.getByText('Lunch')).toBeInTheDocument()
   })

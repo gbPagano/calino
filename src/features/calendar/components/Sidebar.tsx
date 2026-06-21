@@ -270,7 +270,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
     updateCalendar(calendarId, { color: nextColor })
   }
 
-  const COLLAPSE_THRESHOLD = 240
+  const COLLAPSE_THRESHOLD = 255
 
   const handleSidebarResizeStart = useCallback((e: React.MouseEvent): void => {
     e.preventDefault()
@@ -366,42 +366,40 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  const sidebarClass = `${styles.sidebar}${isOpen ? ` ${styles.open}` : ''}`
-
-  if (isCollapsed && !isCompact) {
-    return (
-      <div className={styles.collapsed}>
-        <button
-          className={styles.expandButton}
-          onClick={() => {
-            setIsCollapsed(false)
-            if (sidebarWidth < COLLAPSE_THRESHOLD) {
-              updateSettings({ sidebarWidth: 300 })
-            }
-          }}
-          title="Expand sidebar"
-        >
-          <ChevronRight />
-        </button>
-      </div>
-    )
-  }
+  const sidebarClass = `${styles.sidebar}${isOpen ? ` ${styles.open}` : ''}${isCollapsed && !isCompact ? ` ${styles.collapsed}` : ''}`
 
   return (
     <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            className={styles.overlay}
-            onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          />
-        )}
-      </AnimatePresence>
-      <div className={sidebarClass} style={{ width: sidebarWidth, minWidth: sidebarWidth }} data-component="sidebar">
+      {isCollapsed && !isCompact ? (
+        <div className={styles.collapsedBar}>
+          <button
+            className={styles.expandButton}
+            onClick={() => {
+              setIsCollapsed(false)
+              if (sidebarWidth < COLLAPSE_THRESHOLD) {
+                updateSettings({ sidebarWidth: 300 })
+              }
+            }}
+            title="Expand sidebar"
+          >
+            <ChevronRight />
+          </button>
+        </div>
+      ) : (
+        <>
+          <AnimatePresence>
+            {isOpen && (
+              <motion.div
+                className={styles.overlay}
+                onClick={onClose}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              />
+            )}
+          </AnimatePresence>
+          <div className={sidebarClass} style={{ width: isCollapsed ? undefined : sidebarWidth, minWidth: isCollapsed ? undefined : sidebarWidth }} data-component="sidebar">
         {isOpen && (
           <div className={styles.sidebarBrand}>
             <div className={styles.sidebarBrandDiamond} />
@@ -774,6 +772,8 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
         />
       )}
       </div>
+      </>
+      )}
     </>
   )
 }

@@ -226,7 +226,7 @@ export function CalendarHeader({
   })
 
   // Calculate brand column width based on sidebar state
-  const brandColumnWidth = isMobile || isCompact ? 'auto' : (sidebarCollapsed ? '40px' : `${sidebarWidth}px`)
+  const brandColumnWidth = isMobile || isCompact ? 'auto' : (sidebarCollapsed ? 'var(--sidebar-collapsed-width, 40px)' : `${sidebarWidth}px`)
 
   return (
     <header className={styles.header} style={{ '--header-brand-col': brandColumnWidth } as React.CSSProperties} {...bind} data-component="header">

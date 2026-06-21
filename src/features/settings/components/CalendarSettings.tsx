@@ -15,6 +15,7 @@ export function CalendarSettings(): JSX.Element {
   const compressPastWeeks = useSettingsStore((s) => s.compressPastWeeks)
   const monthViewEventLimit = useSettingsStore((s) => s.monthViewEventLimit)
   const hideCompletedTasksInMonthView = useSettingsStore((s) => s.hideCompletedTasksInMonthView)
+  const journalEnabled = useSettingsStore((s) => s.journalEnabled)
   const defaultDuration = useSettingsStore((s) => s.defaultDuration)
   const defaultReminderMinutes = useSettingsStore((s) => s.defaultReminderMinutes)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
@@ -159,6 +160,24 @@ export function CalendarSettings(): JSX.Element {
                 onChange={() =>
                   updateSettings({ hideCompletedTasksInMonthView: !hideCompletedTasksInMonthView })
                 }
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
+        </div>
+        <div className={styles.row} data-component="setting-row" data-setting="journal" data-value={String(journalEnabled)}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Journal</div>
+            <div className={styles.rowDesc}>Attach freeform notes to days in your calendar</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle} data-component="toggle" data-setting="journal">
+              <input
+                type="checkbox"
+                checked={journalEnabled}
+                aria-label="Journal"
+                onChange={(e) => updateSettings({ journalEnabled: e.target.checked })}
               />
               <span className={styles.pill} />
               <span className={styles.knob} />

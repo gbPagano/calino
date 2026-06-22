@@ -261,12 +261,6 @@ export function ContactDetail({ contact }: ContactDetailProps): JSX.Element {
             </div>
           )}
 
-          {/* Notes card */}
-          {contact.note && (
-            <div className={styles.notesCard}>
-              <p className={styles.notesText}>{contact.note}</p>
-            </div>
-          )}
         </div>
 
         {/* Aside column */}
@@ -299,6 +293,16 @@ export function ContactDetail({ contact }: ContactDetailProps): JSX.Element {
             </div>
           )}
         </div>
+
+        {/* Notes card - full width */}
+        {contact.note && (
+          <div className={styles.notesFull}>
+            <div className={styles.notesCard}>
+              <div className={styles.notesTitle}>NOTES</div>
+              <p className={styles.notesText}>{contact.note}</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

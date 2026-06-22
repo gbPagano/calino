@@ -7,7 +7,6 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: var(--panel, #ffffff);
 }
 
 /* ---- Search Bar ---- */
@@ -67,12 +66,16 @@
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
-  transition: background 0.14s, color 0.14s;
+  transition: background 0.14s, color 0.14s, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .clearBtn:hover {
   background: color-mix(in srgb, var(--ink, #2c2823) 6%, transparent);
   color: var(--ink-2, #6f6a62);
+}
+
+.clearBtn:active {
+  transform: scale(0.85);
 }
 
 .clearBtn svg {
@@ -107,11 +110,15 @@
   padding: 4px 8px;
   cursor: pointer;
   line-height: 1;
-  transition: background 0.14s;
+  transition: background 0.14s, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .newBtn:hover {
   background: color-mix(in srgb, var(--accent, #b07d4f) 10%, transparent);
+}
+
+.newBtn:active {
+  transform: scale(0.95);
 }
 
 /* ---- Contact List ---- */
@@ -144,11 +151,17 @@
   gap: 13px;
   padding: 9px 20px;
   cursor: pointer;
-  transition: background 0.14s;
+  border-radius: 8px;
+  margin: 0 6px;
+  transition: background 0.14s, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .contactItem:hover {
   background: color-mix(in srgb, var(--ink, #2c2823) 4%, transparent);
+}
+
+.contactItem:active {
+  transform: scale(0.98);
 }
 
 .contactItem.selected {
@@ -158,7 +171,7 @@
 .contactItem:focus-visible {
   outline: 2px solid var(--accent, #b07d4f);
   outline-offset: -2px;
-  border-radius: 4px;
+  border-radius: 4px 0 0 4px;
 }
 
 /* ---- Selected Rail ---- */
@@ -170,6 +183,7 @@
   width: 3px;
   border-radius: 0 3px 3px 0;
   background: var(--accent, #b07d4f);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ---- Avatar ---- */
@@ -185,6 +199,11 @@
   color: #ffffff;
   flex-shrink: 0;
   overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.contactItem:hover .avatar {
+  transform: scale(1.05);
 }
 
 .avatar img {

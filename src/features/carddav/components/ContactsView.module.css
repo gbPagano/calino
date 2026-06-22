@@ -4,6 +4,18 @@
    Right panel: Contact detail (redesigned)
    ============================================================================ */
 
+/* ---- Entrance animation ---- */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ---- Page Layout ---- */
 .contactsPage {
   flex: 1 1 auto;
@@ -11,19 +23,17 @@
   grid-template-columns: minmax(280px, 340px) 1fr;
   height: 100%;
   background: var(--canvas, #faf8f3);
-  border-radius: 16px;
-  overflow: hidden;
 }
 
 /* ---- Left Panel (Contact List) ---- */
 .clist {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--line, rgba(0, 0, 0, 0.09));
   background: var(--panel, #ffffff);
   min-height: 0;
-  border-radius: 12px 0 0 12px;
-  box-shadow: 2px 0 8px rgba(44, 40, 33, 0.04);
+  border-radius: 16px 0 0 16px;
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
 }
 
 /* ---- Right Panel (Contact Detail) ---- */
@@ -60,7 +70,7 @@
 
 .detailContent {
   margin: 0 auto;
-  padding: 0 32px 48px 0;
+  padding: 0 16px 48px 0;
   width: 100%;
 }
 
@@ -74,8 +84,9 @@
   border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
   border-left: none;
   border-radius: 0 16px 16px 0;
-  padding: 24px 28px;
-  margin-bottom: 20px;
+  padding: 30px 28px;
+  margin-bottom: 10px;
+  animation: fadeSlideIn 0.3s ease-out;
 }
 
 .heroAvatar {
@@ -146,11 +157,15 @@
   font-family: inherit;
   cursor: pointer;
   text-decoration: none;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .btnPrimary:hover {
   opacity: 0.85;
+}
+
+.btnPrimary:active {
+  transform: scale(0.96);
 }
 
 .btnPrimary:disabled {
@@ -174,11 +189,15 @@
   font-family: inherit;
   cursor: pointer;
   text-decoration: none;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .btnSecondary:hover {
   background: var(--canvas, #faf8f3);
+}
+
+.btnSecondary:active {
+  transform: scale(0.96);
 }
 
 /* ---- Hero icon buttons (edit / delete) ---- */
@@ -201,12 +220,16 @@
   background: transparent;
   color: var(--ink-3, #a39d93);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .iconBtn:hover:not(:disabled) {
   background: var(--canvas, #faf8f3);
   color: var(--ink, #2c2823);
+}
+
+.iconBtn:active:not(:disabled) {
+  transform: scale(0.9);
 }
 
 .iconBtn:disabled {
@@ -258,10 +281,21 @@
   border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
   border-radius: 12px;
   overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.infoCard:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .infoField {
   padding: 14px 20px;
+  transition: background 0.14s;
+}
+
+.infoField:hover {
+  background: color-mix(in srgb, var(--ink, #2c2823) 2%, transparent);
 }
 
 .infoField + .infoField {
@@ -314,6 +348,12 @@
   border-radius: 12px;
   padding: 14px 16px;
   box-shadow: 0 1px 2px rgba(44, 40, 33, 0.03);
+  transition: box-shadow 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.notesCard:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .notesTitle {
@@ -345,6 +385,12 @@
   border-radius: 12px;
   padding: 16px 18px;
   text-align: center;
+  transition: box-shadow 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.birthdayCard:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .birthdayEmoji {
@@ -380,6 +426,12 @@
   border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
   border-radius: 12px;
   padding: 14px 18px;
+  transition: box-shadow 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.categoriesCard:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .asideSectionLabel {
@@ -405,6 +457,17 @@
   background: var(--canvas, #faf8f3);
   color: var(--ink-2, #6f6a62);
   border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
+  transition: background 0.14s, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.14s;
+  cursor: default;
+}
+
+.tagPill:hover {
+  background: color-mix(in srgb, var(--accent, #b07d4f) 8%, var(--canvas, #faf8f3));
+  border-color: color-mix(in srgb, var(--accent, #b07d4f) 25%, var(--line, rgba(0, 0, 0, 0.09)));
+}
+
+.tagPill:active {
+  transform: scale(0.95);
 }
 
 /* ============================================================================

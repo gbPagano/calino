@@ -263,3 +263,74 @@
   margin-bottom: 4px;
   font-size: 16px;
 }
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .searchBar {
+    margin: 8px 10px 0;
+    height: 34px;
+    border-radius: 8px;
+  }
+
+  .metaBar {
+    padding: 7px 14px 3px;
+  }
+
+  .alphaHeader {
+    padding: 8px 14px 3px;
+  }
+
+  .contactItem {
+    padding: 8px 14px;
+    margin: 0 4px;
+    gap: 10px;
+  }
+
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+
+  .contactName {
+    font-size: 13.5px;
+  }
+
+  .contactOrg,
+  .contactEmail {
+    font-size: 11.5px;
+  }
+
+  .newBtn {
+    font-size: 12px;
+    padding: 3px 6px;
+  }
+
+  .emptyState {
+    padding: 36px 16px;
+    font-size: 13px;
+  }
+
+  .emptyTitle {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 400px) {
+  .searchBar {
+    margin: 6px 8px 0;
+  }
+
+  .contactItem {
+    padding: 7px 10px;
+    gap: 8px;
+  }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 11px;
+  }
+}

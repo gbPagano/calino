@@ -233,11 +233,27 @@ export function useCalDAV(): UseCalDAVReturn {
 
       try {
         console.log('[CalDAV] addAccount: discovering server...', serverUrl)
-        const discoveredUrl = await discoverServerUrl(serverUrl, proxyUrl ?? undefined)
+        let discoveredUrl = await discoverServerUrl(serverUrl, proxyUrl ?? undefined)
         console.log('[CalDAV] addAccount: discovered URL:', discoveredUrl)
 
-        const connected = await testConnection(discoveredUrl, { username, password }, proxyUrl)
+        let connected = await testConnection(discoveredUrl, { username, password }, proxyUrl)
         console.log('[CalDAV] addAccount: testConnection result:', connected)
+
+        // Fallback: if the discovered URL fails, try the original base URL.
+        // This handles cases like Radicale where the well-known redirect chain
+        // ends at the web UI (/.web/) instead of the CalDAV endpoint (/).
+        if (!connected && discoveredUrl !== serverUrl) {
+          const normalizedBase = serverUrl.replace(/\/$/, '')
+          if (discoveredUrl !== normalizedBase) {
+            console.log('[CalDAV] addAccount: discovered URL failed, trying base URL:', normalizedBase)
+            connected = await testConnection(normalizedBase, { username, password }, proxyUrl)
+            console.log('[CalDAV] addAccount: base URL testConnection result:', connected)
+            if (connected) {
+              // Use the base URL instead of the discovered URL
+              discoveredUrl = normalizedBase
+            }
+          }
+        }
 
         if (!connected) {
           throw new Error('Failed to connect to server. Please check your credentials.')

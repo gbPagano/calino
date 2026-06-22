@@ -622,5 +622,15 @@ END:VCALENDAR`,
     it('trims whitespace', () => {
       expect(normalizeColor('  #FF5722  ')).toBe('#FF5722')
     })
+
+    it('returns default for non-string values (tsdav XML object)', () => {
+      // tsdav returns an object like { _attributes: { ... } } when
+      // the server has no color for a calendar
+      expect(normalizeColor({ _attributes: { xmlns: 'http://apple.com/ns/ical/' } } as unknown as string)).toBe('#4285F4')
+    })
+
+    it('returns default for numeric values', () => {
+      expect(normalizeColor(42 as unknown as string)).toBe('#4285F4')
+    })
   })
 })

@@ -30,40 +30,57 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
 
     try {
       // Discover the actual CalDAV endpoint via .well-known/caldav
-      const baseUrl = await discoverServerUrl(serverUrl, proxyUrl)
+      let baseUrl = await discoverServerUrl(serverUrl, proxyUrl)
 
-      let fetchUrl = baseUrl
-      if (proxyUrl) {
-        // The proxy expects the server origin encoded as the first path segment,
-        // with the rest of the path as unencoded segments.
-        const parsed = new URL(baseUrl)
-        const encodedOrigin = encodeURIComponent(parsed.origin)
-        const path = parsed.pathname + parsed.search + parsed.hash
-        const proxyBase = proxyUrl.replace(/\/$/, '')
-        fetchUrl = `${proxyBase}/${encodedOrigin}${path}`
+      // Helper to test a URL with PROPFIND
+      const testUrl = async (url: string): Promise<{ ok: boolean; status: number }> => {
+        let fetchUrl = url
+        if (proxyUrl) {
+          const parsed = new URL(url)
+          const encodedOrigin = encodeURIComponent(parsed.origin)
+          const path = parsed.pathname + parsed.search + parsed.hash
+          const proxyBase = proxyUrl.replace(/\/$/, '')
+          fetchUrl = `${proxyBase}/${encodedOrigin}${path}`
+        }
+
+        const response = await fetch(fetchUrl, {
+          method: 'PROPFIND',
+          headers: {
+            Authorization: `Basic ${btoa(`${username}:${password}`)}`,
+            'Content-Type': 'application/xml',
+            Depth: '0',
+          },
+          body: `<?xml version="1.0" encoding="UTF-8"?>
+            <d:propfind xmlns:d="DAV:">
+              <d:prop>
+                <d:displayname/>
+              </d:prop>
+            </d:propfind>`,
+        })
+        return { ok: response.ok || response.status === 207, status: response.status }
       }
 
-      const response = await fetch(fetchUrl, {
-        method: 'PROPFIND',
-        headers: {
-          Authorization: `Basic ${btoa(`${username}:${password}`)}`,
-          'Content-Type': 'application/xml',
-          Depth: '0',
-        },
-        body: `<?xml version="1.0" encoding="UTF-8"?>
-          <d:propfind xmlns:d="DAV:">
-            <d:prop>
-              <d:displayname/>
-            </d:prop>
-          </d:propfind>`,
-      })
+      let result = await testUrl(baseUrl)
 
-      const success = response.ok || response.status === 207
-      setConnectionStatus(success ? 'success' : 'error')
-      if (!success) {
-        setConnectionError(`Server returned status ${response.status}`)
+      // Fallback: if the discovered URL fails, try the original base URL.
+      // This handles cases like Radicale where the well-known redirect chain
+      // ends at the web UI (/.web/) instead of the CalDAV endpoint (/).
+      if (!result.ok) {
+        const normalizedBase = serverUrl.replace(/\/$/, '')
+        if (baseUrl !== normalizedBase) {
+          console.log('[CalDAV] Test: discovered URL failed (' + result.status + '), trying base URL:', normalizedBase)
+          result = await testUrl(normalizedBase)
+          if (result.ok) {
+            baseUrl = normalizedBase
+          }
+        }
       }
-      return success
+
+      setConnectionStatus(result.ok ? 'success' : 'error')
+      if (!result.ok) {
+        setConnectionError(`Server returned status ${result.status}`)
+      }
+      return result.ok
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       setConnectionError(

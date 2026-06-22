@@ -30,7 +30,7 @@ const DEFAULT_CALENDAR_COLOR = '#4285F4'
  * Returns DEFAULT_CALENDAR_COLOR for null/undefined/invalid input.
  */
 export function normalizeColor(color: string | null | undefined): string {
-  if (!color) return DEFAULT_CALENDAR_COLOR
+  if (!color || typeof color !== 'string') return DEFAULT_CALENDAR_COLOR
   let c = color.trim()
   // Strip alpha channel (e.g. #FF5722FF → #FF5722)
   if (/^#[0-9A-Fa-f]{8}$/.test(c)) {

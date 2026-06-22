@@ -159,6 +159,7 @@ function buildBaseUrl(serverBaseUrl: string, discoveredPath: string): string {
   return discoveredPath === '' || discoveredPath === '/' ? origin : `${origin}${discoveredPath}`
 }
 
+
 export async function testConnection(
   serverUrl: string,
   credentials: { username: string; password: string },

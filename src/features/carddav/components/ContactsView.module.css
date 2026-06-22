@@ -32,6 +32,7 @@
   min-height: 0;
   overflow-y: auto;
   background: var(--canvas, #faf8f3);
+  border-radius: 0 16px 16px 0;
 }
 
 /* ---- Detail Empty State ---- */
@@ -70,9 +71,9 @@
   gap: 20px;
   background: var(--panel, #ffffff);
   border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
-  border-radius: 16px;
+  border-left: none;
+  border-radius: 0 16px 16px 0;
   padding: 24px 28px;
-  margin-bottom: 20px;
 }
 
 .heroAvatar {

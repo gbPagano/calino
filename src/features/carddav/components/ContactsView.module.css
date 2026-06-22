@@ -230,11 +230,18 @@
 }
 
 .bodyAside {
-  flex: 0 0 220px;
-  width: 220px;
+  flex: 1 1 260px;
+  width: 260px;
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+.bodyAside > * {
+  flex: 1 1 120px;
+  min-width: 120px;
 }
 
 /* ---- Notes full width ---- */
@@ -456,8 +463,25 @@
     flex-direction: column;
   }
 
+  .bodyMain {
+    flex: none;
+    width: 100%;
+  }
+
   .bodyAside {
     flex: none;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .bodyAside > * {
+    flex: 1 1 140px;
+    min-width: 140px;
+  }
+
+  .notesFull {
     width: 100%;
   }
 }

@@ -2,8 +2,10 @@ import type { JSX } from 'react'
 import { useState } from 'react'
 import { useSettingsStore, EVENT_COLORS } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useContactStore } from '@/store/contactStore'
 import { useConfigStore } from '@/store/configStore'
 import { parseICALData } from '@/features/caldav/adapter/iCalendarAdapter'
+import { parseVCard } from '@/features/carddav/adapter/vCardAdapter'
 import styles from './OnboardingModal.module.css'
 
 interface OnboardingModalProps {
@@ -20,6 +22,8 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
   const addCategory = useCalendarStore((state) => state.addCategory)
   const categories = useCalendarStore((state) => state.categories)
   const calendars = useCalendarStore((state) => state.calendars)
+  const addContact = useContactStore((state) => state.addContact)
+  const addAddressBook = useContactStore((state) => state.addAddressBook)
   const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
 
   if (hasCompletedOnboarding || hasPreconfiguredAccounts) {
@@ -81,6 +85,42 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
         if (!journalEnabled) {
           updateSettings({ journalEnabled: true })
         }
+      }
+
+      // Load sample contacts
+      try {
+        const vcfResponse = await fetch('/sample-contacts.vcf')
+        if (vcfResponse.ok) {
+          const vcfData = await vcfResponse.text()
+          const vcards = vcfData.split(/(?=BEGIN:VCARD)/).filter(Boolean)
+          
+          // Create a sample address book
+          const sampleAddressBook = {
+            id: 'sample-addressbook',
+            accountId: 'sample',
+            url: 'sample://addressbook',
+            name: 'Sample Contacts',
+            ctag: null,
+            syncToken: null,
+            isVisible: true,
+          }
+          addAddressBook(sampleAddressBook)
+          
+          for (const vcard of vcards) {
+            const contact = parseVCard(vcard.trim(), 'sample-addressbook', 'sample')
+            if (contact) {
+              addContact(contact)
+            }
+          }
+          
+          // Enable contacts feature
+          const { contactsEnabled } = useSettingsStore.getState()
+          if (!contactsEnabled) {
+            updateSettings({ contactsEnabled: true })
+          }
+        }
+      } catch {
+        // Sample contacts are optional, ignore errors
       }
 
       updateSettings({ hasCompletedOnboarding: true })

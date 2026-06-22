@@ -232,29 +232,28 @@ export function CalendarHeader({
       </button>
 
       {/* Navigator - prev/today/next */}
-      {currentView !== 'todo' && currentView !== 'contacts' ? (
-        <div className={styles.navigator}>
-          <button
-            className={styles.navArrow}
-            onClick={() => handleNavigate('prev')}
-            aria-label="Previous"
-          >
-            <ChevronLeft />
-          </button>
-          <button className={styles.navToday} onClick={handleToday} data-component="today-button">
-            Today
-          </button>
-          <button
-            className={styles.navArrow}
-            onClick={() => handleNavigate('next')}
-            aria-label="Next"
-          >
-            <ChevronRight />
-          </button>
-        </div>
-      ) : (
-        <div />
-      )}
+      <div
+        className={`${styles.navigator} ${currentView === 'todo' || currentView === 'contacts' ? styles.navigatorHidden : ''}`}
+        aria-hidden={currentView === 'todo' || currentView === 'contacts'}
+      >
+        <button
+          className={styles.navArrow}
+          onClick={() => handleNavigate('prev')}
+          aria-label="Previous"
+        >
+          <ChevronLeft />
+        </button>
+        <button className={styles.navToday} onClick={handleToday} data-component="today-button">
+          Today
+        </button>
+        <button
+          className={styles.navArrow}
+          onClick={() => handleNavigate('next')}
+          aria-label="Next"
+        >
+          <ChevronRight />
+        </button>
+      </div>
 
       {/* Month Title — tappable to go to today on mobile */}
       <div className={styles.titleGroup} onClick={currentView !== 'contacts' ? handleToday : undefined} role={currentView !== 'contacts' ? 'button' : undefined} tabIndex={currentView !== 'contacts' ? 0 : undefined} onKeyDown={currentView !== 'contacts' ? (e) => { if (e.key === 'Enter') handleToday() } : undefined}>

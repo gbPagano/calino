@@ -2,7 +2,30 @@ import type { JSX } from 'react'
 import type { Contact } from '../types'
 import styles from './ContactsView.module.css'
 
-/** Get initials from display name (up to 2 characters). */
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const AVATAR_COLORS = [
+  '#b07d4f',
+  '#5b7fb5',
+  '#5d9a78',
+  '#c2697f',
+  '#8a6aa8',
+  '#bf944e',
+]
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function avatarColor(name: string): string {
+  const h = name
+    .split('')
+    .reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) >>> 0, 0)
+  return AVATAR_COLORS[h % AVATAR_COLORS.length]
+}
+
 function getInitials(name: string): string {
   if (!name) return '?'
   const parts = name.trim().split(/\s+/)
@@ -12,13 +35,11 @@ function getInitials(name: string): string {
   ).toUpperCase()
 }
 
-/** Format a date string to a human-readable format. */
 function formatDate(dateStr: string): string {
   try {
-    // Handle vCard date formats: YYYYMMDD or YYYY-MM-DD
     const normalized = dateStr.replace(
       /^(\d{4})(\d{2})(\d{2})$/,
-      '$1-$2-$3'
+      '$1-$2-$3',
     )
     const date = new Date(normalized)
     if (isNaN(date.getTime())) return dateStr
@@ -32,7 +53,22 @@ function formatDate(dateStr: string): string {
   }
 }
 
-/** Format address into readable lines. */
+function getAge(birthday: string): number {
+  const today = new Date()
+  const birthDate = new Date(
+    birthday.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'),
+  )
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age--
+  }
+  return age
+}
+
 function formatAddress(addr: Contact['addresses'][0]): string {
   const lines: string[] = []
   if (addr.street) lines.push(addr.street)
@@ -47,7 +83,10 @@ function formatAddress(addr: Contact['addresses'][0]): string {
   return lines.join('\n') || addr.extended || ''
 }
 
-/** Label map for contact field types. */
+// ---------------------------------------------------------------------------
+// Label maps
+// ---------------------------------------------------------------------------
+
 const EMAIL_TYPE_LABELS: Record<string, string> = {
   home: 'Home',
   work: 'Work',
@@ -71,184 +110,196 @@ const ADDRESS_TYPE_LABELS: Record<string, string> = {
   pref: 'Preferred',
 }
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 interface ContactDetailProps {
   contact: Contact
 }
 
 export function ContactDetail({ contact }: ContactDetailProps): JSX.Element {
+  const color = avatarColor(contact.displayName)
   const initials = getInitials(contact.displayName)
+
+  const roleOrg = [contact.role || contact.title, contact.organization]
+    .filter(Boolean)
+    .join(' \u00b7 ')
+
+  const hasInfo =
+    contact.emails.length > 0 ||
+    contact.phones.length > 0 ||
+    contact.addresses.length > 0
 
   return (
     <div className={styles.detailContent}>
-      {/* Header: Avatar, Name, Title/Org, Actions */}
-      <div className={styles.detailHeader}>
-        <div className={styles.detailAvatar}>
+      {/* ─── Hero ─── */}
+      <div className={styles.hero}>
+        <div className={styles.heroAvatar} style={{ background: color }}>
           {contact.photo ? (
             <img src={contact.photo} alt={contact.displayName} />
           ) : (
-            initials
+            <span>{initials}</span>
           )}
         </div>
 
-        <div className={styles.detailHeaderInfo}>
-          <h1 className={styles.detailName}>{contact.displayName}</h1>
-          {(contact.title || contact.organization) && (
-            <p className={styles.detailTitleOrg}>
-              {[contact.title, contact.organization]
-                .filter(Boolean)
-                .join(' at ')}
-            </p>
-          )}
+        <div className={styles.heroText}>
+          <h1 className={styles.heroName}>{contact.displayName}</h1>
+          {roleOrg && <p className={styles.heroRole}>{roleOrg}</p>}
+          <div className={styles.heroActions}>
+            <button type="button" className={styles.btnPrimary}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+              New event
+            </button>
+            <a
+              href={`mailto:${contact.emails[0]?.value ?? ''}`}
+              className={styles.btnSecondary}
+              hidden={contact.emails.length === 0}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+              Send email
+            </a>
+          </div>
         </div>
 
-        <div className={styles.detailActions}>
+        <div className={styles.heroIconActions}>
           <button
             type="button"
-            className={styles.detailActionBtn}
+            className={styles.iconBtn}
             disabled
             title="Edit contact (coming soon)"
             aria-label="Edit contact"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-              <path d="m15 5 4 4" />
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
           </button>
           <button
             type="button"
-            className={styles.detailActionBtn}
+            className={styles.iconBtn}
             disabled
             title="Delete contact (coming soon)"
             aria-label="Delete contact"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 6h18" />
-              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
           </button>
         </div>
       </div>
 
-      {/* Email addresses */}
-      {contact.emails.length > 0 && (
-        <div className={styles.detailSection}>
-          <h2 className={styles.sectionTitle}>Email</h2>
-          {contact.emails.map((email, i) => (
-            <div key={`email-${i}`} className={styles.infoRow}>
-              <span className={styles.infoLabel}>
-                {EMAIL_TYPE_LABELS[email.type] ?? email.type}
-              </span>
-              <span className={styles.infoValue}>
-                <a href={`mailto:${email.value}`}>{email.value}</a>
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Phone numbers */}
-      {contact.phones.length > 0 && (
-        <div className={styles.detailSection}>
-          <h2 className={styles.sectionTitle}>Phone</h2>
-          {contact.phones.map((phone, i) => (
-            <div key={`phone-${i}`} className={styles.infoRow}>
-              <span className={styles.infoLabel}>
-                {PHONE_TYPE_LABELS[phone.type] ?? phone.type}
-              </span>
-              <span className={styles.infoValue}>
-                <a href={`tel:${phone.value}`}>{phone.value}</a>
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Addresses */}
-      {contact.addresses.length > 0 && (
-        <div className={styles.detailSection}>
-          <h2 className={styles.sectionTitle}>Address</h2>
-          {contact.addresses.map((addr, i) => {
-            const formatted = formatAddress(addr)
-            if (!formatted) return null
-            return (
-              <div key={`addr-${i}`} className={styles.addressBlock}>
-                <div className={styles.addressType}>
-                  {ADDRESS_TYPE_LABELS[addr.type] ?? addr.type}
-                </div>
-                <div className={styles.addressLine}>
-                  {formatted.split('\n').map((line, j) => (
-                    <span key={j}>
-                      {line}
-                      {j < formatted.split('\n').length - 1 && <br />}
-                    </span>
+      {/* ─── Body ─── */}
+      <div className={styles.body}>
+        {/* Main column */}
+        <div className={styles.bodyMain}>
+          {/* Info card */}
+          {hasInfo && (
+            <div className={styles.infoCard}>
+              {/* Emails */}
+              {contact.emails.length > 0 && (
+                <>
+                  {contact.emails.map((email, i) => (
+                    <div key={`email-${i}`} className={styles.infoField}>
+                      <span className={styles.infoFieldLabel}>EMAIL</span>
+                      <div className={styles.infoFieldGrid}>
+                        <span className={styles.infoFieldSub}>
+                          {EMAIL_TYPE_LABELS[email.type] ?? email.type}
+                        </span>
+                        <span className={styles.infoFieldValue}>
+                          <a href={`mailto:${email.value}`}>{email.value}</a>
+                        </span>
+                      </div>
+                    </div>
                   ))}
-                </div>
+                </>
+              )}
+
+              {/* Phones */}
+              {contact.phones.length > 0 && (
+                <>
+                  {contact.phones.map((phone, i) => (
+                    <div key={`phone-${i}`} className={styles.infoField}>
+                      <span className={styles.infoFieldLabel}>PHONE</span>
+                      <div className={styles.infoFieldGrid}>
+                        <span className={styles.infoFieldSub}>
+                          {PHONE_TYPE_LABELS[phone.type] ?? phone.type}
+                        </span>
+                        <span className={styles.infoFieldValue}>
+                          <a href={`tel:${phone.value}`}>{phone.value}</a>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Addresses */}
+              {contact.addresses.length > 0 && (
+                <>
+                  {contact.addresses.map((addr, i) => {
+                    const formatted = formatAddress(addr)
+                    if (!formatted) return null
+                    return (
+                      <div key={`addr-${i}`} className={styles.infoField}>
+                        <span className={styles.infoFieldLabel}>ADDRESS</span>
+                        <div className={styles.infoFieldGrid}>
+                          <span className={styles.infoFieldSub}>
+                            {ADDRESS_TYPE_LABELS[addr.type] ?? addr.type}
+                          </span>
+                          <span className={styles.infoFieldValue}>
+                            {formatted.split('\n').map((line, j) => (
+                              <span key={j}>
+                                {line}
+                                {j < formatted.split('\n').length - 1 && (
+                                  <br />
+                                )}
+                              </span>
+                            ))}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Notes card */}
+          {contact.note && (
+            <div className={styles.notesCard}>
+              <p className={styles.notesText}>{contact.note}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Aside column */}
+        <div className={styles.bodyAside}>
+          {/* Birthday card */}
+          {contact.birthday && (
+            <div className={styles.birthdayCard}>
+              <span className={styles.birthdayEmoji}>{'\uD83C\uDF82'}</span>
+              <div className={styles.birthdayLabel}>BIRTHDAY</div>
+              <div className={styles.birthdayDate}>
+                {formatDate(contact.birthday)}
               </div>
-            )
-          })}
-        </div>
-      )}
+              <div className={styles.birthdayAge}>
+                {getAge(contact.birthday)} years old
+              </div>
+            </div>
+          )}
 
-      {/* Birthday */}
-      {contact.birthday && (
-        <div className={styles.detailSection}>
-          <h2 className={styles.sectionTitle}>Birthday</h2>
-          <div className={styles.infoRow}>
-            <span className={styles.infoValue}>
-              {formatDate(contact.birthday)}
-            </span>
-          </div>
+          {/* Categories card */}
+          {contact.categories.length > 0 && (
+            <div className={styles.categoriesCard}>
+              <div className={styles.asideSectionLabel}>TAGS</div>
+              <div className={styles.tagList}>
+                {contact.categories.map((cat) => (
+                  <span key={cat} className={styles.tagPill}>
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Anniversary */}
-      {contact.anniversary && (
-        <div className={styles.detailSection}>
-          <h2 className={styles.sectionTitle}>Anniversary</h2>
-          <div className={styles.infoRow}>
-            <span className={styles.infoValue}>
-              {formatDate(contact.anniversary)}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Notes */}
-      {contact.note && (
-        <div className={styles.detailSection}>
-          <h2 className={styles.sectionTitle}>Notes</h2>
-          <div className={styles.notesText}>{contact.note}</div>
-        </div>
-      )}
-
-      {/* Categories */}
-      {contact.categories.length > 0 && (
-        <div className={styles.detailSection}>
-          <h2 className={styles.sectionTitle}>Categories</h2>
-          <div className={styles.tagsContainer}>
-            {contact.categories.map((cat) => (
-              <span key={cat} className={styles.tag}>
-                {cat}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   )
 }

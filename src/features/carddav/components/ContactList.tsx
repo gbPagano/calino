@@ -4,6 +4,10 @@ import { useContactStore } from '@/store/contactStore'
 import type { Contact } from '../types'
 import styles from './ContactList.module.css'
 
+/* -------------------------------------------------------------------------- */
+/*  Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
+
 /** Get initials from display name (up to 2 characters). */
 function getInitials(name: string): string {
   if (!name) return '?'
@@ -21,28 +25,33 @@ function getPrimaryEmail(contact: Contact): string | null {
   return contact.emails[0]?.value ?? null
 }
 
-/** Get a consistent color for the avatar based on name. */
+/** Deterministic avatar color from a compact 6-color palette. */
+const AVATAR_COLORS = [
+  '#b07d4f',
+  '#5b7fb5',
+  '#5d9a78',
+  '#c2697f',
+  '#8a6aa8',
+  '#bf944e',
+]
+
 function getAvatarColor(name: string): string {
-  const AVATAR_COLORS = [
-    '#4285F4',
-    '#EA4335',
-    '#34A853',
-    '#FBBC05',
-    '#FF6D01',
-    '#46BDC6',
-    '#7B1FA2',
-    '#C2185B',
-    '#00796B',
-    '#F57C00',
-    '#455A64',
-    '#5D4037',
-  ]
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+  const hash = name
+    .split('')
+    .reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0)
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
 }
+
+/** Return the uppercase first letter for section grouping. */
+function getAlphaKey(name: string): string {
+  if (!name) return '#'
+  const first = name.trim().charAt(0).toUpperCase()
+  return /[A-Z]/.test(first) ? first : '#'
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Sub-components                                                             */
+/* -------------------------------------------------------------------------- */
 
 function ContactListItem({
   contact,
@@ -72,6 +81,8 @@ function ContactListItem({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
     >
+      {isSelected && <div className={styles.selectedRail} />}
+
       <div
         className={styles.avatar}
         style={{ backgroundColor: avatarColor }}
@@ -85,14 +96,48 @@ function ContactListItem({
 
       <div className={styles.contactInfo}>
         <div className={styles.contactName}>{contact.displayName}</div>
-        {email && <div className={styles.contactEmail}>{email}</div>}
-        {contact.organization && (
+        {contact.organization ? (
           <div className={styles.contactOrg}>{contact.organization}</div>
-        )}
+        ) : email ? (
+          <div className={styles.contactEmail}>{email}</div>
+        ) : null}
       </div>
     </div>
   )
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Alphabetical grouping                                                      */
+/* -------------------------------------------------------------------------- */
+
+interface AlphaGroup {
+  letter: string
+  contacts: Contact[]
+}
+
+function groupByAlpha(contacts: Contact[]): AlphaGroup[] {
+  const map = new Map<string, Contact[]>()
+  for (const c of contacts) {
+    const key = getAlphaKey(c.displayName)
+    const arr = map.get(key)
+    if (arr) {
+      arr.push(c)
+    } else {
+      map.set(key, [c])
+    }
+  }
+  // Sort groups alphabetically, with '#' at the end
+  const sorted = [...map.entries()].sort(([a], [b]) => {
+    if (a === '#') return 1
+    if (b === '#') return -1
+    return a.localeCompare(b)
+  })
+  return sorted.map(([letter, list]) => ({ letter, contacts: list }))
+}
+
+/* -------------------------------------------------------------------------- */
+/*  ContactList                                                                */
+/* -------------------------------------------------------------------------- */
 
 export function ContactList(): JSX.Element {
   const searchQuery = useContactStore((s) => s.searchQuery)
@@ -109,29 +154,39 @@ export function ContactList(): JSX.Element {
     const visibleAddressBookIds = addressBooks
       .filter((ab) => ab.isVisible)
       .map((ab) => ab.id)
-    
-    let filtered = contacts.filter((c) => visibleAddressBookIds.includes(c.addressBookId))
-    
+
+    let filtered = contacts.filter((c) =>
+      visibleAddressBookIds.includes(c.addressBookId),
+    )
+
     // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
-      filtered = filtered.filter((c) =>
-        c.displayName.toLowerCase().includes(query) ||
-        c.organization.toLowerCase().includes(query) ||
-        c.emails.some((e) => e.value.toLowerCase().includes(query)) ||
-        c.phones.some((p) => p.value.includes(query))
+      filtered = filtered.filter(
+        (c) =>
+          c.displayName.toLowerCase().includes(query) ||
+          c.organization.toLowerCase().includes(query) ||
+          c.emails.some((e) => e.value.toLowerCase().includes(query)) ||
+          c.phones.some((p) => p.value.includes(query)),
       )
     }
-    
+
     // Sort by display name
-    return filtered.sort((a, b) => a.displayName.localeCompare(b.displayName))
+    return filtered.sort((a, b) =>
+      a.displayName.localeCompare(b.displayName),
+    )
   }, [contacts, addressBooks, searchQuery])
+
+  const groups = useMemo(
+    () => groupByAlpha(filteredContacts),
+    [filteredContacts],
+  )
 
   const handleSelect = useCallback(
     (id: string) => {
       setSelectedContactId(id)
     },
-    [setSelectedContactId]
+    [setSelectedContactId],
   )
 
   return (
@@ -154,7 +209,7 @@ export function ContactList(): JSX.Element {
           ref={inputRef}
           type="text"
           className={styles.searchInput}
-          placeholder="Search contacts..."
+          placeholder="Search contacts…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           aria-label="Search contacts"
@@ -184,17 +239,20 @@ export function ContactList(): JSX.Element {
         )}
       </div>
 
-      {/* Contact count */}
-      <div className={styles.countBar}>
+      {/* Meta bar: count + new button */}
+      <div className={styles.metaBar}>
         <span className={styles.count}>
           {filteredContacts.length}{' '}
           {filteredContacts.length === 1 ? 'contact' : 'contacts'}
         </span>
+        <button type="button" className={styles.newBtn}>
+          + New
+        </button>
       </div>
 
-      {/* Contact list */}
+      {/* Grouped contact list */}
       <div className={styles.list}>
-        {filteredContacts.length === 0 ? (
+        {groups.length === 0 ? (
           <div className={styles.emptyState}>
             {searchQuery ? (
               <>
@@ -204,18 +262,25 @@ export function ContactList(): JSX.Element {
             ) : (
               <>
                 <span className={styles.emptyTitle}>No contacts</span>
-                <span>Sync your CardDAV account to see contacts here.</span>
+                <span>
+                  Sync your CardDAV account to see contacts here.
+                </span>
               </>
             )}
           </div>
         ) : (
-          filteredContacts.map((contact) => (
-            <ContactListItem
-              key={contact.id}
-              contact={contact}
-              isSelected={contact.id === selectedContactId}
-              onSelect={() => handleSelect(contact.id)}
-            />
+          groups.map((group) => (
+            <div key={group.letter} className={styles.alphaGroup}>
+              <div className={styles.alphaHeader}>{group.letter}</div>
+              {group.contacts.map((contact) => (
+                <ContactListItem
+                  key={contact.id}
+                  contact={contact}
+                  isSelected={contact.id === selectedContactId}
+                  onSelect={() => handleSelect(contact.id)}
+                />
+              ))}
+            </div>
           ))
         )}
       </div>

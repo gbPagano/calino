@@ -1,5 +1,5 @@
 /* ============================================================================
-   ContactList — Left panel with search and scrollable contact list
+   ContactList — Left panel: search, meta bar, alphabetical contact list
    ============================================================================ */
 
 .container {
@@ -7,6 +7,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  background: var(--panel, #ffffff);
 }
 
 /* ---- Search Bar ---- */
@@ -14,14 +15,26 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
+  margin: 10px 14px 0;
+  padding: 0 10px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.1));
+  background: var(--side, #f5f3f0);
+  transition:
+    border-color 0.16s,
+    box-shadow 0.16s;
+}
+
+.searchBar:focus-within {
+  border-color: color-mix(in srgb, var(--accent, #b07d4f) 40%, var(--line, rgba(0, 0, 0, 0.1)));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #b07d4f) 10%, transparent);
 }
 
 .searchIcon {
-  width: 16px;
-  height: 16px;
-  color: var(--color-text-muted, #a39d93);
+  width: 15px;
+  height: 15px;
+  color: var(--ink-3, #a39d93);
   flex-shrink: 0;
 }
 
@@ -30,26 +43,27 @@
   border: none;
   background: transparent;
   font: inherit;
-  font-size: 14px;
-  color: var(--color-text-primary, #2c2823);
+  font-size: 13.5px;
+  color: var(--ink, #2c2823);
   outline: none;
   min-width: 0;
+  line-height: 34px;
 }
 
 .searchInput::placeholder {
-  color: var(--color-text-muted, #a39d93);
+  color: var(--ink-3, #a39d93);
 }
 
 .clearBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 6px;
   border: none;
   background: transparent;
-  color: var(--color-text-muted, #a39d93);
+  color: var(--ink-3, #a39d93);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
@@ -57,26 +71,47 @@
 }
 
 .clearBtn:hover {
-  background: var(--color-bg-hover, rgba(0, 0, 0, 0.045));
-  color: var(--color-text-primary, #2c2823);
+  background: color-mix(in srgb, var(--ink, #2c2823) 6%, transparent);
+  color: var(--ink-2, #6f6a62);
 }
 
 .clearBtn svg {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
 }
 
-/* ---- Count Bar ---- */
-.countBar {
+/* ---- Meta Bar (count + new button) ---- */
+.metaBar {
   display: flex;
   align-items: center;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.05));
+  gap: 10px;
+  padding: 9px 20px 5px;
 }
 
 .count {
-  font-size: 12px;
-  color: var(--color-text-muted, #a39d93);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3, #a39d93);
+}
+
+.newBtn {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--accent, #b07d4f);
+  background: none;
+  border: none;
+  border-radius: 7px;
+  padding: 4px 8px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.14s;
+}
+
+.newBtn:hover {
+  background: color-mix(in srgb, var(--accent, #b07d4f) 10%, transparent);
 }
 
 /* ---- Contact List ---- */
@@ -86,40 +121,66 @@
   min-height: 0;
 }
 
+/* ---- Alphabetical Groups ---- */
+.alphaGroup {
+  /* no visual boundary between groups — just structure */
+}
+
+.alphaHeader {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3, #a39d93);
+  padding: 10px 20px 4px;
+  user-select: none;
+}
+
 /* ---- Contact Item ---- */
 .contactItem {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 13px;
+  padding: 9px 20px;
   cursor: pointer;
   transition: background 0.14s;
-  border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.03));
 }
 
 .contactItem:hover {
-  background: var(--color-bg-hover, rgba(0, 0, 0, 0.045));
+  background: color-mix(in srgb, var(--ink, #2c2823) 4%, transparent);
 }
 
 .contactItem.selected {
-  background: color-mix(in srgb, var(--color-accent, #b07d4f) 10%, var(--color-bg-secondary, #ffffff));
+  background: color-mix(in srgb, var(--accent, #b07d4f) 8%, var(--canvas, #f9f7f4));
 }
 
 .contactItem:focus-visible {
-  outline: 2px solid var(--color-accent, #b07d4f);
+  outline: 2px solid var(--accent, #b07d4f);
   outline-offset: -2px;
   border-radius: 4px;
 }
 
+/* ---- Selected Rail ---- */
+.selectedRail {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent, #b07d4f);
+}
+
 /* ---- Avatar ---- */
 .avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: #ffffff;
   flex-shrink: 0;
@@ -141,44 +202,45 @@
 .contactName {
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-primary, #2c2823);
+  color: var(--ink, #2c2823);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.3;
 }
 
-.contactEmail {
-  font-size: 12.5px;
-  color: var(--color-text-secondary, #6f6a62);
+.contactOrg {
+  font-size: 12px;
+  color: var(--ink-3, #a39d93);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 1px;
+  line-height: 1.3;
 }
 
-.contactOrg {
-  font-size: 11.5px;
-  color: var(--color-text-muted, #a39d93);
+.contactEmail {
+  font-size: 12px;
+  color: var(--ink-3, #a39d93);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 1px;
+  line-height: 1.3;
 }
 
 /* ---- Empty State ---- */
 .emptyState {
   text-align: center;
-  color: var(--color-text-muted, #a39d93);
-  font-size: 14px;
+  color: var(--ink-3, #a39d93);
+  font-size: 13.5px;
   padding: 48px 24px;
 }
 
 .emptyTitle {
   display: block;
-  color: var(--color-text-secondary, #6f6a62);
+  color: var(--ink-2, #6f6a62);
   font-weight: 500;
   margin-bottom: 4px;
-  font-family: var(--font-serif, Georgia, serif);
-  font-size: 17px;
+  font-size: 16px;
 }

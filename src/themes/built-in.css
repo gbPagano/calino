@@ -8,6 +8,17 @@
   --color-bg-tertiary: #f3f4f6;
   --color-bg-hover: #f1f3f4;
 
+  /* Legacy aliases (design handoff tokens) */
+  --canvas: #faf8f3;
+  --panel: #ffffff;
+  --side: #f6f3ed;
+  --ink: #2c2823;
+  --ink-2: #6f6a62;
+  --ink-3: #a39d93;
+  --line: rgba(44, 40, 33, 0.09);
+  --line-2: rgba(44, 40, 33, 0.05);
+  --accent: #b07d4f;
+
   /* Text */
   --color-text-primary: #202124;
   --color-text-secondary: #5f6368;
@@ -127,6 +138,17 @@
   --color-bg-secondary: #242220;
   --color-bg-tertiary: #2a2826;
   --color-bg-hover: rgba(240, 236, 230, 0.06);
+
+  /* Legacy aliases (design handoff tokens) */
+  --canvas: #1a1816;
+  --panel: #242220;
+  --side: #2a2826;
+  --ink: #f0ece6;
+  --ink-2: #a39d93;
+  --ink-3: #6f6a62;
+  --line: rgba(240, 236, 230, 0.09);
+  --line-2: rgba(240, 236, 230, 0.05);
+  --accent: #c9956a;
 
   /* Text */
   --color-text-primary: #f0ece6;

@@ -23,13 +23,13 @@ export function ContactsView(): JSX.Element {
 
   return (
     <div
-      className={`${styles.container} ${showDetail ? styles.showDetail : ''}`}
+      className={`${styles.contactsPage} ${showDetail ? styles.showDetail : ''}`}
     >
-      <div className={styles.listPanel}>
+      <div className={styles.clist}>
         <ContactList />
       </div>
 
-      <div className={styles.detailPanel}>
+      <div className={styles.cdetail}>
         {showDetail && (
           <button
             type="button"
@@ -55,21 +55,19 @@ export function ContactsView(): JSX.Element {
           <ContactDetail contact={selectedContact} />
         ) : (
           !isMobile && (
-            <div className={styles.detailEmpty}>
-              <div className={styles.detailEmptyIcon}>
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-                <span>Select a contact to view details</span>
-              </div>
+            <div className={styles.cdetailEmpty}>
+              <svg
+                viewBox="0 0 40 40"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M34 35v-2a8 8 0 0 0-8-8H14a8 8 0 0 0-8 8v2" />
+                <circle cx="20" cy="12" r="8" />
+              </svg>
+              <p>Select a contact</p>
             </div>
           )
         )}

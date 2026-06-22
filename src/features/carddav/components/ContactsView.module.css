@@ -1,298 +1,441 @@
 /* ============================================================================
    ContactsView — 2-column email-style layout
    Left panel: Contact list with search
-   Right panel: Contact detail (read-only)
+   Right panel: Contact detail (redesigned)
    ============================================================================ */
 
 /* ---- Page Layout ---- */
-.container {
+.contactsPage {
   flex: 1 1 auto;
   overflow: hidden;
   display: grid;
   grid-template-columns: minmax(280px, 340px) 1fr;
   height: 100%;
-  background: var(--color-bg-primary, #faf8f3);
+  background: var(--canvas, #faf8f3);
 }
 
 /* ---- Left Panel (Contact List) ---- */
-.listPanel {
+.clist {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
-  background: var(--color-bg-secondary, #ffffff);
+  border-right: 1px solid var(--line, rgba(0, 0, 0, 0.09));
+  background: var(--panel, #ffffff);
   min-height: 0;
   border-radius: 12px 0 0 12px;
 }
 
 /* ---- Right Panel (Contact Detail) ---- */
-.detailPanel {
+.cdetail {
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
-  background: var(--color-bg-primary, #faf8f3);
+  background: var(--canvas, #faf8f3);
 }
 
 /* ---- Detail Empty State ---- */
-.detailEmpty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--color-text-muted, #a39d93);
-  font-size: 15px;
-}
-
-.detailEmptyIcon {
+.cdetailEmpty {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ink-3, #a39d93);
+  font-size: 15px;
   gap: 12px;
 }
 
-.detailEmptyIcon svg {
+.cdetailEmpty svg {
   width: 48px;
   height: 48px;
   opacity: 0.3;
 }
 
-/* ---- Detail Content ---- */
+/* ============================================================================
+   ContactDetail
+   ============================================================================ */
+
 .detailContent {
-  max-width: 640px;
+  max-width: 800px;
   margin: 0 auto;
-  padding: 32px 40px;
+  padding: 24px 32px 48px;
   width: 100%;
 }
 
-/* ---- Contact Header ---- */
-.detailHeader {
+/* ---- Hero ---- */
+.hero {
+  position: relative;
   display: flex;
-  align-items: flex-start;
-  gap: 24px;
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
+  align-items: center;
+  gap: 20px;
+  background: var(--panel, #ffffff);
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 20px;
 }
 
-.detailAvatar {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--color-bg-tertiary, #f3f4f6);
+.heroAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--color-text-secondary, #6f6a62);
   flex-shrink: 0;
   overflow: hidden;
 }
 
-.detailAvatar img {
+.heroAvatar span {
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.heroAvatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.detailHeaderInfo {
+.heroText {
   flex: 1;
   min-width: 0;
 }
 
-.detailName {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--color-text-primary, #2c2823);
+.heroName {
+  font-family: 'Newsreader', Georgia, serif;
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: -0.018em;
+  color: var(--ink, #2c2823);
   margin: 0 0 4px;
   line-height: 1.2;
 }
 
-.detailTitleOrg {
+.heroRole {
   font-size: 14px;
-  color: var(--color-text-secondary, #6f6a62);
-  margin: 0;
+  color: var(--ink-2, #6f6a62);
+  margin: 0 0 14px;
   line-height: 1.4;
 }
 
-.detailActions {
+.heroActions {
   display: flex;
   gap: 8px;
-  flex-shrink: 0;
 }
 
-.detailActionBtn {
-  display: flex;
+/* ---- Primary button ---- */
+.btnPrimary {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
-  background: transparent;
-  color: var(--color-text-secondary, #6f6a62);
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 9px;
+  background: var(--accent, #b07d4f);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  text-decoration: none;
+  transition: opacity 0.15s;
 }
 
-.detailActionBtn:hover:not(:disabled) {
-  background: var(--color-bg-hover, rgba(0, 0, 0, 0.045));
-  color: var(--color-text-primary, #2c2823);
+.btnPrimary:hover {
+  opacity: 0.85;
 }
 
-.detailActionBtn:disabled {
+.btnPrimary:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.detailActionBtn svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* ---- Detail Sections ---- */
-.detailSection {
-  margin-bottom: 28px;
-}
-
-.detailSection:last-child {
-  margin-bottom: 0;
-}
-
-.sectionTitle {
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--color-text-muted, #a39d93);
-  margin: 0 0 12px;
-}
-
-/* ---- Info Rows ---- */
-.infoRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 8px 0;
-}
-
-.infoLabel {
+/* ---- Secondary button ---- */
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
+  border-radius: 9px;
+  background: var(--panel, #ffffff);
+  color: var(--ink, #2c2823);
   font-size: 13px;
-  color: var(--color-text-muted, #a39d93);
-  min-width: 72px;
-  padding-top: 2px;
-  flex-shrink: 0;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
 }
 
-.infoValue {
+.btnSecondary:hover {
+  background: var(--canvas, #faf8f3);
+}
+
+/* ---- Hero icon buttons (edit / delete) ---- */
+.heroIconActions {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 4px;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-3, #a39d93);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.iconBtn:hover:not(:disabled) {
+  background: var(--canvas, #faf8f3);
+  color: var(--ink, #2c2823);
+}
+
+.iconBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---- Body layout ---- */
+.body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.bodyMain {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.bodyAside {
+  flex: 0 0 220px;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---- Info Card ---- */
+.infoCard {
+  background: var(--panel, #ffffff);
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.infoField {
+  padding: 14px 20px;
+}
+
+.infoField + .infoField {
+  border-top: 1px solid var(--line, rgba(0, 0, 0, 0.09));
+}
+
+.infoFieldLabel {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3, #a39d93);
+  margin-bottom: 6px;
+}
+
+.infoFieldGrid {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 0 8px;
+  align-items: baseline;
+}
+
+.infoFieldSub {
+  font-size: 13px;
+  color: var(--ink-3, #a39d93);
+}
+
+.infoFieldValue {
   font-size: 14px;
-  color: var(--color-text-primary, #2c2823);
+  color: var(--ink, #2c2823);
   line-height: 1.5;
+  word-break: break-word;
 }
 
-.infoValue a {
-  color: var(--color-accent, #b07d4f);
+.infoFieldValue a {
+  color: var(--accent, #b07d4f);
   text-decoration: none;
   transition: color 0.14s;
 }
 
-.infoValue a:hover {
-  color: var(--color-accent-hover, #3367d6);
+.infoFieldValue a:hover {
   text-decoration: underline;
 }
 
-/* ---- Address Block ---- */
-.addressBlock {
-  padding: 12px 0;
+/* ---- Notes Card ---- */
+.notesCard {
+  background: color-mix(in srgb, var(--accent, #b07d4f) 5%, var(--panel, #ffffff));
+  border-left: 3px solid color-mix(in srgb, var(--accent, #b07d4f) 30%, var(--line, rgba(0, 0, 0, 0.09)));
+  border-radius: 12px;
+  padding: 16px 20px;
 }
 
-.addressBlock + .addressBlock {
-  border-top: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.05));
-}
-
-.addressType {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-secondary, #6f6a62);
-  text-transform: capitalize;
-  margin-bottom: 6px;
-}
-
-.addressLine {
-  font-size: 14px;
-  color: var(--color-text-primary, #2c2823);
-  line-height: 1.5;
-}
-
-/* ---- Notes ---- */
 .notesText {
+  margin: 0;
   font-size: 14px;
-  color: var(--color-text-primary, #2c2823);
+  font-style: italic;
+  color: var(--ink, #2c2823);
   line-height: 1.6;
   white-space: pre-wrap;
 }
 
-/* ---- Categories / Tags ---- */
-.tagsContainer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+/* ---- Birthday Card ---- */
+.birthdayCard {
+  background: color-mix(in srgb, var(--accent, #b07d4f) 6%, var(--panel, #ffffff));
+  border: 1px solid color-mix(in srgb, var(--accent, #b07d4f) 18%, var(--line, rgba(0, 0, 0, 0.09)));
+  border-radius: 12px;
+  padding: 16px 18px;
+  text-align: center;
 }
 
-.tag {
+.birthdayEmoji {
+  font-size: 28px;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.birthdayLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3, #a39d93);
+  margin-bottom: 6px;
+}
+
+.birthdayDate {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink, #2c2823);
+  margin-bottom: 2px;
+}
+
+.birthdayAge {
+  font-size: 12.5px;
+  color: var(--ink-2, #6f6a62);
+}
+
+/* ---- Categories Card ---- */
+.categoriesCard {
+  background: var(--panel, #ffffff);
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+
+.asideSectionLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3, #a39d93);
+  margin-bottom: 10px;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tagPill {
   font-size: 12px;
   font-weight: 500;
-  padding: 4px 10px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: var(--color-bg-tertiary, #f3f4f6);
-  color: var(--color-text-secondary, #6f6a62);
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
+  background: var(--canvas, #faf8f3);
+  color: var(--ink-2, #6f6a62);
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
 }
 
 /* ============================================================================
-   Mobile responsive — single column with back navigation
+   Mobile responsive
    ============================================================================ */
 @media (max-width: 768px) {
-  .container {
+  .contactsPage {
     grid-template-columns: 1fr;
     position: relative;
   }
 
-  .listPanel {
+  .clist {
     border-right: none;
     border-radius: 0;
   }
 
-  /* When a contact is selected on mobile, hide list, show detail */
-  .container.showDetail .listPanel {
+  .contactsPage.showDetail .clist {
     display: none;
   }
 
-  .container.showDetail .detailPanel {
+  .contactsPage.showDetail .cdetail {
     position: absolute;
     inset: 0;
-    background: var(--color-bg-primary, #faf8f3);
+    background: var(--canvas, #faf8f3);
     z-index: 10;
   }
 
   .detailContent {
-    padding: 16px 20px;
+    padding: 16px 16px 48px;
   }
 
-  .detailHeader {
-    gap: 16px;
-    margin-bottom: 24px;
-    padding-bottom: 20px;
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
   }
 
-  .detailAvatar {
+  .heroAvatar {
     width: 56px;
     height: 56px;
-    font-size: 22px;
+    border-radius: 16px;
   }
 
-  .detailName {
-    font-size: 20px;
+  .heroAvatar span {
+    font-size: 18px;
+  }
+
+  .heroName {
+    font-size: 24px;
+  }
+
+  .heroIconActions {
+    top: 12px;
+    right: 12px;
+  }
+
+  .body {
+    flex-direction: column;
+  }
+
+  .bodyAside {
+    flex: none;
+    width: 100%;
   }
 }
 
@@ -309,18 +452,18 @@
     padding: 10px 16px;
     border: none;
     background: transparent;
-    color: var(--color-accent, #b07d4f);
+    color: var(--accent, #b07d4f);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
+    border-bottom: 1px solid var(--line, rgba(0, 0, 0, 0.09));
     width: 100%;
     text-align: left;
     font-family: inherit;
   }
 
   .mobileBack:active {
-    background: var(--color-bg-hover, rgba(0, 0, 0, 0.045));
+    background: var(--canvas, #faf8f3);
   }
 
   .mobileBack svg {

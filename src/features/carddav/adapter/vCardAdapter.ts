@@ -264,29 +264,37 @@ function extractProperty(lines: string[], property: string): string | null {
   return null
 }
 
-function extractPropertyWithParams(lines: string[], property: string): { value: string; params: string } | null {
-  const prefix = property + ';'
-  const prefixUpper = prefix.toUpperCase()
-  const simplePrefix = property + ':'
-  const simplePrefixUpper = simplePrefix.toUpperCase()
+/**
+ * Parse a single vCard line with property params.
+ * e.g. 'EMAIL;TYPE=HOME:john@example.com' → { params: 'TYPE=HOME', value: 'john@example.com' }
+ */
+function parseLineWithParams(line: string, property: string): { value: string; params: string } | null {
+  const lineUpper = line.toUpperCase()
+  const prefixWithSemicolon = (property + ';').toUpperCase()
+  const prefixWithColon = (property + ':').toUpperCase()
   
-  for (const line of lines) {
-    const lineUpper = line.toUpperCase()
-    if (lineUpper.startsWith(prefixUpper)) {
-      const rest = line.substring(property.length + 1)
-      const colonIndex = rest.indexOf(':')
-      if (colonIndex >= 0) {
-        return {
-          params: rest.substring(0, colonIndex),
-          value: rest.substring(colonIndex + 1),
-        }
-      }
-    } else if (lineUpper.startsWith(simplePrefixUpper)) {
+  if (lineUpper.startsWith(prefixWithSemicolon)) {
+    const rest = line.substring(property.length + 1)
+    const colonIndex = rest.indexOf(':')
+    if (colonIndex >= 0) {
       return {
-        params: '',
-        value: line.substring(simplePrefix.length),
+        params: rest.substring(0, colonIndex),
+        value: rest.substring(colonIndex + 1),
       }
     }
+  } else if (lineUpper.startsWith(prefixWithColon)) {
+    return {
+      params: '',
+      value: line.substring(property.length + 1),
+    }
+  }
+  return null
+}
+
+function extractPropertyWithParams(lines: string[], property: string): { value: string; params: string } | null {
+  for (const line of lines) {
+    const result = parseLineWithParams(line, property)
+    if (result) return result
   }
   return null
 }
@@ -297,7 +305,7 @@ function extractEmails(lines: string[]): ContactEmail[] {
   for (const line of lines) {
     if (!line.toUpperCase().startsWith('EMAIL')) continue
     
-    const result = extractPropertyWithParams(lines, 'EMAIL')
+    const result = parseLineWithParams(line, 'EMAIL')
     if (!result) continue
     
     const type = parseTypeParam(result.params)
@@ -324,7 +332,7 @@ function extractPhones(lines: string[]): ContactPhone[] {
   for (const line of lines) {
     if (!line.toUpperCase().startsWith('TEL')) continue
     
-    const result = extractPropertyWithParams(lines, 'TEL')
+    const result = parseLineWithParams(line, 'TEL')
     if (!result) continue
     
     const type = parsePhoneTypeParam(result.params)
@@ -351,7 +359,7 @@ function extractAddresses(lines: string[]): ContactAddress[] {
   for (const line of lines) {
     if (!line.toUpperCase().startsWith('ADR')) continue
     
-    const result = extractPropertyWithParams(lines, 'ADR')
+    const result = parseLineWithParams(line, 'ADR')
     if (!result) continue
     
     const type = parseTypeParam(result.params)
@@ -386,7 +394,7 @@ function extractUrls(lines: string[]): ContactUrl[] {
   for (const line of lines) {
     if (!line.toUpperCase().startsWith('URL')) continue
     
-    const result = extractPropertyWithParams(lines, 'URL')
+    const result = parseLineWithParams(line, 'URL')
     if (!result) continue
     
     const type = parseTypeParam(result.params)
@@ -413,7 +421,7 @@ function extractIMs(lines: string[]): ContactIM[] {
   for (const line of lines) {
     if (!line.toUpperCase().startsWith('IMPP')) continue
     
-    const result = extractPropertyWithParams(lines, 'IMPP')
+    const result = parseLineWithParams(line, 'IMPP')
     if (!result) continue
     
     const type = parseTypeParam(result.params)

@@ -178,31 +178,26 @@ END:VCARD`
   })
 
   describe('multiple fields', () => {
-    it('parses multiple emails (known bug: all entries get first value)', () => {
-      // Known bug: extractPropertyWithParams always returns the first match,
-      // so all EMAIL entries get the same value as the first one.
-      // This test documents the current (buggy) behavior.
+    it('parses multiple emails with correct values', () => {
       const contact = parseVCard(MULTI_FIELDS_VCARD, ADDRESS_BOOK_ID, ACCOUNT_ID)
 
       expect(contact!.emails).toHaveLength(2)
-      // Both entries get the first email due to the bug
       expect(contact!.emails[0].value).toBe('jane@example.com')
       expect(contact!.emails[0].type).toBe('home')
       expect(contact!.emails[0].isPrimary).toBe(true) // first auto-marked
-      expect(contact!.emails[1].value).toBe('jane@example.com') // same as first (bug)
-      expect(contact!.emails[1].type).toBe('home') // params also from first (bug)
+      expect(contact!.emails[1].value).toBe('jane.smith@company.com')
+      expect(contact!.emails[1].type).toBe('work')
     })
 
-    it('parses multiple phones (known bug: all entries get first value)', () => {
-      // Known bug: same issue as emails
+    it('parses multiple phones with correct values', () => {
       const contact = parseVCard(MULTI_FIELDS_VCARD, ADDRESS_BOOK_ID, ACCOUNT_ID)
 
       expect(contact!.phones).toHaveLength(2)
       expect(contact!.phones[0].value).toBe('+1-555-0100')
       expect(contact!.phones[0].type).toBe('cell')
-      expect(contact!.phones[0].isPrimary).toBe(true)
-      expect(contact!.phones[1].value).toBe('+1-555-0100') // same as first (bug)
-      expect(contact!.phones[1].type).toBe('cell') // params from first (bug)
+      expect(contact!.phones[0].isPrimary).toBe(false) // no PREF, first not auto-marked when second has PREF
+      expect(contact!.phones[1].value).toBe('+1-555-0200')
+      expect(contact!.phones[1].type).toBe('work')
     })
 
     it('parses single email correctly', () => {
@@ -230,25 +225,28 @@ END:VCARD`
       expect(contact!.phones[0].type).toBe('cell')
     })
 
-    it('parses multiple addresses (known bug: all entries get first value)', () => {
-      // Known bug: same issue as emails
+    it('parses multiple addresses with correct values', () => {
       const contact = parseVCard(MULTI_FIELDS_VCARD, ADDRESS_BOOK_ID, ACCOUNT_ID)
 
       expect(contact!.addresses).toHaveLength(2)
 
       const homeAddr = contact!.addresses[0]
       expect(homeAddr.type).toBe('home')
-      expect(homeAddr.isPrimary).toBe(true) // first auto-marked
+      expect(homeAddr.isPrimary).toBe(true) // first auto-marked when none has PREF
       expect(homeAddr.street).toBe('123 Main St')
       expect(homeAddr.city).toBe('Springfield')
       expect(homeAddr.region).toBe('IL')
       expect(homeAddr.postalCode).toBe('62701')
       expect(homeAddr.country).toBe('USA')
 
-      // Second entry also gets first address data due to bug
       const workAddr = contact!.addresses[1]
-      expect(workAddr.street).toBe('123 Main St') // same as first (bug)
-      expect(workAddr.city).toBe('Springfield') // same as first (bug)
+      expect(workAddr.type).toBe('work')
+      expect(workAddr.isPrimary).toBe(false) // no PREF
+      expect(workAddr.street).toBe('456 Corp Ave')
+      expect(workAddr.city).toBe('Chicago')
+      expect(workAddr.region).toBe('IL')
+      expect(workAddr.postalCode).toBe('60601')
+      expect(workAddr.country).toBe('USA')
     })
 
     it('parses single address correctly', () => {
@@ -452,16 +450,15 @@ END:VCARD`
       expect(contact!.urls[0].isPrimary).toBe(true)
     })
 
-    it('parses multiple URLs (known bug: all entries get first value)', () => {
-      // Known bug: extractPropertyWithParams always returns the first match
+    it('parses multiple URLs with correct values', () => {
       const contact = parseVCard(VCARD_WITH_URL, ADDRESS_BOOK_ID, ACCOUNT_ID)
 
       expect(contact!.urls).toHaveLength(2)
       expect(contact!.urls[0].value).toBe('https://en.wikipedia.org/wiki/Grace_Hopper')
       expect(contact!.urls[0].type).toBe('home')
       expect(contact!.urls[0].isPrimary).toBe(true)
-      expect(contact!.urls[1].value).toBe('https://en.wikipedia.org/wiki/Grace_Hopper') // bug: same as first
-      expect(contact!.urls[1].type).toBe('home') // bug: params from first
+      expect(contact!.urls[1].value).toBe('https://gracehopper.com')
+      expect(contact!.urls[1].type).toBe('work')
     })
   })
 
@@ -484,18 +481,17 @@ END:VCARD`
       expect(contact!.ims[0].isPrimary).toBe(true)
     })
 
-    it('parses multiple IMs (known bug: all entries get first value)', () => {
-      // Known bug: same issue as emails
+    it('parses multiple IMs with correct values', () => {
       const contact = parseVCard(VCARD_WITH_IM, ADDRESS_BOOK_ID, ACCOUNT_ID)
 
       expect(contact!.ims).toHaveLength(2)
       expect(contact!.ims[0].value).toBe('henry.ford.skype')
       expect(contact!.ims[0].protocol).toBe('skype')
       expect(contact!.ims[0].type).toBe('home')
-      expect(contact!.ims[0].isPrimary).toBe(true)
-      expect(contact!.ims[1].value).toBe('henry.ford.skype') // bug: same as first
-      expect(contact!.ims[1].protocol).toBe('skype') // bug: params from first
-      expect(contact!.ims[1].type).toBe('home') // bug: params from first
+      expect(contact!.ims[0].isPrimary).toBe(true) // first auto-marked
+      expect(contact!.ims[1].value).toBe('@henryford')
+      expect(contact!.ims[1].protocol).toBe('twitter')
+      expect(contact!.ims[1].type).toBe('work')
     })
 
     it('returns empty array when no IMPP properties', () => {

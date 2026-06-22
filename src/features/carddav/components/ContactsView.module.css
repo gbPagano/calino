@@ -219,7 +219,7 @@
   flex-wrap: wrap;
   gap: 20px;
   align-items: flex-start;
-  padding-left: 1px;
+  padding-left: 10px;
 }
 
 .bodyMain {

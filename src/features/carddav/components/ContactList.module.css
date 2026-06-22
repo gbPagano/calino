@@ -15,13 +15,13 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
+  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
 }
 
 .searchIcon {
   width: 16px;
   height: 16px;
-  color: var(--ink-3, #a39d93);
+  color: var(--color-text-muted, #a39d93);
   flex-shrink: 0;
 }
 
@@ -31,13 +31,13 @@
   background: transparent;
   font: inherit;
   font-size: 14px;
-  color: var(--ink, #2c2823);
+  color: var(--color-text-primary, #2c2823);
   outline: none;
   min-width: 0;
 }
 
 .searchInput::placeholder {
-  color: var(--ink-3, #a39d93);
+  color: var(--color-text-muted, #a39d93);
 }
 
 .clearBtn {
@@ -49,7 +49,7 @@
   border-radius: 6px;
   border: none;
   background: transparent;
-  color: var(--ink-3, #a39d93);
+  color: var(--color-text-muted, #a39d93);
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
@@ -57,8 +57,8 @@
 }
 
 .clearBtn:hover {
-  background: var(--view-switcher-bg, rgba(var(--ink-raw, 44, 40, 33), 0.045));
-  color: var(--ink, #2c2823);
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.045));
+  color: var(--color-text-primary, #2c2823);
 }
 
 .clearBtn svg {
@@ -71,12 +71,12 @@
   display: flex;
   align-items: center;
   padding: 8px 14px;
-  border-bottom: 1px solid var(--line-2, rgba(var(--ink-raw), 0.05));
+  border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.05));
 }
 
 .count {
   font-size: 12px;
-  color: var(--ink-3, #a39d93);
+  color: var(--color-text-muted, #a39d93);
 }
 
 /* ---- Contact List ---- */
@@ -94,19 +94,19 @@
   padding: 12px 14px;
   cursor: pointer;
   transition: background 0.14s;
-  border-bottom: 1px solid var(--line-2, rgba(var(--ink-raw), 0.03));
+  border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.03));
 }
 
 .contactItem:hover {
-  background: var(--view-switcher-bg, rgba(var(--ink-raw, 44, 40, 33), 0.045));
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.045));
 }
 
 .contactItem.selected {
-  background: color-mix(in srgb, var(--accent, #b07d4f) 10%, var(--panel, #ffffff));
+  background: color-mix(in srgb, var(--color-accent, #b07d4f) 10%, var(--color-bg-secondary, #ffffff));
 }
 
 .contactItem:focus-visible {
-  outline: 2px solid var(--accent, #b07d4f);
+  outline: 2px solid var(--color-accent, #b07d4f);
   outline-offset: -2px;
   border-radius: 4px;
 }
@@ -141,7 +141,7 @@
 .contactName {
   font-size: 14px;
   font-weight: 500;
-  color: var(--ink, #2c2823);
+  color: var(--color-text-primary, #2c2823);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -150,7 +150,7 @@
 
 .contactEmail {
   font-size: 12.5px;
-  color: var(--ink-2, #6f6a62);
+  color: var(--color-text-secondary, #6f6a62);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -159,7 +159,7 @@
 
 .contactOrg {
   font-size: 11.5px;
-  color: var(--ink-3, #a39d93);
+  color: var(--color-text-muted, #a39d93);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -169,16 +169,16 @@
 /* ---- Empty State ---- */
 .emptyState {
   text-align: center;
-  color: var(--ink-3, #a39d93);
+  color: var(--color-text-muted, #a39d93);
   font-size: 14px;
   padding: 48px 24px;
 }
 
 .emptyTitle {
   display: block;
-  color: var(--ink-2, #6f6a62);
+  color: var(--color-text-secondary, #6f6a62);
   font-weight: 500;
   margin-bottom: 4px;
-  font-family: "Newsreader", Georgia, serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: 17px;
 }

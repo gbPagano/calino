@@ -232,7 +232,7 @@ export function CalendarHeader({
       </button>
 
       {/* Navigator - prev/today/next */}
-      {currentView !== 'todo' ? (
+      {currentView !== 'todo' && currentView !== 'contacts' ? (
         <div className={styles.navigator}>
           <button
             className={styles.navArrow}
@@ -257,7 +257,7 @@ export function CalendarHeader({
       )}
 
       {/* Month Title — tappable to go to today on mobile */}
-      <div className={styles.titleGroup} onClick={handleToday} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') handleToday() }}>
+      <div className={styles.titleGroup} onClick={currentView !== 'contacts' ? handleToday : undefined} role={currentView !== 'contacts' ? 'button' : undefined} tabIndex={currentView !== 'contacts' ? 0 : undefined} onKeyDown={currentView !== 'contacts' ? (e) => { if (e.key === 'Enter') handleToday() } : undefined}>
         {typeof title === 'object' ? (
           <>
             <h1 className={styles.monthTitle}>{title.month}</h1>

@@ -1,5 +1,5 @@
 /* ============================================================================
-   ContactsView — 3-column email-style layout
+   ContactsView — 2-column email-style layout
    Left panel: Contact list with search
    Right panel: Contact detail (read-only)
    ============================================================================ */
@@ -11,16 +11,17 @@
   display: grid;
   grid-template-columns: minmax(280px, 340px) 1fr;
   height: 100%;
-  background: var(--canvas, #faf8f3);
+  background: var(--color-bg-primary, #faf8f3);
 }
 
 /* ---- Left Panel (Contact List) ---- */
 .listPanel {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
-  background: var(--panel, #ffffff);
+  border-right: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
+  background: var(--color-bg-secondary, #ffffff);
   min-height: 0;
+  border-radius: 12px 0 0 12px;
 }
 
 /* ---- Right Panel (Contact Detail) ---- */
@@ -29,6 +30,7 @@
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
+  background: var(--color-bg-primary, #faf8f3);
 }
 
 /* ---- Detail Empty State ---- */
@@ -37,7 +39,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--ink-3, #a39d93);
+  color: var(--color-text-muted, #a39d93);
   font-size: 15px;
 }
 
@@ -69,20 +71,20 @@
   gap: 24px;
   margin-bottom: 32px;
   padding-bottom: 24px;
-  border-bottom: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
+  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
 }
 
 .detailAvatar {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: var(--view-switcher-bg, rgba(var(--ink-raw, 44, 40, 33), 0.045));
+  background: var(--color-bg-tertiary, #f3f4f6);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 28px;
   font-weight: 600;
-  color: var(--ink-2, #6f6a62);
+  color: var(--color-text-secondary, #6f6a62);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -101,14 +103,14 @@
 .detailName {
   font-size: 24px;
   font-weight: 600;
-  color: var(--ink, #2c2823);
+  color: var(--color-text-primary, #2c2823);
   margin: 0 0 4px;
   line-height: 1.2;
 }
 
 .detailTitleOrg {
   font-size: 14px;
-  color: var(--ink-2, #6f6a62);
+  color: var(--color-text-secondary, #6f6a62);
   margin: 0;
   line-height: 1.4;
 }
@@ -126,16 +128,16 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  border: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
   background: transparent;
-  color: var(--ink-2, #6f6a62);
+  color: var(--color-text-secondary, #6f6a62);
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
 }
 
 .detailActionBtn:hover:not(:disabled) {
-  background: var(--view-switcher-bg, rgba(var(--ink-raw, 44, 40, 33), 0.045));
-  color: var(--ink, #2c2823);
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.045));
+  color: var(--color-text-primary, #2c2823);
 }
 
 .detailActionBtn:disabled {
@@ -162,7 +164,7 @@
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--ink-3, #a39d93);
+  color: var(--color-text-muted, #a39d93);
   margin: 0 0 12px;
 }
 
@@ -176,7 +178,7 @@
 
 .infoLabel {
   font-size: 13px;
-  color: var(--ink-3, #a39d93);
+  color: var(--color-text-muted, #a39d93);
   min-width: 72px;
   padding-top: 2px;
   flex-shrink: 0;
@@ -184,18 +186,18 @@
 
 .infoValue {
   font-size: 14px;
-  color: var(--ink, #2c2823);
+  color: var(--color-text-primary, #2c2823);
   line-height: 1.5;
 }
 
 .infoValue a {
-  color: var(--accent, #b07d4f);
+  color: var(--color-accent, #b07d4f);
   text-decoration: none;
   transition: color 0.14s;
 }
 
 .infoValue a:hover {
-  color: color-mix(in srgb, var(--accent, #b07d4f) 80%, #000);
+  color: var(--color-accent-hover, #3367d6);
   text-decoration: underline;
 }
 
@@ -205,27 +207,27 @@
 }
 
 .addressBlock + .addressBlock {
-  border-top: 1px solid var(--line-2, rgba(var(--ink-raw), 0.05));
+  border-top: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.05));
 }
 
 .addressType {
   font-size: 12px;
   font-weight: 600;
-  color: var(--ink-2, #6f6a62);
+  color: var(--color-text-secondary, #6f6a62);
   text-transform: capitalize;
   margin-bottom: 6px;
 }
 
 .addressLine {
   font-size: 14px;
-  color: var(--ink, #2c2823);
+  color: var(--color-text-primary, #2c2823);
   line-height: 1.5;
 }
 
 /* ---- Notes ---- */
 .notesText {
   font-size: 14px;
-  color: var(--ink, #2c2823);
+  color: var(--color-text-primary, #2c2823);
   line-height: 1.6;
   white-space: pre-wrap;
 }
@@ -242,9 +244,9 @@
   font-weight: 500;
   padding: 4px 10px;
   border-radius: 999px;
-  background: var(--view-switcher-bg, rgba(var(--ink-raw, 44, 40, 33), 0.045));
-  color: var(--ink-2, #6f6a62);
-  border: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
+  background: var(--color-bg-tertiary, #f3f4f6);
+  color: var(--color-text-secondary, #6f6a62);
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
 }
 
 /* ============================================================================
@@ -258,6 +260,7 @@
 
   .listPanel {
     border-right: none;
+    border-radius: 0;
   }
 
   /* When a contact is selected on mobile, hide list, show detail */
@@ -268,7 +271,7 @@
   .container.showDetail .detailPanel {
     position: absolute;
     inset: 0;
-    background: var(--canvas, #faf8f3);
+    background: var(--color-bg-primary, #faf8f3);
     z-index: 10;
   }
 
@@ -306,18 +309,18 @@
     padding: 10px 16px;
     border: none;
     background: transparent;
-    color: var(--accent, #b07d4f);
+    color: var(--color-accent, #b07d4f);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    border-bottom: 1px solid var(--line, rgba(var(--ink-raw), 0.09));
+    border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.09));
     width: 100%;
     text-align: left;
     font-family: inherit;
   }
 
   .mobileBack:active {
-    background: var(--view-switcher-bg, rgba(var(--ink-raw, 44, 40, 33), 0.045));
+    background: var(--color-bg-hover, rgba(0, 0, 0, 0.045));
   }
 
   .mobileBack svg {

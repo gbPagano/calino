@@ -127,6 +127,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   sidebarWidth: 300,
   sidebarCollapsed: false,
   journalEnabled: false,
+  contactsEnabled: false,
 }
 
 export const useSettingsStore = create<SettingsStore>()(

@@ -1,0 +1,117 @@
+export interface AddressBook {
+  id: string
+  accountId: string
+  url: string
+  name: string
+  description?: string
+  ctag: string | null
+  syncToken: string | null
+  isVisible: boolean
+}
+
+export interface Contact {
+  id: string
+  addressBookId: string
+  accountId: string
+  url: string
+  etag?: string
+  
+  // Structured name (N property)
+  familyName: string
+  givenName: string
+  additionalNames: string
+  prefixes: string
+  suffixes: string
+  
+  // Display name (FN property)
+  displayName: string
+  
+  // Organization
+  organization: string
+  department: string
+  title: string
+  role: string
+  
+  // Contact info
+  emails: ContactEmail[]
+  phones: ContactPhone[]
+  addresses: ContactAddress[]
+  
+  // Online presence
+  urls: ContactUrl[]
+  ims: ContactIM[]
+  
+  // Personal info
+  birthday: string | null
+  anniversary: string | null
+  gender: string
+  
+  // Notes and categories
+  note: string
+  categories: string[]
+  
+  // Photo
+  photo: string | null // data URI or URL
+  
+  // Raw vCard data (for sync)
+  rawVCard?: string
+  
+  // Metadata
+  createdAt: string
+  lastModified: string
+  syncStatus?: 'synced' | 'pending' | 'failed'
+}
+
+export interface ContactEmail {
+  value: string
+  type: 'home' | 'work' | 'other' | 'pref'
+  isPrimary: boolean
+}
+
+export interface ContactPhone {
+  value: string
+  type: 'home' | 'work' | 'cell' | 'fax' | 'other' | 'pref'
+  isPrimary: boolean
+}
+
+export interface ContactAddress {
+  type: 'home' | 'work' | 'other' | 'pref'
+  isPrimary: boolean
+  poBox: string
+  extended: string
+  street: string
+  city: string
+  region: string
+  postalCode: string
+  country: string
+}
+
+export interface ContactUrl {
+  value: string
+  type: 'home' | 'work' | 'other' | 'pref'
+  isPrimary: boolean
+}
+
+export interface ContactIM {
+  value: string
+  type: 'home' | 'work' | 'other' | 'pref'
+  protocol: 'aim' | 'email' | 'facebook' | 'google' | 'irc' | 'msn' | 'qq' | 'skype' | 'twitter' | 'xmpp' | 'other'
+  isPrimary: boolean
+}
+
+export interface CardDAVSyncState {
+  status: 'idle' | 'syncing' | 'error' | 'offline'
+  lastSyncAt: string | null
+  error: string | null
+  pendingChanges: number
+}
+
+export interface PendingContactChange {
+  id: string
+  type: 'create' | 'update' | 'delete'
+  contactId: string
+  addressBookId: string
+  data?: string
+  timestamp: string
+  retryCount: number
+}

@@ -32,6 +32,7 @@ const VIEWS: { value: ViewType; label: string }[] = [
   { value: 'agenda', label: 'Agenda' },
   { value: 'todo', label: 'Tasks' },
   { value: 'journal', label: 'Journal' },
+  { value: 'contacts', label: 'Contacts' },
 ]
 
 const VIEW_ROUTES: Record<ViewType, string> = {
@@ -41,6 +42,7 @@ const VIEW_ROUTES: Record<ViewType, string> = {
   agenda: '/agenda',
   todo: '/tasks',
   journal: '/journal',
+  contacts: '/contacts',
 }
 
 export function CalendarHeader({
@@ -57,6 +59,7 @@ export function CalendarHeader({
   const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
   const themeMode = useSettingsStore((state) => state.themeMode)
   const journalEnabled = useSettingsStore((state) => state.journalEnabled)
+  const contactsEnabled = useSettingsStore((state) => state.contactsEnabled)
   const sidebarWidth = useSettingsStore((state) => state.sidebarWidth)
   const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
@@ -117,6 +120,8 @@ export function CalendarHeader({
         return format(date, 'MMMM')
       case 'todo':
         return 'Tasks'
+      case 'contacts':
+        return 'Contacts'
       default:
         return format(date, 'MMMM')
     }
@@ -144,6 +149,9 @@ export function CalendarHeader({
         break
       case 'journal':
         newDate = direction === 'prev' ? subMonths(date, 1) : addMonths(date, 1)
+        break
+      case 'contacts':
+        newDate = date
         break
       default:
         newDate = date
@@ -281,7 +289,7 @@ export function CalendarHeader({
             style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
             data-component="view-switcher-indicator"
           />
-          {VIEWS.filter(v => journalEnabled || v.value !== 'journal').map((view, index) => (
+          {VIEWS.filter(v => (journalEnabled || v.value !== 'journal') && (contactsEnabled || v.value !== 'contacts')).map((view, index) => (
             <React.Fragment key={view.value}>
               {index === 3 && <div className={styles.viewTabDivider} />}
               <button
@@ -329,7 +337,7 @@ export function CalendarHeader({
           </button>
           {isViewDropdownOpen && (
             <div className={styles.viewDropdownMenu}>
-              {VIEWS.filter(v => journalEnabled || v.value !== 'journal').map((view, index) => (
+              {VIEWS.filter(v => (journalEnabled || v.value !== 'journal') && (contactsEnabled || v.value !== 'contacts')).map((view, index) => (
                 <React.Fragment key={view.value}>
                   {index === 3 && <div className={styles.viewDropdownDivider} />}
                   <button

@@ -99,7 +99,7 @@ export interface Calendar {
   showTasksInViews: boolean
 }
 
-export type ViewType = 'month' | 'week' | 'day' | 'agenda' | 'todo' | 'journal'
+export type ViewType = 'month' | 'week' | 'day' | 'agenda' | 'todo' | 'journal' | 'contacts'
 
 export interface CalendarState {
   events: CalendarEvent[]
@@ -197,6 +197,7 @@ export interface UserSettings {
   sidebarWidth: number
   sidebarCollapsed: boolean
   journalEnabled: boolean
+  contactsEnabled: boolean
 }
 
 export type SettingsState = UserSettings

@@ -34,6 +34,7 @@ const DayView = lazy(() => import('./features/calendar/components/DayView').then
 const AgendaView = lazy(() => import('./features/calendar/components/AgendaView').then(m => ({ default: m.AgendaView })))
 const TodoView = lazy(() => import('./features/calendar/components/TodoView').then(m => ({ default: m.TodoView })))
 const JournalView = lazy(() => import('./features/calendar/components/JournalView').then(m => ({ default: m.JournalView })))
+const ContactsView = lazy(() => import('./features/carddav/components/ContactsView').then(m => ({ default: m.ContactsView })))
 
 function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: ViewType }): JSX.Element {
   return (
@@ -61,6 +62,7 @@ const VIEW_ROUTES: Record<ViewType, string> = {
   agenda: '/agenda',
   todo: '/tasks',
   journal: '/journal',
+  contacts: '/contacts',
 }
 
 const URL_TO_VIEW: Record<string, ViewType> = {
@@ -70,9 +72,10 @@ const URL_TO_VIEW: Record<string, ViewType> = {
   '/agenda': 'agenda',
   '/tasks': 'todo',
   '/journal': 'journal',
+  '/contacts': 'contacts',
 }
 
-const VIEW_ORDER: ViewType[] = ['month', 'week', 'day', 'agenda', 'todo', 'journal']
+const VIEW_ORDER: ViewType[] = ['month', 'week', 'day', 'agenda', 'todo', 'journal', 'contacts']
 
 function useViewManager(): void {
   const navigate = useNavigate()
@@ -290,6 +293,8 @@ function CalendarApp(): JSX.Element {
           return <TodoView />
         case 'journal':
           return <JournalView />
+        case 'contacts':
+          return <ContactsView />
         default:
           return <CalendarGrid />
       }
@@ -500,6 +505,7 @@ function App(): JSX.Element {
           <Route path="/agenda" element={<CalendarApp />} />
           <Route path="/tasks" element={<CalendarApp />} />
           <Route path="/journal" element={<CalendarApp />} />
+          <Route path="/contacts" element={<CalendarApp />} />
           <Route path="/" element={<CalendarApp />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />

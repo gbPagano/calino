@@ -57,6 +57,7 @@ export function GeneralSettings(): JSX.Element {
   const timeFormat = useSettingsStore((s) => s.timeFormat)
   const firstDayOfWeek = useSettingsStore((s) => s.firstDayOfWeek)
   const journalEnabled = useSettingsStore((s) => s.journalEnabled)
+  const contactsEnabled = useSettingsStore((s) => s.contactsEnabled)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
   
   // Settings sync
@@ -210,6 +211,24 @@ export function GeneralSettings(): JSX.Element {
                 checked={journalEnabled}
                 aria-label="Journal"
                 onChange={(e) => updateSettings({ journalEnabled: e.target.checked })}
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
+        </div>
+        <div className={styles.row} data-component="setting-row" data-setting="contacts" data-value={String(contactsEnabled)}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Contacts</div>
+            <div className={styles.rowDesc}>Manage your address book with CardDAV sync</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle} data-component="toggle" data-setting="contacts">
+              <input
+                type="checkbox"
+                checked={contactsEnabled}
+                aria-label="Contacts"
+                onChange={(e) => updateSettings({ contactsEnabled: e.target.checked })}
               />
               <span className={styles.pill} />
               <span className={styles.knob} />

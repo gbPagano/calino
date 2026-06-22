@@ -219,6 +219,29 @@ export function useCalDAV(): UseCalDAVReturn {
 
     const pending = storage.getPendingChanges()
     setSyncState((prev) => ({ ...prev, pendingChanges: pending.length }))
+
+    // Check for CardDAV support on existing accounts
+    const checkCardDAV = async (): Promise<void> => {
+      for (const account of loadedAccounts) {
+        try {
+          const credential = await getCredentialById(account.credentialId)
+          if (!credential) continue
+          const { createCardDAVClient } = await import('@/features/carddav/client/CardDAVClient')
+          const carddavClient = await createCardDAVClient(account.serverUrl, credential, account.proxyUrl)
+          const addressBooks = await carddavClient.fetchAddressBooks()
+          if (addressBooks.length > 0) {
+            const { contactsEnabled, updateSettings } = useSettingsStore.getState()
+            if (!contactsEnabled) {
+              console.log('[CalDAV] Enabling contacts (found address books)')
+              updateSettings({ contactsEnabled: true })
+            }
+          }
+        } catch (err) {
+          console.warn('[CalDAV] CardDAV check failed:', err)
+        }
+      }
+    }
+    checkCardDAV()
   }, [])
 
   const addAccount = useCallback(
@@ -402,6 +425,22 @@ export function useCalDAV(): UseCalDAVReturn {
             name: catName,
             color: EVENT_COLORS[Math.floor(Math.random() * EVENT_COLORS.length)],
           })
+        }
+
+        // After calendar sync, check for CardDAV support
+        try {
+          const { createCardDAVClient } = await import('@/features/carddav/client/CardDAVClient')
+          const carddavClient = await createCardDAVClient(account.serverUrl, credential, account.proxyUrl)
+          const addressBooks = await carddavClient.fetchAddressBooks()
+          if (addressBooks.length > 0) {
+            const { contactsEnabled, updateSettings } = useSettingsStore.getState()
+            if (!contactsEnabled) {
+              console.log('[CalDAV] Enabling contacts (found address books)')
+              updateSettings({ contactsEnabled: true })
+            }
+          }
+        } catch (err) {
+          console.warn('[CalDAV] CardDAV check failed:', err)
         }
 
         storage.updateAccountLastSync(newAccount.id)

@@ -6,18 +6,6 @@ import { EVENT_COLORS } from '@/store/settingsStore'
 import type { AutoCategoryRule } from '@/types/categories'
 import styles from './Settings.module.css'
 
-function countMatchingEvents(
-  keywords: string[],
-  events: { title: string; categories?: string[] }[]
-): number {
-  if (keywords.length === 0) return 0
-  const lowerKeywords = keywords.map((k) => k.toLowerCase())
-  return events.filter((e) => {
-    const lowerTitle = e.title.toLowerCase()
-    return lowerKeywords.some((kw) => lowerTitle.includes(kw))
-  }).length
-}
-
 function KeywordInput({
   keywords,
   onChange,

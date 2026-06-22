@@ -21,6 +21,7 @@ import { SetupPage } from './features/setup/SetupPage'
 import { MasterPasswordPrompt } from './features/settings/components/MasterPasswordPrompt'
 import { useConfigStore } from './store/configStore'
 import { ThemeProvider } from './components/ThemeProvider'
+import { useCardDAV } from './features/carddav/hooks/useCardDAV'
 import type { ViewType } from './types'
 
 import { extractOriginalEventId } from './lib/events'
@@ -210,6 +211,9 @@ function CalendarApp(): JSX.Element {
   const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false)
+
+  // Initialize CardDAV sync
+  useCardDAV()
 
   useViewManager()
 

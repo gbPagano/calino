@@ -99,13 +99,33 @@ export function ContactList(): JSX.Element {
   const setSearchQuery = useContactStore((s) => s.setSearchQuery)
   const selectedContactId = useContactStore((s) => s.selectedContactId)
   const setSelectedContactId = useContactStore((s) => s.setSelectedContactId)
-  const getFilteredContacts = useContactStore((s) => s.getFilteredContacts)
+  const contacts = useContactStore((s) => s.contacts)
+  const addressBooks = useContactStore((s) => s.addressBooks)
 
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const filteredContacts = useMemo(() => getFilteredContacts(), [
-    getFilteredContacts,
-  ])
+  const filteredContacts = useMemo(() => {
+    // Filter by visible address books
+    const visibleAddressBookIds = addressBooks
+      .filter((ab) => ab.isVisible)
+      .map((ab) => ab.id)
+    
+    let filtered = contacts.filter((c) => visibleAddressBookIds.includes(c.addressBookId))
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter((c) =>
+        c.displayName.toLowerCase().includes(query) ||
+        c.organization.toLowerCase().includes(query) ||
+        c.emails.some((e) => e.value.toLowerCase().includes(query)) ||
+        c.phones.some((p) => p.value.includes(query))
+      )
+    }
+    
+    // Sort by display name
+    return filtered.sort((a, b) => a.displayName.localeCompare(b.displayName))
+  }, [contacts, addressBooks, searchQuery])
 
   const handleSelect = useCallback(
     (id: string) => {

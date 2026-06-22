@@ -36,6 +36,21 @@ export function useCardDAV(): UseCardDAVReturn {
   const setAddressBooks = useContactStore((state) => state.setAddressBooks)
   const setContacts = useContactStore((state) => state.setContacts)
 
+  // Auto-sync contacts from all accounts on mount
+  useEffect(() => {
+    const syncAllAccounts = async () => {
+      const accounts = storage.getAllAccounts()
+      for (const account of accounts) {
+        try {
+          await syncAccount(account.id)
+        } catch (err) {
+          console.warn('[CardDAV] Failed to sync account:', account.name, err)
+        }
+      }
+    }
+    syncAllAccounts()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Check if an account has address books
   const hasAddressBooks = useCallback(async (accountId: string): Promise<boolean> => {
     const account = storage.getAccountById(accountId)

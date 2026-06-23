@@ -430,7 +430,7 @@ export function useCalDAV(): UseCalDAVReturn {
         // After calendar sync, check for CardDAV support
         try {
           const { createCardDAVClient } = await import('@/features/carddav/client/CardDAVClient')
-          const carddavClient = await createCardDAVClient(account.serverUrl, credential, account.proxyUrl)
+          const carddavClient = await createCardDAVClient(serverUrl, credential, proxyUrl ?? null)
           const addressBooks = await carddavClient.fetchAddressBooks()
           if (addressBooks.length > 0) {
             const { contactsEnabled, updateSettings } = useSettingsStore.getState()

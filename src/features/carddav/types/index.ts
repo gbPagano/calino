@@ -7,6 +7,10 @@ export interface AddressBook {
   ctag: string | null
   syncToken: string | null
   isVisible: boolean
+  // Cached from PROPFIND (client-side only, not persisted)
+  supportedVersions?: ('3.0' | '4.0')[]
+  maxResourceSize?: number | null
+  canWrite?: boolean
 }
 
 export interface Contact {
@@ -52,6 +56,13 @@ export interface Contact {
   
   // Photo
   photo: string | null // data URI or URL
+  
+  // Group support (future)
+  isGroup: boolean
+  memberUids: string[]
+  
+  // Opaque vCard lines (round-trip preservation)
+  opaqueLines: string[]
   
   // Raw vCard data (for sync)
   rawVCard?: string

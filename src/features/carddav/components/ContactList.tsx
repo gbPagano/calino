@@ -139,7 +139,38 @@ function groupByAlpha(contacts: Contact[]): AlphaGroup[] {
 /*  ContactList                                                                */
 /* -------------------------------------------------------------------------- */
 
-export function ContactList(): JSX.Element {
+function ContactListSkeleton(): JSX.Element {
+  return (
+    <div className={styles.skeletonContactList}>
+      <div className={styles.skeletonSearchBar} />
+      <div className={styles.skeletonMetaBar}>
+        <div className={styles.skeletonCount} />
+        <div className={styles.skeletonNewBtn} />
+      </div>
+      {[0, 1, 2].map((g) => (
+        <div key={g}>
+          <div className={styles.skeletonAlphaHeader} />
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={styles.skeletonContactItem}>
+              <div className={styles.skeletonAvatar} />
+              <div className={styles.skeletonContactText}>
+                <div className={`${styles.skeletonBar} ${styles['skeletonBar--name']}`} />
+                <div className={`${styles.skeletonBar} ${styles['skeletonBar--sub']}`} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+interface ContactListProps {
+  onNewContact?: () => void
+  loading?: boolean
+}
+
+export function ContactList({ onNewContact, loading }: ContactListProps = {}): JSX.Element {
   const searchQuery = useContactStore((s) => s.searchQuery)
   const setSearchQuery = useContactStore((s) => s.setSearchQuery)
   const selectedContactId = useContactStore((s) => s.selectedContactId)
@@ -188,6 +219,14 @@ export function ContactList(): JSX.Element {
     },
     [setSelectedContactId],
   )
+
+  if (loading && contacts.length === 0) {
+    return (
+      <div className={styles.container}>
+        <ContactListSkeleton />
+      </div>
+    )
+  }
 
   return (
     <div className={styles.container}>
@@ -245,7 +284,7 @@ export function ContactList(): JSX.Element {
           {filteredContacts.length}{' '}
           {filteredContacts.length === 1 ? 'contact' : 'contacts'}
         </span>
-        <button type="button" className={styles.newBtn}>
+        <button type="button" className={styles.newBtn} onClick={onNewContact}>
           + New
         </button>
       </div>

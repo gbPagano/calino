@@ -625,6 +625,9 @@ describe('contactToVCard', () => {
     note: '',
     categories: [],
     photo: null,
+    isGroup: false,
+    memberUids: [],
+    opaqueLines: [],
     createdAt: '2024-01-01T00:00:00.000Z',
     lastModified: '2024-06-01T00:00:00.000Z',
     ...overrides,
@@ -645,7 +648,8 @@ describe('contactToVCard', () => {
     const vcard = contactToVCard(makeContact())
 
     expect(vcard).toContain('CREATED:2024-01-01T00:00:00.000Z')
-    expect(vcard).toContain('REV:2024-06-01T00:00:00.000Z')
+    // REV is always set to current UTC timestamp in YYYYMMDDTHHMMSSZ format
+    expect(vcard).toMatch(/REV:\d{8}T\d{6}Z/)
   })
 
   it('serializes organization and department', () => {

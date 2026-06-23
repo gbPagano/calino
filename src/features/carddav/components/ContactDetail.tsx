@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import type { JSX } from 'react'
 import type { Contact } from '../types'
+import { MarkdownView } from '@/lib/markdown'
 import styles from './ContactsView.module.css'
 
 // ---------------------------------------------------------------------------
@@ -111,14 +113,70 @@ const ADDRESS_TYPE_LABELS: Record<string, string> = {
 }
 
 // ---------------------------------------------------------------------------
+// Inline edit helpers
+// ---------------------------------------------------------------------------
+
+interface InlineEdit {
+  field: string
+  original: string
+  value: string
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 interface ContactDetailProps {
   contact: Contact
+  onEdit?: () => void
+  onDelete?: () => void
+  onFieldSave?: (field: string, value: unknown) => void
+  confirmDelete?: boolean
 }
 
-export function ContactDetail({ contact }: ContactDetailProps): JSX.Element {
+export function ContactDetail({
+  contact,
+  onEdit,
+  onDelete,
+  onFieldSave,
+  confirmDelete,
+}: ContactDetailProps): JSX.Element {
+  const [inlineEditing, setInlineEditing] = useState<InlineEdit | null>(null)
+
+  function startInlineEdit(field: string, currentValue: string) {
+    setInlineEditing({ field, original: currentValue, value: currentValue })
+  }
+
+  function saveInlineEdit() {
+    if (inlineEditing && onFieldSave) {
+      const { field, value } = inlineEditing
+      onFieldSave(field, value)
+    }
+    setInlineEditing(null)
+  }
+
+  function cancelInlineEdit() {
+    setInlineEditing(null)
+  }
+
+  function saveInlineEditEmail(index: number) {
+    if (inlineEditing && onFieldSave) {
+      const newEmails = [...contact.emails]
+      newEmails[index] = { ...newEmails[index], value: inlineEditing.value }
+      onFieldSave('emails', newEmails)
+    }
+    setInlineEditing(null)
+  }
+
+  function saveInlineEditPhone(index: number) {
+    if (inlineEditing && onFieldSave) {
+      const newPhones = [...contact.phones]
+      newPhones[index] = { ...newPhones[index], value: inlineEditing.value }
+      onFieldSave('phones', newPhones)
+    }
+    setInlineEditing(null)
+  }
+
   const color = avatarColor(contact.displayName)
   const initials = getInitials(contact.displayName)
 
@@ -144,13 +202,30 @@ export function ContactDetail({ contact }: ContactDetailProps): JSX.Element {
         </div>
 
         <div className={styles.heroText}>
-          <h1 className={styles.heroName}>{contact.displayName}</h1>
+          <div
+            className={styles.inlineEditWrapper}
+            onDoubleClick={() => startInlineEdit('displayName', contact.displayName)}
+          >
+            {inlineEditing?.field === 'displayName' ? (
+              <input
+                className={`${styles.inlineInput} ${styles.heroNameInput}`}
+                value={inlineEditing.value}
+                onChange={(e) =>
+                  setInlineEditing({ ...inlineEditing, value: e.target.value })
+                }
+                onBlur={() => saveInlineEdit()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveInlineEdit()
+                  if (e.key === 'Escape') cancelInlineEdit()
+                }}
+                autoFocus
+              />
+            ) : (
+              <h1 className={styles.heroName}>{contact.displayName}</h1>
+            )}
+          </div>
           {roleOrg && <p className={styles.heroRole}>{roleOrg}</p>}
           <div className={styles.heroActions}>
-            <button type="button" className={styles.btnPrimary}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-              New event
-            </button>
             <a
               href={`mailto:${contact.emails[0]?.value ?? ''}`}
               className={styles.btnSecondary}
@@ -166,20 +241,21 @@ export function ContactDetail({ contact }: ContactDetailProps): JSX.Element {
           <button
             type="button"
             className={styles.iconBtn}
-            disabled
-            title="Edit contact (coming soon)"
+            onClick={onEdit}
+            title="Edit contact"
             aria-label="Edit contact"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
           </button>
           <button
             type="button"
-            className={styles.iconBtn}
-            disabled
-            title="Delete contact (coming soon)"
+            className={`${styles.iconBtn} ${confirmDelete ? styles.btnDeleteConfirm : ''}`}
+            onClick={onDelete}
+            title={confirmDelete ? 'Click again to confirm' : 'Delete contact'}
             aria-label="Delete contact"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+            {confirmDelete && <span className={styles.btnDeleteLabel}>Confirm?</span>}
           </button>
         </div>
       </div>
@@ -201,9 +277,28 @@ export function ContactDetail({ contact }: ContactDetailProps): JSX.Element {
                         <span className={styles.infoFieldSub}>
                           {EMAIL_TYPE_LABELS[email.type] ?? email.type}
                         </span>
-                        <span className={styles.infoFieldValue}>
-                          <a href={`mailto:${email.value}`}>{email.value}</a>
-                        </span>
+                        {inlineEditing?.field === `email_${i}` ? (
+                          <input
+                            className={styles.inlineInput}
+                            value={inlineEditing.value}
+                            onChange={(e) =>
+                              setInlineEditing({ ...inlineEditing, value: e.target.value })
+                            }
+                            onBlur={() => saveInlineEditEmail(i)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveInlineEditEmail(i)
+                              if (e.key === 'Escape') cancelInlineEdit()
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <span
+                            className={styles.infoFieldValue}
+                            onDoubleClick={() => startInlineEdit(`email_${i}`, email.value)}
+                          >
+                            <a href={`mailto:${email.value}`}>{email.value}</a>
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -220,9 +315,28 @@ export function ContactDetail({ contact }: ContactDetailProps): JSX.Element {
                         <span className={styles.infoFieldSub}>
                           {PHONE_TYPE_LABELS[phone.type] ?? phone.type}
                         </span>
-                        <span className={styles.infoFieldValue}>
-                          <a href={`tel:${phone.value}`}>{phone.value}</a>
-                        </span>
+                        {inlineEditing?.field === `phone_${i}` ? (
+                          <input
+                            className={styles.inlineInput}
+                            value={inlineEditing.value}
+                            onChange={(e) =>
+                              setInlineEditing({ ...inlineEditing, value: e.target.value })
+                            }
+                            onBlur={() => saveInlineEditPhone(i)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveInlineEditPhone(i)
+                              if (e.key === 'Escape') cancelInlineEdit()
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <span
+                            className={styles.infoFieldValue}
+                            onDoubleClick={() => startInlineEdit(`phone_${i}`, phone.value)}
+                          >
+                            <a href={`tel:${phone.value}`}>{phone.value}</a>
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -299,7 +413,28 @@ export function ContactDetail({ contact }: ContactDetailProps): JSX.Element {
           <div className={styles.notesFull}>
             <div className={styles.notesCard}>
               <div className={styles.notesTitle}>NOTES</div>
-              <p className={styles.notesText}>{contact.note}</p>
+              {inlineEditing?.field === 'note' ? (
+                <textarea
+                  className={styles.inlineInput}
+                  style={{ width: '100%', minHeight: '60px', resize: 'vertical' }}
+                  value={inlineEditing.value}
+                  onChange={(e) =>
+                    setInlineEditing({ ...inlineEditing, value: e.target.value })
+                  }
+                  onBlur={() => saveInlineEdit()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') cancelInlineEdit()
+                  }}
+                  autoFocus
+                />
+              ) : (
+                <div
+                  className={styles.notesText}
+                  onDoubleClick={() => startInlineEdit('note', contact.note)}
+                >
+                  <MarkdownView text={contact.note} />
+                </div>
+              )}
             </div>
           </div>
         )}

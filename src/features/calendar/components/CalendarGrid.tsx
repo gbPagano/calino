@@ -57,6 +57,7 @@ const VIEW_ROUTES: Record<ViewType, string> = {
   agenda: '/agenda',
   todo: '/tasks',
   journal: '/journal',
+  contacts: '/contacts',
 }
 
 export function CalendarGrid(): JSX.Element {

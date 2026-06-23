@@ -1,13 +1,14 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { safeLocalStorage } from '@/lib/storage'
-import type { Contact, AddressBook } from '@/features/carddav/types'
+import type { Contact, AddressBook, PendingContactChange } from '@/features/carddav/types'
 
 export interface ContactStore {
   contacts: Contact[]
   addressBooks: AddressBook[]
   selectedContactId: string | null
   searchQuery: string
+  pendingChanges: PendingContactChange[]
   
   // Actions
   addContact: (contact: Contact) => void
@@ -25,6 +26,11 @@ export interface ContactStore {
   setContacts: (contacts: Contact[]) => void
   setAddressBooks: (addressBooks: AddressBook[]) => void
   
+  // Pending changes
+  addPendingChange: (change: PendingContactChange) => void
+  removePendingChange: (changeId: string) => void
+  clearPendingChanges: () => void
+  
   // Selectors
   getContactsForAddressBook: (addressBookId: string) => Contact[]
   getFilteredContacts: () => Contact[]
@@ -38,6 +44,7 @@ export const useContactStore = create<ContactStore>()(
       addressBooks: [],
       selectedContactId: null,
       searchQuery: '',
+      pendingChanges: [],
 
       addContact: (contact: Contact): void => {
         set((state) => ({
@@ -97,6 +104,22 @@ export const useContactStore = create<ContactStore>()(
         set({ addressBooks })
       },
 
+      addPendingChange: (change: PendingContactChange): void => {
+        set((state) => ({
+          pendingChanges: [...state.pendingChanges, change],
+        }))
+      },
+
+      removePendingChange: (changeId: string): void => {
+        set((state) => ({
+          pendingChanges: state.pendingChanges.filter((c) => c.id !== changeId),
+        }))
+      },
+
+      clearPendingChanges: (): void => {
+        set({ pendingChanges: [] })
+      },
+
       getContactsForAddressBook: (addressBookId: string): Contact[] => {
         return get().contacts.filter((c) => c.addressBookId === addressBookId)
       },
@@ -139,6 +162,7 @@ export const useContactStore = create<ContactStore>()(
         return {
           contacts: state?.contacts ?? [],
           addressBooks: state?.addressBooks ?? [],
+          pendingChanges: state?.pendingChanges ?? [],
           selectedContactId: null,
           searchQuery: '',
         }
@@ -146,6 +170,7 @@ export const useContactStore = create<ContactStore>()(
       partialize: (state) => ({
         contacts: state.contacts,
         addressBooks: state.addressBooks,
+        pendingChanges: state.pendingChanges,
       }),
     }
   )

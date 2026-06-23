@@ -3,8 +3,123 @@ import type { CalDAVCredentials } from '@/features/caldav/types'
 import type { AddressBook, Contact } from '../types'
 import { parseVCard, contactToVCard } from '../adapter/vCardAdapter'
 import { buildProxyUrl } from '@/features/caldav/client/CalDAVClient'
+import {
+  CardDAVConflictError,
+  CardDAVPermissionError,
+  CardDAVSizeLimitError,
+  CardDAVVersionError,
+} from './errors'
 
 const NETWORK_TIMEOUT_MS = 15_000
+
+// ---------------------------------------------------------------------------
+// sync-collection types
+// ---------------------------------------------------------------------------
+
+interface SyncCollectionChange {
+  url: string
+  etag: string | null
+  status: 'added' | 'changed' | 'removed'
+}
+
+interface SyncCollectionResult {
+  changes: SyncCollectionChange[]
+  newSyncToken: string | null
+  tokenInvalidated: boolean
+}
+
+// ---------------------------------------------------------------------------
+// XML parsing helpers for DAV REPORT responses
+// ---------------------------------------------------------------------------
+
+interface ParsedDAVResponse {
+  href: string
+  status: number
+  etag?: string
+  addressData?: string
+  error?: string
+}
+
+/**
+ * Parse a DAV:multistatus XML response into individual D:response blocks.
+ * Each D:response contains a D:href and either a D:propstat with properties
+ * or a D:status.
+ */
+function parseMultistatus(xml: string): ParsedDAVResponse[] {
+  const responses: ParsedDAVResponse[] = []
+
+  // Match each <D:response>...</D:response> block
+  const responseRegex = /<D:response\b[^>]*>([\s\S]*?)<\/D:response>/gi
+  let match
+
+  while ((match = responseRegex.exec(xml)) !== null) {
+    const responseXml = match[0]
+
+    // Extract D:href
+    const hrefMatch = /<D:href\b[^>]*>([^<]*)<\/D:href>/i.exec(responseXml)
+    if (!hrefMatch) continue
+    const href = decodeURIComponent(hrefMatch[1])
+
+    // Extract status or propstat
+    const statusMatch = /<D:status\b[^>]*>HTTP\/\d\.\d\s+(\d+)/i.exec(responseXml)
+    const propstatMatch = /<D:propstat>([\s\S]*?)<\/D:propstat>/i.exec(responseXml)
+
+    if (statusMatch) {
+      // Removed (404) or other status
+      const status = parseInt(statusMatch[1], 10)
+      responses.push({ href, status })
+    } else if (propstatMatch) {
+      const propstatXml = propstatMatch[1]
+
+      // Check for error in propstat (e.g., 404 Not Found)
+      const propStatusMatch = /<D:prop\b[^>]*>([\s\S]*?)<\/D:prop>/i.exec(propstatXml)
+      if (propStatusMatch) {
+        const propXml = propStatusMatch[1]
+
+        // Check for 404 status inside propstat
+        const innerStatusMatch = /<D:status\b[^>]*>HTTP\/\d\.\d\s+(\d+)/i.exec(propstatXml)
+
+        if (innerStatusMatch) {
+          const innerStatus = parseInt(innerStatusMatch[1], 10)
+          responses.push({ href, status: innerStatus })
+        } else {
+          // Success case - extract etag and address-data
+          const etagMatch = /<D:getetag\b[^>]*>([^<]*)<\/D:getetag>/i.exec(propXml)
+          const addressDataMatch = /<C:address-data\b[^>]*>([\s\S]*?)<\/C:address-data>/i.exec(propXml)
+
+          responses.push({
+            href,
+            status: 200,
+            etag: etagMatch ? etagMatch[1].replace(/^"|"$/g, '') : undefined,
+            addressData: addressDataMatch ? addressDataMatch[1].trim() : undefined,
+          })
+        }
+      }
+    }
+  }
+
+  return responses
+}
+
+/**
+ * Escape special XML characters.
+ */
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
+/**
+ * Extract D:sync-token from response body (some servers put it there).
+ */
+function extractSyncTokenFromBody(xml: string): string | null {
+  const match = /<D:sync-token\b[^>]*>([^<]*)<\/D:sync-token>/i.exec(xml)
+  return match ? match[1] : null
+}
 
 async function fetchWithTimeout(
   url: string | URL,
@@ -55,14 +170,16 @@ export class CardDAVClient {
   private serverUrl: string
   private proxyUrl: string | null
   private credentials: CalDAVCredentials
-  private authHeader: string
   private proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private cachedDavAddressBooks: any[] | null = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private cachedCollectionProps: Map<string, { supportedVersions?: ('3.0' | '4.0')[]; maxResourceSize?: number | null; canWrite?: boolean }> = new Map()
 
   constructor(serverUrl: string, credentials: CalDAVCredentials, proxyUrl: string | null = null) {
     this.serverUrl = serverUrl
     this.proxyUrl = proxyUrl
     this.credentials = credentials
-    this.authHeader = `Basic ${btoa(`${credentials.username}:${credentials.password}`)}`
     this.proxyFetch = proxyUrl ? createProxyFetch(proxyUrl) : fetchWithTimeout
   }
 
@@ -79,6 +196,13 @@ export class CardDAVClient {
     })
   }
 
+  /**
+   * Get the Authorization header value.
+   */
+  private get authHeader(): string {
+    return `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`
+  }
+
   private getClient() {
     if (!this.client) {
       throw new Error('Client not connected. Call connect() first.')
@@ -87,26 +211,56 @@ export class CardDAVClient {
   }
 
   /**
+   * Get raw DAV address books, cached after first fetch.
+   */
+  private async getDavAddressBooks() {
+    if (this.cachedDavAddressBooks) {
+      return this.cachedDavAddressBooks
+    }
+    const client = this.getClient()
+    this.cachedDavAddressBooks = await client.fetchAddressBooks()
+    return this.cachedDavAddressBooks
+  }
+
+  private findDavAddressBook(url: string) {
+    return this.cachedDavAddressBooks?.find(ab => ab.url === url) ?? null
+  }
+
+  /**
    * Fetch all address books from the server.
+   * Lazily runs discovery on first call to determine the addressbook-home-set.
    */
   async fetchAddressBooks(): Promise<AddressBook[]> {
     if (!navigator.onLine) {
       throw new Error('No network connection. Please check your internet connection.')
     }
-    
-    const client = this.getClient()
-    const davAddressBooks = await client.fetchAddressBooks()
-    
-    return davAddressBooks.map((ab, index) => ({
-      id: ab.url || `ab-${index}-${crypto.randomUUID()}`,
-      accountId: '', // Will be set by caller
-      url: ab.url || '',
-      name: typeof ab.displayName === 'string' ? ab.displayName : 'Unnamed Address Book',
-      description: undefined,
-      ctag: ab.ctag || null,
-      syncToken: ab.syncToken || null,
-      isVisible: true,
-    }))
+
+    const davAddressBooks = await this.getDavAddressBooks()
+
+    const results: AddressBook[] = []
+    for (const ab of davAddressBooks) {
+      // Fetch additional collection metadata (supported-address-data, max-resource-size, privileges)
+      const collectionProps = await this.fetchCollectionProps(ab.url)
+
+      // Cache on client instance for write operations
+      this.cachedCollectionProps.set(ab.url, collectionProps)
+
+      results.push({
+        id: ab.url || crypto.randomUUID(),
+        accountId: '', // Will be set by caller
+        url: ab.url || '',
+        name: typeof ab.displayName === 'string' ? ab.displayName : 'Unnamed Address Book',
+        description: undefined,
+        ctag: ab.ctag || null,
+        syncToken: ab.syncToken || null,
+        isVisible: true,
+        supportedVersions: collectionProps.supportedVersions,
+        maxResourceSize: collectionProps.maxResourceSize,
+        canWrite: collectionProps.canWrite,
+      })
+    }
+
+    return results
   }
 
   /**
@@ -118,10 +272,7 @@ export class CardDAVClient {
     }
     
     const client = this.getClient()
-    
-    // Find the raw DAV address book object
-    const davAddressBooks = await client.fetchAddressBooks()
-    const davAb = davAddressBooks.find(ab => ab.url === addressBook.url)
+    const davAb = this.findDavAddressBook(addressBook.url)
     
     if (!davAb) {
       throw new Error(`Address book not found: ${addressBook.url}`)
@@ -149,57 +300,37 @@ export class CardDAVClient {
   /**
    * Fetch a single contact by URL.
    */
-  async fetchContact(contactUrl: string): Promise<Contact | null> {
+  async fetchContact(
+    addressBook: AddressBook,
+    contactUrl: string
+  ): Promise<Contact | null> {
     if (!navigator.onLine) {
       throw new Error('No network connection. Please check your internet connection.')
     }
     
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/xml; charset=utf-8',
-      Authorization: this.authHeader,
-      Depth: '0',
+    const client = this.getClient()
+    const davAb = this.findDavAddressBook(addressBook.url)
+    
+    if (!davAb) {
+      throw new Error(`Address book not found: ${addressBook.url}`)
     }
     
-    const propfindXml = `<?xml version="1.0" encoding="UTF-8" ?>
-<d:propfind xmlns:d="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
-  <d:prop>
-    <d:getetag/>
-    <C:address-data/>
-  </d:prop>
-</d:propfind>`
-    
-    const response = await this.proxyFetch(contactUrl, {
-      method: 'PROPFIND',
-      headers,
-      body: propfindXml,
+    const vcards = await client.fetchVCards({
+      addressBook: davAb,
+      objectUrls: [contactUrl],
     })
     
-    if (!response.ok && response.status !== 207) {
+    const vcard = vcards[0]
+    if (!vcard?.data) {
       return null
     }
     
-    const text = await response.text()
-    
-    // Extract response blocks
-    const responseBlocks = text.match(/<d:response>[\s\S]*?<\/d:response>/g) || []
-    
-    for (const block of responseBlocks) {
-      const hrefMatch = block.match(/<d:href>([^<]+)<\/d:href>/)
-      const etagMatch = block.match(/<d:getetag>([^<]+)<\/d:getetag>/)
-      const dataMatch = block.match(/<[^:]*:address-data[^>]*>([\s\S]*?)<\/[^:]*:address-data>/)
-      
-      if (hrefMatch?.[1] && dataMatch?.[1]) {
-        const vcardData = dataMatch[1].trim()
-        const contact = parseVCard(vcardData, '', '')
-        if (contact) {
-          contact.url = hrefMatch[1]
-          contact.etag = etagMatch?.[1] || undefined
-          return contact
-        }
-      }
+    const contact = parseVCard(vcard.data as string, addressBook.id, addressBook.accountId)
+    if (contact) {
+      contact.url = contactUrl
+      contact.etag = vcard.etag || undefined
     }
-    
-    return null
+    return contact
   }
 
   /**
@@ -213,73 +344,595 @@ export class CardDAVClient {
     if (!navigator.onLine) {
       throw new Error('No network connection. Please check your internet connection.')
     }
-    
-    const client = this.getClient()
-    
-    // Find the raw DAV address book object
-    const davAddressBooks = await client.fetchAddressBooks()
-    const davAb = davAddressBooks.find(ab => ab.url === addressBook.url)
-    
-    if (!davAb) {
-      throw new Error(`Address book not found: ${addressBook.url}`)
+
+    const auth = btoa(`${this.credentials.username}:${this.credentials.password}`)
+    const targetUrl = `${addressBook.url.replace(/\/$/, '')}/${filename}`
+
+    // Determine supported vCard version from cache, default to 3.0
+    const props = this.cachedCollectionProps.get(addressBook.url)
+    const supportedVersions = props?.supportedVersions
+    const maxResourceSize = props?.maxResourceSize
+
+    // Try each supported version once
+    const versionsToTry: ('3.0' | '4.0')[] = supportedVersions && supportedVersions.length > 0
+      ? supportedVersions
+      : ['3.0', '4.0']
+
+    for (const targetVersion of versionsToTry) {
+      const vCardString = contactToVCard(contact, targetVersion)
+      const vCardBytes = new TextEncoder().encode(vCardString).length
+
+      // Check max resource size before sending
+      if (maxResourceSize != null && vCardBytes > maxResourceSize) {
+        throw new CardDAVSizeLimitError(maxResourceSize, vCardBytes)
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'text/vcard; charset=utf-8',
+        'Authorization': `Basic ${auth}`,
+        'If-None-Match': '*',
+      }
+
+      try {
+        const response = await this.proxyFetch(targetUrl, {
+          method: 'PUT',
+          headers,
+          body: vCardString,
+        })
+
+        if (response.status === 412) {
+          // Conflict - contact already exists
+          throw new CardDAVConflictError('', undefined)
+        }
+
+        if (response.status === 415) {
+          // Unsupported media type - try other version on next iteration
+          continue
+        }
+
+        if (response.status === 507) {
+          throw new CardDAVSizeLimitError(maxResourceSize ?? 0, vCardBytes)
+        }
+
+        if (response.status === 403) {
+          throw new CardDAVPermissionError()
+        }
+
+        if (!response.ok && response.status !== 201 && response.status !== 204) {
+          throw new Error(`Failed to create contact: ${response.status} ${response.statusText}`)
+        }
+
+        // Extract URL from Location header or use target URL
+        const responseUrl = response.headers.get('Location') || targetUrl
+        const etag = response.headers.get('etag') || ''
+
+        return { url: responseUrl, etag }
+      } catch (err) {
+        if (err instanceof CardDAVConflictError ||
+            err instanceof CardDAVSizeLimitError ||
+            err instanceof CardDAVPermissionError) {
+          throw err
+        }
+        // For 415 on the last version, rethrow
+        if (err instanceof Error && err.message.includes('415')) {
+          throw new CardDAVVersionError(supportedVersions ?? versionsToTry)
+        }
+        throw err
+      }
     }
-    
-    const vCardString = contactToVCard(contact)
-    
-    const result = await client.createCalendarObject({
-      calendar: davAb,
-      filename,
-      iCalString: vCardString,
-    })
-    
-    const etag = result.headers?.get('etag') || ''
-    
-    return {
-      url: result.url,
-      etag,
-    }
+
+    // Exhausted all versions without success
+    throw new CardDAVVersionError(supportedVersions ?? versionsToTry)
   }
 
   /**
    * Update an existing contact.
    */
   async updateContact(
-    contactUrl: string,
+    addressBook: AddressBook,
     contact: Contact,
+    contactUrl: string,
     etag: string
   ): Promise<{ url: string; etag: string }> {
     if (!navigator.onLine) {
       throw new Error('No network connection. Please check your internet connection.')
     }
-    
-    const client = this.getClient()
-    const vCardString = contactToVCard(contact)
-    
-    const result = await client.updateCalendarObject({
-      calendarObject: { url: contactUrl, etag, data: vCardString },
-    })
-    
-    const newEtag = result.headers?.get('etag') || etag
-    
-    return {
-      url: result.url,
-      etag: newEtag,
+
+    const auth = btoa(`${this.credentials.username}:${this.credentials.password}`)
+
+    // Determine supported vCard version from cache, default to 3.0
+    const props = this.cachedCollectionProps.get(addressBook.url)
+    const supportedVersions = props?.supportedVersions
+    const maxResourceSize = props?.maxResourceSize
+
+    // Try each supported version once
+    const versionsToTry: ('3.0' | '4.0')[] = supportedVersions && supportedVersions.length > 0
+      ? supportedVersions
+      : ['3.0', '4.0']
+
+    for (const targetVersion of versionsToTry) {
+      const vCardString = contactToVCard(contact, targetVersion)
+      const vCardBytes = new TextEncoder().encode(vCardString).length
+
+      // Check max resource size before sending
+      if (maxResourceSize != null && vCardBytes > maxResourceSize) {
+        throw new CardDAVSizeLimitError(maxResourceSize, vCardBytes)
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'text/vcard; charset=utf-8',
+        'Authorization': `Basic ${auth}`,
+        'If-Match': `"${etag}"`,
+      }
+
+      try {
+        const response = await this.proxyFetch(contactUrl, {
+          method: 'PUT',
+          headers,
+          body: vCardString,
+        })
+
+        if (response.status === 412) {
+          // Conflict - refetch from server to get current state
+          const serverContact = await this.fetchContact(addressBook, contactUrl)
+          throw new CardDAVConflictError(
+            serverContact?.etag ?? '',
+            serverContact?.rawVCard
+          )
+        }
+
+        if (response.status === 415) {
+          // Unsupported media type - try other version on next iteration
+          continue
+        }
+
+        if (response.status === 507) {
+          throw new CardDAVSizeLimitError(maxResourceSize ?? 0, vCardBytes)
+        }
+
+        if (response.status === 403) {
+          throw new CardDAVPermissionError()
+        }
+
+        if (!response.ok && response.status !== 200 && response.status !== 204) {
+          throw new Error(`Failed to update contact: ${response.status} ${response.statusText}`)
+        }
+
+        // Extract URL from Location header or use contact URL
+        const responseUrl = response.headers.get('Location') || contactUrl
+        const newEtag = response.headers.get('etag') || etag
+
+        return { url: responseUrl, etag: newEtag }
+      } catch (err) {
+        if (err instanceof CardDAVConflictError ||
+            err instanceof CardDAVSizeLimitError ||
+            err instanceof CardDAVPermissionError) {
+          throw err
+        }
+        // For 415 on the last version, rethrow
+        if (err instanceof Error && err.message.includes('415')) {
+          throw new CardDAVVersionError(supportedVersions ?? versionsToTry)
+        }
+        throw err
+      }
     }
+
+    // Exhausted all versions without success
+    throw new CardDAVVersionError(supportedVersions ?? versionsToTry)
   }
 
   /**
    * Delete a contact.
    */
-  async deleteContact(contactUrl: string, etag: string): Promise<void> {
+  async deleteContact(addressBook: AddressBook, contactUrl: string, etag: string): Promise<void> {
     if (!navigator.onLine) {
       throw new Error('No network connection. Please check your internet connection.')
     }
-    
-    const client = this.getClient()
-    
-    await client.deleteCalendarObject({
-      calendarObject: { url: contactUrl, etag },
+
+    const auth = btoa(`${this.credentials.username}:${this.credentials.password}`)
+
+    const headers: Record<string, string> = {
+      'Authorization': `Basic ${auth}`,
+      'If-Match': `"${etag}"`,
+    }
+
+    const response = await this.proxyFetch(contactUrl, {
+      method: 'DELETE',
+      headers,
     })
+
+    if (response.status === 412) {
+      // Conflict - contact was modified, try to refetch
+      try {
+        const serverContact = await this.fetchContact(addressBook, contactUrl)
+        if (serverContact) {
+          // Contact still exists, throw conflict
+          throw new CardDAVConflictError(serverContact.etag ?? '', serverContact.rawVCard)
+        }
+        // Contact no longer exists (404), consider deletion successful
+        return
+      } catch (err) {
+        if (err instanceof CardDAVConflictError) throw err
+        // Network error during refetch, rethrow
+        throw err
+      }
+    }
+
+    if (response.status === 403) {
+      throw new CardDAVPermissionError()
+    }
+
+    // 404 means already deleted, which is fine
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`Failed to delete contact: ${response.status} ${response.statusText}`)
+    }
+  }
+
+  /**
+   * Fetch collection metadata for an address book URL:
+   * supported-address-data, max-resource-size, current-user-privilege-set.
+   */
+  private async fetchCollectionProps(addressBookUrl: string): Promise<{
+    supportedVersions: ('3.0' | '4.0')[] | undefined
+    maxResourceSize: number | null | undefined
+    canWrite: boolean | undefined
+  }> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: this.authHeader,
+      Depth: '0',
+    }
+
+    const propfindBody = `<?xml version="1.0" encoding="UTF-8" ?>
+<D:propfind xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
+  <D:prop>
+    <C:supported-address-data/>
+    <C:max-resource-size/>
+    <D:current-user-privilege-set/>
+  </D:prop>
+</D:propfind>`
+
+    try {
+      const response = await this.proxyFetch(addressBookUrl, {
+        method: 'PROPFIND',
+        headers,
+        body: propfindBody,
+      })
+
+      if (!response.ok && response.status !== 207) {
+        return { supportedVersions: undefined, maxResourceSize: undefined, canWrite: undefined }
+      }
+
+      const text = await response.text()
+
+      // Parse supported-address-data
+      const supportedVersions = this.parseSupportedAddressData(text)
+
+      // Parse max-resource-size
+      const maxResourceSize = this.parseMaxResourceSize(text)
+
+      // Parse current-user-privilege-set to determine write ability
+      const canWrite = this.parseCanWrite(text)
+
+      return { supportedVersions, maxResourceSize, canWrite }
+    } catch {
+      return { supportedVersions: undefined, maxResourceSize: undefined, canWrite: undefined }
+    }
+  }
+
+  private parseSupportedAddressData(text: string): ('3.0' | '4.0')[] | undefined {
+    const versions: ('3.0' | '4.0')[] = []
+    // Match <C:address-data-type content-type="text/vcard" version="3.0"/>
+    const matches = text.matchAll(
+      /<C:address-data-type[^>]*content-type="text\/vcard"[^>]*version="([\d.]+)"[^>]*\/>/gi,
+    )
+    for (const match of matches) {
+      const version = match[1]
+      if (version === '3.0' || version === '4.0') {
+        versions.push(version as '3.0' | '4.0')
+      }
+    }
+    // Also try variant ordering
+    if (versions.length === 0) {
+      const altMatches = text.matchAll(
+        /<C:supported-address-data[\s\S]*?<\/C:supported-address-data>/gi,
+      )
+      for (const block of altMatches) {
+        const inner = block[0]
+        const ver3 = inner.match(/version="3\.0"/i)
+        const ver4 = inner.match(/version="4\.0"/i)
+        if (ver3) versions.push('3.0')
+        if (ver4) versions.push('4.0')
+      }
+    }
+    return versions.length > 0 ? versions : undefined
+  }
+
+  private parseMaxResourceSize(text: string): number | null | undefined {
+    const match = text.match(/<C:max-resource-size>(\d+)<\/C:max-resource-size>/i)
+    return match ? parseInt(match[1], 10) : undefined
+  }
+
+  private parseCanWrite(text: string): boolean | undefined {
+    // Check for D:write privilege in current-user-privilege-set
+    const writePrivMatches = text.matchAll(
+      /<D:privilege>[\s\S]*?<D:write\/>[\s\S]*?<\/D:privilege>/gi,
+    )
+    for (const _match of writePrivMatches) {
+      return true
+    }
+    // Also try alternative pattern
+    const altMatch = text.match(/<D:privilege>[\s\S]*?<D:write\/><\/D:privilege>/i)
+    if (altMatch) return true
+    return undefined
+  }
+
+  /**
+   * Discover the CardDAV principal URL and address book home set.
+   * Follows RFC 6764: .well-known/carddav → current-user-principal → addressbook-home-set
+   */
+  async discover(): Promise<{
+    principalUrl: string
+    addressbookHomeSet: string
+  }> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      Authorization: this.authHeader,
+    }
+
+    // Step 1: well-known carddav
+    const wellKnownUrl = `${this.serverUrl.replace(/\/$/, '')}/.well-known/carddav`
+    let currentUrl = wellKnownUrl
+
+    try {
+      const redirectResponse = await this.proxyFetch(currentUrl, {
+        method: 'PROPFIND',
+        headers: { ...headers, Depth: '0' },
+        body: this.getWellKnownPropfindBody(),
+      })
+
+      // Follow redirect if present
+      if (redirectResponse.status === 301 || redirectResponse.status === 302) {
+        const location = redirectResponse.headers.get('Location')
+        if (location) currentUrl = location
+      }
+
+      // Step 2: current-user-principal
+      const principalResponse = await this.proxyFetch(currentUrl, {
+        method: 'PROPFIND',
+        headers: { ...headers, Depth: '0' },
+        body: this.getPrincipalPropfindBody(),
+      })
+
+      if (!principalResponse.ok && principalResponse.status !== 207) {
+        throw new Error(`Principal discovery failed: ${principalResponse.status}`)
+      }
+
+      const principalText = await principalResponse.text()
+      const principalUrl = this.extractHrefFromMultistatus(principalText)
+      if (!principalUrl) throw new Error('Could not find current-user-principal')
+
+      // Step 3: addressbook-home-set
+      const homeSetResponse = await this.proxyFetch(principalUrl, {
+        method: 'PROPFIND',
+        headers: { ...headers, Depth: '0' },
+        body: this.getAddressbookHomeSetBody(),
+      })
+
+      if (!homeSetResponse.ok && homeSetResponse.status !== 207) {
+        throw new Error(`Addressbook home-set discovery failed: ${homeSetResponse.status}`)
+      }
+
+      const homeSetText = await homeSetResponse.text()
+      const addressbookHomeSet = this.extractHrefFromMultistatus(homeSetText)
+      if (!addressbookHomeSet) throw new Error('Could not find addressbook-home-set')
+
+      return { principalUrl, addressbookHomeSet }
+    } catch (err) {
+      // Discovery failed — fall back to using serverUrl as home set
+      // This preserves backwards compatibility with direct URL entry
+      return {
+        principalUrl: this.serverUrl,
+        addressbookHomeSet: this.serverUrl,
+      }
+    }
+  }
+
+  private getWellKnownPropfindBody(): string {
+    return `<?xml version="1.0" encoding="UTF-8" ?>
+<D:propfind xmlns:D="DAV:">
+  <D:prop>
+    <D:current-user-principal/>
+  </D:prop>
+</D:propfind>`
+  }
+
+  private getPrincipalPropfindBody(): string {
+    return `<?xml version="1.0" encoding="UTF-8" ?>
+<D:propfind xmlns:D="DAV:">
+  <D:prop>
+    <D:current-user-principal/>
+  </D:prop>
+</D:propfind>`
+  }
+
+  private getAddressbookHomeSetBody(): string {
+    return `<?xml version="1.0" encoding="UTF-8" ?>
+<D:propfind xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
+  <D:prop>
+    <C:addressbook-home-set/>
+  </D:prop>
+</D:propfind>`
+  }
+
+  private extractHrefFromMultistatus(text: string): string | null {
+    const match = text.match(/<D:href>([^<]+)<\/D:href>/)
+    return match ? match[1] : null
+  }
+
+  /** Clear cached DAV address books (e.g. after a server-side change). */
+  clearCache(): void {
+    this.cachedDavAddressBooks = null
+    this.cachedCollectionProps.clear()
+  }
+
+  // ---------------------------------------------------------------------------
+  // sync-collection REPORT (RFC 6578)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Perform an incremental sync using sync-collection REPORT (RFC 6578).
+   * Falls back gracefully on token invalidation.
+   */
+  async syncCollection(
+    addressBook: AddressBook,
+    syncToken: string | null
+  ): Promise<SyncCollectionResult> {
+    const url = addressBook.url
+
+    // If no token, do a full sync (token will be captured from response)
+    const body = `<?xml version="1.0" encoding="UTF-8" ?>
+<D:sync-collection xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
+  ${syncToken ? `<D:sync-token>${escapeXml(syncToken)}</D:sync-token>` : ''}
+  <D:sync-level>1</D:sync-level>
+  <D:prop>
+    <D:getetag/>
+  </D:prop>
+</D:sync-collection>`
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Authorization': `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
+    }
+
+    try {
+      const response = await this.proxyFetch(url, {
+        method: 'REPORT',
+        headers,
+        body,
+      })
+
+      // Token invalidated — fall back to full sync
+      if (response.status === 400 || response.status === 507) {
+        return { changes: [], newSyncToken: null, tokenInvalidated: true }
+      }
+
+      if (!response.ok && response.status !== 207) {
+        return { changes: [], newSyncToken: null, tokenInvalidated: true }
+      }
+
+      const text = await response.text()
+
+      // Try to get token from headers first, then body
+      const newSyncToken = response.headers.get('X-SYNC-TOKEN') ||
+                           response.headers.get('DAV:sync-token') ||
+                           extractSyncTokenFromBody(text) ||
+                           null
+
+      const changes = this.parseSyncCollectionResponse(text)
+      return { changes, newSyncToken, tokenInvalidated: false }
+    } catch {
+      return { changes: [], newSyncToken: null, tokenInvalidated: true }
+    }
+  }
+
+  /**
+   * Parse sync-collection REPORT response into individual changes.
+   * Each D:response is either:
+   * - added/changed: has D:getetag (status 200 or no explicit status)
+   * - removed: has D:status of 404 Not Found
+   */
+  private parseSyncCollectionResponse(xml: string): SyncCollectionChange[] {
+    const responses = parseMultistatus(xml)
+    const changes: SyncCollectionChange[] = []
+
+    for (const response of responses) {
+      if (response.status === 404 || response.href.includes('/404') || response.href.includes('%2F404')) {
+        // Contact was removed
+        changes.push({
+          url: response.href,
+          etag: null,
+          status: 'removed',
+        })
+      } else if (response.etag) {
+        // Added or changed - we treat all with etag as added/changed
+        // The URL tells us if it's new or existing
+        changes.push({
+          url: response.href,
+          etag: response.etag,
+          status: 'added', // Will be determined by caller based on existing contacts
+        })
+      }
+    }
+
+    return changes
+  }
+
+  // ---------------------------------------------------------------------------
+  // addressbook-multiget REPORT
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fetch specific contacts by URL using addressbook-multiget REPORT.
+   * More efficient than individual GETs for batch fetches.
+   */
+  async fetchContactsByUrls(
+    addressBook: AddressBook,
+    urls: string[]
+  ): Promise<Contact[]> {
+    if (urls.length === 0) return []
+
+    const davAb = this.findDavAddressBook(addressBook.url)
+    if (!davAb) throw new Error(`Address book not found: ${addressBook.url}`)
+
+    const hrefs = urls.map(u => `<D:href>${escapeXml(u)}</D:href>`).join('\n    ')
+
+    const body = `<?xml version="1.0" encoding="UTF-8" ?>
+<C:addressbook-multiget xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
+  <D:prop>
+    <D:getetag/>
+    <C:address-data/>
+  </D:prop>
+  ${hrefs}
+</C:addressbook-multiget>`
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Authorization': `Basic ${btoa(`${this.credentials.username}:${this.credentials.password}`)}`,
+    }
+
+    const response = await this.proxyFetch(addressBook.url, {
+      method: 'REPORT',
+      headers,
+      body,
+    })
+
+    if (!response.ok && response.status !== 207) {
+      throw new Error(`addressbook-multiget failed: ${response.status}`)
+    }
+
+    const text = await response.text()
+    return this.parseMultigetResponse(text, addressBook.id, addressBook.accountId)
+  }
+
+  /**
+   * Parse addressbook-multiget REPORT response into Contact objects.
+   */
+  private parseMultigetResponse(xml: string, addressBookId: string, accountId: string): Contact[] {
+    const responses = parseMultistatus(xml)
+    const contacts: Contact[] = []
+
+    for (const response of responses) {
+      if (response.status === 200 && response.addressData) {
+        const contact = parseVCard(response.addressData, addressBookId, accountId)
+        if (contact) {
+          contact.etag = response.etag
+          contacts.push(contact)
+        }
+      }
+    }
+
+    return contacts
   }
 
   /**

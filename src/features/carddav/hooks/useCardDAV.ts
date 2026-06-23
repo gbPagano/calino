@@ -1,15 +1,31 @@
 import { useState, useCallback, useEffect } from 'react'
 import { toast as sonnerToast } from 'sonner'
-import type { CalDAVCredentials } from '@/features/caldav/types'
 import type { AddressBook, Contact, CardDAVSyncState } from '../types'
 import { createCardDAVClient, CardDAVClient } from '../client/CardDAVClient'
 import { useContactStore } from '@/store/contactStore'
-import { useCalendarStore } from '@/store/calendarStore'
 import { getCredentialById } from '@/features/caldav/client/credentials'
 import * as storage from '@/features/caldav/sync/accountStorage'
 
 function showToast(message: string): void {
   sonnerToast(message)
+}
+
+/** Module-level client cache: accountId → connected client */
+const clientCache = new Map<string, CardDAVClient>()
+
+async function getClientForAccount(accountId: string): Promise<CardDAVClient> {
+  const cached = clientCache.get(accountId)
+  if (cached) return cached
+
+  const account = storage.getAccountById(accountId)
+  if (!account) throw new Error(`Account not found: ${accountId}`)
+
+  const credential = await getCredentialById(account.credentialId)
+  if (!credential) throw new Error('Credentials not found')
+
+  const client = await createCardDAVClient(account.serverUrl, credential, account.proxyUrl)
+  clientCache.set(accountId, client)
+  return client
 }
 
 interface UseCardDAVReturn {
@@ -30,11 +46,15 @@ export function useCardDAV(): UseCardDAVReturn {
 
   const storeAddressBooks = useContactStore((state) => state.addressBooks)
   const storeContacts = useContactStore((state) => state.contacts)
-  const addAddressBook = useContactStore((state) => state.addAddressBook)
-  const addContact = useContactStore((state) => state.addContact)
-  const updateContact = useContactStore((state) => state.updateContact)
+  const pendingChanges = useContactStore((state) => state.pendingChanges)
   const setAddressBooks = useContactStore((state) => state.setAddressBooks)
   const setContacts = useContactStore((state) => state.setContacts)
+  const removePendingChange = useContactStore((state) => state.removePendingChange)
+
+  // Keep syncState.pendingChanges in sync with store
+  useEffect(() => {
+    setSyncState((prev) => ({ ...prev, pendingChanges: pendingChanges.length }))
+  }, [pendingChanges.length])
 
   // Auto-sync contacts from all accounts on mount
   useEffect(() => {
@@ -53,20 +73,74 @@ export function useCardDAV(): UseCardDAVReturn {
 
   // Check if an account has address books
   const hasAddressBooks = useCallback(async (accountId: string): Promise<boolean> => {
-    const account = storage.getAccountById(accountId)
-    if (!account) return false
-
-    const credential = await getCredentialById(account.credentialId)
-    if (!credential) return false
-
     try {
-      const client = await createCardDAVClient(account.serverUrl, credential, account.proxyUrl)
+      const client = await getClientForAccount(accountId)
       const addressBooks = await client.fetchAddressBooks()
       return addressBooks.length > 0
     } catch {
       return false
     }
   }, [])
+
+  // Replay pending offline changes against the server
+  const replayPendingChanges = useCallback(async (client: CardDAVClient, accountId: string): Promise<void> => {
+    const state = useContactStore.getState()
+    const changes = state.pendingChanges.filter((c) => {
+      const contact = state.contacts.find((ct) => ct.id === c.contactId)
+      return contact?.accountId === accountId
+    })
+
+    if (changes.length === 0) return
+
+    console.log(`[CardDAV] Replaying ${changes.length} pending changes`)
+
+    for (const change of changes) {
+      try {
+        const contact = state.contacts.find((ct) => ct.id === change.contactId)
+
+        if (change.type === 'delete') {
+          if (contact?.url && contact?.etag) {
+            const ab = state.addressBooks.find((a) => a.id === contact.addressBookId)
+            if (ab) {
+              await client.deleteContact(ab, contact.url, contact.etag)
+            }
+          }
+        } else if (change.type === 'create' && contact) {
+          const ab = state.addressBooks.find((a) => a.id === change.addressBookId)
+          if (ab) {
+            const filename = `${contact.id}.vcf`
+            const result = await client.createContact(ab, contact, filename)
+            // Update the contact with the server-assigned URL and etag
+            useContactStore.getState().updateContact(contact.id, {
+              url: result.url,
+              etag: result.etag,
+              syncStatus: 'synced',
+            })
+          }
+        } else if (change.type === 'update' && contact) {
+          if (contact.url && contact.etag) {
+            const ab = state.addressBooks.find((a) => a.id === contact.addressBookId)
+            if (ab) {
+              const result = await client.updateContact(ab, contact, contact.url, contact.etag)
+              useContactStore.getState().updateContact(contact.id, {
+                etag: result.etag,
+                syncStatus: 'synced',
+              })
+            }
+          }
+        }
+
+        removePendingChange(change.id)
+      } catch (err) {
+        console.warn(`[CardDAV] Failed to replay change ${change.id}:`, err)
+        // Leave in queue for next sync attempt
+        const updated = useContactStore.getState().pendingChanges.find((c) => c.id === change.id)
+        if (updated && updated.retryCount < 3) {
+          useContactStore.getState().updateContact(change.contactId, { syncStatus: 'failed' })
+        }
+      }
+    }
+  }, [removePendingChange])
 
   // Sync contacts from a CalDAV account
   const syncAccount = useCallback(async (accountId: string): Promise<void> => {
@@ -76,12 +150,11 @@ export function useCardDAV(): UseCardDAVReturn {
     setSyncState((prev) => ({ ...prev, status: 'syncing', error: null }))
 
     try {
-      const credential = await getCredentialById(account.credentialId)
-      if (!credential) {
-        throw new Error('Credentials not found')
-      }
+      const client = await getClientForAccount(accountId)
 
-      const client = await createCardDAVClient(account.serverUrl, credential, account.proxyUrl)
+      // Replay any pending offline changes first
+      await replayPendingChanges(client, accountId)
+
       const serverAddressBooks = await client.fetchAddressBooks()
 
       // Update address books in store
@@ -89,60 +162,182 @@ export function useCardDAV(): UseCardDAVReturn {
         ...ab,
         accountId,
       }))
-      
+
       // Merge with existing address books
       const existingAddressBooks = useContactStore.getState().addressBooks
       const mergedAddressBooks = [...existingAddressBooks]
-      
+
       for (const newAb of newAddressBooks) {
         const existingIndex = mergedAddressBooks.findIndex((ab) => ab.url === newAb.url)
         if (existingIndex >= 0) {
-          // Update existing
+          // Preserve syncToken from existing unless server has a new one
+          const existingSyncToken = mergedAddressBooks[existingIndex].syncToken
           mergedAddressBooks[existingIndex] = {
             ...mergedAddressBooks[existingIndex],
             name: newAb.name,
             ctag: newAb.ctag,
-            syncToken: newAb.syncToken,
+            syncToken: newAb.syncToken || existingSyncToken,
           }
         } else {
-          // Add new
           mergedAddressBooks.push(newAb)
         }
       }
-      
+
       setAddressBooks(mergedAddressBooks)
 
-      // Fetch contacts from each address book
+      // Incremental sync: use sync-collection (RFC 6578) if token available, otherwise ctag
+      const existingContacts = useContactStore.getState().contacts
       const allContacts: Contact[] = []
-      
+      let skippedBooks = 0
+      const updatedSyncTokens: { url: string; syncToken: string | null }[] = []
+
       for (const addressBook of newAddressBooks) {
+        const existingAb = existingAddressBooks.find((ab) => ab.url === addressBook.url)
+        const storedSyncToken = existingAb?.syncToken ?? null
+
+        // Skip if ctag hasn't changed (for non-sync-token based sync)
+        if (!storedSyncToken && existingAb?.ctag && existingAb.ctag === addressBook.ctag) {
+          skippedBooks++
+          continue
+        }
+
         try {
-          const contacts = await client.fetchContacts(addressBook)
-          allContacts.push(...contacts)
+          // Try sync-collection first if we have a stored token
+          if (storedSyncToken || !existingAb?.ctag || existingAb.ctag !== addressBook.ctag) {
+            const syncResult = await client.syncCollection(addressBook, storedSyncToken)
+
+            if (!syncResult.tokenInvalidated && syncResult.changes.length > 0) {
+              // sync-collection succeeded with changes
+              const changedUrls = syncResult.changes
+                .filter(c => c.status !== 'removed')
+                .map(c => c.url)
+
+              // Fetch changed contacts via multiget
+              if (changedUrls.length > 0) {
+                const changedContacts = await client.fetchContactsByUrls(addressBook, changedUrls)
+                allContacts.push(...changedContacts)
+              }
+
+              // Store new sync token
+              if (syncResult.newSyncToken) {
+                updatedSyncTokens.push({ url: addressBook.url, syncToken: syncResult.newSyncToken })
+              }
+
+              console.log(`[CardDAV] sync-collection for ${addressBook.name}: ${syncResult.changes.length} changes`)
+            } else if (syncResult.tokenInvalidated) {
+              // Token invalidated - fall back to full fetch
+              console.log(`[CardDAV] sync-token invalidated for ${addressBook.name}, falling back to full fetch`)
+              const contacts = await client.fetchContacts(addressBook)
+              allContacts.push(...contacts)
+              // Don't update sync token on fallback
+            } else {
+              // No changes - nothing to do
+              if (syncResult.newSyncToken) {
+                updatedSyncTokens.push({ url: addressBook.url, syncToken: syncResult.newSyncToken })
+              }
+              skippedBooks++
+            }
+          } else {
+            // No sync token, use ctag-based sync
+            const contacts = await client.fetchContacts(addressBook)
+            allContacts.push(...contacts)
+          }
         } catch (err) {
-          console.warn(`[CardDAV] Failed to fetch contacts from ${addressBook.name}:`, err)
+          console.warn(`[CardDAV] Failed to sync ${addressBook.name}:`, err)
+          // Fall back to full fetch on error
+          try {
+            const contacts = await client.fetchContacts(addressBook)
+            allContacts.push(...contacts)
+          } catch (fallbackErr) {
+            console.warn(`[CardDAV] Fallback fetch also failed for ${addressBook.name}:`, fallbackErr)
+          }
         }
       }
 
-      // Merge with existing contacts
-      const existingContacts = useContactStore.getState().contacts
+      // Update sync tokens in merged address books
+      for (const { url, syncToken } of updatedSyncTokens) {
+        const abIndex = mergedAddressBooks.findIndex((ab) => ab.url === url)
+        if (abIndex >= 0) {
+          mergedAddressBooks[abIndex].syncToken = syncToken
+        }
+      }
+
+      setAddressBooks(mergedAddressBooks)
+
+      // Merge with existing contacts, with conflict detection
       const mergedContacts = [...existingContacts]
-      
+      const localUrlsByAccount = new Map<string, Set<string>>()
+      for (const c of existingContacts) {
+        if (c.accountId === accountId && c.url) {
+          if (!localUrlsByAccount.has(c.addressBookId)) {
+            localUrlsByAccount.set(c.addressBookId, new Set())
+          }
+          localUrlsByAccount.get(c.addressBookId)!.add(c.url)
+        }
+      }
+
       for (const newContact of allContacts) {
         const existingIndex = mergedContacts.findIndex((c) => c.id === newContact.id)
         if (existingIndex >= 0) {
-          // Update existing
+          const existing = mergedContacts[existingIndex]
+
+          // Skip if this contact has pending local changes
+          const hasPending = useContactStore.getState().pendingChanges.some(
+            (p) => p.contactId === existing.id
+          )
+          if (hasPending) {
+            continue
+          }
+
+          // Conflict detection: if etag differs and local lastModified is newer, warn
+          if (existing.etag && newContact.etag && existing.etag !== newContact.etag) {
+            const localModified = new Date(existing.lastModified).getTime()
+            const serverModified = new Date(newContact.lastModified).getTime()
+
+            if (localModified > serverModified) {
+              console.warn(
+                `[CardDAV] Conflict on contact ${existing.id}: local modified after server. Server wins.`
+              )
+              showToast(`Conflict on "${existing.displayName}" — server version kept`)
+            }
+          }
+
+          // Server wins: overwrite local with server version
           mergedContacts[existingIndex] = {
-            ...mergedContacts[existingIndex],
             ...newContact,
+            syncStatus: 'synced',
           }
         } else {
-          // Add new
-          mergedContacts.push(newContact)
+          // New contact from server
+          mergedContacts.push({
+            ...newContact,
+            syncStatus: 'synced',
+          })
         }
       }
-      
-      setContacts(mergedContacts)
+
+      // Remove contacts that no longer exist on the server
+      // For books with sync tokens, we can remove contacts that were reported as removed
+      // For books without sync tokens, use ctag-based pruning
+      const fullySyncedBookIds = newAddressBooks
+        .filter((ab) => {
+          const existingAb = existingAddressBooks.find((e) => e.url === ab.url)
+          return existingAb?.ctag && existingAb.ctag === ab.ctag
+        })
+        .map((ab) => ab.id)
+
+      const serverContactIds = new Set(allContacts.map((c) => c.id))
+
+      const prunedContacts = mergedContacts.filter((c) => {
+        // Don't prune contacts from books we didn't sync
+        if (fullySyncedBookIds.includes(c.addressBookId)) return true
+        // Don't prune contacts with pending changes
+        if (useContactStore.getState().pendingChanges.some((p) => p.contactId === c.id)) return true
+        // Keep if server had it or if it's from a different account
+        return serverContactIds.has(c.id) || c.accountId !== accountId
+      })
+
+      setContacts(prunedContacts)
 
       setSyncState((prev) => ({
         ...prev,
@@ -150,7 +345,10 @@ export function useCardDAV(): UseCardDAVReturn {
         lastSyncAt: new Date().toISOString(),
       }))
 
-      console.log(`[CardDAV] Synced ${allContacts.length} contacts from ${newAddressBooks.length} address books`)
+      const skippedMsg = skippedBooks > 0 ? ` (${skippedBooks} unchanged)` : ''
+      console.log(
+        `[CardDAV] Synced ${allContacts.length} contacts from ${newAddressBooks.length - skippedBooks} address books${skippedMsg}`
+      )
     } catch (error) {
       console.error('[CardDAV] syncAccount failed:', error)
       setSyncState((prev) => ({
@@ -159,7 +357,7 @@ export function useCardDAV(): UseCardDAVReturn {
         error: error instanceof Error ? error.message : 'Sync failed',
       }))
     }
-  }, [setAddressBooks, setContacts])
+  }, [setAddressBooks, setContacts, replayPendingChanges])
 
   return {
     addressBooks: storeAddressBooks,

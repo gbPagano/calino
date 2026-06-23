@@ -270,10 +270,12 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
     updateCalendar(calendarId, { color: nextColor })
   }
 
+  const [isResizing, setIsResizing] = useState(false)
   const COLLAPSE_THRESHOLD = 255
 
   const handleSidebarResizeStart = useCallback((e: React.MouseEvent): void => {
     e.preventDefault()
+    setIsResizing(true)
     const startX = e.clientX
     const startWidth = sidebarWidth
     const onMove = (ev: MouseEvent): void => {
@@ -285,6 +287,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
         document.removeEventListener('mouseup', onUp)
         document.body.style.cursor = ''
         document.body.style.userSelect = ''
+        setIsResizing(false)
         return
       }
       updateSettings({ sidebarWidth: newWidth })
@@ -294,6 +297,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
       document.removeEventListener('mouseup', onUp)
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
+      setIsResizing(false)
     }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
@@ -366,7 +370,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  const sidebarClass = `${styles.sidebar}${isOpen ? ` ${styles.open}` : ''}${isCollapsed && !isCompact ? ` ${styles.sidebarCollapsed}` : ''}`
+  const sidebarClass = `${styles.sidebar}${isOpen ? ` ${styles.open}` : ''}${isCollapsed && !isCompact ? ` ${styles.sidebarCollapsed}` : ''}${isResizing ? ` ${styles.resizing}` : ''}`
 
   return (
     <>

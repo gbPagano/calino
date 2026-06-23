@@ -1,15 +1,10 @@
 import { useState, useCallback, useEffect } from 'react'
-import { toast as sonnerToast } from 'sonner'
 import type { AddressBook, Contact, CardDAVSyncState } from '../types'
 import { createCardDAVClient, CardDAVClient } from '../client/CardDAVClient'
 import { useContactStore } from '@/store/contactStore'
 import { getCredentialById } from '@/features/caldav/client/credentials'
 import * as storage from '@/features/caldav/sync/accountStorage'
 import { showToast } from '@/lib/toast'
-
-function showToast(message: string): void {
-  sonnerToast(message)
-}
 
 /** Module-level client cache: accountId → connected client */
 const clientCache = new Map<string, CardDAVClient>()

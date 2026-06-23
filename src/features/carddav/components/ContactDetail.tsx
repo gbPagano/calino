@@ -124,6 +124,17 @@ const ADDRESS_TYPE_LABELS: Record<string, string> = {
   pref: 'Preferred',
 }
 
+const RELATED_TYPE_LABELS: Record<string, string> = {
+  friend: 'Friend',
+  'co-worker': 'Co-worker',
+  family: 'Family',
+  child: 'Child',
+  spouse: 'Spouse',
+  agent: 'Agent',
+  emergency: 'Emergency',
+  other: 'Other',
+}
+
 // ---------------------------------------------------------------------------
 // Inline edit helpers
 // ---------------------------------------------------------------------------
@@ -144,6 +155,8 @@ interface ContactDetailProps {
   onDelete?: () => void
   onFieldSave?: (field: string, value: unknown) => void
   confirmDelete?: boolean
+  onAddBirthdayToCalendar?: () => void
+  hasBirthdayEvent?: boolean
 }
 
 export function ContactDetail({
@@ -152,6 +165,8 @@ export function ContactDetail({
   onDelete,
   onFieldSave,
   confirmDelete,
+  onAddBirthdayToCalendar,
+  hasBirthdayEvent = false,
 }: ContactDetailProps): JSX.Element {
   const [inlineEditing, setInlineEditing] = useState<InlineEdit | null>(null)
 
@@ -240,6 +255,12 @@ export function ContactDetail({
           </div>
           {roleOrg && <p className={styles.heroRole}>{roleOrg}</p>}
           {contact.nickname && <p className={styles.heroRole} style={{ fontStyle: 'italic' }}>“{contact.nickname}”</p>}
+          {(() => {
+            const ab = useContactStore.getState().addressBooks.find(a => a.id === contact.addressBookId)
+            return ab && useContactStore.getState().addressBooks.length > 1 ? (
+              <p className={styles.heroRole} style={{ fontSize: 12, opacity: 0.6 }}>{ab.name}</p>
+            ) : null
+          })()}
           <div className={styles.heroActions}>
             <a
               href={`mailto:${contact.emails[0]?.value ?? ''}`}
@@ -417,6 +438,50 @@ export function ContactDetail({
                   })}
                 </>
               )}
+
+              {/* Languages */}
+              {contact.langs && contact.langs.length > 0 && (
+                <div className={styles.infoField}>
+                  <span className={styles.infoFieldLabel}>LANGUAGE</span>
+                  {contact.langs.map((lang, i) => (
+                    <div key={`lang-${i}`} className={styles.infoFieldGrid}>
+                      <span className={styles.infoFieldSub}>
+                        {EMAIL_TYPE_LABELS[lang.type] ?? lang.type}
+                      </span>
+                      <span className={styles.infoFieldValue}>{lang.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Related contacts */}
+              {contact.related && contact.related.length > 0 && (
+                <div className={styles.infoField}>
+                  <span className={styles.infoFieldLabel}>RELATED</span>
+                  {contact.related.map((rel, i) => (
+                    <div key={`rel-${i}`} className={styles.infoFieldGrid}>
+                      <span className={styles.infoFieldSub}>
+                        {RELATED_TYPE_LABELS[rel.type] ?? rel.type}
+                      </span>
+                      <span className={styles.infoFieldValue}>{rel.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Group members */}
+              {contact.isGroup && contact.memberUids.length > 0 && (
+                <div className={styles.infoField}>
+                  <span className={styles.infoFieldLabel}>MEMBERS</span>
+                  {contact.memberUids.map((uid, i) => (
+                    <div key={`member-${i}`} className={styles.infoFieldGrid}>
+                      <span className={styles.infoFieldValue}>
+                        {uid.replace('urn:uuid:', '')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -447,6 +512,28 @@ export function ContactDetail({
               <div className={styles.birthdayAge}>
                 {getAge(contact.birthday)} years old
               </div>
+              {onAddBirthdayToCalendar && (
+                <button
+                  type="button"
+                  onClick={onAddBirthdayToCalendar}
+                  disabled={hasBirthdayEvent}
+                  style={{
+                    marginTop: 8,
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    border: '1px solid var(--line)',
+                    background: hasBirthdayEvent ? 'var(--color-bg-tertiary)' : 'transparent',
+                    color: hasBirthdayEvent ? 'var(--text-muted)' : 'var(--accent)',
+                    cursor: hasBirthdayEvent ? 'default' : 'pointer',
+                    fontSize: 11,
+                    fontFamily: 'inherit',
+                    fontWeight: 500,
+                    transition: 'background 0.2s, color 0.2s',
+                  }}
+                >
+                  {hasBirthdayEvent ? '✓ On calendar' : '📅 Add to calendar'}
+                </button>
+              )}
             </div>
           )}
 
@@ -477,6 +564,27 @@ export function ContactDetail({
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* XML data card */}
+          {contact.xmlData && (
+            <div className={styles.categoriesCard}>
+              <div className={styles.asideSectionLabel}>XML DATA</div>
+              <pre style={{
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all',
+                margin: 0,
+                padding: '8px',
+                background: 'var(--bg-secondary)',
+                borderRadius: '6px',
+                maxHeight: '200px',
+                overflow: 'auto',
+              }}>
+                {contact.xmlData}
+              </pre>
             </div>
           )}
         </div>

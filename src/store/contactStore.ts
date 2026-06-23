@@ -8,6 +8,7 @@ export interface ContactStore {
   addressBooks: AddressBook[]
   selectedContactId: string | null
   selectedTag: string | null
+  filterAddressBookId: string | null
   searchQuery: string
   pendingChanges: PendingContactChange[]
   
@@ -17,6 +18,7 @@ export interface ContactStore {
   deleteContact: (id: string) => void
   setSelectedContactId: (id: string | null) => void
   setSelectedTag: (tag: string | null) => void
+  setFilterAddressBookId: (id: string | null) => void
   setSearchQuery: (query: string) => void
   
   // Address book actions
@@ -46,6 +48,7 @@ export const useContactStore = create<ContactStore>()(
       addressBooks: [],
       selectedContactId: null,
       selectedTag: null,
+      filterAddressBookId: null,
       searchQuery: '',
       pendingChanges: [],
 
@@ -76,6 +79,10 @@ export const useContactStore = create<ContactStore>()(
 
       setSelectedTag: (tag: string | null): void => {
         set({ selectedTag: tag })
+      },
+
+      setFilterAddressBookId: (id: string | null): void => {
+        set({ filterAddressBookId: id })
       },
 
       setSearchQuery: (query: string): void => {
@@ -132,7 +139,7 @@ export const useContactStore = create<ContactStore>()(
       },
 
       getFilteredContacts: (): Contact[] => {
-        const { contacts, searchQuery, selectedTag, addressBooks } = get()
+        const { contacts, searchQuery, selectedTag, filterAddressBookId, addressBooks } = get()
         
         // Filter by visible address books
         const visibleAddressBookIds = addressBooks
@@ -140,6 +147,11 @@ export const useContactStore = create<ContactStore>()(
           .map((ab) => ab.id)
         
         let filtered = contacts.filter((c) => visibleAddressBookIds.includes(c.addressBookId))
+        
+        // Filter by specific address book
+        if (filterAddressBookId) {
+          filtered = filtered.filter((c) => c.addressBookId === filterAddressBookId)
+        }
         
         // Filter by tag
         if (selectedTag) {
@@ -169,14 +181,23 @@ export const useContactStore = create<ContactStore>()(
     {
       name: 'calino-contacts',
       storage: createJSONStorage(() => safeLocalStorage),
-      version: 1,
+      version: 2,
       migrate: (persistedState: unknown) => {
         const state = persistedState as Record<string, unknown> | undefined
+        const contacts = (state?.contacts ?? []) as Contact[]
+        // Add defaults for new fields on existing contacts
+        const migratedContacts = contacts.map((c) => ({
+          ...c,
+          langs: c.langs ?? [],
+          related: c.related ?? [],
+          xmlData: c.xmlData ?? null,
+        }))
         return {
-          contacts: state?.contacts ?? [],
+          contacts: migratedContacts,
           addressBooks: state?.addressBooks ?? [],
           pendingChanges: state?.pendingChanges ?? [],
           selectedContactId: null,
+          filterAddressBookId: null,
           searchQuery: '',
         }
       },

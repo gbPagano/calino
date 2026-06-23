@@ -1,9 +1,16 @@
 import type { JSX } from 'react'
 import { useState, useRef } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useContactStore } from '@/store/contactStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
+import { useCardDAV } from '@/features/carddav/hooks/useCardDAV'
 import { parseICALEvent } from '@/features/caldav/adapter/iCalendarAdapter'
+import { parseVCardFile, contactsToVCardFile, downloadFile, readFileAsText } from '@/features/carddav/lib/vCardFileUtils'
 import { format, parseISO } from 'date-fns'
+import { showToast } from '@/lib/toast'
+import { MergeDuplicatesModal } from '@/features/carddav/components/MergeDuplicatesModal'
+import { ImportExportModal } from '@/features/carddav/components/ImportExportModal'
+import type { Contact } from '@/features/carddav/types'
 import styles from './Settings.module.css'
 
 export function DataSettings(): JSX.Element {
@@ -148,6 +155,56 @@ export function DataSettings(): JSX.Element {
     window.location.reload()
   }
 
+  // --------------------------------------------------------------------------
+  // Contacts import/export
+  // --------------------------------------------------------------------------
+  const [isImportOpen, setIsImportOpen] = useState(false)
+  const [parsedImportContacts, setParsedImportContacts] = useState<Contact[]>([])
+  const [isMergeOpen, setIsMergeOpen] = useState(false)
+  const contactFileInputRef = useRef<HTMLInputElement>(null)
+  const contacts = useContactStore((s) => s.contacts)
+  const { syncAccount } = useCardDAV()
+
+  const handleContactImportClick = (): void => {
+    contactFileInputRef.current?.click()
+  }
+
+  const handleContactImportFile = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const content = await readFileAsText(file)
+      const addressBooks = useContactStore.getState().addressBooks
+      const visibleAbs = addressBooks.filter((ab) => ab.isVisible)
+      const targetAbId = visibleAbs[0]?.id ?? ''
+      const accountId = visibleAbs[0]?.accountId ?? ''
+      const parsed = parseVCardFile(content, targetAbId, accountId)
+
+      if (parsed.length === 0) {
+        showToast('No contacts found in file')
+        return
+      }
+
+      setParsedImportContacts(parsed)
+      setIsImportOpen(true)
+    } catch {
+      showToast('Failed to parse vCard file')
+    } finally {
+      if (contactFileInputRef.current) contactFileInputRef.current.value = ''
+    }
+  }
+
+  const handleContactExport = (): void => {
+    if (contacts.length === 0) {
+      showToast('No contacts to export')
+      return
+    }
+    const vcf = contactsToVCardFile(contacts)
+    downloadFile(vcf, 'contacts.vcf')
+    showToast(`Exported ${contacts.length} contacts`)
+  }
+
   return (
     <section className={`${styles.section} ${styles.sectionActive}`} data-component="data-settings">
       <h1 className={styles.pageTitle}>Data</h1>
@@ -177,7 +234,47 @@ export function DataSettings(): JSX.Element {
             {importStatus.message}
           </div>
         )}
-        <input ref={fileInputRef} type="file" accept=".json,.ics" onChange={handleFileChange} style={{ display: 'none' }} />
+        <input ref={fileInputRef} type="file" accept=".json,.ics" onChange={handleFileChange} style={{ display: 'none' }} data-testid="import-calendar-input" />
+      </div>
+
+      {/* Contacts */}
+      <div className={styles.group}>
+        <div className={styles.groupLabel}>Contacts</div>
+        <div className={styles.actionRow}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Export Contacts</div>
+            <div className={styles.rowDesc}>Download all contacts as a standard .vcf file</div>
+          </div>
+          <button className={styles.actionBtn} onClick={handleContactExport} type="button">
+            Export .vcf
+          </button>
+        </div>
+        <div className={styles.actionRow}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Import Contacts</div>
+            <div className={styles.rowDesc}>Add contacts from a .vcf file</div>
+          </div>
+          <button className={styles.actionBtn} onClick={handleContactImportClick} type="button">
+            Choose file…
+          </button>
+        </div>
+        <div className={styles.actionRow}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Merge Duplicates</div>
+            <div className={styles.rowDesc}>Find and merge contacts with the same email, phone, or name</div>
+          </div>
+          <button className={styles.actionBtn} onClick={() => setIsMergeOpen(true)} type="button">
+            Merge…
+          </button>
+        </div>
+        <input
+          ref={contactFileInputRef}
+          type="file"
+          accept=".vcf,text/vcard"
+          onChange={handleContactImportFile}
+          style={{ display: 'none' }}
+          data-testid="import-contacts-input"
+        />
       </div>
 
       {/* Broken Events */}
@@ -276,6 +373,27 @@ export function DataSettings(): JSX.Element {
           </button>
         </div>
       </div>
+
+      {/* Import contacts modal */}
+      <ImportExportModal
+        isOpen={isImportOpen}
+        onClose={() => {
+          setIsImportOpen(false)
+          setParsedImportContacts([])
+        }}
+        parsedContacts={parsedImportContacts}
+        onImportComplete={() => {
+          const addressBooks = useContactStore.getState().addressBooks
+          const ab = addressBooks.find((a) => a.isVisible)
+          if (ab?.accountId) syncAccount(ab.accountId).catch(() => {})
+        }}
+      />
+
+      {/* Merge duplicates modal */}
+      <MergeDuplicatesModal
+        isOpen={isMergeOpen}
+        onClose={() => setIsMergeOpen(false)}
+      />
     </section>
   )
 }

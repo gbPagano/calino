@@ -5,6 +5,8 @@ import type {
   ContactAddress,
   ContactUrl,
   ContactIM,
+  ContactLang,
+  ContactRelated,
 } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -451,6 +453,85 @@ function extractPhoto(lines: string[]): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// New vCard property extractors (XML, LANG, RELATED, MEMBER)
+// ---------------------------------------------------------------------------
+
+function extractXmlData(lines: string[]): string | null {
+  for (const line of lines) {
+    if (!line.toUpperCase().startsWith('XML')) continue
+    const colonIndex = line.indexOf(':')
+    if (colonIndex >= 0) {
+      return line.substring(colonIndex + 1)
+    }
+  }
+  return null
+}
+
+function extractLangs(lines: string[]): ContactLang[] {
+  const langs: ContactLang[] = []
+  for (const line of lines) {
+    if (!line.toUpperCase().startsWith('LANG')) continue
+    const parsed = parseLineWithParams(line, 'LANG')
+    if (!parsed) continue
+    const type = parseTypeParam(parsed.params)
+    const isPrimary = parsed.params.toUpperCase().includes('PREF')
+    langs.push({
+      value: unescapeVCardValue(parsed.value),
+      type,
+      isPrimary,
+    })
+  }
+  if (langs.length > 0 && !langs.some(l => l.isPrimary)) {
+    langs[0].isPrimary = true
+  }
+  return langs
+}
+
+function parseRelatedType(params: string): ContactRelated['type'] {
+  const upper = params.toUpperCase()
+  if (upper.includes('FRIEND')) return 'friend'
+  if (upper.includes('CO-WORKER') || upper.includes('COWORKER')) return 'co-worker'
+  if (upper.includes('FAMILY')) return 'family'
+  if (upper.includes('CHILD')) return 'child'
+  if (upper.includes('SPOUSE')) return 'spouse'
+  if (upper.includes('AGENT')) return 'agent'
+  if (upper.includes('EMERGENCY')) return 'emergency'
+  return 'other'
+}
+
+function extractRelated(lines: string[]): ContactRelated[] {
+  const related: ContactRelated[] = []
+  for (const line of lines) {
+    if (!line.toUpperCase().startsWith('RELATED')) continue
+    const parsed = parseLineWithParams(line, 'RELATED')
+    if (!parsed) continue
+    const type = parseRelatedType(parsed.params)
+    const isPrimary = parsed.params.toUpperCase().includes('PREF')
+    related.push({
+      value: unescapeVCardValue(parsed.value),
+      type,
+      isPrimary,
+    })
+  }
+  if (related.length > 0 && !related.some(r => r.isPrimary)) {
+    related[0].isPrimary = true
+  }
+  return related
+}
+
+function extractMemberUids(lines: string[]): string[] {
+  const members: string[] = []
+  for (const line of lines) {
+    if (!line.toUpperCase().startsWith('MEMBER')) continue
+    const parsed = parseLineWithParams(line, 'MEMBER')
+    if (parsed) {
+      members.push(unescapeVCardValue(parsed.value))
+    }
+  }
+  return members
+}
+
+// ---------------------------------------------------------------------------
 // Parameter parsers
 // ---------------------------------------------------------------------------
 
@@ -501,6 +582,12 @@ function parseVCardDate(dateStr: string | null): string | null {
   // Handle YYYY-MM-DD format
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return dateStr
+  }
+
+  // Handle DD MM YYYY format (vCard 3.0)
+  if (/^\d{2} \d{2} \d{4}$/.test(dateStr)) {
+    const [day, month, year] = dateStr.split(' ')
+    return `${year}-${month}-${day}`
   }
 
   // Handle date-time formats
@@ -562,6 +649,7 @@ export function parseVCard(vCardString: string, addressBookId: string, accountId
     'ORG', 'TITLE', 'ROLE', 'EMAIL', 'TEL', 'ADR', 'IMPP',
     'BDAY', 'ANNIVERSARY', 'GENDER', 'NOTE', 'CATEGORIES',
     'PHOTO', 'CREATED', 'REV', 'PRODID',
+    'XML', 'LANG', 'RELATED', 'MEMBER',
   ]
   const opaqueLines: string[] = []
 
@@ -633,6 +721,19 @@ export function parseVCard(vCardString: string, addressBookId: string, accountId
   // Parse photo
   const photo = extractPhoto(lines)
 
+  // Parse XML data
+  const xmlData = extractXmlData(lines)
+
+  // Parse languages
+  const langs = extractLangs(lines)
+
+  // Parse related contacts
+  const related = extractRelated(lines)
+
+  // Parse member UIDs (groups)
+  const memberUids = extractMemberUids(lines)
+  const isGroup = memberUids.length > 0
+
   // Parse timestamps
   const created = extractProperty(lines, 'CREATED') || new Date().toISOString()
   const lastModified = extractProperty(lines, 'REV') || new Date().toISOString()
@@ -681,8 +782,11 @@ export function parseVCard(vCardString: string, addressBookId: string, accountId
     createdAt: created,
     lastModified,
     opaqueLines,
-    isGroup: false,
-    memberUids: [],
+    isGroup,
+    memberUids,
+    langs,
+    related,
+    xmlData,
   }
 }
 
@@ -821,6 +925,34 @@ export function contactToVCard(contact: Contact, targetVersion: '3.0' | '4.0' = 
     lines.push(`CATEGORIES:${contact.categories.map(c => escapeVCardValue(c)).join(',')}`)
   }
 
+  // Languages
+  if (contact.langs && contact.langs.length > 0) {
+    for (const lang of contact.langs) {
+      const params = buildTypeParamsV(targetVersion, lang.type, lang.isPrimary)
+      lines.push(`LANG${params}:${escapeVCardValue(lang.value)}`)
+    }
+  }
+
+  // Related contacts
+  if (contact.related && contact.related.length > 0) {
+    for (const rel of contact.related) {
+      const params = buildRelatedParamsV(targetVersion, rel.type, rel.isPrimary)
+      lines.push(`RELATED${params}:${escapeVCardValue(rel.value)}`)
+    }
+  }
+
+  // XML data
+  if (contact.xmlData) {
+    lines.push(`XML:${contact.xmlData}`)
+  }
+
+  // Member UIDs (groups)
+  if (contact.memberUids && contact.memberUids.length > 0) {
+    for (const uid of contact.memberUids) {
+      lines.push(`MEMBER:${uid}`)
+    }
+  }
+
   // Photo
   if (contact.photo) {
     if (contact.photo.startsWith('data:')) {
@@ -902,6 +1034,22 @@ function buildIMParamsV(version: '3.0' | '4.0', type: string, protocol: string, 
     // 4.0: TYPE first, then protocol, then TYPE=pref
     if (type !== 'other') parts.push(`TYPE=${type}`)
     if (protocol !== 'other') parts.push(`X-SERVICE-TYPE=${protocol}`)
+    if (isPrimary) parts.push('TYPE=pref')
+  }
+
+  return parts.length > 0 ? ';' + parts.join(';') : ''
+}
+
+function buildRelatedParamsV(version: '3.0' | '4.0', type: string, isPrimary: boolean): string {
+  const parts: string[] = []
+
+  if (version === '3.0') {
+    const typeParts: string[] = []
+    if (type !== 'other') typeParts.push(type)
+    if (isPrimary) typeParts.push('pref')
+    if (typeParts.length > 0) parts.push(`TYPE=${typeParts.join(',')}`)
+  } else {
+    if (type !== 'other') parts.push(`TYPE=${type}`)
     if (isPrimary) parts.push('TYPE=pref')
   }
 

@@ -58,9 +58,14 @@ export interface Contact {
   // Photo
   photo: string | null // data URI or URL
   
-  // Group support (future)
+  // Group support
   isGroup: boolean
   memberUids: string[]
+
+  // Extended vCard properties
+  langs: ContactLang[]
+  related: ContactRelated[]
+  xmlData: string | null
   
   // Opaque vCard lines (round-trip preservation)
   opaqueLines: string[]
@@ -101,6 +106,18 @@ export interface ContactAddress {
 export interface ContactUrl {
   value: string
   type: 'home' | 'work' | 'other' | 'pref'
+  isPrimary: boolean
+}
+
+export interface ContactLang {
+  value: string
+  type: 'home' | 'work' | 'other' | 'pref'
+  isPrimary: boolean
+}
+
+export interface ContactRelated {
+  value: string
+  type: 'friend' | 'co-worker' | 'family' | 'child' | 'spouse' | 'agent' | 'emergency' | 'other'
   isPrimary: boolean
 }
 

@@ -1,7 +1,8 @@
 import type { JSX, KeyboardEvent } from 'react'
-import { useMemo, useRef, useCallback } from 'react'
+import { useMemo, useRef, useCallback, useEffect } from 'react'
 import { useContactStore } from '@/store/contactStore'
 import type { Contact } from '../types'
+import { initializeContactSearchIndex, searchContacts } from '../lib/contactSearchIndex'
 import styles from './ContactList.module.css'
 
 /* -------------------------------------------------------------------------- */
@@ -176,10 +177,17 @@ export function ContactList({ onNewContact, loading }: ContactListProps = {}): J
   const selectedContactId = useContactStore((s) => s.selectedContactId)
   const setSelectedContactId = useContactStore((s) => s.setSelectedContactId)
   const selectedTag = useContactStore((s) => s.selectedTag)
+  const filterAddressBookId = useContactStore((s) => s.filterAddressBookId)
+  const setFilterAddressBookId = useContactStore((s) => s.setFilterAddressBookId)
   const contacts = useContactStore((s) => s.contacts)
   const addressBooks = useContactStore((s) => s.addressBooks)
 
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Rebuild search index when contacts change
+  useEffect(() => {
+    initializeContactSearchIndex(contacts)
+  }, [contacts])
 
   const filteredContacts = useMemo(() => {
     // Filter by visible address books
@@ -187,27 +195,32 @@ export function ContactList({ onNewContact, loading }: ContactListProps = {}): J
       .filter((ab) => ab.isVisible)
       .map((ab) => ab.id)
 
-    let filtered = contacts.filter((c) =>
-      visibleAddressBookIds.includes(c.addressBookId),
-    )
+    // Build filter criteria
+    const filterAddressBookIds = filterAddressBookId
+      ? [filterAddressBookId]
+      : visibleAddressBookIds
 
-    // Filter by search query
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(
-        (c) =>
-          c.displayName.toLowerCase().includes(query) ||
-          c.organization.toLowerCase().includes(query) ||
-          c.emails.some((e) => e.value.toLowerCase().includes(query)) ||
-          c.phones.some((p) => p.value.includes(query)),
-      )
+      // Use Fuse.js search
+      return searchContacts(searchQuery, {
+        addressBookIds: filterAddressBookIds,
+        tag: selectedTag ?? undefined,
+      })
     }
 
-    // Sort by display name
+    // No search query — filter manually
+    let filtered = contacts.filter((c) =>
+      filterAddressBookIds.includes(c.addressBookId),
+    )
+
+    if (selectedTag) {
+      filtered = filtered.filter((c) => c.categories.includes(selectedTag))
+    }
+
     return filtered.sort((a, b) =>
       a.displayName.localeCompare(b.displayName),
     )
-  }, [contacts, addressBooks, searchQuery])
+  }, [contacts, addressBooks, searchQuery, selectedTag, filterAddressBookId])
 
   const groups = useMemo(
     () => groupByAlpha(filteredContacts),
@@ -289,6 +302,31 @@ export function ContactList({ onNewContact, loading }: ContactListProps = {}): J
           + New
         </button>
       </div>
+
+      {/* Address book filter */}
+      {addressBooks.length > 1 && (
+        <div style={{ padding: '0 12px 6px' }}>
+          <select
+            value={filterAddressBookId || ''}
+            onChange={(e) => setFilterAddressBookId(e.target.value || null)}
+            style={{
+              width: '100%',
+              padding: '4px 8px',
+              fontSize: '11px',
+              borderRadius: '6px',
+              border: '1px solid var(--line)',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="">All address books</option>
+            {addressBooks.filter((ab) => ab.isVisible).map((ab) => (
+              <option key={ab.id} value={ab.id}>{ab.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Active tag filter */}
       {selectedTag && (

@@ -44,7 +44,9 @@ describe('DataSettings - ICS Import', () => {
   it('renders import button', () => {
     render(<DataSettings />)
 
-    expect(screen.getByRole('button', { name: /choose file/i })).toBeInTheDocument()
+    // Both calendar and contacts import buttons exist
+    expect(screen.getByTestId('import-calendar-input')).toBeInTheDocument()
+    expect(screen.getByTestId('import-contacts-input')).toBeInTheDocument()
   })
 
   it('imports ICS file and adds events to store', async () => {
@@ -52,7 +54,7 @@ describe('DataSettings - ICS Import', () => {
     render(<DataSettings />)
 
     const file = new File([mockICALEvent], 'test.ics', { type: 'text/calendar' })
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const input = screen.getByTestId('import-calendar-input') as HTMLInputElement
 
     await user.upload(input, file)
 
@@ -71,7 +73,7 @@ describe('DataSettings - ICS Import', () => {
     render(<DataSettings />)
 
     const file = new File([mockICALEvent], 'test.ics', { type: 'text/calendar' })
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const input = screen.getByTestId('import-calendar-input') as HTMLInputElement
 
     await user.upload(input, file)
 
@@ -85,7 +87,7 @@ describe('DataSettings - ICS Import', () => {
     render(<DataSettings />)
 
     const invalidFile = new File(['invalid content'], 'test.ics', { type: 'text/calendar' })
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const input = screen.getByTestId('import-calendar-input') as HTMLInputElement
 
     await user.upload(input, invalidFile)
 
@@ -101,7 +103,7 @@ describe('DataSettings - ICS Import', () => {
     const jsonFile = new File([JSON.stringify({ version: 1 })], 'test.json', {
       type: 'application/json',
     })
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const input = screen.getByTestId('import-calendar-input') as HTMLInputElement
 
     await user.upload(input, jsonFile)
 

@@ -44,6 +44,7 @@
   font-size: 11px;
   padding: 2px 6px;
   border-radius: var(--radius-sm, 7px);
+  border-left: 3px solid var(--accent);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;

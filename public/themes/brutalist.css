@@ -220,7 +220,7 @@
 
 /* Event cards — hard-edge pills with black border */
 [data-theme-id="brutalist"] [data-theme='light'] [data-component="event-card"] {
-  border: 1.5px solid #000000;
+  border: 1.5px solid #000000 !important;
   border-radius: 0px !important;
   box-shadow: 2px 2px 0 #000000;
   font-family: Arial, Helvetica, sans-serif;
@@ -652,7 +652,7 @@
 }
 
 [data-theme='dark'] [data-component="event-card"] {
-  border: 1.5px solid rgba(240, 240, 240, 0.12);
+  border: 1.5px solid rgba(240, 240, 240, 0.12) !important;
   border-radius: 0px !important;
   box-shadow: 2px 2px 0 #000000;
   font-family: Arial, Helvetica, sans-serif;

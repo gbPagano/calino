@@ -2,8 +2,12 @@ import type { JSX } from 'react'
 import { useState, useCallback, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useContactStore } from '@/store/contactStore'
+import { useCalendarStore } from '@/store/calendarStore'
 import { useCardDAV } from '@/features/carddav/hooks/useCardDAV'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { deleteContactWithUndo } from '@/lib/deleteContactWithUndo'
+import { createBirthdayEvent, hasBirthdayEvent } from '@/lib/birthdayReminders'
+import { showToast } from '@/lib/toast'
 import type { Contact } from '../types'
 import { ContactList } from './ContactList'
 import { ContactDetail } from './ContactDetail'
@@ -19,6 +23,10 @@ export function ContactsView(): JSX.Element {
   const deleteContact = useContactStore((s) => s.deleteContact)
   const addressBooks = useContactStore((s) => s.addressBooks)
   const addPendingChange = useContactStore((s) => s.addPendingChange)
+
+  const calendars = useCalendarStore((s) => s.calendars)
+  const addEvent = useCalendarStore((s) => s.addEvent)
+  const events = useCalendarStore((s) => s.events)
 
   const { syncAccount, syncState } = useCardDAV()
   const isMobile = useIsMobile()
@@ -88,30 +96,20 @@ export function ContactsView(): JSX.Element {
         setConfirmDeleteId(null)
 
         const ab = addressBooks.find((a) => a.id === contact.addressBookId)
-        const now = new Date().toISOString()
 
-        // Optimistic delete from store
-        deleteContact(contact.id)
-
-        // Queue pending delete
-        addPendingChange({
-          id: uuidv4(),
-          type: 'delete',
-          contactId: contact.id,
-          addressBookId: contact.addressBookId,
-          timestamp: now,
-          retryCount: 0,
+        // Delete with undo toast
+        deleteContactWithUndo({
+          contact,
+          deleteContact,
+          addContact,
+          addPendingChange,
+          syncAccount: ab?.accountId ? syncAccount : undefined,
+          onAfterDelete: () => {
+            if (selectedContactId === contact.id) {
+              setSelectedContactId(null)
+            }
+          },
         })
-
-        // Deselect if this was the selected contact
-        if (selectedContactId === contact.id) {
-          setSelectedContactId(null)
-        }
-
-        // Sync the account
-        if (ab?.accountId) {
-          await syncAccount(ab.accountId)
-        }
         return
       }
 
@@ -205,6 +203,33 @@ export function ContactsView(): JSX.Element {
     [addContact, updateContact, addPendingChange, setSelectedContactId, syncAccount, pendingAccountId]
   )
 
+  const handleAddBirthdayToCalendar = useCallback(
+    (contact: Contact): void => {
+      if (!contact.birthday) return
+      const defaultCalendar = calendars.find((c) => c.isDefault) ?? calendars[0]
+      if (!defaultCalendar) {
+        showToast('No calendar available')
+        return
+      }
+
+      const event = createBirthdayEvent({
+        contactId: contact.id,
+        contactName: contact.displayName,
+        birthday: contact.birthday,
+        calendarId: defaultCalendar.id,
+      })
+
+      addEvent(event)
+      showToast('Birthday added to calendar', {
+        duration: 8000,
+        onUndo: () => {
+          useCalendarStore.getState().deleteEvent(event.id)
+        },
+      })
+    },
+    [calendars, addEvent]
+  )
+
   const handleFormClose = (): void => {
     setIsFormOpen(false)
     setEditingContact(null)
@@ -217,7 +242,10 @@ export function ContactsView(): JSX.Element {
     >
       {/* Left panel */}
       <div className={styles.clist}>
-        <ContactList onNewContact={handleNewClick} loading={syncState.status === 'syncing'} />
+        <ContactList
+          onNewContact={handleNewClick}
+          loading={syncState.status === 'syncing'}
+        />
       </div>
 
       {/* Address book picker dropdown */}
@@ -267,6 +295,14 @@ export function ContactsView(): JSX.Element {
             onDelete={() => handleDelete(selectedContact)}
             onFieldSave={(field, value) => handleFieldSave(selectedContact, field, value)}
             confirmDelete={confirmDeleteId === selectedContact.id}
+            onAddBirthdayToCalendar={
+              selectedContact.birthday
+                ? () => handleAddBirthdayToCalendar(selectedContact)
+                : undefined
+            }
+            hasBirthdayEvent={
+              selectedContact.birthday != null && hasBirthdayEvent(selectedContact.id, events)
+            }
           />
         ) : (
           !isMobile && (

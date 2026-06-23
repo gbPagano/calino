@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import { useState, useCallback, useEffect, useRef } from 'react'
+import imageCompression from 'browser-image-compression'
 import type {
   Contact,
   ContactEmail,
@@ -190,10 +191,176 @@ export function ContactFormFields({
   )
 
   // -------------------------------------------------------------------------
+  // LANG helpers
+  // -------------------------------------------------------------------------
+  const addLang = useCallback(() => {
+    const langs = [...(local.langs || []), { value: '', type: 'home' as const, isPrimary: false }]
+    update({ langs })
+  }, [local.langs, update])
+
+  const removeLang = useCallback((index: number) => {
+    const langs = (local.langs || []).filter((_, i) => i !== index)
+    update({ langs })
+  }, [local.langs, update])
+
+  const updateLang = useCallback(
+    (index: number, field: string, value: string | boolean) => {
+      const langs = (local.langs || []).map((l, i) =>
+        i === index ? { ...l, [field]: value } : l
+      )
+      update({ langs })
+    },
+    [local.langs, update]
+  )
+
+  // -------------------------------------------------------------------------
+  // RELATED helpers
+  // -------------------------------------------------------------------------
+  const addRelated = useCallback(() => {
+    const related = [...(local.related || []), { value: '', type: 'other' as const, isPrimary: false }]
+    update({ related })
+  }, [local.related, update])
+
+  const removeRelated = useCallback((index: number) => {
+    const related = (local.related || []).filter((_, i) => i !== index)
+    update({ related })
+  }, [local.related, update])
+
+  const updateRelated = useCallback(
+    (index: number, field: string, value: string | boolean) => {
+      const related = (local.related || []).map((r, i) =>
+        i === index ? { ...r, [field]: value } : r
+      )
+      update({ related })
+    },
+    [local.related, update]
+  )
+
+  // --------------------------------------------------------------------------
+  // Photo upload
+  // --------------------------------------------------------------------------
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handlePhotoUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      setPhotoUploading(true)
+      try {
+        // Compress and resize to max 300×300, JPEG quality 0.8
+        const compressed = await imageCompression(file, {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 300,
+          useWebWorker: true,
+          initialQuality: 0.8,
+          fileType: 'image/jpeg',
+        })
+        const dataUri = await imageCompression.getDataUrlFromFile(compressed)
+        update({ photo: dataUri })
+      } catch (err) {
+        console.error('Failed to process photo:', err)
+      } finally {
+        setPhotoUploading(false)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+      }
+    },
+    [update]
+  )
+
+  const handlePhotoRemove = useCallback(() => {
+    update({ photo: null })
+  }, [update])
+
+  // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
   return (
     <div className={styles.modalBody}>
+      {/* ---- Photo ---- */}
+      <div className={styles.modalField} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            border: '2px dashed var(--color-border-visible, rgba(0,0,0,0.12))',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            overflow: 'hidden',
+            flexShrink: 0,
+            background: local.photo ? 'none' : 'var(--color-bg-tertiary)',
+            transition: 'border-color 0.2s',
+          }}
+          title="Click to upload photo"
+        >
+          {local.photo ? (
+            <img
+              src={local.photo}
+              alt="Contact photo"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)' }}>
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoUpload}
+          style={{ display: 'none' }}
+        />
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          {photoUploading ? (
+            'Processing...'
+          ) : local.photo ? (
+            <>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: 12,
+                  fontFamily: 'inherit',
+                }}
+              >
+                Change photo
+              </button>
+              {' · '}
+              <button
+                type="button"
+                onClick={handlePhotoRemove}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: 12,
+                  fontFamily: 'inherit',
+                }}
+              >
+                Remove
+              </button>
+            </>
+          ) : (
+            'Click to upload a photo'
+          )}
+        </div>
+      </div>
+
       {/* ---- Name block ---- */}
       <div className={styles.modalField}>
         <label className={styles.label}>Name</label>
@@ -647,6 +814,163 @@ export function ContactFormFields({
           className={`${styles.input} ${styles.modalTextarea}`}
           rows={6}
           style={{ fontFamily: 'monospace', fontSize: '13px' }}
+        />
+      </div>
+
+      {/* ---- Languages ---- */}
+      <div className={styles.modalField}>
+        <label className={styles.label}>Languages</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {(local.langs || []).map((lang, i) => (
+            <div key={i} className={styles.modalFieldRow}>
+              <select
+                value={lang.type}
+                onChange={(e) => updateLang(i, 'type', e.target.value)}
+                className={styles.input}
+                style={{ flex: 0, minWidth: 100 }}
+              >
+                <option value="home">Home</option>
+                <option value="work">Work</option>
+                <option value="other">Other</option>
+                <option value="pref">Preferred</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Language code (e.g. en)"
+                value={lang.value}
+                onChange={(e) => updateLang(i, 'value', e.target.value)}
+                className={styles.input}
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className={styles.removeFieldButton}
+                onClick={() => removeLang(i)}
+                aria-label="Remove language"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button type="button" className={styles.modalAddDesc} onClick={addLang}>
+            + Add language
+          </button>
+        </div>
+      </div>
+
+      {/* ---- Related Contacts ---- */}
+      <div className={styles.modalField}>
+        <label className={styles.label}>Related Contacts</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {(local.related || []).map((rel, i) => (
+            <div key={i} className={styles.modalFieldRow}>
+              <select
+                value={rel.type}
+                onChange={(e) => updateRelated(i, 'type', e.target.value)}
+                className={styles.input}
+                style={{ flex: 0, minWidth: 110 }}
+              >
+                <option value="friend">Friend</option>
+                <option value="co-worker">Co-worker</option>
+                <option value="family">Family</option>
+                <option value="child">Child</option>
+                <option value="spouse">Spouse</option>
+                <option value="agent">Agent</option>
+                <option value="emergency">Emergency</option>
+                <option value="other">Other</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Name or URN:uuid:..."
+                value={rel.value}
+                onChange={(e) => updateRelated(i, 'value', e.target.value)}
+                className={styles.input}
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className={styles.removeFieldButton}
+                onClick={() => removeRelated(i)}
+                aria-label="Remove related contact"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button type="button" className={styles.modalAddDesc} onClick={addRelated}>
+            + Add related contact
+          </button>
+        </div>
+      </div>
+
+      {/* ---- Group toggle ---- */}
+      <div className={styles.modalField}>
+        <label className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={local.isGroup || false}
+            onChange={(e) => update({ isGroup: e.target.checked })}
+          />
+          This is a group
+        </label>
+      </div>
+
+      {/* ---- Group Members ---- */}
+      {local.isGroup && (
+        <div className={styles.modalField}>
+          <label className={styles.label}>Members</label>
+          <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8, padding: 8 }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
+              Select contacts to add as members:
+            </div>
+            {(local.memberUids || []).length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                {(local.memberUids || []).map((uid) => (
+                  <div key={uid} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{uid}</span>
+                    <button
+                      type="button"
+                      className={styles.removeFieldButton}
+                      onClick={() => {
+                        const memberUids = (local.memberUids || []).filter((u) => u !== uid)
+                        update({ memberUids })
+                      }}
+                      aria-label="Remove member"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              type="text"
+              placeholder="Add member URN:uuid:..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                  const uid = e.currentTarget.value.trim()
+                  if (!(local.memberUids || []).includes(uid)) {
+                    update({ memberUids: [...(local.memberUids || []), uid] })
+                  }
+                  e.currentTarget.value = ''
+                }
+              }}
+              className={styles.input}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ---- Extended Data (XML) ---- */}
+      <div className={styles.modalField}>
+        <label className={styles.label}>Extended Data (XML)</label>
+        <textarea
+          placeholder="XML data (RFC 6350 §6.3.1)..."
+          value={local.xmlData || ''}
+          onChange={(e) => update({ xmlData: e.target.value || null })}
+          className={`${styles.input} ${styles.modalTextarea}`}
+          rows={4}
+          style={{ fontFamily: 'monospace', fontSize: '12px' }}
         />
       </div>
     </div>

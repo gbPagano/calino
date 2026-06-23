@@ -41,6 +41,9 @@ const EMPTY_CONTACT: Partial<Contact> = {
   photo: null,
   isGroup: false,
   memberUids: [],
+  langs: [],
+  related: [],
+  xmlData: null,
   opaqueLines: [],
 }
 
@@ -152,6 +155,10 @@ export function ContactFormModal({
 
       isGroup: formState.isGroup ?? false,
       memberUids: formState.memberUids ?? [],
+
+      langs: formState.langs ?? [],
+      related: formState.related ?? [],
+      xmlData: formState.xmlData ?? null,
 
       opaqueLines: formState.opaqueLines ?? [],
 

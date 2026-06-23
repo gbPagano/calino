@@ -5,6 +5,7 @@ import { createCardDAVClient, CardDAVClient } from '../client/CardDAVClient'
 import { useContactStore } from '@/store/contactStore'
 import { getCredentialById } from '@/features/caldav/client/credentials'
 import * as storage from '@/features/caldav/sync/accountStorage'
+import { showToast } from '@/lib/toast'
 
 function showToast(message: string): void {
   sonnerToast(message)
@@ -137,7 +138,18 @@ export function useCardDAV(): UseCardDAVReturn {
       } catch (err) {
         console.warn(`[CardDAV] Failed to replay change ${change.id}:`, err)
         const updated = useContactStore.getState().pendingChanges.find((c) => c.id === change.id)
-        if (updated && updated.retryCount < 3) {
+        if (updated && updated.retryCount >= 2) {
+          useContactStore.getState().updateContact(change.contactId, { syncStatus: 'failed' })
+          const contact = useContactStore.getState().contacts.find((c) => c.id === change.contactId)
+          const label = contact?.displayName ?? 'Contact'
+          if (change.type === 'create') {
+            showToast(`Failed to create \"${label}\" on server. Will retry.`)
+          } else if (change.type === 'update') {
+            showToast(`Failed to update \"${label}\" on server. Will retry.`)
+          } else if (change.type === 'delete') {
+            showToast(`Failed to delete \"${label}\" on server. Will retry.`)
+          }
+        } else {
           useContactStore.getState().updateContact(change.contactId, { syncStatus: 'failed' })
         }
       }
@@ -362,11 +374,16 @@ export function useCardDAV(): UseCardDAVReturn {
       )
     } catch (error) {
       console.error('[CardDAV] syncAccount failed:', error)
+      const msg = error instanceof Error ? error.message : 'Sync failed'
       setSyncState((prev) => ({
         ...prev,
         status: 'error',
-        error: error instanceof Error ? error.message : 'Sync failed',
+        error: msg,
       }))
+      // Only show toast for real errors, not during initial mount
+      if (syncState.lastSyncAt) {
+        showToast(`Contacts sync failed: ${msg}`)
+      }
     }
   }, [setAddressBooks, setContacts, replayPendingChanges])
 

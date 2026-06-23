@@ -32,7 +32,7 @@
   background: var(--panel, #ffffff);
   min-height: 0;
   position: relative;
-  border-radius: 16px 0 0 16px;
+  border-radius: var(--radius-lg, 16px) 0 0 var(--radius-lg, 16px);
   border: 1px solid var(--line);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
 }
@@ -44,7 +44,7 @@
   min-height: 0;
   overflow-y: auto;
   background: var(--canvas, #faf8f3);
-  border-radius: 0 16px 16px 0;
+  border-radius: 0 var(--radius-lg, 16px) var(--radius-lg, 16px) 0;
 }
 
 /* ---- Detail Empty State ---- */
@@ -84,7 +84,7 @@
   background: var(--panel, #ffffff);
   border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
   border-left: none;
-  border-radius: 0 16px 16px 0;
+  border-radius: 0 var(--radius-lg, 16px) var(--radius-lg, 16px) 0;
   padding: 30px 28px;
   margin-bottom: 10px;
   animation: fadeSlideIn 0.3s ease-out;
@@ -93,7 +93,7 @@
 .heroAvatar {
   width: 64px;
   height: 64px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg, 20px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,7 +150,7 @@
   height: 32px;
   padding: 0 14px;
   border: none;
-  border-radius: 9px;
+  border-radius: var(--radius-sm, 9px);
   background: var(--accent, #b07d4f);
   color: #fff;
   font-size: 13px;
@@ -182,7 +182,7 @@
   height: 32px;
   padding: 0 14px;
   border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
-  border-radius: 9px;
+  border-radius: var(--radius-sm, 9px);
   background: var(--panel, #ffffff);
   color: var(--ink, #2c2823);
   font-size: 13px;
@@ -217,7 +217,7 @@
   width: 34px;
   height: 34px;
   border: none;
-  border-radius: 9px;
+  border-radius: var(--radius-sm, 9px);
   background: transparent;
   color: var(--ink-3, #a39d93);
   cursor: pointer;
@@ -280,7 +280,7 @@
 .infoCard {
   background: var(--panel, #ffffff);
   border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
-  border-radius: 12px;
+  border-radius: var(--radius-md, 12px);
   overflow: hidden;
   transition: box-shadow 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -347,7 +347,7 @@
 .notesCard {
   background: var(--panel, #ffffff);
   border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
-  border-radius: 12px;
+  border-radius: var(--radius-md, 12px);
   padding: 14px 16px;
   box-shadow: 0 1px 2px rgba(44, 40, 33, 0.03);
   transition: box-shadow 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -370,7 +370,7 @@
 .notesCard .notesText {
   background: color-mix(in srgb, var(--accent, #b07d4f) 5%, var(--panel, #ffffff));
   border-left: 3px solid color-mix(in srgb, var(--accent, #b07d4f) 30%, var(--line, rgba(0, 0, 0, 0.09)));
-  border-radius: 0 10px 10px 0;
+  border-radius: 0 var(--radius-sm, 10px) var(--radius-sm, 10px) 0;
   padding: 14px 16px;
   margin: 0;
   font-size: 14px;
@@ -442,7 +442,7 @@
 .birthdayCard {
   background: color-mix(in srgb, var(--accent, #b07d4f) 6%, var(--panel, #ffffff));
   border: 1px solid color-mix(in srgb, var(--accent, #b07d4f) 18%, var(--line, rgba(0, 0, 0, 0.09)));
-  border-radius: 12px;
+  border-radius: var(--radius-sm, 12px);
   padding: 16px 18px;
   text-align: center;
   transition: box-shadow 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -497,7 +497,7 @@
 .categoriesCard {
   background: var(--panel, #ffffff);
   border: 1px solid var(--line, rgba(0, 0, 0, 0.09));
-  border-radius: 12px;
+  border-radius: var(--radius-md, 12px);
   padding: 14px 18px;
   transition: box-shadow 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -587,7 +587,7 @@
   .heroAvatar {
     width: 56px;
     height: 56px;
-    border-radius: 16px;
+    border-radius: var(--radius-lg, 16px);
   }
 
   .heroAvatar span {

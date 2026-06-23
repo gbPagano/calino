@@ -175,6 +175,7 @@ export function ContactList({ onNewContact, loading }: ContactListProps = {}): J
   const setSearchQuery = useContactStore((s) => s.setSearchQuery)
   const selectedContactId = useContactStore((s) => s.selectedContactId)
   const setSelectedContactId = useContactStore((s) => s.setSelectedContactId)
+  const selectedTag = useContactStore((s) => s.selectedTag)
   const contacts = useContactStore((s) => s.contacts)
   const addressBooks = useContactStore((s) => s.addressBooks)
 
@@ -288,6 +289,21 @@ export function ContactList({ onNewContact, loading }: ContactListProps = {}): J
           + New
         </button>
       </div>
+
+      {/* Active tag filter */}
+      {selectedTag && (
+        <div className={styles.tagFilter}>
+          <span className={styles.tagFilterLabel}>Filtered by:</span>
+          <span className={styles.tagFilterTag}>{selectedTag}</span>
+          <button
+            type="button"
+            className={styles.tagFilterClear}
+            onClick={() => useContactStore.getState().setSelectedTag(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Grouped contact list */}
       <div className={styles.list}>

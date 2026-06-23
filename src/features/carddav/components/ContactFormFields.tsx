@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type {
   Contact,
   ContactEmail,
@@ -20,19 +20,26 @@ export function ContactFormFields({
 }: ContactFormFieldsProps): JSX.Element {
   // Local partial state derived from props
   const [local, setLocal] = useState<Partial<Contact>>(value)
+  const valueRef = useRef(value)
 
   // Reset local state when value prop changes (e.g. when modal opens with a different contact)
+  // Use ref to avoid re-triggering on every parent render
   useEffect(() => {
-    setLocal(value)
+    if (value !== valueRef.current) {
+      valueRef.current = value
+      setLocal(value)
+    }
   }, [value])
 
   const update = useCallback(
     (partial: Partial<Contact>) => {
-      const next = { ...local, ...partial }
-      setLocal(next)
-      onChange(next)
+      setLocal((prev) => {
+        const next = { ...prev, ...partial }
+        onChange(next)
+        return next
+      })
     },
-    [local, onChange]
+    [onChange]
   )
 
   // -------------------------------------------------------------------------
@@ -248,6 +255,18 @@ export function ContactFormFields({
             </div>
           </div>
         )}
+      </div>
+
+      {/* ---- Nickname ---- */}
+      <div className={styles.modalField}>
+        <label className={styles.label}>Nickname</label>
+        <input
+          type="text"
+          placeholder="Nickname"
+          value={local.nickname || ''}
+          onChange={(e) => update({ nickname: e.target.value })}
+          className={styles.input}
+        />
       </div>
 
       {/* ---- Organization block ---- */}
@@ -603,6 +622,17 @@ export function ContactFormFields({
           type="date"
           value={local.birthday || ''}
           onChange={(e) => update({ birthday: e.target.value || null })}
+          className={styles.input}
+        />
+      </div>
+
+      {/* ---- Anniversary ---- */}
+      <div className={styles.modalField}>
+        <label className={styles.label}>Anniversary</label>
+        <input
+          type="date"
+          value={local.anniversary || ''}
+          onChange={(e) => update({ anniversary: e.target.value || null })}
           className={styles.input}
         />
       </div>

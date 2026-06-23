@@ -1,12 +1,13 @@
 import type { JSX } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
+import * as storage from '@/features/caldav/sync/accountStorage'
 import { format, parseISO } from 'date-fns'
 import styles from './Settings.module.css'
 
 export function BrokenEventsSettings(): JSX.Element {
   const brokenEvents = useCalendarStore((state) => state.brokenEvents)
   const removeBrokenEvent = useCalendarStore((state) => state.removeBrokenEvent)
-  const fixBrokenEvent = useCalendarStore((state) => state.fixBrokenEvent)
+  const addEvent = useCalendarStore((state) => state.addEvent)
 
   const formatDate = (iso: string): string => {
     try {
@@ -16,17 +17,39 @@ export function BrokenEventsSettings(): JSX.Element {
     }
   }
 
+  const handleFix = (broken: (typeof brokenEvents)[0]): void => {
+    const { event } = broken
+    const fixedEvent = { ...event, start: event.end, end: event.start }
+    removeBrokenEvent(event.id)
+    addEvent(fixedEvent)
+    storage.addPendingChange({
+      type: 'update',
+      eventId: event.id,
+      calendarId: event.calendarId,
+      data: JSON.stringify(fixedEvent),
+    })
+  }
+
+  const handleDelete = (broken: (typeof brokenEvents)[0]): void => {
+    const { event } = broken
+    storage.addPendingChange({
+      type: 'delete',
+      eventId: event.id,
+      calendarId: event.calendarId,
+      data: JSON.stringify(event),
+    })
+    removeBrokenEvent(event.id)
+  }
+
   const handleFixAll = (): void => {
-    const ids = brokenEvents.map((be) => be.event.id)
-    for (const id of ids) {
-      fixBrokenEvent(id)
+    for (const broken of [...brokenEvents]) {
+      handleFix(broken)
     }
   }
 
   const handleDeleteAll = (): void => {
-    const ids = brokenEvents.map((be) => be.event.id)
-    for (const id of ids) {
-      removeBrokenEvent(id)
+    for (const broken of [...brokenEvents]) {
+      handleDelete(broken)
     }
   }
 
@@ -69,14 +92,14 @@ export function BrokenEventsSettings(): JSX.Element {
               <div className={styles.brokenActions}>
                 <button
                   className={styles.actionBtn}
-                  onClick={() => fixBrokenEvent(broken.event.id)}
+                  onClick={() => handleFix(broken)}
                   type="button"
                 >
                   Fix
                 </button>
                 <button
                   className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                  onClick={() => removeBrokenEvent(broken.event.id)}
+                  onClick={() => handleDelete(broken)}
                   type="button"
                 >
                   Delete

@@ -179,8 +179,8 @@ export function ContactsView(): JSX.Element {
         // Select the new contact
         setSelectedContactId(contact.id)
 
-        // Sync the account
-        await syncAccount(pendingAccountId)
+        // Sync in background
+        syncAccount(pendingAccountId).catch(() => {})
       } else {
         // Optimistic update in store
         updateContact(contact.id, { ...contact, lastModified: now, syncStatus: 'pending' })
@@ -195,8 +195,8 @@ export function ContactsView(): JSX.Element {
           retryCount: 0,
         })
 
-        // Sync the account
-        await syncAccount(contact.accountId)
+        // Sync in background — don't await, let the optimistic update stay visible
+        syncAccount(contact.accountId).catch(() => {})
       }
 
       setIsFormOpen(false)

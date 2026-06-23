@@ -609,6 +609,7 @@ describe('contactToVCard', () => {
     additionalNames: '',
     prefixes: '',
     suffixes: '',
+    nickname: '',
     displayName: 'John Doe',
     organization: '',
     department: '',

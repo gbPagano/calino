@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { JSX } from 'react'
 import type { Contact } from '../types'
+import { useContactStore } from '@/store/contactStore'
 import { MarkdownView } from '@/lib/markdown'
 import styles from './ContactsView.module.css'
 
@@ -71,17 +72,28 @@ function getAge(birthday: string): number {
   return age
 }
 
+function daysUntilNextBirthday(birthday: string): number {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const birthDate = new Date(
+    birthday.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'),
+  )
+  const thisYear = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate())
+  if (thisYear < today) {
+    thisYear.setFullYear(today.getFullYear() + 1)
+  }
+  return Math.ceil((thisYear.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+}
+
 function formatAddress(addr: Contact['addresses'][0]): string {
   const lines: string[] = []
   if (addr.street) lines.push(addr.street)
   const cityRegion: string[] = []
   if (addr.city) cityRegion.push(addr.city)
   if (addr.region) cityRegion.push(addr.region)
+  if (addr.postalCode) cityRegion.push(addr.postalCode)
+  if (addr.country) cityRegion.push(addr.country)
   if (cityRegion.length > 0) lines.push(cityRegion.join(', '))
-  const postalCountry: string[] = []
-  if (addr.postalCode) postalCountry.push(addr.postalCode)
-  if (addr.country) postalCountry.push(addr.country)
-  if (postalCountry.length > 0) lines.push(postalCountry.join(' '))
   return lines.join('\n') || addr.extended || ''
 }
 
@@ -187,7 +199,9 @@ export function ContactDetail({
   const hasInfo =
     contact.emails.length > 0 ||
     contact.phones.length > 0 ||
-    contact.addresses.length > 0
+    contact.addresses.length > 0 ||
+    contact.urls.length > 0 ||
+    contact.ims.length > 0
 
   return (
     <div className={styles.detailContent}>
@@ -225,6 +239,7 @@ export function ContactDetail({
             )}
           </div>
           {roleOrg && <p className={styles.heroRole}>{roleOrg}</p>}
+          {contact.nickname && <p className={styles.heroRole} style={{ fontStyle: 'italic' }}>“{contact.nickname}”</p>}
           <div className={styles.heroActions}>
             <a
               href={`mailto:${contact.emails[0]?.value ?? ''}`}
@@ -269,78 +284,108 @@ export function ContactDetail({
             <div className={styles.infoCard}>
               {/* Emails */}
               {contact.emails.length > 0 && (
-                <>
+                <div className={styles.infoField}>
+                  <span className={styles.infoFieldLabel}>EMAIL</span>
                   {contact.emails.map((email, i) => (
-                    <div key={`email-${i}`} className={styles.infoField}>
-                      <span className={styles.infoFieldLabel}>EMAIL</span>
-                      <div className={styles.infoFieldGrid}>
-                        <span className={styles.infoFieldSub}>
-                          {EMAIL_TYPE_LABELS[email.type] ?? email.type}
+                    <div key={`email-${i}`} className={styles.infoFieldGrid}>
+                      <span className={styles.infoFieldSub}>
+                        {EMAIL_TYPE_LABELS[email.type] ?? email.type}
+                      </span>
+                      {inlineEditing?.field === `email_${i}` ? (
+                        <input
+                          className={styles.inlineInput}
+                          value={inlineEditing.value}
+                          onChange={(e) =>
+                            setInlineEditing({ ...inlineEditing, value: e.target.value })
+                          }
+                          onBlur={() => saveInlineEditEmail(i)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveInlineEditEmail(i)
+                            if (e.key === 'Escape') cancelInlineEdit()
+                          }}
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          className={styles.infoFieldValue}
+                          onDoubleClick={() => startInlineEdit(`email_${i}`, email.value)}
+                        >
+                          <a href={`mailto:${email.value}`}>{email.value}</a>
                         </span>
-                        {inlineEditing?.field === `email_${i}` ? (
-                          <input
-                            className={styles.inlineInput}
-                            value={inlineEditing.value}
-                            onChange={(e) =>
-                              setInlineEditing({ ...inlineEditing, value: e.target.value })
-                            }
-                            onBlur={() => saveInlineEditEmail(i)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveInlineEditEmail(i)
-                              if (e.key === 'Escape') cancelInlineEdit()
-                            }}
-                            autoFocus
-                          />
-                        ) : (
-                          <span
-                            className={styles.infoFieldValue}
-                            onDoubleClick={() => startInlineEdit(`email_${i}`, email.value)}
-                          >
-                            <a href={`mailto:${email.value}`}>{email.value}</a>
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
                   ))}
-                </>
+                </div>
               )}
 
               {/* Phones */}
               {contact.phones.length > 0 && (
-                <>
+                <div className={styles.infoField}>
+                  <span className={styles.infoFieldLabel}>PHONE</span>
                   {contact.phones.map((phone, i) => (
-                    <div key={`phone-${i}`} className={styles.infoField}>
-                      <span className={styles.infoFieldLabel}>PHONE</span>
-                      <div className={styles.infoFieldGrid}>
-                        <span className={styles.infoFieldSub}>
-                          {PHONE_TYPE_LABELS[phone.type] ?? phone.type}
+                    <div key={`phone-${i}`} className={styles.infoFieldGrid}>
+                      <span className={styles.infoFieldSub}>
+                        {PHONE_TYPE_LABELS[phone.type] ?? phone.type}
+                      </span>
+                      {inlineEditing?.field === `phone_${i}` ? (
+                        <input
+                          className={styles.inlineInput}
+                          value={inlineEditing.value}
+                          onChange={(e) =>
+                            setInlineEditing({ ...inlineEditing, value: e.target.value })
+                          }
+                          onBlur={() => saveInlineEditPhone(i)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveInlineEditPhone(i)
+                            if (e.key === 'Escape') cancelInlineEdit()
+                          }}
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          className={styles.infoFieldValue}
+                          onDoubleClick={() => startInlineEdit(`phone_${i}`, phone.value)}
+                        >
+                          <a href={`tel:${phone.value}`}>{phone.value}</a>
                         </span>
-                        {inlineEditing?.field === `phone_${i}` ? (
-                          <input
-                            className={styles.inlineInput}
-                            value={inlineEditing.value}
-                            onChange={(e) =>
-                              setInlineEditing({ ...inlineEditing, value: e.target.value })
-                            }
-                            onBlur={() => saveInlineEditPhone(i)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveInlineEditPhone(i)
-                              if (e.key === 'Escape') cancelInlineEdit()
-                            }}
-                            autoFocus
-                          />
-                        ) : (
-                          <span
-                            className={styles.infoFieldValue}
-                            onDoubleClick={() => startInlineEdit(`phone_${i}`, phone.value)}
-                          >
-                            <a href={`tel:${phone.value}`}>{phone.value}</a>
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
                   ))}
-                </>
+                </div>
+              )}
+
+              {/* URLs */}
+              {contact.urls.length > 0 && (
+                <div className={styles.infoField}>
+                  <span className={styles.infoFieldLabel}>URL</span>
+                  {contact.urls.map((url, i) => (
+                    <div key={`url-${i}`} className={styles.infoFieldGrid}>
+                      <span className={styles.infoFieldSub}>
+                        {EMAIL_TYPE_LABELS[url.type] ?? url.type}
+                      </span>
+                      <span className={styles.infoFieldValue}>
+                        <a href={url.value.startsWith('http') ? url.value : `https://${url.value}`} target="_blank" rel="noopener noreferrer">
+                          {url.value}
+                        </a>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Instant messaging */}
+              {contact.ims.length > 0 && (
+                <div className={styles.infoField}>
+                  <span className={styles.infoFieldLabel}>IM</span>
+                  {contact.ims.map((im, i) => (
+                    <div key={`im-${i}`} className={styles.infoFieldGrid}>
+                      <span className={styles.infoFieldSub}>
+                        {im.protocol !== 'other' ? im.protocol.toUpperCase() : (EMAIL_TYPE_LABELS[im.type] ?? im.type)}
+                      </span>
+                      <span className={styles.infoFieldValue}>{im.value}</span>
+                    </div>
+                  ))}
+                </div>
               )}
 
               {/* Addresses */}
@@ -383,12 +428,35 @@ export function ContactDetail({
           {contact.birthday && (
             <div className={styles.birthdayCard}>
               <span className={styles.birthdayEmoji}>{'\uD83C\uDF82'}</span>
-              <div className={styles.birthdayLabel}>BIRTHDAY</div>
+              <div className={styles.birthdayLabel}>
+                BIRTHDAY
+                {daysUntilNextBirthday(contact.birthday) > 0 && (
+                  <span className={styles.birthdayCountdown}>
+                    (in {daysUntilNextBirthday(contact.birthday)} days)
+                  </span>
+                )}
+                {daysUntilNextBirthday(contact.birthday) === 0 && (
+                  <span className={styles.birthdayCountdown}>
+                    (today!)
+                  </span>
+                )}
+              </div>
               <div className={styles.birthdayDate}>
                 {formatDate(contact.birthday)}
               </div>
               <div className={styles.birthdayAge}>
                 {getAge(contact.birthday)} years old
+              </div>
+            </div>
+          )}
+
+          {/* Anniversary */}
+          {contact.anniversary && (
+            <div className={styles.birthdayCard}>
+              <span className={styles.birthdayEmoji}>{'\u2764\uFE0F'}</span>
+              <div className={styles.birthdayLabel}>ANNIVERSARY</div>
+              <div className={styles.birthdayDate}>
+                {formatDate(contact.anniversary)}
               </div>
             </div>
           )}
@@ -399,9 +467,14 @@ export function ContactDetail({
               <div className={styles.asideSectionLabel}>TAGS</div>
               <div className={styles.tagList}>
                 {contact.categories.map((cat) => (
-                  <span key={cat} className={styles.tagPill}>
+                  <button
+                    key={cat}
+                    className={styles.tagPill}
+                    onClick={() => useContactStore.getState().setSelectedTag(cat)}
+                    type="button"
+                  >
                     {cat}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>

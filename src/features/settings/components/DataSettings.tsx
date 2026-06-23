@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { useState, useRef } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { parseICALEvent } from '@/features/caldav/adapter/iCalendarAdapter'
 import { format, parseISO } from 'date-fns'
 import styles from './Settings.module.css'
@@ -18,7 +19,8 @@ export function DataSettings(): JSX.Element {
   const calendars = useCalendarStore((state) => state.calendars)
   const brokenEvents = useCalendarStore((state) => state.brokenEvents)
   const removeBrokenEvent = useCalendarStore((state) => state.removeBrokenEvent)
-  const fixBrokenEvent = useCalendarStore((state) => state.fixBrokenEvent)
+  const addEvent = useCalendarStore((state) => state.addEvent)
+  const { updateEvent: caldavUpdateEvent, deleteEvent: caldavDeleteEvent } = useCalDAV()
 
   const formatDate = (iso: string): string => {
     try {
@@ -28,22 +30,45 @@ export function DataSettings(): JSX.Element {
     }
   }
 
-  const handleFixAll = (): void => {
-    for (const broken of brokenEvents) {
-      fixBrokenEvent(broken.event.id)
+  const handleFix = async (broken: (typeof brokenEvents)[0]): Promise<void> => {
+    const { event } = broken
+    const fixedEvent = { ...event, start: event.end, end: event.start }
+    removeBrokenEvent(event.id)
+    addEvent(fixedEvent)
+    try {
+      await caldavUpdateEvent(fixedEvent.calendarId, fixedEvent)
+    } catch (err) {
+      console.warn('[DataSettings] Fix sync failed:', err)
     }
   }
 
-  const handleDeleteAllBroken = (): void => {
-    for (const broken of brokenEvents) {
-      removeBrokenEvent(broken.event.id)
+  const handleDelete = async (broken: (typeof brokenEvents)[0]): Promise<void> => {
+    const { event } = broken
+    // Sync to CalDAV FIRST (while brokenEvents still has the etag), then remove locally
+    try {
+      await caldavDeleteEvent(event.calendarId, event.id)
+    } catch (err) {
+      console.warn('[DataSettings] Delete sync failed:', err)
+    }
+    removeBrokenEvent(event.id)
+  }
+
+  const handleFixAll = async (): Promise<void> => {
+    for (const broken of [...brokenEvents]) {
+      await handleFix(broken)
+    }
+  }
+
+  const handleDeleteAllBroken = async (): Promise<void> => {
+    for (const broken of [...brokenEvents]) {
+      await handleDelete(broken)
     }
   }
 
   const handleExportICS = async (): Promise<void> => {
     setIsExporting(true)
     try {
-      const formatDate = (date: string): string => {
+      const fmtDate = (date: string): string => {
         const formatted = date.replace(/[-:]/g, '').replace(/\.\d{3}/, '')
         return formatted.endsWith('Z') || formatted.endsWith('z') ? formatted : formatted + 'Z'
       }
@@ -52,8 +77,8 @@ export function DataSettings(): JSX.Element {
       for (const event of events) {
         ics += 'BEGIN:VEVENT\r\n'
         ics += `UID:${event.id}\r\n`
-        ics += `DTSTART:${formatDate(event.start)}\r\n`
-        ics += `DTEND:${formatDate(event.end)}\r\n`
+        ics += `DTSTART:${fmtDate(event.start)}\r\n`
+        ics += `DTEND:${fmtDate(event.end)}\r\n`
         ics += `SUMMARY:${event.title}\r\n`
         if (event.description) ics += `DESCRIPTION:${event.description}\r\n`
         if (event.location) ics += `LOCATION:${event.location}\r\n`
@@ -184,7 +209,7 @@ export function DataSettings(): JSX.Element {
                 <div className={styles.brokenActions}>
                   <button
                     className={styles.actionBtn}
-                    onClick={() => fixBrokenEvent(broken.event.id)}
+                    onClick={() => void handleFix(broken)}
                     data-component="action-button"
                     data-action="fix-broken-event"
                     type="button"
@@ -193,7 +218,7 @@ export function DataSettings(): JSX.Element {
                   </button>
                   <button
                     className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                    onClick={() => removeBrokenEvent(broken.event.id)}
+                    onClick={() => void handleDelete(broken)}
                     data-component="action-button"
                     data-action="delete-broken-event"
                     type="button"
@@ -207,10 +232,10 @@ export function DataSettings(): JSX.Element {
 
           {brokenEvents.length > 1 && (
             <div className={styles.brokenBatchActions}>
-              <button className={styles.actionBtn} onClick={handleFixAll} data-component="action-button" data-action="fix-all-broken" type="button">
+              <button className={styles.actionBtn} onClick={() => void handleFixAll()} data-component="action-button" data-action="fix-all-broken" type="button">
                 Fix All ({brokenEvents.length})
               </button>
-              <button className={`${styles.actionBtn} ${styles.actionBtnDanger}`} onClick={handleDeleteAllBroken} data-component="action-button" data-action="delete-all-broken" type="button">
+              <button className={`${styles.actionBtn} ${styles.actionBtnDanger}`} onClick={() => void handleDeleteAllBroken()} data-component="action-button" data-action="delete-all-broken" type="button">
                 Delete All
               </button>
             </div>

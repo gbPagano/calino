@@ -96,7 +96,9 @@ export function useCalDAV(): UseCalDAVReturn {
     const changes = storage.getPendingChanges()
     if (changes.length === 0) return
 
-    console.log(`[CalDAV] Processing ${changes.length} pending changes...`)
+    if (caldavDebugMode) {
+      console.log(`[CalDAV] Processing ${changes.length} pending changes...`)
+    }
 
     const allCalendars = storage.getAllCalendars()
     const allAccounts = storage.getAllAccounts()
@@ -152,11 +154,25 @@ export function useCalDAV(): UseCalDAVReturn {
           }
           case 'delete': {
             const eventUrl = `${calendar.url}${change.eventId}.ics`
-            // Bug 17 fix: look up the event's etag from the store before deleting
-            const eventInStore = useCalendarStore.getState().events.find(
-              (e) => e.id === change.eventId
-            )
-            await engine.deleteEvent(eventUrl, eventInStore?.etag || '')
+            // Try to get etag from pending change data first (for broken events),
+            // then from the live store
+            let etag = ''
+            if (change.data) {
+              try {
+                const eventData = JSON.parse(change.data) as CalendarEvent
+                etag = eventData.etag || ''
+              } catch { /* ignore parse errors */ }
+            }
+            if (!etag) {
+              const eventInStore = useCalendarStore.getState().events.find(
+                (e) => e.id === change.eventId
+              )
+              etag = eventInStore?.etag || ''
+            }
+            if (caldavDebugMode) {
+              console.log('[CalDAV] Deleting event from server:', eventUrl, 'etag:', etag)
+            }
+            await engine.deleteEvent(eventUrl, etag)
             // Event was already removed from store; nothing to mark
             break
           }
@@ -230,9 +246,21 @@ export function useCalDAV(): UseCalDAVReturn {
           const carddavClient = await createCardDAVClient(account.serverUrl, credential, account.proxyUrl)
           const addressBooks = await carddavClient.fetchAddressBooks()
           if (addressBooks.length > 0) {
+            let hasContacts = false
+            for (const book of addressBooks) {
+              try {
+                const contacts = await carddavClient.fetchContacts(book)
+                if (contacts.length > 0) {
+                  hasContacts = true
+                  break
+                }
+              } catch {
+                // ignore per-book errors
+              }
+            }
             const { contactsEnabled, updateSettings } = useSettingsStore.getState()
-            if (!contactsEnabled) {
-              console.log('[CalDAV] Enabling contacts (found address books)')
+            if (!contactsEnabled && hasContacts) {
+              console.log('[CalDAV] Enabling contacts (found contacts in address books)')
               updateSettings({ contactsEnabled: true })
             }
           }
@@ -433,9 +461,23 @@ export function useCalDAV(): UseCalDAVReturn {
           const carddavClient = await createCardDAVClient(serverUrl, credential, proxyUrl ?? null)
           const addressBooks = await carddavClient.fetchAddressBooks()
           if (addressBooks.length > 0) {
+            // Only enable contacts if we actually find at least one contact
+            let hasContacts = false
+            for (const book of addressBooks) {
+              try {
+                const contacts = await carddavClient.fetchContacts(book)
+                console.log(`[CalDAV] Address book "${book.name}" has ${contacts.length} contacts`)
+                if (contacts.length > 0) {
+                  hasContacts = true
+                  break
+                }
+              } catch (err) {
+                console.warn(`[CalDAV] Failed to fetch contacts from "${book.name}":`, err)
+              }
+            }
             const { contactsEnabled, updateSettings } = useSettingsStore.getState()
-            if (!contactsEnabled) {
-              console.log('[CalDAV] Enabling contacts (found address books)')
+            if (!contactsEnabled && hasContacts) {
+              console.log('[CalDAV] Enabling contacts (found contacts in address books)')
               updateSettings({ contactsEnabled: true })
             }
           }
@@ -631,6 +673,15 @@ export function useCalDAV(): UseCalDAVReturn {
 
                 serverEventIds.add(parsedEvent.id)
 
+                // Skip events that have a pending delete
+                const pendingDeletes = storage.getPendingChanges().filter(
+                  (p) => p.type === 'delete' && p.eventId === parsedEvent.id
+                )
+                if (pendingDeletes.length > 0) {
+                  console.log(`[CalDAV] Skipping event ${parsedEvent.id} — has pending delete`)
+                  continue
+                }
+
                 // Collect category names for auto-creation
                 // Bug 31 fix: do not filter categories by UUID pattern.
                 // Let users see all categories from their CalDAV server.
@@ -709,7 +760,7 @@ export function useCalDAV(): UseCalDAVReturn {
         }
 
         storage.updateAccountLastSync(accountId)
-        processPendingChanges()
+        await processPendingChanges()
 
         // Check for broken events after sync and notify
         const brokenEventsAfterSync = useCalendarStore.getState().brokenEvents
@@ -992,6 +1043,9 @@ export function useCalDAV(): UseCalDAVReturn {
       // Capture the event data before it might be deleted from the store
       // by the caller's optimistic delete
       const eventData = useCalendarStore.getState().events.find((e) => e.id === eventId)
+      // Also check brokenEvents — broken events aren't in events[]
+      const brokenData = eventData ? null : useCalendarStore.getState().brokenEvents.find((be) => be.event.id === eventId)
+      const effectiveData = eventData ?? brokenData?.event
 
       const allCalendars = storage.getAllCalendars()
       const allAccounts = storage.getAllAccounts()
@@ -1027,7 +1081,7 @@ export function useCalDAV(): UseCalDAVReturn {
 
         const eventUrl = `${calendar.url}${eventId}.ics`
         // Bug 17 fix: use the event's etag from the store instead of empty string
-        await engine.deleteEvent(eventUrl, eventData?.etag || '')
+        await engine.deleteEvent(eventUrl, effectiveData?.etag || '')
 
         storeDeleteEvent(eventId)
 
@@ -1045,7 +1099,7 @@ export function useCalDAV(): UseCalDAVReturn {
           type: 'delete',
           eventId,
           calendarId,
-          data: eventData ? JSON.stringify(eventData) : undefined,
+          data: effectiveData ? JSON.stringify(effectiveData) : undefined,
         })
         // Re-add the event to the store with syncStatus='failed' so the user
         // can see it and retry the deletion

@@ -7,6 +7,7 @@ export interface ContactStore {
   contacts: Contact[]
   addressBooks: AddressBook[]
   selectedContactId: string | null
+  selectedTag: string | null
   searchQuery: string
   pendingChanges: PendingContactChange[]
   
@@ -15,6 +16,7 @@ export interface ContactStore {
   updateContact: (id: string, updates: Partial<Contact>) => void
   deleteContact: (id: string) => void
   setSelectedContactId: (id: string | null) => void
+  setSelectedTag: (tag: string | null) => void
   setSearchQuery: (query: string) => void
   
   // Address book actions
@@ -43,6 +45,7 @@ export const useContactStore = create<ContactStore>()(
       contacts: [],
       addressBooks: [],
       selectedContactId: null,
+      selectedTag: null,
       searchQuery: '',
       pendingChanges: [],
 
@@ -69,6 +72,10 @@ export const useContactStore = create<ContactStore>()(
 
       setSelectedContactId: (id: string | null): void => {
         set({ selectedContactId: id })
+      },
+
+      setSelectedTag: (tag: string | null): void => {
+        set({ selectedTag: tag })
       },
 
       setSearchQuery: (query: string): void => {
@@ -125,7 +132,7 @@ export const useContactStore = create<ContactStore>()(
       },
 
       getFilteredContacts: (): Contact[] => {
-        const { contacts, searchQuery, addressBooks } = get()
+        const { contacts, searchQuery, selectedTag, addressBooks } = get()
         
         // Filter by visible address books
         const visibleAddressBookIds = addressBooks
@@ -134,11 +141,17 @@ export const useContactStore = create<ContactStore>()(
         
         let filtered = contacts.filter((c) => visibleAddressBookIds.includes(c.addressBookId))
         
+        // Filter by tag
+        if (selectedTag) {
+          filtered = filtered.filter((c) => c.categories.includes(selectedTag))
+        }
+        
         // Filter by search query
         if (searchQuery.trim()) {
           const query = searchQuery.toLowerCase()
           filtered = filtered.filter((c) =>
             c.displayName.toLowerCase().includes(query) ||
+            c.nickname.toLowerCase().includes(query) ||
             c.organization.toLowerCase().includes(query) ||
             c.emails.some((e) => e.value.toLowerCase().includes(query)) ||
             c.phones.some((p) => p.value.includes(query))

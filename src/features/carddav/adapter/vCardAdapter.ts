@@ -24,7 +24,7 @@ export function decodeCaretEncoding(s: string): string {
  * Encode a string for RFC 6868 format (for parameter values).
  */
 export function encodeCaretEncoding(s: string): string {
-  return s.replace(/\^/g, '^^').replace(/\'/g, "^'").replace(/\n/g, '^n')
+  return s.replace(/\^/g, '^^').replace(/'/g, "^'").replace(/\n/g, '^n')
 }
 
 // ---------------------------------------------------------------------------
@@ -620,6 +620,9 @@ export function parseVCard(vCardString: string, addressBookId: string, accountId
   // Parse gender
   const gender = extractProperty(lines, 'GENDER') || ''
 
+  // Parse nickname
+  const nickname = unescapeVCardValue(extractProperty(lines, 'NICKNAME') || '')
+
   // Parse note
   const note = unescapeVCardValue(extractProperty(lines, 'NOTE') || '')
 
@@ -670,6 +673,7 @@ export function parseVCard(vCardString: string, addressBookId: string, accountId
     birthday,
     anniversary,
     gender,
+    nickname,
     note,
     categories,
     photo,
@@ -800,6 +804,11 @@ export function contactToVCard(contact: Contact, targetVersion: '3.0' | '4.0' = 
   // Gender
   if (contact.gender) {
     lines.push(`GENDER:${contact.gender}`)
+  }
+
+  // Nickname
+  if (contact.nickname) {
+    lines.push(`NICKNAME:${escapeVCardValue(contact.nickname)}`)
   }
 
   // Note

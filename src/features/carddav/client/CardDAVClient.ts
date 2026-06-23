@@ -173,7 +173,6 @@ export class CardDAVClient {
   private proxyFetch: (url: string | URL, init?: RequestInit) => Promise<Response>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private cachedDavAddressBooks: any[] | null = null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private cachedCollectionProps: Map<string, { supportedVersions?: ('3.0' | '4.0')[]; maxResourceSize?: number | null; canWrite?: boolean }> = new Map()
 
   constructor(serverUrl: string, credentials: CalDAVCredentials, proxyUrl: string | null = null) {
@@ -728,7 +727,7 @@ export class CardDAVClient {
       if (!addressbookHomeSet) throw new Error('Could not find addressbook-home-set')
 
       return { principalUrl, addressbookHomeSet }
-    } catch (err) {
+    } catch {
       // Discovery failed — fall back to using serverUrl as home set
       // This preserves backwards compatibility with direct URL entry
       return {

@@ -26,6 +26,7 @@ export interface Contact {
   additionalNames: string
   prefixes: string
   suffixes: string
+  nickname: string
   
   // Display name (FN property)
   displayName: string

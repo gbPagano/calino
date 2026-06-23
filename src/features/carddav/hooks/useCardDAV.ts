@@ -83,34 +83,37 @@ export function useCardDAV(): UseCardDAVReturn {
   }, [])
 
   // Replay pending offline changes against the server
-  const replayPendingChanges = useCallback(async (client: CardDAVClient, accountId: string): Promise<void> => {
-    const state = useContactStore.getState()
-    const changes = state.pendingChanges.filter((c) => {
-      const contact = state.contacts.find((ct) => ct.id === c.contactId)
+  const replayPendingChanges = useCallback(async (client: CardDAVClient, accountId: string): Promise<string[]> => {
+    // Use LIVE store so we get the latest contacts (with user edits) and pending changes
+    const getLiveState = () => useContactStore.getState()
+    const changes = getLiveState().pendingChanges.filter((c) => {
+      const contact = getLiveState().contacts.find((ct) => ct.id === c.contactId)
       return contact?.accountId === accountId
     })
 
-    if (changes.length === 0) return
+    if (changes.length === 0) return []
 
     console.log(`[CardDAV] Replaying ${changes.length} pending changes`)
 
+    const replayedIds: string[] = []
+
     for (const change of changes) {
       try {
-        const contact = state.contacts.find((ct) => ct.id === change.contactId)
+        // Read from LIVE store, not the snapshot, so we get the updated contact
+        const contact = useContactStore.getState().contacts.find((ct) => ct.id === change.contactId)
 
         if (change.type === 'delete') {
           if (contact?.url && contact?.etag) {
-            const ab = state.addressBooks.find((a) => a.id === contact.addressBookId)
+            const ab = getLiveState().addressBooks.find((a) => a.id === contact.addressBookId)
             if (ab) {
               await client.deleteContact(ab, contact.url, contact.etag)
             }
           }
         } else if (change.type === 'create' && contact) {
-          const ab = state.addressBooks.find((a) => a.id === change.addressBookId)
+          const ab = getLiveState().addressBooks.find((a) => a.id === change.addressBookId)
           if (ab) {
             const filename = `${contact.id}.vcf`
             const result = await client.createContact(ab, contact, filename)
-            // Update the contact with the server-assigned URL and etag
             useContactStore.getState().updateContact(contact.id, {
               url: result.url,
               etag: result.etag,
@@ -119,7 +122,7 @@ export function useCardDAV(): UseCardDAVReturn {
           }
         } else if (change.type === 'update' && contact) {
           if (contact.url && contact.etag) {
-            const ab = state.addressBooks.find((a) => a.id === contact.addressBookId)
+            const ab = getLiveState().addressBooks.find((a) => a.id === contact.addressBookId)
             if (ab) {
               const result = await client.updateContact(ab, contact, contact.url, contact.etag)
               useContactStore.getState().updateContact(contact.id, {
@@ -130,17 +133,18 @@ export function useCardDAV(): UseCardDAVReturn {
           }
         }
 
-        removePendingChange(change.id)
+        replayedIds.push(change.id)
       } catch (err) {
         console.warn(`[CardDAV] Failed to replay change ${change.id}:`, err)
-        // Leave in queue for next sync attempt
         const updated = useContactStore.getState().pendingChanges.find((c) => c.id === change.id)
         if (updated && updated.retryCount < 3) {
           useContactStore.getState().updateContact(change.contactId, { syncStatus: 'failed' })
         }
       }
     }
-  }, [removePendingChange])
+
+    return replayedIds
+  }, [])
 
   // Sync contacts from a CalDAV account
   const syncAccount = useCallback(async (accountId: string): Promise<void> => {
@@ -153,7 +157,9 @@ export function useCardDAV(): UseCardDAVReturn {
       const client = await getClientForAccount(accountId)
 
       // Replay any pending offline changes first
-      await replayPendingChanges(client, accountId)
+      // Returns IDs of successfully replayed changes — we remove them AFTER the sync loop
+      // so the hasPending check still protects those contacts from being overwritten
+      const replayedChangeIds = await replayPendingChanges(client, accountId)
 
       const serverAddressBooks = await client.fetchAddressBooks()
 
@@ -338,6 +344,11 @@ export function useCardDAV(): UseCardDAVReturn {
       })
 
       setContacts(prunedContacts)
+
+      // Now safe to remove successfully replayed pending changes
+      for (const changeId of replayedChangeIds) {
+        removePendingChange(changeId)
+      }
 
       setSyncState((prev) => ({
         ...prev,

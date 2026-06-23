@@ -22,6 +22,7 @@ const EMPTY_CONTACT: Partial<Contact> = {
   additionalNames: '',
   prefixes: '',
   suffixes: '',
+  nickname: '',
   displayName: '',
   organization: '',
   department: '',
@@ -74,6 +75,27 @@ export function ContactFormModal({
 
   const isEditMode = contact !== null
 
+  // Auto-populate given/family name from displayName for new contacts (on blur)
+  const handleTitleBlur = (): void => {
+    // Only auto-fill for new contacts when given/family are empty
+    if (!isEditMode && !formState.givenName && !formState.familyName) {
+      const parts = title.trim().split(/\s+/)
+      if (parts.length >= 2) {
+        setFormState((prev) => ({
+          ...prev,
+          givenName: parts[0],
+          familyName: parts.slice(1).join(' '),
+        }))
+      } else if (parts.length === 1 && parts[0]) {
+        setFormState((prev) => ({
+          ...prev,
+          givenName: parts[0],
+          familyName: '',
+        }))
+      }
+    }
+  }
+
   const handleSave = (): void => {
     // Merge title into formState as displayName
     const displayName = title.trim() || formState.displayName || ''
@@ -104,6 +126,7 @@ export function ContactFormModal({
       additionalNames: formState.additionalNames ?? '',
       prefixes: formState.prefixes ?? '',
       suffixes: formState.suffixes ?? '',
+      nickname: formState.nickname ?? '',
 
       displayName: displayName,
 
@@ -171,6 +194,7 @@ export function ContactFormModal({
             placeholder={contact ? contact.displayName || 'New Contact' : 'New Contact'}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            onBlur={handleTitleBlur}
             className={eventModalStyles.modalTitle}
             autoFocus
           />

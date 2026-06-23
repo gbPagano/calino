@@ -1,26 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { describeRecurrence } from '../recurrence'
-import type { CalendarEvent, RecurrenceRule } from '@/types'
-
-function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
-  return {
-    id: 'test',
-    calendarId: 'cal1',
-    title: 'Test',
-    start: '2024-03-15T09:00:00Z',
-    end: '2024-03-15T10:00:00Z',
-    isAllDay: false,
-    ...overrides,
-  }
-}
-
-function makeRule(overrides: Partial<RecurrenceRule> = {}): RecurrenceRule {
-  return {
-    frequency: 'daily',
-    interval: 1,
-    ...overrides,
-  }
-}
+import { makeEvent, makeRule } from './fixtures'
 
 describe('Bug #85: Sub-daily frequencies in describeFromRecurrenceRule', () => {
   describe('RecurrenceRule objects', () => {

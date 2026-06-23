@@ -1,21 +1,13 @@
 import type { JSX } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
 import * as storage from '@/features/caldav/sync/accountStorage'
-import { format, parseISO } from 'date-fns'
+import { formatBrokenEventDate as formatDate } from '../lib/format'
 import styles from './Settings.module.css'
 
 export function BrokenEventsSettings(): JSX.Element {
   const brokenEvents = useCalendarStore((state) => state.brokenEvents)
   const removeBrokenEvent = useCalendarStore((state) => state.removeBrokenEvent)
   const addEvent = useCalendarStore((state) => state.addEvent)
-
-  const formatDate = (iso: string): string => {
-    try {
-      return format(parseISO(iso), 'MMM d, yyyy h:mm a')
-    } catch {
-      return iso
-    }
-  }
 
   const handleFix = (broken: (typeof brokenEvents)[0]): void => {
     const { event } = broken

@@ -4,6 +4,7 @@ import type { RecurrenceRule, Reminder, CalendarEvent, CalendarAttachment } from
 import { useSettingsStore } from '@/store/settingsStore'
 import { useScrollInput } from '@/hooks/useScrollInput'
 import { AttachmentSection } from './AttachmentSection'
+import { getWeekdayLabels } from './weekdayLabels'
 import styles from './EventModal.module.css'
 
 interface EventFormFieldsProps {
@@ -106,16 +107,6 @@ const REMINDER_OPTIONS: { value: number; label: string }[] = [
   { value: 120, label: '2 hours before' },
   { value: 1440, label: '1 day before' },
 ]
-
-const BASE_WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-function getWeekdayLabels(firstDayOfWeek: number): string[] {
-  const labels: string[] = []
-  for (let i = 0; i < 7; i++) {
-    labels.push(BASE_WEEKDAY_LABELS[(i + firstDayOfWeek) % 7])
-  }
-  return labels
-}
 
 export function EventFormFields({
   isAllDay,

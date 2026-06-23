@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+import { createLocalStorageMock } from '@/test/storageMock'
 import { useSettingsSync } from '../useSettingsSync'
 import { useSettingsStore } from '@/store/settingsStore'
 import {
@@ -14,7 +15,7 @@ import { getCredentialById } from '@/features/caldav/client/credentials'
 import { createCalDAVClient } from '@/features/caldav/client/CalDAVClient'
 
 // In-memory localStorage
-const storage = new Map<string, string>()
+const storage = createLocalStorageMock()
 
 // Mock CalDAV client methods
 const mockFetchSettingsEvent = vi.fn()
@@ -51,11 +52,7 @@ vi.mock('@/features/caldav/sync/accountStorage', () => ({
 describe('useSettingsSync', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    storage.clear()
-    vi.mocked(localStorage.getItem).mockImplementation((key: string) => storage.get(key) ?? null)
-    vi.mocked(localStorage.setItem).mockImplementation((key: string, value: string) => { storage.set(key, value) })
-    vi.mocked(localStorage.removeItem).mockImplementation((key: string) => { storage.delete(key) })
-    vi.mocked(localStorage.clear).mockImplementation(() => { storage.clear() })
+    storage.install()
     useSettingsStore.getState().resetSettings()
     vi.mocked(createCalDAVClient).mockResolvedValue(mockClient as unknown as Awaited<ReturnType<typeof createCalDAVClient>>)
     vi.mocked(getCredentialById).mockResolvedValue({
@@ -74,7 +71,7 @@ describe('useSettingsSync', () => {
 
   afterEach(() => {
     clearSyncKeys()
-    storage.clear()
+    storage.reset()
   })
 
   describe('initial state', () => {

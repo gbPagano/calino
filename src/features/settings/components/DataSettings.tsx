@@ -6,10 +6,10 @@ import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { useCardDAV } from '@/features/carddav/hooks/useCardDAV'
 import { parseICALEvent } from '@/features/caldav/adapter/iCalendarAdapter'
 import { parseVCardFile, contactsToVCardFile, downloadFile, readFileAsText } from '@/features/carddav/lib/vCardFileUtils'
-import { format, parseISO } from 'date-fns'
 import { showToast } from '@/lib/toast'
 import { MergeDuplicatesModal } from '@/features/carddav/components/MergeDuplicatesModal'
 import { ImportExportModal } from '@/features/carddav/components/ImportExportModal'
+import { formatBrokenEventDate as formatDate } from '../lib/format'
 import type { Contact } from '@/features/carddav/types'
 import styles from './Settings.module.css'
 
@@ -28,14 +28,6 @@ export function DataSettings(): JSX.Element {
   const removeBrokenEvent = useCalendarStore((state) => state.removeBrokenEvent)
   const addEvent = useCalendarStore((state) => state.addEvent)
   const { updateEvent: caldavUpdateEvent, deleteEvent: caldavDeleteEvent } = useCalDAV()
-
-  const formatDate = (iso: string): string => {
-    try {
-      return format(parseISO(iso), 'MMM d, yyyy h:mm a')
-    } catch {
-      return iso
-    }
-  }
 
   const handleFix = async (broken: (typeof brokenEvents)[0]): Promise<void> => {
     const { event } = broken

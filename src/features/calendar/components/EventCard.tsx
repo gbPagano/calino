@@ -16,7 +16,7 @@ import { useContextMenuStore } from '@/store/contextMenuStore'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 
-import { isUUID } from '@/features/caldav/adapter/iCalendarAdapter'
+import { isUUID } from '@/lib/uuid'
 import { extractOriginalEventId, hasDueTime, formatTravelDuration } from '@/lib/events'
 import { hapticIfEnabled } from '@/lib/haptics'
 import styles from './EventCard.module.css'

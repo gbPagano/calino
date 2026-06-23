@@ -13,6 +13,7 @@ vi.mock('../../sync/accountStorage')
 vi.mock('../../adapter/iCalendarAdapter')
 vi.mock('../../client/CalDAVClient')
 vi.mock('../../sync/syncEngine')
+vi.mock('@/lib/uuid')
 
 // ---------------------------------------------------------------------------
 // Helper: typed access to mocked modules
@@ -1561,8 +1562,9 @@ describe('useCalDAV', () => {
       }
 
       const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      const uuidMod = await import('@/lib/uuid')
       vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
-      vi.mocked(iCalendarAdapter.isUUID).mockReturnValue(true)
+      vi.mocked(uuidMod.isUUID).mockReturnValue(true)
 
       mockCalDAVClient.createCalDAVClient.mockResolvedValue({
         fetchEvents: vi.fn().mockResolvedValue([
@@ -1588,8 +1590,9 @@ describe('useCalDAV', () => {
 
     it('does not filter UUID-looking categories during addAccount', async () => {
       const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      const uuidMod = await import('@/lib/uuid')
       vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([])
-      vi.mocked(iCalendarAdapter.isUUID).mockReturnValue(true)
+      vi.mocked(uuidMod.isUUID).mockReturnValue(true)
 
       // Mock saveAccount to return an object with an id
       mockAccountStorage.saveAccount.mockReturnValue({
@@ -1673,8 +1676,9 @@ describe('useCalDAV', () => {
       }
 
       const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      const uuidMod = await import('@/lib/uuid')
       vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
-      vi.mocked(iCalendarAdapter.isUUID).mockReturnValue(false)
+      vi.mocked(uuidMod.isUUID).mockReturnValue(false)
 
       mockCalDAVClient.createCalDAVClient.mockResolvedValue({
         fetchEvents: vi.fn().mockResolvedValue([

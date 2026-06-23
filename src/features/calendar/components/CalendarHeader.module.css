@@ -179,7 +179,7 @@
 .rightCluster {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 5px;
   padding-left: 22px;
 }
 

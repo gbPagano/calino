@@ -125,7 +125,7 @@ export function ContactsView(): JSX.Element {
         confirmDeleteTimerRef.current = null
       }, 3000)
     },
-    [addressBooks, deleteContact, addPendingChange, selectedContactId, setSelectedContactId, syncAccount, confirmDeleteId]
+    [addressBooks, deleteContact, addContact, addPendingChange, selectedContactId, setSelectedContactId, syncAccount, confirmDeleteId]
   )
 
   const handleFieldSave = useCallback(

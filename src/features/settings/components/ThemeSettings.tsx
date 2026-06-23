@@ -6,31 +6,42 @@ import { getThemePreviewCSS } from '@/lib/themes'
 import type { ThemeMode } from '@/types'
 import styles from './Settings.module.css'
 
-function MiniCalendarPreview({ variant }: { variant: 'light' | 'dark' | 'system' }): JSX.Element {
-  const cellBg = variant === 'dark' ? '#252218' : '#f0ece5'
-  const eventBg = variant === 'dark' ? 'color-mix(in srgb, #b07d4f 20%, #1a1815)' : 'color-mix(in srgb, #b07d4f 12%, #faf8f3)'
+function MiniCalendarPreview({ themeId, variant }: { themeId: string; variant: 'light' | 'dark' | 'system' }): JSX.Element {
+  // Extract theme colors from the theme's CSS (dynamically reflects the selected theme)
+  const css = getThemePreviewCSS(themeId)
+  const extract = (prop: string, fallback: string) => {
+    const match = css.match(new RegExp(`${prop}:\\s*([^;\\n]+)`))
+    return match ? match[1].trim() : fallback
+  }
 
-  const previewStyle = variant === 'system'
-    ? { background: 'linear-gradient(135deg, #faf8f3 50%, #1a1815 50%)' }
-    : { background: variant === 'dark' ? '#1a1815' : '#faf8f3' }
+  const canvas = extract('--canvas', '#faf8f3')
+  const panel = extract('--panel', '#ffffff')
+  const accent = extract('--accent', '#b07d4f')
+  const accentMixLight = css.includes('--accent-soft')
+    ? extract('--accent-soft', `color-mix(in srgb, ${accent} 12%, ${canvas})`)
+    : `color-mix(in srgb, ${accent} 12%, ${canvas})`
+  const accentMixDark = css.includes('--accent-soft')
+    ? extract('--accent-soft', `color-mix(in srgb, ${accent} 20%, #1a1816)`)
+    : `color-mix(in srgb, ${accent} 20%, #1a1816)`
 
-  const cellStyle = variant === 'system'
-    ? { background: 'linear-gradient(135deg, #f0ece5 50%, #252218 50%)' }
-    : { background: cellBg }
-
-  const eventStyle = variant === 'system'
-    ? { background: 'linear-gradient(135deg, color-mix(in srgb, #b07d4f 12%, #faf8f3) 50%, color-mix(in srgb, #b07d4f 20%, #1a1815) 50%)' }
-    : { background: eventBg }
+  const isSystem = variant === 'system'
+  const bg = isSystem ? `linear-gradient(135deg, ${canvas} 50%, #1a1816 50%)` : canvas
+  const cellBg = isSystem
+    ? `linear-gradient(135deg, ${panel} 50%, #242220 50%)`
+    : panel
+  const eventBg = isSystem
+    ? `linear-gradient(135deg, ${accentMixLight} 50%, ${accentMixDark} 50%)`
+    : accentMixLight
 
   return (
-    <div className={`${styles.themeCardPreview} ${variant === 'light' ? styles.themeCardPreviewLight : variant === 'dark' ? styles.themeCardPreviewDark : styles.themeCardPreviewSystem}`} style={previewStyle}>
-      <div className={styles.tcBar} style={{ background: variant === 'dark' ? '#2d2a24' : '#e8e2d8', width: '60%' }} />
+    <div className={`${styles.themeCardPreview} ${variant === 'light' ? styles.themeCardPreviewLight : variant === 'dark' ? styles.themeCardPreviewDark : styles.themeCardPreviewSystem}`} style={{ background: bg }}>
+      <div className={styles.tcBar} style={{ background: cellBg, width: '60%' }} />
       <div className={styles.tcGrid}>
         {Array.from({ length: 14 }, (_, i) => (
           <div
             key={i}
             className={styles.tcDay}
-            style={i === 2 || i === 5 || i === 10 ? eventStyle : cellStyle}
+            style={i === 2 || i === 5 || i === 10 ? { background: eventBg } : { background: cellBg }}
           />
         ))}
       </div>
@@ -121,7 +132,10 @@ export function ThemeSettings(): JSX.Element {
                     data-active={isActive ? 'true' : undefined}
                     type="button"
                   >
-                    <MiniCalendarPreview variant={isLight ? 'light' : isDark ? 'dark' : 'system'} />
+                    <MiniCalendarPreview
+                      themeId={isLight ? lightTheme : isDark ? darkTheme : (window.matchMedia('(prefers-color-scheme: dark)').matches ? darkTheme : lightTheme)}
+                      variant={isLight ? 'light' : isDark ? 'dark' : 'system'}
+                    />
                     <div className={styles.themeCardLabel}>
                       {isSystem ? 'System' : opt.label}
                       <div className={styles.tcCheck}>

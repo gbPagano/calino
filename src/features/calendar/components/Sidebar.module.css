@@ -122,7 +122,7 @@
   border-radius: 3px;
   background: var(--accent);
   transform: rotate(45deg);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
 .sidebarBrandName {
@@ -330,18 +330,18 @@
   height: 38px;
   width: 100%;
   border-radius: var(--today-btn-radius, 10px);
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  border: 1px solid var(--tag-border);
   color: var(--accent);
   font-size: 14px;
   font-weight: var(--today-btn-weight, 500);
-  background: color-mix(in srgb, var(--accent) 6%, var(--panel));
+  background: var(--hover-bg);
   cursor: pointer;
   transition: border-color 0.14s, background 0.14s;
 }
 
 .todayBtn:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+  border-color: var(--tag-border);
+  background: var(--selected-bg);
 }
 
 /* ---- Dropdowns ---- */
@@ -819,7 +819,7 @@
 }
 
 .taskOverdue {
-  color: #c2697f;
+  color: var(--color-error, #c2697f);
 }
 
 .tasksViewAll {

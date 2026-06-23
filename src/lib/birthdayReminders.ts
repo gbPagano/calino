@@ -33,8 +33,8 @@ export function createBirthdayEvent(
     calendarId,
     title: `🎂 ${contactName}'s birthday`,
     description: `Birthday of ${contactName}`,
-    start: `${dateStr}T00:00:00.000Z`,
-    end: `${dateStr}T23:59:59.000Z`,
+    start: `${dateStr}T00:00:00`,
+    end: `${dateStr}T00:00:00`,
     isAllDay: true,
     recurrence: {
       frequency: 'yearly',

@@ -82,20 +82,31 @@ The `data-theme-id` is your CSS filename without the `.css` extension.
 
 ## CSS Variable Reference
 
+### Two tiers of variables
+
+Calino exposes **two tiers** of CSS variables:
+
+| Tier | Variables | Status | What to set |
+|------|-----------|--------|-------------|
+| **Canonical** | `--canvas`, `--panel`, `--ink`, `--ink-2`, `--ink-3`, `--accent`, `--accent-soft`, `--line`, `--line-2` | Primary | Always set these in your theme |
+| **Legacy aliases** | `--color-bg-primary`, `--color-text-primary`, `--color-border`, `--color-accent`, `--color-bg-secondary`, `--color-accent-hover`, `--color-bg-hover`, etc. | Deprecated | Optional; auto-derived from canonical tier in the built-in theme |
+
+Theme authors should set **only the canonical tier**. The legacy aliases are provided for backward compatibility with existing third-party themes.
+
 ### Colors
 
 | Variable | Description |
 |----------|-------------|
-| `--canvas` | Page background |
-| `--panel` | Card/modal/sidebar background |
+| `--canvas` | Page background (canonical) |
+| `--panel` | Card/modal/sidebar background (canonical) |
 | `--side` | Sidebar background |
-| `--ink` | Primary text color |
+| `--ink` | Primary text color (canonical) |
 | `--ink-2` | Secondary text |
 | `--ink-3` | Muted/tertiary text |
-| `--line` | Primary border color |
+| `--line` | Primary border color (canonical) |
 | `--line-2` | Subtle border color |
-| `--accent` | Primary accent (buttons, links) |
-| `--accent-soft` | Light accent background |
+| `--accent` | Primary accent — buttons, links, highlights (canonical) |
+| `--accent-soft` | Light accent background for chip/badge fills (canonical) |
 | `--ink-raw` | RGB triplet (e.g., `44, 40, 33`) for use in `rgba()` |
 
 ### Shadows

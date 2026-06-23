@@ -347,7 +347,7 @@
 }
 
 .item[aria-selected='true'] kbd {
-  border-color: color-mix(in srgb, var(--accent, #b07d4f) 30%, transparent);
+  border-color: var(--tag-border);
   background: color-mix(in srgb, var(--accent, #b07d4f) 6%, var(--popover-bg, var(--panel, #fff)));
   color: var(--accent, #b07d4f);
 }

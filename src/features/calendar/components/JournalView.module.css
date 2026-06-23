@@ -129,7 +129,7 @@
   gap: 7px;
   height: 36px;
   padding: 0 15px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm, 10px);
   background: var(--accent);
   color: #fff;
   font-size: 13.5px;
@@ -164,7 +164,7 @@
   color: var(--ink-2, #6f6a62);
   background: var(--panel, #fff);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-sm, 10px);
   cursor: pointer;
   font-family: inherit;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
@@ -211,7 +211,7 @@
 }
 
 .entry:hover {
-  background: color-mix(in srgb, var(--ink, #2c2823) 3%, transparent);
+  background: var(--surface-bg);
 }
 
 .entry:last-child {
@@ -348,7 +348,7 @@
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm, 10px);
   background: var(--accent-soft, rgba(196, 168, 154, 0.08));
   color: var(--ink-2);
   font-size: 11px;
@@ -417,12 +417,12 @@
 
 .deleteBtn:hover {
   background: rgba(196, 112, 104, 0.1);
-  color: #c47068;
+  color: var(--color-error-muted, #c47068);
 }
 
 .deleteBtnConfirm {
   opacity: 1 !important;
-  background: #c47068;
+  background: var(--color-error-muted, #c47068);
   color: #fff;
   transition: background 0.2s, color 0.2s, transform 0.1s;
 }
@@ -437,7 +437,7 @@
   grid-template-columns: 64px 1fr;
   gap: 0 28px;
   padding: 22px 20px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg, 14px);
   margin-bottom: 32px;
   background: var(--panel);
   border: 1px solid var(--line-2);
@@ -599,7 +599,7 @@
 }
 
 .categoryChipActive {
-  background: color-mix(in srgb, var(--chip-color, var(--accent)) 12%, transparent);
+  background: var(--chip-bg);
   border-color: var(--chip-color, var(--accent));
   color: var(--ink);
 }
@@ -654,7 +654,7 @@
   gap: 12px;
   padding: 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-sm, 10px);
   background: var(--panel);
 }
 
@@ -799,8 +799,8 @@
 }
 
 .dateButton:hover {
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  border-color: var(--tag-border);
+  background: var(--tag-bg);
 }
 
 .dateButton:active {
@@ -826,7 +826,7 @@
 .dateInput:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent), 0 4px 12px rgba(var(--ink-raw), 0.15);
+  box-shadow: 0 0 0 3px var(--focus-ring), 0 4px 12px rgba(var(--ink-raw), 0.15);
 }
 
 .btnAccent {

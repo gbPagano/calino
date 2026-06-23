@@ -1,0 +1,103 @@
+import type { CalendarEvent } from '@/types'
+
+/** Shared gap between adjacent event columns. */
+const GAP = 4
+
+/**
+ * Base CSS properties for a time-based event positioned within the day grid.
+ * `column` and `totalColumns` come from `positionEvents()`.
+ *
+ * Returns a `CSSProperties` object suitable for spreading onto a positioned
+ * `<div>` wrapper (the `.eventPositioned` class provides `position: absolute`).
+ */
+export function positionedEventStyle(
+  event: CalendarEvent,
+  column: number,
+  totalColumns: number,
+): {
+  top: string
+  height: string
+  left: string
+  width: string
+} {
+  const start = new Date(event.start)
+  const end = new Date(event.end)
+  const startHour = start.getHours()
+  const startMinutes = start.getMinutes()
+  const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
+
+  const leftPercent = (column / totalColumns) * 100 + GAP / 2
+  const widthPercent = 100 / totalColumns - GAP
+
+  return {
+    top: `calc(var(--hour-height, 60px) * ${startHour + startMinutes / 60})`,
+    height: `calc(var(--hour-height, 60px) * ${durationMinutes / 60})`,
+    left: `${leftPercent}%`,
+    width: `${widthPercent}%`,
+  }
+}
+
+/**
+ * CSS properties for a transparent / all-day event that spans the full column
+ * width (no column split). Used for `transparency === 'transparent'` events.
+ *
+ * `gap` controls the horizontal padding (defaults to `2` in WeekDayColumn;
+ * `4` in DayView). Pass the appropriate value from the calling context.
+ */
+export function transparentEventStyle(
+  event: CalendarEvent,
+  gap = 2,
+): {
+  top: string
+  height: string
+  left: string
+  width: string
+} {
+  const start = new Date(event.start)
+  const end = new Date(event.end)
+  const startHour = start.getHours()
+  const startMinutes = start.getMinutes()
+  const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
+
+  const leftPercent = gap / 2
+  const widthPercent = 100 - gap
+
+  return {
+    top: `calc(var(--hour-height, 60px) * ${startHour + startMinutes / 60})`,
+    height: `calc(var(--hour-height, 60px) * ${durationMinutes / 60})`,
+    left: `${leftPercent}%`,
+    width: `${widthPercent}%`,
+  }
+}
+
+/**
+ * CSS properties for a travel-duration bar that precedes an event.
+ * The bar is placed at `event.start - travelDuration` and shares the same
+ * column width as the event itself.
+ */
+export function travelBarStyle(
+  event: CalendarEvent,
+  column: number,
+  totalColumns: number,
+): {
+  top: string
+  height: string
+  left: string
+  width: string
+} {
+  const start = new Date(event.start)
+  const travelDurationMinutes = event.travelDuration ?? 0
+  const travelStart = new Date(start.getTime() - travelDurationMinutes * 60 * 1000)
+  const travelStartHour = travelStart.getHours()
+  const travelStartMinutes = travelStart.getMinutes()
+
+  const leftPercent = (column / totalColumns) * 100 + GAP / 2
+  const widthPercent = 100 / totalColumns - GAP
+
+  return {
+    top: `calc(var(--hour-height, 60px) * ${travelStartHour + travelStartMinutes / 60})`,
+    height: `calc(var(--hour-height, 60px) * ${travelDurationMinutes / 60})`,
+    left: `${leftPercent}%`,
+    width: `${widthPercent}%`,
+  }
+}

@@ -1,14 +1,19 @@
-import { format, parseISO } from 'date-fns'
+import type { TimeFormat } from '@/types'
+import { formatDateLong } from '@/lib/datetime'
 
 /**
- * Format an ISO-8601 timestamp as `'MMM d, yyyy h:mm a'`
- * (e.g. `Mar 15, 2026 3:00 PM`). Returns the raw string on parse error.
+ * Format an ISO-8601 timestamp as a human-readable date+time string.
+ * Respects the user's `timeFormat` preference (`'24h'` or `'12h'`).
  *
+ * Returns the raw ISO string on parse error.
  * Used by the broken-events and data-management settings views.
  */
-export function formatBrokenEventDate(iso: string): string {
+export function formatBrokenEventDate(
+  iso: string,
+  timeFormat: TimeFormat = '24h',
+): string {
   try {
-    return format(parseISO(iso), 'MMM d, yyyy h:mm a')
+    return formatDateLong(iso, timeFormat)
   } catch {
     return iso
   }

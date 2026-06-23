@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { format, parseISO } from 'date-fns'
+import { pad2 } from '@/lib/datetime'
 import { v4 as uuidv4 } from 'uuid'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
@@ -196,7 +197,7 @@ function getInitialFormState(
         const endMins = h * 60 + m + 60
         const endH = Math.floor(endMins / 60) % 24
         const endM = endMins % 60
-        endTimeVal = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
+        endTimeVal = `${pad2(endH)}:${pad2(endM)}`
       } else {
         // No specific time - smart default only applies for TODAY
         const todayStr = format(new Date(), 'yyyy-MM-dd')
@@ -208,9 +209,9 @@ function getInitialFormState(
           if (mins > 0) hours += 1 // round up to next hour
           hours += 1 // add 1 more hour
           hours = hours % 24
-          startTimeVal = `${String(hours).padStart(2, '0')}:00`
+          startTimeVal = `${pad2(hours)}:00`
           const endHour = (hours + 1) % 24
-          endTimeVal = `${String(endHour).padStart(2, '0')}:00`
+          endTimeVal = `${pad2(endHour)}:00`
         }
         // else: use default 09:00/10:00
       }

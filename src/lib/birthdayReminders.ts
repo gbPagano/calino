@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { CalendarEvent } from '@/types'
+import { toLocalDateString } from './datetime'
 
 interface CreateBirthdayEventOptions {
   contactId: string
@@ -25,14 +26,7 @@ export function createBirthdayEvent(
   const year = new Date().getFullYear()
   const startDate = new Date(year, month - 1, day)
 
-  const formatLocalDate = (d: Date): string => {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const dd = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${dd}`
-  }
-
-  const dateStr = formatLocalDate(startDate)
+  const dateStr = toLocalDateString(startDate)
 
   return {
     id: uuidv4(),

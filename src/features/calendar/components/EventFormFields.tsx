@@ -3,6 +3,7 @@ import { useState, useRef } from 'react'
 import type { RecurrenceRule, Reminder, CalendarEvent, CalendarAttachment } from '@/types'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useScrollInput } from '@/hooks/useScrollInput'
+import { pad2 } from '@/lib/datetime'
 import { AttachmentSection } from './AttachmentSection'
 import { getWeekdayLabels } from './weekdayLabels'
 import styles from './EventModal.module.css'
@@ -215,7 +216,7 @@ export function EventFormFields({
                     // Add 1 hour to the new start time
                     const [h, m] = newStart.split(':').map(Number)
                     const endHour = (h + 1) % 24
-                    onEndTimeChange(`${String(endHour).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+                    onEndTimeChange(`${pad2(endHour)}:${pad2(m)}`)
                   }
                 }}
                 className={styles.input}

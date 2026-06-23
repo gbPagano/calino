@@ -14,7 +14,7 @@ interface CreateCalendarModalProps {
 export function CreateCalendarModal({ isOpen, onClose, accountId }: CreateCalendarModalProps): JSX.Element | null {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [color, setColor] = useState(EVENT_COLORS[0])
+  const [color, setColor] = useState<string>(EVENT_COLORS[0])
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState('')
 

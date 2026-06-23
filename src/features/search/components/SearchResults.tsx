@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import { format, parseISO } from 'date-fns'
+import { formatTime } from '@/lib/datetime'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import type { SearchResult } from '../types'
@@ -59,19 +60,20 @@ function formatEventDate(
 ): string {
   const startDate = parseISO(start)
   const endDate = parseISO(end)
-  const pattern = timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
 
   if (isAllDay) {
     return format(startDate, 'MMM d, yyyy')
   }
 
   const sameDay = format(startDate, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd')
+  const startTime = formatTime(startDate, timeFormat)
+  const endTime = formatTime(endDate, timeFormat)
 
   if (sameDay) {
-    return `${format(startDate, 'MMM d')} · ${format(startDate, pattern)} - ${format(endDate, pattern)}`
+    return `${format(startDate, 'MMM d')} · ${startTime} - ${endTime}`
   }
 
-  return `${format(startDate, `MMM d, ${pattern}`)} - ${format(endDate, `MMM d, ${pattern}`)}`
+  return `${format(startDate, 'MMM d')} ${startTime} - ${format(endDate, 'MMM d')} ${endTime}`
 }
 
 export function SearchResults({ results, onSelectEvent }: SearchResultsProps): JSX.Element | null {

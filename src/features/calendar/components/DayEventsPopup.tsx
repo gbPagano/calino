@@ -1,6 +1,7 @@
 import { type JSX, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
+import { formatTime } from '@/lib/datetime'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSettingsStore } from '@/store/settingsStore'
 import type { CalendarEvent } from '@/types'
@@ -51,11 +52,6 @@ export function DayEventsPopup({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [onClose])
 
-  const formatTime = (dateString: string): string => {
-    const pattern = timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
-    return format(parseISO(dateString), pattern)
-  }
-
   return createPortal(
     <AnimatePresence>
       <motion.div
@@ -100,7 +96,7 @@ export function DayEventsPopup({
                 <div className={styles.eventTime}>
                   {event.isAllDay
                     ? 'All day'
-                    : `${formatTime(event.start)} - ${formatTime(event.end)}`}
+                    : `${formatTime(event.start, timeFormat)} - ${formatTime(event.end, timeFormat)}`}
                 </div>
                 {event.location && <div className={styles.eventLocation}>{event.location}</div>}
               </div>

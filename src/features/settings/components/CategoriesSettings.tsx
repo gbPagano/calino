@@ -76,7 +76,7 @@ export function CategoriesSettings(): JSX.Element {
 
   // Category editor state
   const [newCategoryName, setNewCategoryName] = useState('')
-  const [newCategoryColor, setNewCategoryColor] = useState(EVENT_COLORS[0])
+  const [newCategoryColor, setNewCategoryColor] = useState<string>(EVENT_COLORS[0])
   const [showAddCategory, setShowAddCategory] = useState(false)
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
   const [editCategoryName, setEditCategoryName] = useState('')

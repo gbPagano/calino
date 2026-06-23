@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import { format } from 'date-fns'
+import { formatTime } from '@/lib/datetime'
 import type { Command, EventResult, CalendarResult, QuickAddResult } from '../types'
 import type { TimeFormat } from '@/types'
 import styles from './CommandPalette.module.css'
@@ -15,8 +16,6 @@ export function renderCommandItemContent({
   type,
   timeFormat,
 }: CommandItemContentProps): JSX.Element {
-  const formatTime = (date: Date): string => format(date, timeFormat === '24h' ? 'HH:mm' : 'h:mm a')
-
   if (type === 'command') {
     const cmd = item as Command
     return (
@@ -76,8 +75,8 @@ export function renderCommandItemContent({
           </div>
           <div className={styles.desc}>
             {format(qa.startDate, 'EEEE, MMMM d')}
-            {qa.endDate && ` ${formatTime(qa.startDate)} – ${formatTime(qa.endDate)}`}
-            {!qa.endDate && !qa.isAllDay && ` ${formatTime(qa.startDate)}`}
+            {qa.endDate && ` ${formatTime(qa.startDate, timeFormat)} – ${formatTime(qa.endDate, timeFormat)}`}
+            {!qa.endDate && !qa.isAllDay && ` ${formatTime(qa.startDate, timeFormat)}`}
             {qa.isAllDay && ' (all day)'}
             {qa.location && ` at ${qa.location}`}
             <span className={styles.confidence}> · {confidencePercent}%</span>

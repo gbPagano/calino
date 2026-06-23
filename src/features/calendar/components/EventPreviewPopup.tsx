@@ -1,6 +1,7 @@
 import { type JSX, useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { format, parseISO, isSameDay } from 'date-fns'
+import { formatTime } from '@/lib/datetime'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -69,7 +70,6 @@ export function EventPreviewPopup({
 
   const isMultiDay = !isSameDay(parseISO(event.originalStart || event.start), parseISO(event.originalEnd || event.end))
   const isTask = event.type === 'task'
-  const timeFormatPattern = timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
   const dateFormatPattern =
     dateFormat === 'MM/dd/yyyy'
       ? 'MMM d, yyyy'
@@ -105,7 +105,7 @@ export function EventPreviewPopup({
       }
       // For tasks with an actual time (not midnight), show the time
       if (hasDueTime(event)) {
-        return format(parseISO(event.dueDate), timeFormatPattern)
+        return formatTime(event.dueDate, timeFormat)
       }
       // For all-day tasks or tasks with no specific time
       return format(parseISO(event.dueDate), dateFormatPattern)
@@ -114,13 +114,13 @@ export function EventPreviewPopup({
       return 'All day'
     }
     if (editTime) {
-      const fmt = (t: string) => format(parseISO(`2000-01-01T${t}:00`), timeFormatPattern)
+      const fmt = (t: string) => formatTime(`2000-01-01T${t}:00`, timeFormat)
       return `${fmt(editTime)} - ${fmt(editEndTime || editTime)}`
     }
     if (isMultiDay) {
-      return `${format(parseISO(event.originalStart || event.start), timeFormatPattern)} - ${format(parseISO(event.originalEnd || event.end), timeFormatPattern)}`
+      return `${formatTime(event.originalStart || event.start, timeFormat)} - ${formatTime(event.originalEnd || event.end, timeFormat)}`
     }
-    return `${format(parseISO(effectiveStart), timeFormatPattern)} - ${format(parseISO(effectiveEnd), timeFormatPattern)}`
+    return `${formatTime(effectiveStart, timeFormat)} - ${formatTime(effectiveEnd, timeFormat)}`
   }
 
   const startEditing = (field: string): void => {

@@ -21,7 +21,7 @@ import {
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
-import { DEFAULT_CALENDAR_COLOR } from '@/config'
+import { getEventColor } from '@/lib/eventColor'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { EventCard } from './EventCard'
 import { ContextMenu } from '@/components/common/ContextMenu'
@@ -31,8 +31,10 @@ import { useWindowHeight } from '@/hooks/useWindowHeight'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { formatTravelDuration } from '@/lib/events'
 import { positionEvents } from '@/lib/eventPositioning'
+import { positionedEventStyle, transparentEventStyle, travelBarStyle } from '../lib/eventLayout'
+import { pad2 } from '@/lib/datetime'
 import { HOURS } from '@/lib/hours'
-import type { CalendarEvent, Calendar } from '@/types'
+import type { CalendarEvent } from '@/types'
 import styles from './DayView.module.css'
 
 
@@ -291,7 +293,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
       const snappedMinutes = Math.round(totalMinutes / MINUTE_SNAP_INTERVAL) * MINUTE_SNAP_INTERVAL
       const hours = Math.floor(snappedMinutes / 60)
       const mins = snappedMinutes % 60
-      const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+      const timeStr = `${pad2(hours)}:${pad2(mins)}`
       const endTime = `${format(date, 'yyyy-MM-dd')}T${timeStr}`
       setDragEnd(endTime)
     },
@@ -395,29 +397,14 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     const elements: JSX.Element[] = []
 
     for (const event of transparentEvents) {
-      const start = parseISO(event.start)
-      const end = parseISO(event.end)
-      const startHour = start.getHours()
-      const startMinutes = start.getMinutes()
-      const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
-      const calendar = calendars.find((c: Calendar) => c.id === event.calendarId)
-      const eventColor = event.color || calendar?.color || DEFAULT_CALENDAR_COLOR
-
-      const gap = 4
-      const leftPercent = gap / 2
-      const widthPercent = 100 - gap
+      const eventColor = getEventColor(event, { categories: [], calendars, useCategoryColors: false })
+      const style = transparentEventStyle(event, 4)
 
       elements.push(
         <div
           key={event.id}
           className={`${styles.eventPositioned} ${styles.eventTransparent}`}
-          style={{
-            top: `calc(var(--hour-height, 60px) * ${startHour + startMinutes / 60})`,
-            height: `calc(var(--hour-height, 60px) * ${durationMinutes / 60})`,
-            left: `${leftPercent}%`,
-            width: `${widthPercent}%`,
-            backgroundColor: `${eventColor}20`,
-          }}
+          style={{ ...style, backgroundColor: `${eventColor}20` }}
         >
           <EventCard event={event} transparent />
         </div>
@@ -427,36 +414,15 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     const positionedEvents = positionEvents(sortedEvents)
 
     for (const { event, column, totalColumns } of positionedEvents) {
-      const start = parseISO(event.start)
-      const end = parseISO(event.end)
-
-      const startHour = start.getHours()
-      const startMinutes = start.getMinutes()
-
-      const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60)
-      const gap = 4
-      const leftPercent = (column / totalColumns) * 100 + gap / 2
-      const widthPercent = 100 / totalColumns - gap
-
-      const calendar = calendars.find((c: Calendar) => c.id === event.calendarId)
-      const eventColor = event.color || calendar?.color || DEFAULT_CALENDAR_COLOR
+      const eventColor = getEventColor(event, { categories: [], calendars, useCategoryColors: false })
+      const style = positionedEventStyle(event, column, totalColumns)
 
       if (event.travelDuration && event.travelDuration > 0) {
-        const travelStart = new Date(start.getTime() - event.travelDuration * 60 * 1000)
-        const travelStartHour = travelStart.getHours()
-        const travelStartMinutes = travelStart.getMinutes()
-        const travelDurationMinutes = event.travelDuration
         elements.push(
           <div
             key={`${event.id}-travel`}
             className={styles.travelBar}
-            style={{
-              top: `calc(var(--hour-height, 60px) * ${travelStartHour + travelStartMinutes / 60})`,
-              height: `calc(var(--hour-height, 60px) * ${travelDurationMinutes / 60})`,
-              left: `${leftPercent}%`,
-              width: `${widthPercent}%`,
-              backgroundColor: `${eventColor}15`,
-            }}
+            style={{ ...travelBarStyle(event, column, totalColumns), backgroundColor: `${eventColor}15` }}
             onClick={() => openModal(undefined, undefined, event.id)}
           >
             <span className={styles.travelBarInner}>
@@ -470,13 +436,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
         <div
           key={event.id}
           className={styles.eventPositioned}
-          style={{
-            top: `calc(var(--hour-height, 60px) * ${startHour + startMinutes / 60})`,
-            height: `calc(var(--hour-height, 60px) * ${durationMinutes / 60})`,
-            left: `${leftPercent}%`,
-            width: `${widthPercent}%`,
-            zIndex: event.isFragment ? 1 : 2,
-          }}
+          style={{ ...style, zIndex: event.isFragment ? 1 : 2 }}
         >
           <EventCard event={event} hideTopRadius={!!event.travelDuration} />
         </div>
@@ -529,11 +489,8 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
                     key={event.id}
                     className={styles.allDayEvent}
                     style={{
-                      backgroundColor: `${event.color || calendars.find((c) => c.id === event.calendarId)?.color || DEFAULT_CALENDAR_COLOR}20`,
-                      borderLeftColor:
-                        event.color ||
-                        calendars.find((c) => c.id === event.calendarId)?.color ||
-                        DEFAULT_CALENDAR_COLOR,
+                      backgroundColor: `${getEventColor(event, { categories: [], calendars, useCategoryColors: false })}20`,
+                      borderLeftColor: getEventColor(event, { categories: [], calendars, useCategoryColors: false }),
                     }}
                     onClick={(e) => {
                       e.stopPropagation()
@@ -552,11 +509,8 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
                     key={task.id}
                     className={styles.allDayEvent}
                     style={{
-                      backgroundColor: `${task.color || calendars.find((c) => c.id === task.calendarId)?.color || DEFAULT_CALENDAR_COLOR}20`,
-                      borderLeftColor:
-                        task.color ||
-                        calendars.find((c) => c.id === task.calendarId)?.color ||
-                        DEFAULT_CALENDAR_COLOR,
+                      backgroundColor: `${getEventColor(task, { categories: [], calendars, useCategoryColors: false })}20`,
+                      borderLeftColor: getEventColor(task, { categories: [], calendars, useCategoryColors: false }),
                     }}
                     onClick={(e) => {
                       e.stopPropagation()
@@ -610,7 +564,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
               onClick: () => {
                 const hourStr =
                   contextMenu.hour !== undefined
-                    ? `T${String(contextMenu.hour).padStart(2, '0')}:00`
+                    ? `T${pad2(contextMenu.hour)}:00`
                     : ''
                 openModal(`${format(date, 'yyyy-MM-dd')}${hourStr}`)
                 setContextMenu(null)

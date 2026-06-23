@@ -23,6 +23,7 @@ import {
   addWeeks,
   addDays,
 } from 'date-fns'
+import { pad2 } from '@/lib/datetime'
 import type { CalendarEvent } from '@/types'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
@@ -369,7 +370,7 @@ export function WeekView(): JSX.Element {
       const snappedMinutes = Math.round(totalMinutes / MINUTE_SNAP_INTERVAL) * MINUTE_SNAP_INTERVAL
       const hours = Math.floor(snappedMinutes / 60)
       const mins = snappedMinutes % 60
-      const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+      const timeStr = `${pad2(hours)}:${pad2(mins)}`
       const endTime = `${format(day, 'yyyy-MM-dd')}T${timeStr}`
       setDragEnd(endTime)
     },
@@ -715,7 +716,7 @@ export function WeekView(): JSX.Element {
               onClick: () => {
                 const hourStr =
                   contextMenu.hour !== undefined
-                    ? `T${String(contextMenu.hour).padStart(2, '0')}:00`
+                    ? `T${pad2(contextMenu.hour)}:00`
                     : ''
                 openModal(`${format(contextMenu.day, 'yyyy-MM-dd')}${hourStr}`)
                 setContextMenu(null)

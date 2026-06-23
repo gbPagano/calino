@@ -23,7 +23,22 @@ export const CALENDAR_COLORS = [
   '#46BDC6',
   '#7B1FA2',
   '#C2185B',
+  '#00796B',
+  '#F57C00',
+  '#455A64',
+  '#5D4037',
 ] as const
+
+export const EVENT_COLORS = [...CALENDAR_COLORS, '#9334E6'] as const
+
+/**
+ * Return the next color in the CALENDAR_COLORS rotation after `currentColor`.
+ * If `currentColor` is not in the list, returns the first color.
+ */
+export function getNextColor(currentColor: string): string {
+  const idx = CALENDAR_COLORS.indexOf(currentColor as typeof CALENDAR_COLORS[number])
+  return CALENDAR_COLORS[(idx + 1) % CALENDAR_COLORS.length]
+}
 
 export const MOBILE_BREAKPOINT = 768
 export const COMPACT_MOBILE_BREAKPOINT = 500

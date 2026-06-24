@@ -14,8 +14,7 @@
 
 .modalContent {
   background: var(--modal-bg, #ffffff);
-  border: 1px solid var(--modal-border, transparent);
-  box-shadow: var(--modal-shadow, 0 24px 80px rgba(0, 0, 0, 0.18), 0 6px 20px rgba(0, 0, 0, 0.10));
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-lg, 18px);
   padding: 32px;
   width: 100%;
@@ -23,12 +22,6 @@
   max-height: 90vh;
   overflow-y: auto;
   text-align: center;
-}
-
-.icon {
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: center;
 }
 
 .title {

@@ -140,15 +140,6 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
   return (
     <div className={styles.modal} onClick={handleBackdropClick} data-component="modal-backdrop">
       <div className={styles.modalContent} role="dialog" aria-modal="true" data-component="modal-card">
-        <div className={styles.icon}>
-          <svg aria-hidden="true" width="48" height="48" viewBox="0 0 48 48" fill="none">
-            <rect width="48" height="48" rx="24" fill="var(--color-accent-light, #e8f0fe)" />
-            <path
-              d="M24 20c-1.66 0-3 1.34-3 3v2h-2v10h10V25h-2v-2c0-1.66-1.34-3-3-3zm0 12v-4h2v4h-2zm-6-6h12c1.66 0 3 1.34 3 3v8c0 1.66-1.34 3-3 3H18c-1.66 0-3-1.34-3-3v-8c0-1.66 1.34-3 3-3z"
-              fill="var(--color-accent, #1a73e8)"
-            />
-          </svg>
-        </div>
 
         <h2 className={styles.title}>Your calendar stays private</h2>
 

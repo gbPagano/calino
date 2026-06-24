@@ -124,7 +124,7 @@
 }
 
 .dayNumber {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--ink, #2c2823);
 }

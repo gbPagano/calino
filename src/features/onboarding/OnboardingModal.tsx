@@ -138,8 +138,8 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
   }
 
   return (
-    <div className={styles.modal} onClick={handleBackdropClick} data-component="modal-backdrop">
-      <div className={styles.modalContent} role="dialog" aria-modal="true" data-component="modal-card">
+    <div className={styles.modal} onClick={handleBackdropClick}>
+      <div className={styles.modalContent} role="dialog" aria-modal="true">
 
         <h2 className={styles.title}>Your calendar stays private</h2>
 

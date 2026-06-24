@@ -144,7 +144,7 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
           <svg aria-hidden="true" width="48" height="48" viewBox="0 0 48 48" fill="none">
             <rect width="48" height="48" rx="24" fill="var(--color-accent-light, #e8f0fe)" />
             <path
-              d="M24 6L12 12v10c0 8.4 5.12 16.27 12 18 6.88-1.73 12-9.6 12-18V12L24 6zm0 20.99h12c-1.17 6.93-5.31 12.99-12 14.77-6.69-1.78-10.83-7.84-12-14.77V14.59L24 9.21l12 5.38v11.4H24V26.99z"
+              d="M24 20c-1.66 0-3 1.34-3 3v2h-2v10h10V25h-2v-2c0-1.66-1.34-3-3-3zm0 12v-4h2v4h-2zm-6-6h12c1.66 0 3 1.34 3 3v8c0 1.66-1.34 3-3 3H18c-1.66 0-3-1.34-3-3v-8c0-1.66 1.34-3 3-3z"
               fill="var(--color-accent, #1a73e8)"
             />
           </svg>

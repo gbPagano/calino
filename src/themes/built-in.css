@@ -291,7 +291,8 @@
   --popover-bg: #383229;
   --modal-scrim: rgba(0, 0, 0, 0.60);
   --modal-blur: blur(4px);
-  --modal-border: rgba(255, 247, 235, 0.10);
+  --modal-border: transparent;
+  --modal-card-border: 1px solid rgba(255, 247, 235, 0.08);
   --popover-border: rgba(255, 247, 235, 0.14);
   --modal-shadow: 0 2px 4px rgba(0, 0, 0, 0.40), 0 20px 60px rgba(0, 0, 0, 0.65);
 

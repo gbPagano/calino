@@ -42,6 +42,7 @@
   /* Borders */
   --color-border: #e5e7eb;
   --color-border-light: #f1f3f4;
+  --color-border-subtle: #e8eaed;
 
   /* Accent / Primary */
   --color-accent: #4285f4;
@@ -184,6 +185,7 @@
   /* Borders */
   --color-border: rgba(240, 236, 230, 0.09);
   --color-border-light: rgba(240, 236, 230, 0.05);
+  --color-border-subtle: rgba(240, 236, 230, 0.08);
 
   /* Accent */
   --color-accent: #c9956a;

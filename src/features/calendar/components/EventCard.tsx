@@ -267,6 +267,7 @@ export const EventCard = React.memo(function EventCard({
         {...(isFragmentLast ? { 'data-fragment-last': '' } : {})}
         className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${event.completed ? styles.isDone : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${monthView ? styles.monthView : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''} ${dotMode ? styles.dot : ''}`}
         onContextMenu={handleContextMenu}
+        onClick={handleClick}
         {...bind}
       >
         {event.syncStatus === 'failed' && (
@@ -306,7 +307,6 @@ export const EventCard = React.memo(function EventCard({
         {isTask ? (
           <div
             className={styles.dragContent}
-            onClick={handleClick}
             onPointerDown={(e) => {
               e.stopPropagation()
               pointerStartPos.current = { x: e.clientX, y: e.clientY }
@@ -330,7 +330,6 @@ export const EventCard = React.memo(function EventCard({
           <>
             <div
               className={styles.dragContent}
-              onClick={handleClick}
               onPointerDown={(e) => {
                 e.stopPropagation()
                 pointerStartPos.current = { x: e.clientX, y: e.clientY }

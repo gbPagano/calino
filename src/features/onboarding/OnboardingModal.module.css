@@ -25,12 +25,6 @@
   text-align: center;
 }
 
-.icon {
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: center;
-}
-
 .title {
   font-size: 22px;
   font-weight: 600;

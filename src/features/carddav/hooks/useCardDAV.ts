@@ -52,21 +52,6 @@ export function useCardDAV(): UseCardDAVReturn {
     setSyncState((prev) => ({ ...prev, pendingChanges: pendingChanges.length }))
   }, [pendingChanges.length])
 
-  // Auto-sync contacts from all accounts on mount
-  useEffect(() => {
-    const syncAllAccounts = async () => {
-      const accounts = storage.getAllAccounts()
-      for (const account of accounts) {
-        try {
-          await syncAccount(account.id)
-        } catch (err) {
-          console.warn('[CardDAV] Failed to sync account:', account.name, err)
-        }
-      }
-    }
-    syncAllAccounts()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   // Check if an account has address books
   const hasAddressBooks = useCallback(async (accountId: string): Promise<boolean> => {
     try {
@@ -138,11 +123,11 @@ export function useCardDAV(): UseCardDAVReturn {
           const contact = useContactStore.getState().contacts.find((c) => c.id === change.contactId)
           const label = contact?.displayName ?? 'Contact'
           if (change.type === 'create') {
-            showToast(`Failed to create \"${label}\" on server. Will retry.`)
+            showToast(`Failed to create "${label}" on server. Will retry.`)
           } else if (change.type === 'update') {
-            showToast(`Failed to update \"${label}\" on server. Will retry.`)
+            showToast(`Failed to update "${label}" on server. Will retry.`)
           } else if (change.type === 'delete') {
-            showToast(`Failed to delete \"${label}\" on server. Will retry.`)
+            showToast(`Failed to delete "${label}" on server. Will retry.`)
           }
         } else {
           useContactStore.getState().updateContact(change.contactId, { syncStatus: 'failed' })
@@ -380,7 +365,22 @@ export function useCardDAV(): UseCardDAVReturn {
         showToast(`Contacts sync failed: ${msg}`)
       }
     }
-  }, [setAddressBooks, setContacts, replayPendingChanges])
+  }, [setAddressBooks, setContacts, removePendingChange, replayPendingChanges, syncState.lastSyncAt])
+
+  // Auto-sync contacts from all accounts on mount
+  useEffect(() => {
+    const syncAllAccounts = async () => {
+      const accounts = storage.getAllAccounts()
+      for (const account of accounts) {
+        try {
+          await syncAccount(account.id)
+        } catch (err) {
+          console.warn('[CardDAV] Failed to sync account:', account.name, err)
+        }
+      }
+    }
+    syncAllAccounts()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     addressBooks: storeAddressBooks,

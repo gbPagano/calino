@@ -178,7 +178,7 @@
 
 /* ---- Today ---- */
 .today {
-  background: var(--day-cell-today-bg, color-mix(in srgb, var(--accent) 4%, transparent));
+  background: var(--day-cell-today-bg, var(--selected-bg));
   border-radius: var(--day-cell-radius, 0);
 }
 
@@ -273,7 +273,7 @@
 }
 
 .journalIndicator:hover {
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  background: var(--selected-bg);
   color: var(--accent);
 }
 

@@ -150,7 +150,7 @@
   /* Calendar Grid — sharp cells, visible structure */
   --day-cell-radius: 0;
   --day-cell-hover-bg: rgba(var(--ink-raw), 0.05);
-  --day-cell-today-bg: color-mix(in srgb, var(--accent) 8%, transparent);
+  --day-cell-today-bg: var(--selected-bg);
   --day-cell-other-month-bg: rgba(var(--ink-raw), 0.04);
 
   /* View Switcher — geometric tabs */
@@ -301,7 +301,7 @@
   /* Calendar Grid — sharp cells */
   --day-cell-radius: 0;
   --day-cell-hover-bg: rgba(var(--ink-raw), 0.05);
-  --day-cell-today-bg: color-mix(in srgb, var(--accent) 8%, transparent);
+  --day-cell-today-bg: var(--selected-bg);
   --day-cell-other-month-bg: rgba(var(--ink-raw), 0.04);
 
   /* View Switcher — geometric pills */

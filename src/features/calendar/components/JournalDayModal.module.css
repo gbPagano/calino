@@ -374,7 +374,7 @@
 }
 
 .categoryChipActive {
-  background: color-mix(in srgb, var(--chip-color, var(--accent)) 12%, transparent);
+  background: var(--chip-bg);
   border-color: var(--chip-color, var(--accent));
   color: var(--ink);
 }
@@ -568,7 +568,7 @@
 }
 
 .btnGhost:hover {
-  background: var(--accent-soft, color-mix(in srgb, var(--accent) 8%, transparent));
+  background: var(--accent-soft, var(--selected-bg));
   color: var(--ink);
 }
 
@@ -609,7 +609,7 @@
 }
 
 .addEntry:hover {
-  background: var(--accent-soft, color-mix(in srgb, var(--accent) 8%, transparent));
+  background: var(--accent-soft, var(--selected-bg));
   color: var(--accent);
 }
 
@@ -634,9 +634,9 @@
 }
 
 .btnDeleteConfirm {
-  background: #c47068;
+  background: var(--color-error-muted, #c47068);
   color: #fff;
-  border-color: #c47068;
+  border-color: var(--color-error-muted, #c47068);
 }
 
 /* Responsive: stack on mobile */

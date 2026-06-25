@@ -1,15 +1,17 @@
 import type { JSX } from 'react'
 import { useState, useRef } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useSettingsStore } from '@/store/settingsStore'
 import { useContactStore } from '@/store/contactStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { useCardDAV } from '@/features/carddav/hooks/useCardDAV'
 import { parseICALEvent } from '@/features/caldav/adapter/iCalendarAdapter'
 import { parseVCardFile, contactsToVCardFile, downloadFile, readFileAsText } from '@/features/carddav/lib/vCardFileUtils'
-import { format, parseISO } from 'date-fns'
 import { showToast } from '@/lib/toast'
 import { MergeDuplicatesModal } from '@/features/carddav/components/MergeDuplicatesModal'
 import { ImportExportModal } from '@/features/carddav/components/ImportExportModal'
+import { formatBrokenEventDate as formatDate } from '../lib/format'
+import { useBrokenEventsActions } from '../hooks/useBrokenEventsActions'
 import type { Contact } from '@/features/carddav/types'
 import styles from './Settings.module.css'
 
@@ -25,52 +27,13 @@ export function DataSettings(): JSX.Element {
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
   const brokenEvents = useCalendarStore((state) => state.brokenEvents)
-  const removeBrokenEvent = useCalendarStore((state) => state.removeBrokenEvent)
-  const addEvent = useCalendarStore((state) => state.addEvent)
-  const { updateEvent: caldavUpdateEvent, deleteEvent: caldavDeleteEvent } = useCalDAV()
-
-  const formatDate = (iso: string): string => {
-    try {
-      return format(parseISO(iso), 'MMM d, yyyy h:mm a')
-    } catch {
-      return iso
-    }
-  }
-
-  const handleFix = async (broken: (typeof brokenEvents)[0]): Promise<void> => {
-    const { event } = broken
-    const fixedEvent = { ...event, start: event.end, end: event.start }
-    removeBrokenEvent(event.id)
-    addEvent(fixedEvent)
-    try {
-      await caldavUpdateEvent(fixedEvent.calendarId, fixedEvent)
-    } catch (err) {
-      console.warn('[DataSettings] Fix sync failed:', err)
-    }
-  }
-
-  const handleDelete = async (broken: (typeof brokenEvents)[0]): Promise<void> => {
-    const { event } = broken
-    // Sync to CalDAV FIRST (while brokenEvents still has the etag), then remove locally
-    try {
-      await caldavDeleteEvent(event.calendarId, event.id)
-    } catch (err) {
-      console.warn('[DataSettings] Delete sync failed:', err)
-    }
-    removeBrokenEvent(event.id)
-  }
-
-  const handleFixAll = async (): Promise<void> => {
-    for (const broken of [...brokenEvents]) {
-      await handleFix(broken)
-    }
-  }
-
-  const handleDeleteAllBroken = async (): Promise<void> => {
-    for (const broken of [...brokenEvents]) {
-      await handleDelete(broken)
-    }
-  }
+  const timeFormat = useSettingsStore((state) => state.timeFormat)
+  const caldav = useCalDAV()
+  const { handleFix, handleDelete, handleFixAll, handleDeleteAll } =
+    useBrokenEventsActions('caldav', {
+      updateEvent: caldav.updateEvent,
+      deleteEvent: caldav.deleteEvent,
+    })
 
   const handleExportICS = async (): Promise<void> => {
     setIsExporting(true)
@@ -297,9 +260,9 @@ export function DataSettings(): JSX.Element {
                 <div className={styles.brokenInfo}>
                   <div className={styles.brokenTitle}>{broken.event.title || 'Untitled Event'}</div>
                   <div className={styles.brokenDates}>
-                    <span>Start: {formatDate(broken.event.start)}</span>
+                    <span>Start: {formatDate(broken.event.start, timeFormat)}</span>
                     <span className={styles.brokenArrow}>→</span>
-                    <span>End: {formatDate(broken.event.end)}</span>
+                    <span>End: {formatDate(broken.event.end, timeFormat)}</span>
                   </div>
                   <div className={styles.brokenReason}>{broken.reason}</div>
                 </div>
@@ -329,10 +292,10 @@ export function DataSettings(): JSX.Element {
 
           {brokenEvents.length > 1 && (
             <div className={styles.brokenBatchActions}>
-              <button className={styles.actionBtn} onClick={() => void handleFixAll()} data-component="action-button" data-action="fix-all-broken" type="button">
+              <button className={styles.actionBtn} onClick={() => void handleFixAll(brokenEvents)} data-component="action-button" data-action="fix-all-broken" type="button">
                 Fix All ({brokenEvents.length})
               </button>
-              <button className={`${styles.actionBtn} ${styles.actionBtnDanger}`} onClick={() => void handleDeleteAllBroken()} data-component="action-button" data-action="delete-all-broken" type="button">
+              <button className={`${styles.actionBtn} ${styles.actionBtnDanger}`} onClick={() => void handleDeleteAll(brokenEvents)} data-component="action-button" data-action="delete-all-broken" type="button">
                 Delete All
               </button>
             </div>

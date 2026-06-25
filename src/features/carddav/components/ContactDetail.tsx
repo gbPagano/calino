@@ -3,40 +3,14 @@ import type { JSX } from 'react'
 import type { Contact } from '../types'
 import { useContactStore } from '@/store/contactStore'
 import { MarkdownView } from '@/lib/markdown'
+import { getInitials, getAvatarColor } from '../lib/avatars'
 import styles from './ContactsView.module.css'
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const AVATAR_COLORS = [
-  '#b07d4f',
-  '#5b7fb5',
-  '#5d9a78',
-  '#c2697f',
-  '#8a6aa8',
-  '#bf944e',
-]
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function avatarColor(name: string): string {
-  const h = name
-    .split('')
-    .reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) >>> 0, 0)
-  return AVATAR_COLORS[h % AVATAR_COLORS.length]
-}
-
-function getInitials(name: string): string {
-  if (!name) return '?'
-  const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
-  return (
-    parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
-  ).toUpperCase()
-}
+const avatarColor = getAvatarColor
 
 function formatDate(dateStr: string): string {
   try {

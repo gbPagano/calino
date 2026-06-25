@@ -27,7 +27,7 @@
 
 .searchBar:focus-within {
   border-color: color-mix(in srgb, var(--accent, #b07d4f) 40%, var(--line, rgba(0, 0, 0, 0.1)));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #b07d4f) 10%, transparent);
+  box-shadow: 0 0 0 3px var(--selected-bg);
 }
 
 .searchIcon {
@@ -70,7 +70,7 @@
 }
 
 .clearBtn:hover {
-  background: color-mix(in srgb, var(--ink, #2c2823) 6%, transparent);
+  background: var(--surface-bg-strong);
   color: var(--ink-2, #6f6a62);
 }
 
@@ -151,7 +151,7 @@
 }
 
 .newBtn:hover {
-  background: color-mix(in srgb, var(--accent, #b07d4f) 10%, transparent);
+  background: var(--selected-bg);
 }
 
 .newBtn:active {
@@ -194,7 +194,7 @@
 }
 
 .contactItem:hover {
-  background: color-mix(in srgb, var(--ink, #2c2823) 4%, transparent);
+  background: var(--surface-bg);
 }
 
 .contactItem:active {

@@ -369,7 +369,7 @@
 
 .notesCard .notesText {
   background: color-mix(in srgb, var(--accent, #b07d4f) 5%, var(--panel, #ffffff));
-  border-left: 3px solid color-mix(in srgb, var(--accent, #b07d4f) 30%, var(--line, rgba(0, 0, 0, 0.09)));
+  border-left: 3px solid var(--tag-border);
   border-radius: 0 var(--radius-sm, 10px) var(--radius-sm, 10px) 0;
   padding: 14px 16px;
   margin: 0;

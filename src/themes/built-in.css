@@ -1,12 +1,29 @@
 /* Theme: Default Light */
+/* ── Named color-mix tokens (use these in CSS modules instead of inline color-mix) ── */
+/* Accent-based tokens */
+/* --hover-bg: 6% accent on transparent (hover states) */
+/* --selected-bg: 10% accent on transparent (selected states) */
+/* --focus-ring: 14% accent on transparent (focus rings) */
+/* --chip-bg: 12% accent on transparent (chips, badges) */
+/* --tag-bg: 5% accent on transparent (tags) */
+/* --tag-border: 30% accent on line (tag borders) */
+/* Ink-based tokens */
+/* --surface-bg: 4% ink on transparent (subtle surfaces) */
+/* --surface-bg-strong: 6% ink on transparent (stronger surface) */
+/* Error tokens */
+/* --error-bg: 8% error on transparent */
+/* --error-bg-strong: 14% error on transparent */
+/* --error-border: 22% error on transparent */
 
 :root,
 [data-theme='light'] {
   /* Backgrounds */
   --color-bg-primary: #fafafa;
   --color-bg-secondary: #ffffff;
+  --color-bg-secondary-rgb: 255, 255, 255;
   --color-bg-tertiary: #f3f4f6;
   --color-bg-hover: #f1f3f4;
+  --color-bg-input: #ffffff;
 
   /* Legacy aliases (design handoff tokens) */
   --canvas: #faf8f3;
@@ -18,23 +35,33 @@
   --line: rgba(44, 40, 33, 0.09);
   --line-2: rgba(44, 40, 33, 0.05);
   --accent: #b07d4f;
+  --accent-soft: #efe7db;
 
   /* Text */
   --color-text-primary: #202124;
   --color-text-secondary: #5f6368;
   --color-text-muted: #9ca3af;
+  --color-text: #2c2823;
+  --color-text-tertiary: #a39d93;
 
   /* Borders */
   --color-border: #e5e7eb;
   --color-border-light: #f1f3f4;
+  --color-border-subtle: #e8eaed;
+  --color-border-visible: #e5e7eb;
 
   /* Accent / Primary */
   --color-accent: #4285f4;
+  --color-primary: #4285f4;
+  --color-primary-hover: #3b78e7;
+  --color-primary-light: rgba(66, 133, 244, 0.10);
   --color-accent-hover: #3367d6;
   --color-accent-light: #e8f0fe;
 
   /* Status colors */
   --color-success: #34a853;
+  --color-success-light: rgba(45, 125, 70, 0.10);
+  --color-danger-bg: rgba(234, 67, 53, 0.08);
   --color-warning: #fbbc04;
   --color-error: #ea4335;
   --color-info: #4285f4;
@@ -112,6 +139,17 @@
 
   /* Event card theming */
   --ink-raw: 0, 0, 0;
+  --hover-bg: color-mix(in srgb, var(--accent) 6%, transparent);
+  --selected-bg: color-mix(in srgb, var(--accent) 10%, transparent);
+  --focus-ring: color-mix(in srgb, var(--accent) 14%, transparent);
+  --chip-bg: color-mix(in srgb, var(--accent) 12%, transparent);
+  --tag-bg: color-mix(in srgb, var(--accent) 5%, transparent);
+  --tag-border: color-mix(in srgb, var(--accent) 30%, var(--line));
+  --surface-bg: color-mix(in srgb, var(--ink) 4%, transparent);
+  --surface-bg-strong: color-mix(in srgb, var(--ink) 6%, transparent);
+  --error-bg: color-mix(in srgb, var(--color-error, #c2697f) 8%, transparent);
+  --error-bg-strong: color-mix(in srgb, var(--color-error, #c2697f) 14%, transparent);
+  --error-border: color-mix(in srgb, var(--color-error, #c2697f) 22%, transparent);
   --event-bg-mix: 9%;
   --event-bg-mix-hover: 12%;
   --color-error-muted: #c47068;
@@ -136,8 +174,10 @@
   /* Backgrounds */
   --color-bg-primary: #1a1816;
   --color-bg-secondary: #242220;
+  --color-bg-secondary-rgb: 36, 34, 32;
   --color-bg-tertiary: #2a2826;
   --color-bg-hover: rgba(240, 236, 230, 0.06);
+  --color-bg-input: #2a2826;
 
   /* Legacy aliases (design handoff tokens) */
   --canvas: #1a1816;
@@ -149,23 +189,33 @@
   --line: rgba(240, 236, 230, 0.09);
   --line-2: rgba(240, 236, 230, 0.05);
   --accent: #c9956a;
+  --accent-soft: rgba(201, 149, 106, 0.18);
 
   /* Text */
   --color-text-primary: #f0ece6;
   --color-text-secondary: #a39d93;
   --color-text-muted: #6f6a62;
+  --color-text: #f0ece6;
+  --color-text-tertiary: #6f6a62;
 
   /* Borders */
   --color-border: rgba(240, 236, 230, 0.09);
   --color-border-light: rgba(240, 236, 230, 0.05);
+  --color-border-subtle: rgba(240, 236, 230, 0.08);
+  --color-border-visible: rgba(240, 236, 230, 0.09);
 
   /* Accent */
   --color-accent: #c9956a;
+  --color-primary: #c9956a;
+  --color-primary-hover: #d4a575;
+  --color-primary-light: rgba(201, 149, 106, 0.12);
   --color-accent-hover: #d4a575;
   --color-accent-light: rgba(201, 149, 106, 0.12);
 
   /* Status */
   --color-success: #6aaa85;
+  --color-success-light: rgba(106, 170, 133, 0.12);
+  --color-danger-bg: rgba(212, 135, 127, 0.10);
   --color-warning: #d4a54f;
   --color-error: #d4877f;
   --color-info: #7b9fd4;
@@ -245,6 +295,17 @@
 
   /* Event card theming */
   --ink-raw: 240, 236, 230;
+  --hover-bg: color-mix(in srgb, var(--accent) 8%, transparent);
+  --selected-bg: color-mix(in srgb, var(--accent) 14%, transparent);
+  --focus-ring: color-mix(in srgb, var(--accent) 20%, transparent);
+  --chip-bg: color-mix(in srgb, var(--accent) 14%, transparent);
+  --tag-bg: color-mix(in srgb, var(--accent) 8%, transparent);
+  --tag-border: color-mix(in srgb, var(--accent) 45%, var(--line));
+  --surface-bg: color-mix(in srgb, var(--ink) 6%, transparent);
+  --surface-bg-strong: color-mix(in srgb, var(--ink) 8%, transparent);
+  --error-bg: color-mix(in srgb, var(--color-error, #d4877f) 10%, transparent);
+  --error-bg-strong: color-mix(in srgb, var(--color-error, #d4877f) 16%, transparent);
+  --error-border: color-mix(in srgb, var(--color-error, #d4877f) 30%, transparent);
   --event-bg-mix: 18%;
   --event-bg-mix-hover: 22%;
   --color-error-muted: #d4877f;
@@ -254,7 +315,8 @@
   --popover-bg: #383229;
   --modal-scrim: rgba(0, 0, 0, 0.60);
   --modal-blur: blur(4px);
-  --modal-border: rgba(255, 247, 235, 0.10);
+  --modal-border: transparent;
+  --modal-card-border: 1px solid rgba(255, 247, 235, 0.08);
   --popover-border: rgba(255, 247, 235, 0.14);
   --modal-shadow: 0 2px 4px rgba(0, 0, 0, 0.40), 0 20px 60px rgba(0, 0, 0, 0.65);
 
@@ -297,9 +359,7 @@
 }
 
 /* ── Modal card — double-bezel edge (default theme) ─────────── */
-:root:not([data-theme-id]) [data-component="modal-card"],
-[data-theme='light']:not([data-theme-id]) [data-component="modal-card"],
-[data-theme='dark']:not([data-theme-id]) [data-component="modal-card"] {
+[data-theme='light']:not([data-theme-id]) [data-component="modal-card"] {
   border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.06),

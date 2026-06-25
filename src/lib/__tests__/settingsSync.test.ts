@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { createLocalStorageMock } from '@/test/storageMock'
 import {
   serializeSettings,
   deserializeSettings,
@@ -26,19 +27,16 @@ import {
 import { useSettingsStore } from '@/store/settingsStore'
 
 describe('settingsSync', () => {
-  const storage = new Map<string, string>()
+  const storage = createLocalStorageMock()
 
   beforeEach(() => {
-    storage.clear()
-    vi.mocked(localStorage.getItem).mockImplementation((key: string) => storage.get(key) ?? null)
-    vi.mocked(localStorage.setItem).mockImplementation((key: string, value: string) => { storage.set(key, value) })
-    vi.mocked(localStorage.removeItem).mockImplementation((key: string) => { storage.delete(key) })
-    vi.mocked(localStorage.clear).mockImplementation(() => { storage.clear() })
+    storage.install()
     useSettingsStore.getState().resetSettings()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    storage.reset()
   })
 
   describe('encodeBase64 / decodeBase64', () => {

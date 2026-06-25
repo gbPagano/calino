@@ -1,5 +1,6 @@
 import { RRule } from 'rrule'
 import type { CalendarEvent, RecurrenceRule } from '@/types'
+import { toICalUTC } from './datetime'
 
 // byWeekday numbers stored in RecurrenceRule → BYDAY codes
 export const DAY_NUM_TO_CODE: Record<number, string> = {
@@ -89,14 +90,7 @@ export function buildRRuleString(rule: RecurrenceRule): string {
   }
 
   if (rule.endDate) {
-    const date = new Date(rule.endDate)
-    const year = date.getUTCFullYear()
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-    const day = String(date.getUTCDate()).padStart(2, '0')
-    const hour = String(date.getUTCHours()).padStart(2, '0')
-    const minute = String(date.getUTCMinutes()).padStart(2, '0')
-    const second = String(date.getUTCSeconds()).padStart(2, '0')
-    parts.push(`UNTIL=${year}${month}${day}T${hour}${minute}${second}Z`)
+    parts.push(`UNTIL=${toICalUTC(new Date(rule.endDate))}`)
   } else if (rule.count) {
     parts.push(`COUNT=${rule.count}`)
   }

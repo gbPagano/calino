@@ -1,7 +1,8 @@
 import type { CalendarEvent } from '@/types'
 import type { SyncResult, ConflictResolution } from '../types'
 import { CalDAVClient } from '../client/CalDAVClient'
-import { eventToICAL, parseICALData, taskToICAL, journalToICAL, isUUID } from '../adapter/iCalendarAdapter'
+import { eventToICAL, parseICALData, taskToICAL, journalToICAL } from '../adapter/iCalendarAdapter'
+import { isUUID } from '@/lib/uuid'
 import * as storage from './accountStorage'
 import { getAttachments, putAttachments } from '@/lib/attachmentStore'
 

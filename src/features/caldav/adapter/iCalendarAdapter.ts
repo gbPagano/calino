@@ -10,8 +10,6 @@ import {
   calendarEventToIcalVjournal,
 } from './icalTypeMapping'
 
-export { isUUID } from '@/lib/uuid'
-
 export function parseICALEvent(iCalData: string, calendarId: string): CalendarEvent[] {
   if (!iCalData || !iCalData.trim()) {
     return []

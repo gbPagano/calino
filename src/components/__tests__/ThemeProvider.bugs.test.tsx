@@ -28,7 +28,6 @@ vi.mock('@/store/settingsStore', () => {
 
 vi.mock('@/lib/themes', () => ({
   loadThemes: vi.fn().mockResolvedValue([]),
-  getBuiltInThemeCSS: vi.fn().mockReturnValue(''),
   getThemeCSS: vi.fn().mockReturnValue(''),
 }))
 

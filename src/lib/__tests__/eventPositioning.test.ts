@@ -1,33 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import { positionEvents } from '../eventPositioning'
-import type { CalendarEvent } from '@/types'
+import { makeEvent, eventTimeRange } from './fixtures'
 
-function makeEvent(
-  id: string,
-  startHour: number,
-  durationMinutes: number,
-  overrides: Partial<CalendarEvent> = {}
-): CalendarEvent {
-  const start = new Date(2026, 4, 27, startHour, 0)
-  const end = new Date(start.getTime() + durationMinutes * 60_000)
-  return {
-    id,
-    calendarId: 'cal1',
-    title: `Event ${id}`,
-    start: start.toISOString(),
-    end: end.toISOString(),
-    isAllDay: false,
-    type: 'event',
-    ...overrides,
-  }
-}
+const day = (hour: number, durationMin: number) =>
+  eventTimeRange(2026, 4, 27, hour, 0, durationMin * 60_000)
 
 describe('positionEvents - Bug #83: short event overlap detection', () => {
   it('assigns totalColumns=2 for two overlapping events regardless of duration', () => {
     // Two events that overlap but are both shorter than 30 minutes
     const events = [
-      makeEvent('a', 10, 15), // 10:00 – 10:15
-      makeEvent('b', 10, 15), // 10:00 – 10:15
+      makeEvent({ id: 'a', title: 'Event a', ...day(10, 15) }),
+      makeEvent({ id: 'b', title: 'Event b', ...day(10, 15) }),
     ]
 
     const result = positionEvents(events)
@@ -41,9 +24,9 @@ describe('positionEvents - Bug #83: short event overlap detection', () => {
 
   it('assigns totalColumns=3 for three concurrent 10-minute events', () => {
     const events = [
-      makeEvent('a', 10, 10), // 10:00 – 10:10
-      makeEvent('b', 10, 10), // 10:00 – 10:10
-      makeEvent('c', 10, 10), // 10:00 – 10:10
+      makeEvent({ id: 'a', title: 'Event a', ...day(10, 10) }),
+      makeEvent({ id: 'b', title: 'Event b', ...day(10, 10) }),
+      makeEvent({ id: 'c', title: 'Event c', ...day(10, 10) }),
     ]
 
     const result = positionEvents(events)
@@ -55,8 +38,8 @@ describe('positionEvents - Bug #83: short event overlap detection', () => {
 
   it('detects overlap between a short event and a long event', () => {
     const events = [
-      makeEvent('long', 10, 60),  // 10:00 – 11:00
-      makeEvent('short', 10, 5),  // 10:00 – 10:05 (well under 30 min)
+      makeEvent({ id: 'long', title: 'Event long', ...day(10, 60) }),
+      makeEvent({ id: 'short', title: 'Event short', ...day(10, 5) }),
     ]
 
     const result = positionEvents(events)
@@ -68,9 +51,9 @@ describe('positionEvents - Bug #83: short event overlap detection', () => {
 
   it('short event sandwiched between two non-overlapping events gets totalColumns=1', () => {
     const events = [
-      makeEvent('a', 10, 10),  // 10:00 – 10:10
-      makeEvent('b', 10, 15),  // 10:00 – 10:15 (overlaps with a)
-      makeEvent('c', 11, 10),  // 11:00 – 11:10 (does NOT overlap)
+      makeEvent({ id: 'a', title: 'Event a', ...day(10, 10) }),
+      makeEvent({ id: 'b', title: 'Event b', ...day(10, 15) }),
+      makeEvent({ id: 'c', title: 'Event c', ...day(11, 10) }),
     ]
 
     const result = positionEvents(events)
@@ -93,9 +76,9 @@ describe('positionEvents - Bug #83: short event overlap detection', () => {
 
     // All three start at 10:00 for simplicity
     const preciseEvents = [
-      makeEvent('a', 10, 10),  // 10:00 – 10:10
-      makeEvent('b', 10, 15),  // 10:00 – 10:15 (all three start at 10:00 for simplicity)
-      makeEvent('c', 10, 10),  // 10:00 – 10:10
+      makeEvent({ id: 'a', title: 'Event a', ...day(10, 10) }),
+      makeEvent({ id: 'b', title: 'Event b', ...day(10, 15) }),
+      makeEvent({ id: 'c', title: 'Event c', ...day(10, 10) }),
     ]
 
     const result = positionEvents(preciseEvents)
@@ -106,7 +89,7 @@ describe('positionEvents - Bug #83: short event overlap detection', () => {
   })
 
   it('single event has totalColumns=1', () => {
-    const events = [makeEvent('only', 10, 15)]
+    const events = [makeEvent({ id: 'only', title: 'Event only', ...day(10, 15) })]
 
     const result = positionEvents(events)
     expect(result[0].totalColumns).toBe(1)
@@ -114,8 +97,13 @@ describe('positionEvents - Bug #83: short event overlap detection', () => {
 
   it('excludes transparent events from positioning', () => {
     const events = [
-      makeEvent('opaque', 10, 30),
-      makeEvent('transparent', 10, 30, { transparency: 'transparent' }),
+      makeEvent({ id: 'opaque', title: 'Event opaque', ...day(10, 30) }),
+      makeEvent({
+        id: 'transparent',
+        title: 'Event transparent',
+        ...day(10, 30),
+        transparency: 'transparent',
+      }),
     ]
 
     const result = positionEvents(events)
@@ -127,8 +115,8 @@ describe('positionEvents - Bug #83: short event overlap detection', () => {
 
   it('events with zero-length duration (start === end) get totalColumns=1', () => {
     const events = [
-      makeEvent('a', 10, 0), // 10:00 – 10:00
-      makeEvent('b', 10, 0), // 10:00 – 10:00
+      makeEvent({ id: 'a', title: 'Event a', ...day(10, 0) }),
+      makeEvent({ id: 'b', title: 'Event b', ...day(10, 0) }),
     ]
 
     const result = positionEvents(events)

@@ -2,6 +2,7 @@ import { createDAVClient } from 'tsdav'
 import type { CalDAVCredentials, CalDAVCalendar, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 import { decodeBase64 } from '@/lib/settingsSync'
+import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { useSettingsStore } from '@/store/settingsStore'
 
 const NETWORK_TIMEOUT_MS = 15_000
@@ -21,8 +22,6 @@ function escapeXml(str: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;')
 }
-
-const DEFAULT_CALENDAR_COLOR = '#4285F4'
 
 /**
  * Normalize a color string from a CalDAV server into a valid 6-digit hex color.

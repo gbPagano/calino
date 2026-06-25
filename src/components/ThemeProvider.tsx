@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { useSettingsStore } from '@/store/settingsStore'
-import { loadThemes, getBuiltInThemeCSS, getThemeCSS, type ThemeInfo } from '@/lib/themes'
+import { loadThemes, getThemeCSS, type ThemeInfo } from '@/lib/themes'
 import { ThemeContext } from './ThemeContext'
 
 interface ThemeProviderProps {
@@ -23,7 +23,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   const currentThemeId = effectiveMode === 'dark' ? darkTheme : lightTheme
 
-  const builtInCSS = useMemo(() => getBuiltInThemeCSS(), [])
+  const builtInCSS = useMemo(() => getThemeCSS('built-in'), [])
   const isBuiltIn = currentThemeId === 'built-in' || currentThemeId === 'built-in-dark'
   const customCSS = !isBuiltIn ? getThemeCSS(currentThemeId) : ''
 

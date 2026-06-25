@@ -15,9 +15,9 @@ import { useContextMenuStore } from '@/store/contextMenuStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 import type { CalendarEvent } from '@/types'
-import { isUUID } from '@/lib/uuid'
 import { ContextMenu } from '@/components/common/ContextMenu'
-import { DEFAULT_CALENDAR_COLOR } from '@/config'
+import { getEventColor } from '@/lib/eventColor'
+import { formatTime } from '@/lib/datetime'
 import styles from './AgendaView.module.css'
 
 interface EventWithDate {
@@ -50,25 +50,10 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; day: Date } | null>(null)
   const [eventContextMenu, setEventContextMenu] = useState<{ x: number; y: number; event: CalendarEvent } | null>(null)
 
-  const calendarColorMap = useMemo(() => {
-    const map = new Map<string, string>()
-    calendars.forEach((cal) => map.set(cal.id, cal.color))
-    return map
-  }, [calendars])
+  const useCategoryColors = useSettingsStore((state) => state.useCategoryColors)
 
-  const getEventBarColor = (event: CalendarEvent): string => {
-    const useCategoryColors = useSettingsStore.getState().useCategoryColors
-    const firstCategory = event.categories && event.categories.length > 0
-      ? categories.find((cat) => {
-          const catValue = event.categories![0]
-          if (isUUID(catValue)) {
-            return cat.id === catValue
-          }
-          return cat.name === catValue
-        })
-      : undefined
-    return event.color || (useCategoryColors && firstCategory?.color) || calendarColorMap.get(event.calendarId) || DEFAULT_CALENDAR_COLOR
-  }
+  const getEventBarColor = (event: CalendarEvent): string =>
+    getEventColor(event, { categories, calendars, useCategoryColors })
 
   const date = parseISO(currentDate)
 
@@ -267,7 +252,7 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
                         <div className={styles.agendaTaskBody}>
                           <div className={styles.agendaTaskMain}>
                             <span className={styles.agendaTaskTime}>
-                              {event.start.includes('T00:00') ? 'Due' : format(parseISO(event.start), timeFormat === '24h' ? 'HH:mm' : 'h:mm a')}
+                              {event.start.includes('T00:00') ? 'Due' : formatTime(event.start, timeFormat)}
                             </span>
                             <span className={styles.agendaTaskIcon}>
                               {event.completed ? '✓' : '○'}
@@ -303,10 +288,8 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
                           <span className={styles.agendaEventTime}>
                             {event.isAllDay
                               ? 'All day'
-                              : format(
-                                  parseISO(event.start),
-                                  timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
-                                )}
+                              : formatTime(event.start, timeFormat)
+                            }
                           </span>
                           <span className={styles.agendaEventTitle}>{event.title}</span>
                         </div>

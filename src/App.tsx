@@ -153,6 +153,9 @@ function useViewManager(): void {
       const { isModalOpen, isOverlayOpen } = useCalendarStore.getState()
       if (isModalOpen || isOverlayOpen) return
 
+      // Ignore if Ctrl or Cmd is held (browser shortcuts like Ctrl+< etc.)
+      if (e.ctrlKey || e.metaKey) return
+
       let newView: ViewType | null = null
       if (e.key === '<' || e.key === ',') {
         e.preventDefault()
@@ -234,13 +237,16 @@ function CalendarApp(): JSX.Element {
       const { isModalOpen, isOverlayOpen: overlayOpen } = useCalendarStore.getState()
       if (isModalOpen || overlayOpen) return
 
-      // Cmd/Ctrl+K → open command palette
+      // Cmd/Ctrl+K → open command palette (must be before the ctrlKey guard)
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setIsCommandPaletteOpen(true)
         setOverlayOpen(true)
         return
       }
+
+      // Ignore single-key shortcuts if Ctrl or Cmd is held
+      if (e.ctrlKey || e.metaKey) return
 
       const path = window.location.pathname
       const isSettings = path.startsWith('/settings')

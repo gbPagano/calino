@@ -12,7 +12,7 @@ import type {
   ViewType,
   ThemeMode,
 } from '@/types'
-import { config, DEFAULT_CALENDAR_COLOR, CALENDAR_COLORS } from '@/config'
+import { config, DEFAULT_CALENDAR_COLOR, EVENT_COLORS as _EVENT_COLORS_FROM_CONFIG } from '@/config'
 
 export const selectThemeMode = (state: SettingsStore) => state.themeMode
 export const selectUpdateSettings = (state: SettingsStore) => state.updateSettings
@@ -226,7 +226,8 @@ export function getTimezoneOptions(): { value: string; label: string }[] {
 
 export const TIMEZONE_OPTIONS = getTimezoneOptions()
 
-export const EVENT_COLORS = [...CALENDAR_COLORS, '#9334E6', '#00796B']
+// Re-export from config for backward compatibility.
+export const EVENT_COLORS = _EVENT_COLORS_FROM_CONFIG
 
 export const THEME_MODE_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: 'light', label: 'Light' },

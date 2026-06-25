@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { format, isValid } from 'date-fns'
+import { formatTime } from '@/lib/datetime'
 import { Button } from '@/components/common/Button'
 import { Input } from '@/components/common/Input'
 import { useSettingsStore } from '@/store/settingsStore'
@@ -67,11 +68,6 @@ export function QuickAdd({ onAdd, onCancel }: QuickAddProps): JSX.Element {
     return format(date, 'EEEE, MMMM d, yyyy')
   }
 
-  const formatTime = (date: Date): string => {
-    if (!isValid(date)) return ''
-    return format(date, timeFormat === '24h' ? 'HH:mm' : 'h:mm a')
-  }
-
   return (
     <form className={styles.container} onSubmit={handleSubmit}>
       <div className={styles.inputWrapper}>
@@ -96,8 +92,8 @@ export function QuickAdd({ onAdd, onCancel }: QuickAddProps): JSX.Element {
               <div className={styles.previewRow}>
                 <span className={styles.previewLabel}>Time:</span>
                 <span>
-                  {formatTime(preview.startDate)}
-                  {preview.endDate && ` - ${formatTime(preview.endDate)}`}
+                  {formatTime(preview.startDate, timeFormat)}
+                  {preview.endDate && ` - ${formatTime(preview.endDate, timeFormat)}`}
                 </span>
               </div>
             )}

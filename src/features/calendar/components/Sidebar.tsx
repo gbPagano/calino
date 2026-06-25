@@ -18,7 +18,7 @@ import {
   subMonths,
   parseISO,
 } from 'date-fns'
-import { config, TOAST_DURATION_MS } from '@/config'
+import { config, TOAST_DURATION_MS, getNextColor } from '@/config'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
@@ -29,26 +29,6 @@ import { CreateCalendarModal } from './CreateCalendarModal'
 import { DeleteCalendarDialog } from './DeleteCalendarDialog'
 import { MiniTasksSection } from './MiniTasksSection'
 import styles from './Sidebar.module.css'
-
-const CALENDAR_COLORS = [
-  '#4285F4',
-  '#EA4335',
-  '#34A853',
-  '#FBBC05',
-  '#FF6D01',
-  '#46BDC6',
-  '#7B1FA2',
-  '#C2185B',
-  '#00796B',
-  '#F57C00',
-  '#455A64',
-  '#5D4037',
-]
-
-function getNextColor(currentColor: string): string {
-  const idx = CALENDAR_COLORS.indexOf(currentColor)
-  return CALENDAR_COLORS[(idx + 1) % CALENDAR_COLORS.length]
-}
 
 interface SidebarProps {
   isOpen?: boolean

@@ -6,18 +6,12 @@ import { useCardDAV } from '@/features/carddav/hooks/useCardDAV'
 import { v4 as uuidv4 } from 'uuid'
 import { findDuplicateGroups, mergeContacts, type DuplicateGroup } from '../lib/mergeContacts'
 import { showToast } from '@/lib/toast'
+import { getInitials } from '../lib/avatars'
 import styles from '@/features/calendar/components/EventModal.module.css'
 
 interface MergeDuplicatesModalProps {
   isOpen: boolean
   onClose: () => void
-}
-
-function getInitials(name: string): string {
-  if (!name) return '?'
-  const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0]!.charAt(0).toUpperCase()
-  return (parts[0]!.charAt(0) + parts[parts.length - 1]!.charAt(0)).toUpperCase()
 }
 
 const CONFIDENCE_COLORS: Record<string, string> = {

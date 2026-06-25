@@ -1,57 +1,15 @@
 import type { JSX } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
-import * as storage from '@/features/caldav/sync/accountStorage'
-import { format, parseISO } from 'date-fns'
+import { useSettingsStore } from '@/store/settingsStore'
+import { formatBrokenEventDate as formatDate } from '../lib/format'
+import { useBrokenEventsActions } from '../hooks/useBrokenEventsActions'
 import styles from './Settings.module.css'
 
 export function BrokenEventsSettings(): JSX.Element {
   const brokenEvents = useCalendarStore((state) => state.brokenEvents)
-  const removeBrokenEvent = useCalendarStore((state) => state.removeBrokenEvent)
-  const addEvent = useCalendarStore((state) => state.addEvent)
-
-  const formatDate = (iso: string): string => {
-    try {
-      return format(parseISO(iso), 'MMM d, yyyy h:mm a')
-    } catch {
-      return iso
-    }
-  }
-
-  const handleFix = (broken: (typeof brokenEvents)[0]): void => {
-    const { event } = broken
-    const fixedEvent = { ...event, start: event.end, end: event.start }
-    removeBrokenEvent(event.id)
-    addEvent(fixedEvent)
-    storage.addPendingChange({
-      type: 'update',
-      eventId: event.id,
-      calendarId: event.calendarId,
-      data: JSON.stringify(fixedEvent),
-    })
-  }
-
-  const handleDelete = (broken: (typeof brokenEvents)[0]): void => {
-    const { event } = broken
-    storage.addPendingChange({
-      type: 'delete',
-      eventId: event.id,
-      calendarId: event.calendarId,
-      data: JSON.stringify(event),
-    })
-    removeBrokenEvent(event.id)
-  }
-
-  const handleFixAll = (): void => {
-    for (const broken of [...brokenEvents]) {
-      handleFix(broken)
-    }
-  }
-
-  const handleDeleteAll = (): void => {
-    for (const broken of [...brokenEvents]) {
-      handleDelete(broken)
-    }
-  }
+  const timeFormat = useSettingsStore((state) => state.timeFormat)
+  const { handleFix, handleDelete, handleFixAll, handleDeleteAll } =
+    useBrokenEventsActions('pendingChange')
 
   if (brokenEvents.length === 0) {
     return (
@@ -83,9 +41,9 @@ export function BrokenEventsSettings(): JSX.Element {
               <div className={styles.brokenInfo}>
                 <div className={styles.brokenTitle}>{broken.event.title || 'Untitled Event'}</div>
                 <div className={styles.brokenDates}>
-                  <span>Start: {formatDate(broken.event.start)}</span>
+                  <span>Start: {formatDate(broken.event.start, timeFormat)}</span>
                   <span className={styles.brokenArrow}>→</span>
-                  <span>End: {formatDate(broken.event.end)}</span>
+                  <span>End: {formatDate(broken.event.end, timeFormat)}</span>
                 </div>
                 <div className={styles.brokenReason}>{broken.reason}</div>
               </div>
@@ -113,14 +71,14 @@ export function BrokenEventsSettings(): JSX.Element {
           <div className={styles.brokenBatchActions}>
             <button
               className={styles.actionBtn}
-              onClick={handleFixAll}
+              onClick={() => handleFixAll(brokenEvents)}
               type="button"
             >
               Fix All ({brokenEvents.length})
             </button>
             <button
               className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-              onClick={handleDeleteAll}
+              onClick={() => handleDeleteAll(brokenEvents)}
               type="button"
             >
               Delete All

@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { format, parseISO, isSameDay } from 'date-fns'
+import { formatTime } from '@/lib/datetime'
 import { useDraggable } from '@dnd-kit/core'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
@@ -10,13 +11,12 @@ import { ContextMenu } from '@/components/common/ContextMenu'
 import { RecurringIcon } from '@/components/common/icons'
 import { DeleteDialog } from './DeleteDialog'
 import type { CalendarEvent } from '@/types'
-import { DEFAULT_CALENDAR_COLOR } from '@/config'
+import { getEventColor } from '@/lib/eventColor'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 
-import { isUUID } from '@/features/caldav/adapter/iCalendarAdapter'
 import { extractOriginalEventId, hasDueTime, formatTravelDuration } from '@/lib/events'
 import { hapticIfEnabled } from '@/lib/haptics'
 import styles from './EventCard.module.css'
@@ -108,19 +108,12 @@ export const EventCard = React.memo(function EventCard({
     id: event.id,
   })
 
-  const calendar = calendars.find((c) => c.id === event.calendarId)
   const useCategoryColors = useSettingsStore((state) => state.useCategoryColors)
-  const firstCategory = event.categories && event.categories.length > 0
-    ? categories.find((cat) => {
-        const catValue = event.categories![0]
-        // Check if it's a UUID (ID) or a name
-        if (isUUID(catValue)) {
-          return cat.id === catValue
-        }
-        return cat.name === catValue
-      })
-    : undefined
-  const eventColor = event.color || (useCategoryColors && firstCategory?.color) || calendar?.color || DEFAULT_CALENDAR_COLOR
+  const eventColor = getEventColor(event, {
+    categories,
+    calendars,
+    useCategoryColors,
+  })
   const isTask = event.type === 'task'
   const isRecurring = !!event.recurrence || !!event.rruleString
   const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
@@ -159,9 +152,9 @@ export const EventCard = React.memo(function EventCard({
 
   const handleResizeStart = (e: React.PointerEvent): void => {
     e.stopPropagation()
-    e.preventDefault()
-    setIsResizing(true)
-    setDidInteract(true)
+    // Don't preventDefault and don't flip isResizing/didInteract here — let the
+    // click fire if the user just taps. Both flags are flipped inside
+    // handleResizeMove once the pointer has moved more than a few px.
     resizeStartY.current = e.clientY
     resizeStartEnd.current = parseISO(event.end)
 
@@ -177,6 +170,12 @@ export const EventCard = React.memo(function EventCard({
       if (resizeStartY.current === null || resizeStartEnd.current === null) return
 
       const deltaY = moveEvent.clientY - resizeStartY.current
+      // Only flag as a real interaction once the pointer moves more than a few px.
+      // This lets a pure tap on the resize handle still trigger the card's click.
+      if (Math.abs(deltaY) > 4) {
+        setIsResizing(true)
+        setDidInteract(true)
+      }
       const rawDeltaMinutes = (deltaY / hourHeight) * 60
       const deltaMinutes = Math.round(rawDeltaMinutes / 15) * 15
       const newEnd = new Date(resizeStartEnd.current.getTime() + deltaMinutes * 60 * 1000)
@@ -213,11 +212,6 @@ export const EventCard = React.memo(function EventCard({
       }
     }
   }, [])
-
-  const formatTime = (dateString: string): string => {
-    const pattern = timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
-    return format(parseISO(dateString), pattern)
-  }
 
   const style = transform
     ? ({
@@ -262,10 +256,10 @@ export const EventCard = React.memo(function EventCard({
         role="button"
         tabIndex={0}
         aria-label={isTask
-          ? `${event.title}${event.completed ? ' (completed)' : ''}${event.dueDate ? ` due ${formatTime(event.dueDate)}` : ''}`
+          ? `${event.title}${event.completed ? ' (completed)' : ''}${event.dueDate ? ` due ${formatTime(event.dueDate, timeFormat)}` : ''}`
           : event.isAllDay
           ? `${event.title}, all day`
-          : `${event.title}, ${formatTime(event.start)} to ${formatTime(event.end)}`
+          : `${event.title}, ${formatTime(event.start, timeFormat)} to ${formatTime(event.end, timeFormat)}`
         }
         {...(isMultiDay ? { 'data-multi-day': '' } : {})}
         {...(isFragmentFirst ? { 'data-fragment-first': '' } : {})}
@@ -273,6 +267,7 @@ export const EventCard = React.memo(function EventCard({
         {...(isFragmentLast ? { 'data-fragment-last': '' } : {})}
         className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${event.completed ? styles.isDone : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${monthView ? styles.monthView : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''} ${dotMode ? styles.dot : ''}`}
         onContextMenu={handleContextMenu}
+        onClick={handleClick}
         {...bind}
       >
         {event.syncStatus === 'failed' && (
@@ -312,7 +307,6 @@ export const EventCard = React.memo(function EventCard({
         {isTask ? (
           <div
             className={styles.dragContent}
-            onClick={handleClick}
             onPointerDown={(e) => {
               e.stopPropagation()
               pointerStartPos.current = { x: e.clientX, y: e.clientY }
@@ -336,7 +330,6 @@ export const EventCard = React.memo(function EventCard({
           <>
             <div
               className={styles.dragContent}
-              onClick={handleClick}
               onPointerDown={(e) => {
                 e.stopPropagation()
                 pointerStartPos.current = { x: e.clientX, y: e.clientY }
@@ -355,12 +348,12 @@ export const EventCard = React.memo(function EventCard({
             {(() => {
               const timeText = !compact && !event.isAllDay
                 ? isFragmentFirst
-                  ? `${formatTime(event.start)} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`
+                  ? `${formatTime(event.start, timeFormat)} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`
                   : isFragmentMiddle
                   ? `${format(parseISO(event.originalStart || event.start), 'MMM d')} - ${format(parseISO(event.originalEnd || event.end), 'MMM d')}`
                   : isFragmentLast
-                  ? `${format(parseISO(event.originalStart || event.start), 'MMM d')} - ${formatTime(event.end)}`
-                  : `${formatTime(event.start)} - ${formatTime(event.end)}`
+                  ? `${format(parseISO(event.originalStart || event.start), 'MMM d')} - ${formatTime(event.end, timeFormat)}`
+                  : `${formatTime(event.start, timeFormat)} - ${formatTime(event.end, timeFormat)}`
                 : event.isAllDay ? 'All day' : null
               const locText = event.location || null
               if (timeText && locText) {

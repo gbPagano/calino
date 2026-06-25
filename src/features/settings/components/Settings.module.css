@@ -45,7 +45,7 @@
   gap: 8px;
   height: 36px;
   padding: 0 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm, 10px);
   border: 1px solid var(--line);
   background: var(--panel);
   box-shadow: 0 1px 2px rgba(var(--ink-raw), 0.05);
@@ -125,7 +125,7 @@
   align-items: center;
   gap: 11px;
   padding: 9px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm, 10px);
   font-size: 14px;
   color: var(--ink-2);
   cursor: pointer;
@@ -457,7 +457,7 @@
 .select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /* ── Toggle ─────────────────────────────────────────────────────────────── */
@@ -571,7 +571,7 @@
 
 .themeCardActive {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .themeCardPreview {
@@ -828,12 +828,12 @@
 
 .catBtnDanger {
   color: #bb5d6e;
-  background: color-mix(in srgb, #c2697f 8%, transparent);
+  background: var(--error-bg);
 }
 
 .catBtnDanger:hover {
   color: #bb5d6e;
-  background: color-mix(in srgb, #c2697f 14%, transparent);
+  background: var(--error-bg-strong);
 }
 
 .catAdd {
@@ -877,7 +877,7 @@
 .accountIcon {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm, 10px);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -999,13 +999,13 @@
 }
 
 .actionBtnDanger {
-  background: color-mix(in srgb, #c2697f 8%, var(--panel));
-  border-color: color-mix(in srgb, #c2697f 22%, transparent);
+  background: color-mix(in srgb, var(--color-error, #c2697f) 8%, var(--panel));
+  border-color: var(--error-border);
   color: #bb5d6e;
 }
 
 .actionBtnDanger:hover {
-  background: color-mix(in srgb, #c2697f 14%, var(--panel));
+  background: color-mix(in srgb, var(--color-error, #c2697f) 14%, var(--panel));
 }
 
 .actionBtnDanger:active {
@@ -1014,7 +1014,7 @@
 }
 
 .dangerZone {
-  border-color: color-mix(in srgb, #c2697f 22%, transparent);
+  border-color: var(--error-border);
 }
 
 .dangerZoneLabel {
@@ -1180,7 +1180,7 @@
 
 .modalPanel {
   background: var(--panel);
-  border-radius: 16px;
+  border-radius: var(--radius-lg, 16px);
   padding: 24px;
   max-width: 400px;
   width: 90%;
@@ -1214,7 +1214,7 @@
 .modalCancelBtn {
   margin-top: 16px;
   padding: 10px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm, 10px);
   border: none;
   background: none;
   cursor: pointer;
@@ -1231,7 +1231,7 @@
 .confirmBtn {
   flex: 1;
   padding: 10px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm, 10px);
   border: 1px solid var(--line);
   background: var(--canvas);
   cursor: pointer;
@@ -1247,9 +1247,9 @@
 .confirmBtnDanger {
   flex: 1;
   padding: 10px 16px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, #c2697f 22%, transparent);
-  background: color-mix(in srgb, #c2697f 8%, var(--panel));
+  border-radius: var(--radius-sm, 10px);
+  border: 1px solid var(--error-border);
+  background: color-mix(in srgb, var(--color-error, #c2697f) 8%, var(--panel));
   color: #bb5d6e;
   cursor: pointer;
   font-size: 14px;
@@ -1258,13 +1258,13 @@
 }
 
 .confirmBtnDanger:hover {
-  background: color-mix(in srgb, #c2697f 14%, var(--panel));
+  background: color-mix(in srgb, var(--color-error, #c2697f) 14%, var(--panel));
 }
 
 /* Account picker buttons */
 .accountPickerBtn {
   padding: 12px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm, 10px);
   border: 1px solid var(--line);
   background: var(--canvas);
   cursor: pointer;
@@ -1317,9 +1317,9 @@
 .syncError {
   margin-top: 12px;
   padding: 12px 14px;
-  border-radius: 10px;
-  background: color-mix(in srgb, #c2697f 8%, var(--panel));
-  border: 1px solid color-mix(in srgb, #c2697f 20%, transparent);
+  border-radius: var(--radius-sm, 10px);
+  background: color-mix(in srgb, var(--color-error, #c2697f) 8%, var(--panel));
+  border: 1px solid var(--error-border);
   font-size: 13px;
   line-height: 1.5;
   color: var(--ink);
@@ -1366,7 +1366,7 @@
 
 .keywordInput:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .keywordTag {
@@ -1517,7 +1517,7 @@
 .formInput:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /* Apply section */
@@ -1548,7 +1548,7 @@
 
 .catEditInput:focus {
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /* Import status */

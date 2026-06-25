@@ -31,13 +31,13 @@
 [data-theme='light'] {
 
   /* Canvas & Surfaces */
-  --canvas: #faf8f3;
-  --panel: #ffffff;
-  --side: #f6f3ed;
+  --canvas: #faf8f3;           /* canonical — page background */
+  --panel: #ffffff;             /* canonical — cards, modals */
+  --side: #f6f3ed;             /* sidebar */
 
-  --color-bg: var(--canvas);
-  --color-bg-primary: var(--canvas);
-  --color-bg-secondary: var(--panel);
+  --color-bg: var(--canvas);   /* legacy alias — ignore */
+  --color-bg-primary: var(--canvas);   /* legacy alias — ignore */
+  --color-bg-secondary: var(--panel);  /* legacy alias — ignore */
   --color-bg-tertiary: #f3f0ea;
   --color-bg-hover: rgba(0, 0, 0, 0.04);
   --color-bg-input: var(--canvas);
@@ -47,35 +47,35 @@
   --color-surface-glass: rgba(255, 255, 255, 0.8);
 
   /* Text */
-  --ink: #2c2823;
+  --ink: #2c2823;              /* canonical — primary text */
   --ink-2: #6f6a62;
   --ink-3: #a39d93;
 
-  --color-text-primary: var(--ink);
-  --color-text-secondary: var(--ink-2);
-  --color-text-muted: var(--ink-3);
+  --color-text-primary: var(--ink);     /* legacy alias — ignore */
+  --color-text-secondary: var(--ink-2); /* legacy alias — ignore */
+  --color-text-muted: var(--ink-3);     /* legacy alias — ignore */
   --color-text-tertiary: var(--ink-3);
 
   /* Borders */
-  --line: rgba(0, 0, 0, 0.09);
-  --line-2: rgba(0, 0, 0, 0.05);
+  --line: rgba(0, 0, 0, 0.09);     /* canonical — primary border */
+  --line-2: rgba(0, 0, 0, 0.05);  /* canonical — subtle border */
 
-  --color-border: var(--line);
-  --color-border-light: var(--line-2);
-  --color-border-subtle: var(--line-2);
-  --color-border-visible: var(--line);
-  --color-border-glass: var(--line);
+  --color-border: var(--line);          /* legacy alias — ignore */
+  --color-border-light: var(--line-2);  /* legacy alias — ignore */
+  --color-border-subtle: var(--line-2); /* legacy alias — ignore */
+  --color-border-visible: var(--line);  /* legacy alias — ignore */
+  --color-border-glass: var(--line);    /* legacy alias — ignore */
 
   /* Accent */
-  --accent: #b07d4f;
-  --accent-soft: rgba(176, 125, 79, 0.12);
+  --accent: #b07d4f;              /* canonical — buttons, links, highlights */
+  --accent-soft: rgba(176, 125, 79, 0.12); /* canonical — chip/badge fills */
 
-  --color-accent: var(--accent);
-  --color-accent-hover: #9a6c42;
-  --color-accent-light: var(--accent-soft);
-  --color-primary: var(--accent);
-  --color-primary-hover: #9a6c42;
-  --color-primary-light: var(--accent-soft);
+  --color-accent: var(--accent);        /* legacy alias — ignore */
+  --color-accent-hover: #9a6c42;       /* legacy alias — ignore */
+  --color-accent-light: var(--accent-soft); /* legacy alias — ignore */
+  --color-primary: var(--accent);       /* legacy alias — ignore */
+  --color-primary-hover: #9a6c42;       /* legacy alias — ignore */
+  --color-primary-light: var(--accent-soft); /* legacy alias — ignore */
 
   /* Status */
   --color-success: #5d9a78;
@@ -91,6 +91,22 @@
   --ink-raw: 44, 40, 33;
   --event-bg-mix: 9%;
   --event-bg-mix-hover: 12%;
+
+  /* ── Named color-mix tokens ── */
+  /* Accent-based tokens */
+  --hover-bg: color-mix(in srgb, var(--accent) 6%, transparent);
+  --selected-bg: color-mix(in srgb, var(--accent) 10%, transparent);
+  --focus-ring: color-mix(in srgb, var(--accent) 14%, transparent);
+  --chip-bg: color-mix(in srgb, var(--accent) 12%, transparent);
+  --tag-bg: color-mix(in srgb, var(--accent) 5%, transparent);
+  --tag-border: color-mix(in srgb, var(--accent) 30%, var(--line));
+  /* Ink-based tokens */
+  --surface-bg: color-mix(in srgb, var(--ink) 4%, transparent);
+  --surface-bg-strong: color-mix(in srgb, var(--ink) 6%, transparent);
+  /* Error tokens */
+  --error-bg: color-mix(in srgb, var(--color-error, #c2697f) 8%, transparent);
+  --error-bg-strong: color-mix(in srgb, var(--color-error, #c2697f) 14%, transparent);
+  --error-border: color-mix(in srgb, var(--color-error, #c2697f) 22%, transparent);
 
   /* Overlay & Focus */
   --color-overlay: rgba(0, 0, 0, 0.4);
@@ -161,7 +177,7 @@
 n  /* Calendar Grid */
   --day-cell-radius: 0;
   --day-cell-hover-bg: rgba(var(--ink-raw), 0.02);
-  --day-cell-today-bg: color-mix(in srgb, var(--accent) 4%, transparent);
+  --day-cell-today-bg: var(--selected-bg);
   --day-cell-other-month-bg: rgba(var(--ink-raw), 0.02);
 
   /* View Switcher */
@@ -176,13 +192,13 @@ n  /* Calendar Grid */
 [data-theme='dark'] {
 
   /* Canvas & Surfaces */
-  --canvas: #1a1816;
-  --panel: #242220;
-  --side: #1e1c1a;
+  --canvas: #1a1816;            /* canonical — page background */
+  --panel: #242220;              /* canonical — cards, modals */
+  --side: #1e1c1a;              /* sidebar */
 
-  --color-bg: var(--canvas);
-  --color-bg-primary: var(--canvas);
-  --color-bg-secondary: var(--panel);
+  --color-bg: var(--canvas);    /* legacy alias — ignore */
+  --color-bg-primary: var(--canvas);   /* legacy alias — ignore */
+  --color-bg-secondary: var(--panel); /* legacy alias — ignore */
   --color-bg-tertiary: #2a2826;
   --color-bg-hover: rgba(255, 255, 255, 0.06);
   --color-bg-input: #2a2826;
@@ -192,35 +208,35 @@ n  /* Calendar Grid */
   --color-surface-glass: rgba(36, 34, 32, 0.8);
 
   /* Text */
-  --ink: #f0ece6;
+  --ink: #f0ece6;              /* canonical — primary text */
   --ink-2: #a39d93;
   --ink-3: #6f6a62;
 
-  --color-text-primary: var(--ink);
-  --color-text-secondary: var(--ink-2);
-  --color-text-muted: var(--ink-3);
+  --color-text-primary: var(--ink);     /* legacy alias — ignore */
+  --color-text-secondary: var(--ink-2); /* legacy alias — ignore */
+  --color-text-muted: var(--ink-3);     /* legacy alias — ignore */
   --color-text-tertiary: var(--ink-3);
 
   /* Borders */
-  --line: rgba(240, 236, 230, 0.09);
-  --line-2: rgba(240, 236, 230, 0.05);
+  --line: rgba(240, 236, 230, 0.09);    /* canonical — primary border */
+  --line-2: rgba(240, 236, 230, 0.05); /* canonical — subtle border */
 
-  --color-border: var(--line);
-  --color-border-light: var(--line-2);
-  --color-border-subtle: var(--line-2);
-  --color-border-visible: var(--line);
-  --color-border-glass: var(--line);
+  --color-border: var(--line);          /* legacy alias — ignore */
+  --color-border-light: var(--line-2);   /* legacy alias — ignore */
+  --color-border-subtle: var(--line-2);  /* legacy alias — ignore */
+  --color-border-visible: var(--line);   /* legacy alias — ignore */
+  --color-border-glass: var(--line);     /* legacy alias — ignore */
 
   /* Accent */
-  --accent: #c9956a;
-  --accent-soft: rgba(201, 149, 106, 0.12);
+  --accent: #c9956a;             /* canonical — buttons, links, highlights */
+  --accent-soft: rgba(201, 149, 106, 0.12); /* canonical — chip/badge fills */
 
-  --color-accent: var(--accent);
-  --color-accent-hover: #d4a575;
-  --color-accent-light: var(--accent-soft);
-  --color-primary: var(--accent);
-  --color-primary-hover: #d4a575;
-  --color-primary-light: var(--accent-soft);
+  --color-accent: var(--accent);        /* legacy alias — ignore */
+  --color-accent-hover: #d4a575;       /* legacy alias — ignore */
+  --color-accent-light: var(--accent-soft); /* legacy alias — ignore */
+  --color-primary: var(--accent);        /* legacy alias — ignore */
+  --color-primary-hover: #d4a575;       /* legacy alias — ignore */
+  --color-primary-light: var(--accent-soft); /* legacy alias — ignore */
 
   /* Status */
   --color-success: #6aaa85;
@@ -236,6 +252,22 @@ n  /* Calendar Grid */
   --ink-raw: 240, 236, 230;
   --event-bg-mix: 18%;
   --event-bg-mix-hover: 22%;
+
+  /* ── Named color-mix tokens ── */
+  /* Accent-based tokens */
+  --hover-bg: color-mix(in srgb, var(--accent) 8%, transparent);
+  --selected-bg: color-mix(in srgb, var(--accent) 14%, transparent);
+  --focus-ring: color-mix(in srgb, var(--accent) 20%, transparent);
+  --chip-bg: color-mix(in srgb, var(--accent) 14%, transparent);
+  --tag-bg: color-mix(in srgb, var(--accent) 8%, transparent);
+  --tag-border: color-mix(in srgb, var(--accent) 45%, var(--line));
+  /* Ink-based tokens */
+  --surface-bg: color-mix(in srgb, var(--ink) 6%, transparent);
+  --surface-bg-strong: color-mix(in srgb, var(--ink) 8%, transparent);
+  /* Error tokens */
+  --error-bg: color-mix(in srgb, var(--color-error, #d4877f) 10%, transparent);
+  --error-bg-strong: color-mix(in srgb, var(--color-error, #d4877f) 16%, transparent);
+  --error-border: color-mix(in srgb, var(--color-error, #d4877f) 30%, transparent);
 
   /* Overlay & Focus */
   --color-overlay: rgba(0, 0, 0, 0.6);
@@ -306,7 +338,7 @@ n  /* Calendar Grid */
 n  /* Calendar Grid */
   --day-cell-radius: 0;
   --day-cell-hover-bg: rgba(var(--ink-raw), 0.04);
-  --day-cell-today-bg: color-mix(in srgb, var(--accent) 8%, transparent);
+  --day-cell-today-bg: var(--selected-bg);
   --day-cell-other-month-bg: rgba(var(--ink-raw), 0.04);
 
   /* View Switcher */

@@ -32,6 +32,7 @@ import {
   endOfDay,
   addDays,
 } from 'date-fns'
+import { pad2 } from '@/lib/datetime'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
@@ -271,8 +272,8 @@ export function CalendarGrid(): JSX.Element {
     const originalEnd = parseISO(originalEvent.end)
     const durationMs = originalEnd.getTime() - originalStart.getTime()
 
-    const hours = originalStart.getHours().toString().padStart(2, '0')
-    const minutes = originalStart.getMinutes().toString().padStart(2, '0')
+    const hours = pad2(originalStart.getHours())
+    const minutes = pad2(originalStart.getMinutes())
     const newStart = parseISO(`${dayStr}T${hours}:${minutes}:00`)
     const newEnd = new Date(newStart.getTime() + durationMs)
 
@@ -288,8 +289,8 @@ export function CalendarGrid(): JSX.Element {
         !originalEvent.dueDate.endsWith('T00:00')
 
       if (hasTime) {
-        const timeHours = originalDueDate.getHours().toString().padStart(2, '0')
-        const timeMinutes = originalDueDate.getMinutes().toString().padStart(2, '0')
+        const timeHours = pad2(originalDueDate.getHours())
+        const timeMinutes = pad2(originalDueDate.getMinutes())
         newDueDate = `${dayStr}T${timeHours}:${timeMinutes}:00`
       }
     }

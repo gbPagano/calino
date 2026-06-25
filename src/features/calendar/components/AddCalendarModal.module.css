@@ -121,8 +121,8 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--color-accent, #1a73e8);
-  box-shadow: 0 0 0 2px var(--color-accent-light, rgba(26, 115, 232, 0.2));
+  border-color: var(--color-accent, #b07d4f);
+  box-shadow: 0 0 0 2px var(--color-accent-light, rgba(176, 125, 79, 0.2));
 }
 
 .successMessage {

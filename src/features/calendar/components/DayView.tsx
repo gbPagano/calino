@@ -94,6 +94,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
   )
   const bodyRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const eventsOverlayRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
   const windowHeight = useWindowHeight()
   const stretchFactor = windowHeight > 1570 ? windowHeight / 1570 : 1
@@ -286,8 +287,10 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     (e: React.MouseEvent): void => {
       if (!isDraggingToCreate || !dragStart) return
 
-      const target = e.currentTarget as HTMLDivElement
-      const rect = target.getBoundingClientRect()
+      const overlay = eventsOverlayRef.current
+      if (!overlay) return
+
+      const rect = overlay.getBoundingClientRect()
       const y = e.clientY - rect.top
       const totalMinutes = (y / rect.height) * 24 * 60
       const snappedMinutes = Math.round(totalMinutes / MINUTE_SNAP_INTERVAL) * MINUTE_SNAP_INTERVAL
@@ -542,7 +545,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
               onDragStart={handleDragStartFromCell}
             />
           ))}
-          <div className={styles.eventsOverlay}>
+          <div ref={eventsOverlayRef} className={styles.eventsOverlay}>
             {selectionOverlay}
             {renderEvents()}
           </div>

@@ -527,6 +527,7 @@ export function WeekView(): JSX.Element {
           ))}
         </div>
         <div ref={daysContainerRef} className={styles.daysContainer}>
+          {selectionOverlay}
           {weekDays.map((day, idx) => {
             return (
               <div
@@ -553,7 +554,6 @@ export function WeekView(): JSX.Element {
                   ))}
                 </div>
                 <div className={styles.eventsOverlay}>
-                  {day === weekDays[0] && selectionOverlay}
                   <WeekDayColumn {...dayColumnProps[idx]} calendars={calendars} hourHeight={hourHeight} openModal={openModal} />
                 </div>
               </div>
@@ -628,6 +628,7 @@ export function WeekView(): JSX.Element {
             ))}
           </div>
           <div ref={daysContainerRef} className={styles.daysContainer}>
+            {selectionOverlay}
             {weekDays.map((day, idx) => {
               return (
                 <div
@@ -654,7 +655,6 @@ export function WeekView(): JSX.Element {
                     ))}
                   </div>
                   <div className={styles.eventsOverlay}>
-                    {day === weekDays[0] && selectionOverlay}
                     <WeekDayColumn {...dayColumnProps[idx]} calendars={calendars} hourHeight={hourHeight} openModal={openModal} />
                   </div>
                 </div>

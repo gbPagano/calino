@@ -206,7 +206,7 @@
   top: 0;
   left: 60px;
   right: 0;
-  bottom: 0;
+  height: calc(24 * var(--hour-height, 60px));
   pointer-events: none;
 }
 

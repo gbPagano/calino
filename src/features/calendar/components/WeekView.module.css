@@ -201,6 +201,8 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   flex: 1;
+  position: relative;
+  min-height: calc(24 * var(--hour-height, 60px));
 }
 
 .dayColumn {
@@ -460,6 +462,7 @@
     display: flex;
     flex: 1;
     min-width: max-content;
+    min-height: calc(24 * var(--hour-height, 60px));
   }
 
   .dayColumn {

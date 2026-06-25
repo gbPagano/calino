@@ -152,9 +152,9 @@ export const EventCard = React.memo(function EventCard({
 
   const handleResizeStart = (e: React.PointerEvent): void => {
     e.stopPropagation()
-    e.preventDefault()
+    // Don't preventDefault — let the click fire if the user just taps.
+    // handleClick will suppress the click when an actual resize happens.
     setIsResizing(true)
-    setDidInteract(true)
     resizeStartY.current = e.clientY
     resizeStartEnd.current = parseISO(event.end)
 
@@ -170,6 +170,11 @@ export const EventCard = React.memo(function EventCard({
       if (resizeStartY.current === null || resizeStartEnd.current === null) return
 
       const deltaY = moveEvent.clientY - resizeStartY.current
+      // Only flag as a real interaction once the pointer moves more than a few px.
+      // This lets a pure tap on the resize handle still trigger the card's click.
+      if (Math.abs(deltaY) > 4) {
+        setDidInteract(true)
+      }
       const rawDeltaMinutes = (deltaY / hourHeight) * 60
       const deltaMinutes = Math.round(rawDeltaMinutes / 15) * 15
       const newEnd = new Date(resizeStartEnd.current.getTime() + deltaMinutes * 60 * 1000)

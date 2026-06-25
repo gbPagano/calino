@@ -156,7 +156,7 @@
 
 .buttonPrimary {
   background: var(--color-accent, #1a73e8);
-  color: #ffffff;
+  color: var(--color-bg, #ffffff);
 }
 
 .buttonPrimary:hover {
@@ -199,7 +199,7 @@
 
 .colorSelected {
   border-color: var(--color-text-primary, #202124);
-  box-shadow: 0 0 0 2px var(--color-bg, #ffffff);
+  box-shadow: 0 0 0 2px var(--modal-bg, #ffffff);
 }
 
 @media (max-width: 768px) {

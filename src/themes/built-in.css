@@ -69,6 +69,15 @@
   /* Overlay */
   --color-overlay: rgba(0, 0, 0, 0.5);
 
+  /* Modal */
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --modal-bg: #ffffff;
+  --modal-border: transparent;
+  --modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.18), 0 6px 20px rgba(0, 0, 0, 0.10);
+  --modal-scrim: rgba(0, 0, 0, 0.5);
+  --modal-blur: blur(3px);
+
   /* Focus */
   --color-focus: #4285f4;
 
@@ -224,6 +233,15 @@
   --color-overlay: rgba(0, 0, 0, 0.6);
 
   /* Surfaces */
+  --color-bg: #1a1816;
+  --color-surface: #242220;
+
+  /* Modal */
+  --modal-bg: #242220;
+  --modal-border: rgba(240, 236, 230, 0.08);
+  --modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(0, 0, 0, 0.3);
+  --modal-scrim: rgba(0, 0, 0, 0.6);
+  --modal-blur: blur(3px);
   --color-surface: #242220;
   --color-surface-raised: #2a2826;
   --color-surface-glass: rgba(36, 34, 32, 0.8);

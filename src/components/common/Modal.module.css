@@ -61,7 +61,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  background: rgba(var(--color-bg-secondary-rgb, 255, 255, 255), 0.5);
+  background: color-mix(in srgb, var(--color-bg-secondary) 50%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   font-size: 24px;

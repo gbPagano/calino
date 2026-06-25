@@ -82,7 +82,7 @@
 }
 
 .chevronLabel:hover {
-  color: var(--color-accent, #1a73e8);
+  color: var(--color-accent);
 }
 
 .chevronIcon {
@@ -93,7 +93,7 @@
 }
 
 .chevronLabel:hover .chevronIcon {
-  color: var(--color-accent, #1a73e8);
+  color: var(--color-accent);
 }
 
 .proxyInfoText {
@@ -155,12 +155,12 @@
 }
 
 .buttonPrimary {
-  background: var(--color-accent, #1a73e8);
+  background: var(--color-accent);
   color: var(--color-bg, #ffffff);
 }
 
 .buttonPrimary:hover {
-  background: var(--color-accent-hover, #1557b0);
+  background: var(--color-accent-hover);
 }
 
 .buttonPrimary:disabled {
@@ -170,7 +170,7 @@
 
 .buttonSecondary {
   background: var(--color-surface, #ffffff);
-  color: var(--color-accent, #1a73e8);
+  color: var(--color-accent);
   border: 1px solid var(--color-border-visible, #dadce0);
 }
 

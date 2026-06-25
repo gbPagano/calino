@@ -50,13 +50,13 @@
   --color-border-subtle: #e8eaed;
   --color-border-visible: #e5e7eb;
 
-  /* Accent / Primary */
-  --color-accent: #4285f4;
-  --color-primary: #4285f4;
-  --color-primary-hover: #3b78e7;
-  --color-primary-light: rgba(66, 133, 244, 0.10);
-  --color-accent-hover: #3367d6;
-  --color-accent-light: #e8f0fe;
+  /* Accent / Primary — aligned with --accent (warm brown) */
+  --color-accent: #b07d4f;
+  --color-primary: #b07d4f;
+  --color-primary-hover: #996442;
+  --color-primary-light: rgba(176, 125, 79, 0.10);
+  --color-accent-hover: #996442;
+  --color-accent-light: #efe7db;
 
   /* Status colors */
   --color-success: #34a853;
@@ -64,13 +64,22 @@
   --color-danger-bg: rgba(234, 67, 53, 0.08);
   --color-warning: #fbbc04;
   --color-error: #ea4335;
-  --color-info: #4285f4;
+  --color-info: #b07d4f;
 
   /* Overlay */
   --color-overlay: rgba(0, 0, 0, 0.5);
 
+  /* Modal */
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --modal-bg: #ffffff;
+  --modal-border: transparent;
+  --modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.18), 0 6px 20px rgba(0, 0, 0, 0.10);
+  --modal-scrim: rgba(0, 0, 0, 0.5);
+  --modal-blur: blur(3px);
+
   /* Focus */
-  --color-focus: #4285f4;
+  --color-focus: #b07d4f;
 
   /* Scrollbar */
   --color-scrollbar: #d1d5db;
@@ -224,6 +233,15 @@
   --color-overlay: rgba(0, 0, 0, 0.6);
 
   /* Surfaces */
+  --color-bg: #1a1816;
+  --color-surface: #242220;
+
+  /* Modal */
+  --modal-bg: #242220;
+  --modal-border: rgba(240, 236, 230, 0.08);
+  --modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(0, 0, 0, 0.3);
+  --modal-scrim: rgba(0, 0, 0, 0.6);
+  --modal-blur: blur(3px);
   --color-surface: #242220;
   --color-surface-raised: #2a2826;
   --color-surface-glass: rgba(36, 34, 32, 0.8);

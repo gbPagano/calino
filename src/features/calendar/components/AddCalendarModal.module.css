@@ -82,7 +82,7 @@
 }
 
 .chevronLabel:hover {
-  color: var(--color-accent, #1a73e8);
+  color: var(--color-accent);
 }
 
 .chevronIcon {
@@ -93,7 +93,7 @@
 }
 
 .chevronLabel:hover .chevronIcon {
-  color: var(--color-accent, #1a73e8);
+  color: var(--color-accent);
 }
 
 .proxyInfoText {
@@ -121,8 +121,8 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--color-accent, #1a73e8);
-  box-shadow: 0 0 0 2px var(--color-accent-light, rgba(26, 115, 232, 0.2));
+  border-color: var(--color-accent, #b07d4f);
+  box-shadow: 0 0 0 2px var(--color-accent-light, rgba(176, 125, 79, 0.2));
 }
 
 .successMessage {
@@ -155,12 +155,12 @@
 }
 
 .buttonPrimary {
-  background: var(--color-accent, #1a73e8);
-  color: #ffffff;
+  background: var(--color-accent);
+  color: var(--color-bg, #ffffff);
 }
 
 .buttonPrimary:hover {
-  background: var(--color-accent-hover, #1557b0);
+  background: var(--color-accent-hover);
 }
 
 .buttonPrimary:disabled {
@@ -170,7 +170,7 @@
 
 .buttonSecondary {
   background: var(--color-surface, #ffffff);
-  color: var(--color-accent, #1a73e8);
+  color: var(--color-accent);
   border: 1px solid var(--color-border-visible, #dadce0);
 }
 
@@ -199,7 +199,7 @@
 
 .colorSelected {
   border-color: var(--color-text-primary, #202124);
-  box-shadow: 0 0 0 2px var(--color-bg, #ffffff);
+  box-shadow: 0 0 0 2px var(--modal-bg, #ffffff);
 }
 
 @media (max-width: 768px) {

@@ -22,7 +22,7 @@
 }
 
 .modal {
-  background: var(--color-bg, white);
+  background: var(--modal-bg, var(--color-bg-secondary));
   border-radius: var(--radius-sm, 8px);
   width: 100%;
   max-width: 320px;
@@ -100,27 +100,27 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
-  background: var(--color-primary, #4285f4);
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-bg);
 }
 
 .actionButton:hover {
-  background: var(--color-primary-hover, #3367d6);
+  background: var(--color-primary-hover);
 }
 
 .cancelButton {
   padding: 10px 16px;
   border: 1px solid var(--color-border-subtle, #e0e0e0);
   border-radius: 6px;
-  background: var(--color-bg, white);
+  background: var(--color-bg-secondary);
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-secondary, #5f6368);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .cancelButton:hover {
-  background: var(--color-bg-secondary, #f8f9fa);
-  border-color: #d0d0d0;
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-visible, #d0d0d0);
 }

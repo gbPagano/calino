@@ -239,7 +239,7 @@ export function useCalDAV(): UseCalDAVReturn {
     setSyncState((prev) => ({ ...prev, pendingChanges: pending.length }))
 
     // Auto-sync: pull server changes for manually added accounts on page load
-    if (!autoSyncDone && loadedAccounts.length > 0) {
+    if (!autoSyncDone && loadedAccounts.length > 0 && syncEnabled) {
       autoSyncDone = true
       const syncOnMount = async (): Promise<void> => {
         for (const account of loadedAccounts) {

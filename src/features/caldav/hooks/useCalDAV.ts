@@ -34,8 +34,8 @@ const isProcessingRef = { current: false }
 
 // Module-level guard for auto-connect (shared across all hook instances)
 let autoConnectDone = false
-// Module-level guard for auto-sync on mount
-let autoSyncDone = false
+// Module-level guard: only sync once per page session (set when timer fires, not when effect runs)
+let hasAutoSynced = false
 
 const MAX_RETRIES = 10
 
@@ -278,10 +278,11 @@ export function useCalDAV(): UseCalDAVReturn {
   // Reads accounts directly from storage in the timer to avoid stale state
   const syncEnabled = useSettingsStore((state) => state.syncEnabled)
   useEffect(() => {
-    if (!syncEnabled || autoSyncDone) return
+    if (!syncEnabled) return
 
-    autoSyncDone = true
     const timer = setTimeout(() => {
+      if (hasAutoSynced) return
+      hasAutoSynced = true
       const accounts = storage.getAllAccounts()
       if (accounts.length > 0) {
         console.log('[CalDAV] Auto-syncing on mount...', accounts.length, 'accounts')

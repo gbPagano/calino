@@ -279,7 +279,7 @@ export function useCalDAV(): UseCalDAVReturn {
   // Adding an account already triggers event sync via addAccount.
   const syncEnabled = useSettingsStore((state) => state.syncEnabled)
   useEffect(() => {
-    if (!syncEnabled || accounts.length === 0 || autoSyncDone) return
+    if (!syncEnabled || autoSyncDone) return
 
     autoSyncDone = true
     const timer = setTimeout(() => {
@@ -288,7 +288,7 @@ export function useCalDAV(): UseCalDAVReturn {
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [syncEnabled]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [syncEnabled, accounts])
 
   const addAccount = useCallback(
     async (

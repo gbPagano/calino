@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { addDays } from 'date-fns'
 import { toast as sonnerToast } from 'sonner'
 import type { CalendarEvent } from '@/types'
@@ -34,7 +34,7 @@ const isProcessingRef = { current: false }
 
 // Module-level guard for auto-connect (shared across all hook instances)
 let autoConnectDone = false
-// Module-level guard for auto-sync on mount (shared across all hook instances)
+// Module-level guard for auto-sync on mount
 let autoSyncDone = false
 
 const MAX_RETRIES = 10
@@ -275,15 +275,20 @@ export function useCalDAV(): UseCalDAVReturn {
   }, [])
 
   // Auto-sync on mount when syncEnabled is true
-  // Uses a ref so the timer always calls the latest syncAll (with populated accounts)
+  // Reads accounts directly from storage in the timer to avoid stale state
   const syncEnabled = useSettingsStore((state) => state.syncEnabled)
   useEffect(() => {
     if (!syncEnabled || autoSyncDone) return
 
     autoSyncDone = true
     const timer = setTimeout(() => {
-      console.log('[CalDAV] Auto-syncing on mount...')
-      syncAllRef.current()
+      const accounts = storage.getAllAccounts()
+      if (accounts.length > 0) {
+        console.log('[CalDAV] Auto-syncing on mount...', accounts.length, 'accounts')
+        for (const account of accounts) {
+          syncAccount(account.id)
+        }
+      }
     }, 500)
 
     return () => clearTimeout(timer)
@@ -861,10 +866,6 @@ export function useCalDAV(): UseCalDAVReturn {
       await syncAccount(account.id)
     }
   }, [accounts, syncAccount])
-
-  // Ref so the auto-sync timer always calls the latest syncAll
-  const syncAllRef = useRef(syncAll)
-  syncAllRef.current = syncAll
 
   const createEvent = useCallback(
     async (calendarId: string, event: CalendarEvent): Promise<void> => {

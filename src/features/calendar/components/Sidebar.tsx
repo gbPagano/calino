@@ -85,7 +85,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
   const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
   const showAddCalendar = useCalendarStore((state) => state.showAddCalendar)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)
-  const { syncAccount, updateCalendar: updateCalDAVCalendar, deleteCalendarFromServer } = useCalDAV()
+  const { syncAccount, syncState, updateCalendar: updateCalDAVCalendar, deleteCalendarFromServer } = useCalDAV()
   const navigate = useNavigate()
 
   // Initialize miniDate from the store on first render
@@ -513,7 +513,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
               )}
               {calendar.accountId && (
                 <button
-                  className={`${styles.syncButton} ${syncingCalendarId === calendar.id ? styles.syncing : ''} ${syncStatus[calendar.id] === 'success' ? styles.success : ''} ${syncStatus[calendar.id] === 'error' ? styles.error : ''}`}
+                  className={`${styles.syncButton} ${syncingCalendarId === calendar.id || syncState.status === 'syncing' ? styles.syncing : ''} ${syncStatus[calendar.id] === 'success' ? styles.success : ''} ${syncStatus[calendar.id] === 'error' ? styles.error : ''}`}
                   onClick={() => handleSyncCalendar(calendar.id, calendar.accountId)}
                   title="Sync calendar"
                   disabled={!!syncingCalendarId}

@@ -34,6 +34,8 @@ const isProcessingRef = { current: false }
 
 // Module-level guard for auto-connect (shared across all hook instances)
 let autoConnectDone = false
+// Module-level guard for auto-sync on mount (shared across all hook instances)
+let autoSyncDone = false
 
 const MAX_RETRIES = 10
 
@@ -236,6 +238,88 @@ export function useCalDAV(): UseCalDAVReturn {
     const pending = storage.getPendingChanges()
     setSyncState((prev) => ({ ...prev, pendingChanges: pending.length }))
 
+    // Auto-sync: pull server changes for manually added accounts on page load
+    if (!autoSyncDone && loadedAccounts.length > 0) {
+      autoSyncDone = true
+      const syncOnMount = async (): Promise<void> => {
+        for (const account of loadedAccounts) {
+          try {
+            const credential = await getCredentialById(account.credentialId)
+            if (!credential) continue
+            const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
+            const accountCalendars = storage.getCalendarsByAccountId(account.id)
+            const start = '1970-01-01T00:00:00.000Z'
+            const end = addDays(new Date(), 365).toISOString()
+            const state = useCalendarStore.getState()
+            const currentEvents = state.events
+            const currentCategories = state.categories
+
+            for (const cal of accountCalendars) {
+              const fetchedEvents = await client.fetchEvents(cal.url, start, end)
+              const calendarEvents = currentEvents.filter((e) => e.calendarId === cal.id)
+              const newCategoryNames: string[] = []
+
+              for (const eventData of fetchedEvents) {
+                if (eventData.data) {
+                  const parsedEvents = parseICALData(eventData.data, cal.id)
+
+                  for (const parsedEvent of parsedEvents) {
+                    const pendingDeletes = storage.getPendingChanges().filter(
+                      (p) => p.type === 'delete' && p.eventId === parsedEvent.id
+                    )
+                    if (pendingDeletes.length > 0) continue
+
+                    if (parsedEvent.categories) {
+                      for (const catName of parsedEvent.categories) {
+                        const existingCat = currentCategories.find((c) => c.name === catName)
+                        if (!existingCat && !newCategoryNames.includes(catName)) {
+                          newCategoryNames.push(catName)
+                        }
+                      }
+                    }
+
+                    const existingIndex = calendarEvents.findIndex((e) => e.id === parsedEvent.id)
+                    const existingEvent = existingIndex >= 0 ? calendarEvents[existingIndex] : null
+
+                    if (existingEvent) {
+                      const serverSeq = parsedEvent.sequence ?? 0
+                      const localSeq = existingEvent.sequence ?? 0
+
+                      if (serverSeq > localSeq && conflictResolution === 'server-wins') {
+                        storeUpdateEvent(parsedEvent.id, parsedEvent)
+                      } else if (serverSeq === localSeq) {
+                        storeUpdateEvent(parsedEvent.id, parsedEvent)
+                      }
+                    } else {
+                      storeAddEvent(parsedEvent)
+                    }
+                  }
+                }
+              }
+
+              for (const catName of newCategoryNames) {
+                storeAddCategory({
+                  id: crypto.randomUUID(),
+                  name: catName,
+                  color: EVENT_COLORS[Math.floor(Math.random() * EVENT_COLORS.length)],
+                })
+              }
+            }
+
+            storage.updateAccountLastSync(account.id)
+          } catch (err) {
+            console.warn(`[CalDAV] Auto-sync failed for account ${account.name}:`, err)
+          }
+        }
+
+        const brokenEvents = useCalendarStore.getState().brokenEvents
+        if (brokenEvents.length > 0) {
+          showBrokenEventsNotification(brokenEvents.length)
+        }
+      }
+      syncOnMount()
+    }
+
     // Check for CardDAV support on existing accounts
     const checkCardDAV = async (): Promise<void> => {
       for (const account of loadedAccounts) {
@@ -271,6 +355,20 @@ export function useCalDAV(): UseCalDAVReturn {
     }
     checkCardDAV()
   }, [])
+
+  // Auto-sync on mount when syncEnabled is true and accounts exist
+  const syncEnabled = useSettingsStore((state) => state.syncEnabled)
+  useEffect(() => {
+    if (!syncEnabled || accounts.length === 0) return
+
+    // Small delay to let the app initialize first
+    const timer = setTimeout(() => {
+      console.log('[CalDAV] Auto-syncing on mount...')
+      syncAll()
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [syncEnabled, accounts.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const addAccount = useCallback(
     async (

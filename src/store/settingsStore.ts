@@ -111,7 +111,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   defaultEventColor: DEFAULT_CALENDAR_COLOR,
   enableDesktopNotifications: true,
   enableSoundAlerts: false,
-  syncEnabled: true,
+  syncEnabled: false,
   syncIntervalMinutes: 15,
   conflictResolution: 'server-wins',
   compactRecurringEvents: true,

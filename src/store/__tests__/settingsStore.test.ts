@@ -22,7 +22,7 @@ describe('settingsStore', () => {
     expect(settings.defaultEventColor).toBe('#4285F4')
     expect(settings.enableDesktopNotifications).toBe(true)
     expect(settings.enableSoundAlerts).toBe(false)
-    expect(settings.syncEnabled).toBe(true)
+    expect(settings.syncEnabled).toBe(false)
     expect(settings.syncIntervalMinutes).toBe(15)
     expect(settings.conflictResolution).toBe('server-wins')
   })

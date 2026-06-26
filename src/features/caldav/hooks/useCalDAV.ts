@@ -13,6 +13,7 @@ import * as storage from '../sync/accountStorage'
 import { SyncEngine } from '../sync/syncEngine'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import { useCalDAVSyncStore } from '@/store/caldavSyncStore'
 import { useConfigStore } from '@/store/configStore'
 import { EVENT_COLORS } from '@/store/settingsStore'
 import {
@@ -304,6 +305,7 @@ export function useCalDAV(): UseCalDAVReturn {
       proxyUrl?: string | null
     ): Promise<void> => {
       setSyncState((prev) => ({ ...prev, status: 'syncing', error: null }))
+      useCalDAVSyncStore.getState().setStatus('syncing')
 
       try {
         console.log('[CalDAV] addAccount: discovering server...', serverUrl)
@@ -522,6 +524,7 @@ export function useCalDAV(): UseCalDAVReturn {
           status: 'idle',
           lastSyncAt: new Date().toISOString(),
         }))
+        useCalDAVSyncStore.getState().setStatus('idle')
 
         // Auto-discover settings calendar (per spec: check on every account add)
         try {
@@ -565,6 +568,7 @@ export function useCalDAV(): UseCalDAVReturn {
           status: 'error',
           error: error instanceof Error ? error.message : 'Failed to add account',
         }))
+        useCalDAVSyncStore.getState().setStatus('idle')
         throw error
       }
     },
@@ -648,6 +652,7 @@ export function useCalDAV(): UseCalDAVReturn {
       }
 
       setSyncState((prev) => ({ ...prev, status: 'syncing', error: null }))
+      useCalDAVSyncStore.getState().setStatus('syncing')
 
       try {
         const credential = await getCredentialById(account.credentialId)
@@ -813,6 +818,7 @@ export function useCalDAV(): UseCalDAVReturn {
           status: 'idle',
           lastSyncAt: new Date().toISOString(),
         }))
+        useCalDAVSyncStore.getState().setStatus('idle')
 
         // Pull CalDAV settings after calendar sync completes
         try {
@@ -856,6 +862,7 @@ export function useCalDAV(): UseCalDAVReturn {
           status: 'error',
           error: error instanceof Error ? error.message : 'Sync failed',
         }))
+        useCalDAVSyncStore.getState().setStatus('idle')
         throw error
       }
     },

@@ -21,6 +21,7 @@ import {
 import { config, TOAST_DURATION_MS, getNextColor } from '@/config'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import { useCalDAVSyncStore } from '@/store/caldavSyncStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { useUpdateCheck } from '@/hooks/useUpdateCheck'
 import { showToast } from '@/lib/toast'
@@ -85,6 +86,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
   const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
   const showAddCalendar = useCalendarStore((state) => state.showAddCalendar)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)
+  const globalSyncStatus = useCalDAVSyncStore((state) => state.status)
   const { syncAccount, syncState, updateCalendar: updateCalDAVCalendar, deleteCalendarFromServer } = useCalDAV()
   const navigate = useNavigate()
 
@@ -513,7 +515,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
               )}
               {calendar.accountId && (
                 <button
-                  className={`${styles.syncButton} ${syncingCalendarId === calendar.id || syncState.status === 'syncing' ? styles.syncing : ''} ${syncStatus[calendar.id] === 'success' ? styles.success : ''} ${syncStatus[calendar.id] === 'error' ? styles.error : ''}`}
+                  className={`${styles.syncButton} ${syncingCalendarId === calendar.id || syncState.status === 'syncing' || globalSyncStatus === 'syncing' ? styles.syncing : ''} ${syncStatus[calendar.id] === 'success' ? styles.success : ''} ${syncStatus[calendar.id] === 'error' ? styles.error : ''}`}
                   onClick={() => handleSyncCalendar(calendar.id, calendar.accountId)}
                   title="Sync calendar"
                   disabled={!!syncingCalendarId}

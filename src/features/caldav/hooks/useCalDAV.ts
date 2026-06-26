@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { addDays } from 'date-fns'
 import { toast as sonnerToast } from 'sonner'
 import type { CalendarEvent } from '@/types'
@@ -34,6 +34,8 @@ const isProcessingRef = { current: false }
 
 // Module-level guard for auto-connect (shared across all hook instances)
 let autoConnectDone = false
+// Module-level guard for auto-sync on mount (shared across all hook instances)
+let autoSyncDone = false
 
 const MAX_RETRIES = 10
 
@@ -276,11 +278,10 @@ export function useCalDAV(): UseCalDAVReturn {
   // Note: only runs on initial mount, not when accounts change.
   // Adding an account already triggers event sync via addAccount.
   const syncEnabled = useSettingsStore((state) => state.syncEnabled)
-  const hasSyncedOnMount = useRef(false)
   useEffect(() => {
-    if (!syncEnabled || accounts.length === 0 || hasSyncedOnMount.current) return
+    if (!syncEnabled || accounts.length === 0 || autoSyncDone) return
 
-    hasSyncedOnMount.current = true
+    autoSyncDone = true
     const timer = setTimeout(() => {
       console.log('[CalDAV] Auto-syncing on mount...')
       syncAll()

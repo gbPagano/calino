@@ -335,15 +335,18 @@ export function CalendarGrid(): JSX.Element {
   }, [numWeeks, days])
 
   const eventsMap = useMemo(() => {
+    // Query the full visible grid range (incl. leading/trailing days from the
+    // previous/next month) so events that fall on those spillover days render.
     const monthStart = startOfMonth(date)
-    const monthEnd = endOfMonth(date)
-    const monthEvents = getEventsForDateRange(
-      format(monthStart, 'yyyy-MM-dd'),
-      format(monthEnd, 'yyyy-MM-dd')
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: firstDayOfWeek })
+    const calendarEnd = endOfWeek(endOfMonth(date), { weekStartsOn: firstDayOfWeek })
+    const visibleEvents = getEventsForDateRange(
+      format(calendarStart, 'yyyy-MM-dd'),
+      format(calendarEnd, 'yyyy-MM-dd')
     )
 
     const map = new Map<string, CalendarEvent[]>()
-    monthEvents
+    visibleEvents
       .filter((event) => event.type !== 'task' && event.type !== 'journal')
       .forEach((event) => {
         const eventStart = parseISO(event.start)
@@ -388,7 +391,7 @@ export function CalendarGrid(): JSX.Element {
     })
 
     return map
-  }, [date, events, calendars, selectedCategoryNames, getEventsForDateRange])
+  }, [date, firstDayOfWeek, events, calendars, selectedCategoryNames, getEventsForDateRange])
 
   const tasksMap = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()

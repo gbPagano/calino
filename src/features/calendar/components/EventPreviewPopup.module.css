@@ -161,6 +161,25 @@
   text-overflow: ellipsis;
 }
 
+.locationMapLink {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px;
+  border-radius: 4px;
+  color: var(--ink-2, #6b6b6b);
+  text-decoration: none;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+
+.locationMapLink:hover {
+  opacity: 1;
+  color: var(--accent, #b07d4f);
+  background-color: var(--accent-soft, #efe7db);
+}
+
 .inlineInput {
   font-size: 13px;
   color: var(--color-text-primary, #202124);

@@ -5,6 +5,7 @@ import { formatTime } from '@/lib/datetime'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSettingsStore } from '@/store/settingsStore'
 import type { CalendarEvent } from '@/types'
+import { LocationLink } from './LocationLink'
 import styles from './DayEventsPopup.module.css'
 
 
@@ -98,7 +99,11 @@ export function DayEventsPopup({
                     ? 'All day'
                     : `${formatTime(event.start, timeFormat)} - ${formatTime(event.end, timeFormat)}`}
                 </div>
-                {event.location && <div className={styles.eventLocation}>{event.location}</div>}
+                {event.location && (
+                  <div className={styles.eventLocation}>
+                    <LocationLink location={event.location} className={styles.eventLocation} />
+                  </div>
+                )}
               </div>
             </div>
           ))}

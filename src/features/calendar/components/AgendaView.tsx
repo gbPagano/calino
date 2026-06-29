@@ -18,6 +18,7 @@ import type { CalendarEvent } from '@/types'
 import { ContextMenu } from '@/components/common/ContextMenu'
 import { getEventColor } from '@/lib/eventColor'
 import { formatTime } from '@/lib/datetime'
+import { LocationLink } from './LocationLink'
 import styles from './AgendaView.module.css'
 
 interface EventWithDate {
@@ -294,7 +295,9 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
                           <span className={styles.agendaEventTitle}>{event.title}</span>
                         </div>
                         {event.location && (
-                          <div className={styles.agendaEventSub}>{event.location}</div>
+                          <div className={styles.agendaEventSub}>
+                            <LocationLink location={event.location} className={styles.agendaEventSub} />
+                          </div>
                         )}
                       </div>
                     </div>

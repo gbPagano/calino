@@ -9,6 +9,7 @@ import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { safeCalDAVUpdate, safeCalDAVDelete } from '@/lib/caldavHelpers'
 import { DeleteDialog } from './DeleteDialog'
 import { RecurrenceDialog } from './RecurrenceDialog'
+import { LocationLink } from './LocationLink'
 import { RecurringIcon } from '@/components/common/icons'
 import { describeRecurrence } from '@/lib/recurrence'
 import { hasDueTime, extractOriginalEventId } from '@/lib/events'
@@ -656,6 +657,12 @@ export function EventPreviewPopup({
                 />
               </svg>
               {renderLocation()}
+              <LocationLink
+                location={editLocation || event.location || ''}
+                className={styles.locationMapLink}
+                iconOnly
+                ariaLabel={`Open ${editLocation || event.location} in Google Maps (new tab)`}
+              />
             </div>
           )}
 

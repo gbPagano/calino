@@ -4,6 +4,7 @@ import { formatTime } from '@/lib/datetime'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import type { SearchResult } from '../types'
+import { LocationLink } from '@/features/calendar/components/LocationLink'
 import styles from './SearchResults.module.css'
 
 interface SearchResultsProps {
@@ -173,7 +174,11 @@ export function SearchResults({ results, onSelectEvent }: SearchResultsProps): J
                   )}
                 </span>
                 {result.event.location && (
-                  <span className={styles.resultLocation}>
+                  <LocationLink
+                    location={result.event.location}
+                    className={styles.resultLocation}
+                    ariaLabel={`Open ${result.event.location} in Google Maps (new tab)`}
+                  >
                     <svg aria-hidden="true"
                       width="12"
                       height="12"
@@ -195,7 +200,7 @@ export function SearchResults({ results, onSelectEvent }: SearchResultsProps): J
                     ) : (
                       result.event.location
                     )}
-                  </span>
+                  </LocationLink>
                 )}
               </div>
             </div>

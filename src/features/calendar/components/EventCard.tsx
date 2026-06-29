@@ -19,6 +19,7 @@ import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 
 import { extractOriginalEventId, hasDueTime, formatTravelDuration } from '@/lib/events'
 import { hapticIfEnabled } from '@/lib/haptics'
+import { LocationLink } from './LocationLink'
 import styles from './EventCard.module.css'
 
 
@@ -361,14 +362,14 @@ export const EventCard = React.memo(function EventCard({
                   <div className={styles.meta}>
                     <span className={styles.time}>{timeText}</span>
                     <span className={styles.metaDot}>·</span>
-                    <span className={styles.location}>{locText}</span>
+                    <LocationLink location={locText} className={styles.location} />
                   </div>
                 )
               }
               return (
                 <>
                   {timeText && <div className={styles.time}>{timeText}</div>}
-                  {locText && <div className={styles.location}>{locText}</div>}
+                  {locText && <LocationLink location={locText} className={styles.location} />}
                 </>
               )
             })()}

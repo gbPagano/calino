@@ -11,6 +11,9 @@ export function useSearch() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [filters, setFilters] = useState<SearchFilters>({})
   const [debouncedQuery, setDebouncedQuery] = useState('')
+  // Bumped after each index rebuild so memoized results recompute against the
+  // fresh index even when the query/filters are unchanged (e.g. background sync).
+  const [indexVersion, setIndexVersion] = useState(0)
   const events = useCalendarStore((state) => state.events)
 
   useEffect(() => {
@@ -26,6 +29,7 @@ export function useSearch() {
     // events mutation during bulk operations (sync, import, rapid edits).
     const timer = setTimeout(() => {
       updateSearchIndex(events)
+      setIndexVersion((v) => v + 1)
     }, 500)
     return () => clearTimeout(timer)
   }, [events])
@@ -35,7 +39,8 @@ export function useSearch() {
       return []
     }
     return search(debouncedQuery, filters, { limit: MAX_RESULTS })
-  }, [debouncedQuery, filters])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- indexVersion gates recompute after async index rebuild
+  }, [debouncedQuery, filters, indexVersion])
 
   const handleSearch = useCallback((searchQuery: string) => {
     setQuery(searchQuery)

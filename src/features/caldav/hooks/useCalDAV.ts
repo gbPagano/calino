@@ -403,6 +403,7 @@ export function useCalDAV(): UseCalDAVReturn {
         // Read fresh state at call time to avoid stale closures
         const accountState = useCalendarStore.getState()
         const accountExistingEvents = accountState.events
+        const accountExistingEventIds = new Set(accountExistingEvents.map((e) => e.id))
         const accountStoreCategories = accountState.categories
 
         const start = '1970-01-01T00:00:00.000Z'
@@ -446,9 +447,7 @@ export function useCalDAV(): UseCalDAVReturn {
                   }
                 }
 
-                const existingIndex = accountExistingEvents.findIndex((e) => e.id === parsedEvent.id)
-
-                if (existingIndex >= 0) {
+                if (accountExistingEventIds.has(parsedEvent.id)) {
                   storeUpdateEvent(parsedEvent.id, parsedEvent)
                 } else {
                   storeAddEvent(parsedEvent)
@@ -671,11 +670,19 @@ export function useCalDAV(): UseCalDAVReturn {
         const currentEvents = state.events
         const currentCategories = state.categories
 
+        // Snapshot pending deletes once — they're global and don't change mid-sync
+        const pendingDeleteIds = new Set(
+          storage.getPendingChanges()
+            .filter((p) => p.type === 'delete')
+            .map((p) => p.eventId)
+        )
+
         for (const cal of accountCalendars) {
           const fetchedEvents = await client.fetchEvents(cal.url, start, end)
 
-          // Get events that belong to this calendar
+          // Get events that belong to this calendar, indexed by id for O(1) lookup
           const calendarEvents = currentEvents.filter((e) => e.calendarId === cal.id)
+          const calendarEventsById = new Map(calendarEvents.map((e) => [e.id, e]))
           const serverEventIds = new Set<string>()
           const newCategoryNames: string[] = []
 
@@ -702,11 +709,7 @@ export function useCalDAV(): UseCalDAVReturn {
                 serverEventIds.add(parsedEvent.id)
 
                 // Skip events that have a pending delete
-                const pendingDeletes = storage.getPendingChanges().filter(
-                  (p) => p.type === 'delete' && p.eventId === parsedEvent.id
-                )
-                if (pendingDeletes.length > 0) {
-                  console.log(`[CalDAV] Skipping event ${parsedEvent.id} — has pending delete`)
+                if (pendingDeleteIds.has(parsedEvent.id)) {
                   continue
                 }
 
@@ -722,8 +725,7 @@ export function useCalDAV(): UseCalDAVReturn {
                   }
                 }
 
-                const existingIndex = calendarEvents.findIndex((e) => e.id === parsedEvent.id)
-                const existingEvent = existingIndex >= 0 ? calendarEvents[existingIndex] : null
+                const existingEvent = calendarEventsById.get(parsedEvent.id) ?? null
 
                 if (existingEvent) {
                   const serverSeq = parsedEvent.sequence ?? 0

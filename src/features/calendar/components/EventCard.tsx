@@ -56,7 +56,9 @@ export const EventCard = React.memo(function EventCard({
   const openModal = useCalendarStore((state) => state.openModal)
   const openPreview = useCalendarStore((state) => state.openPreview)
   const closePreview = useCalendarStore((state) => state.closePreview)
-  const previewEventId = useCalendarStore((state) => state.previewEventId)
+  // Subscribe to a boolean rather than the raw id so a preview opening on a
+  // different card doesn't re-render every EventCard in the grid.
+  const isPreviewing = useCalendarStore((state) => state.previewEventId === event.id)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const addEvent = useCalendarStore((state) => state.addEvent)
@@ -138,7 +140,7 @@ export const EventCard = React.memo(function EventCard({
     }
     e.stopPropagation()
 
-    if (previewEventId === event.id) {
+    if (isPreviewing) {
       closePreview()
       openModal(undefined, undefined, event.id)
       return

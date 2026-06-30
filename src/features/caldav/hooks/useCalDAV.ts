@@ -176,7 +176,11 @@ export function useCalDAV(): UseCalDAVReturn {
               console.log('[CalDAV] Deleting event from server:', eventUrl, 'etag:', etag)
             }
             await engine.deleteEvent(eventUrl, etag)
-            // Event was already removed from store; nothing to mark
+            // Remove from the store: a failed delete re-adds the event with
+            // syncStatus='failed' (see deleteEventFn catch), so on a successful
+            // retry we must clear it or it lingers as a ghost (gone on server,
+            // still local).
+            storeDeleteEvent(change.eventId)
             break
           }
         }
@@ -198,7 +202,7 @@ export function useCalDAV(): UseCalDAVReturn {
     } finally {
       isProcessingRef.current = false
     }
-  }, [storeUpdateEvent])
+  }, [storeUpdateEvent, storeDeleteEvent])
 
   // Retry pending changes on mount and on a 30-second interval
   useEffect(() => {
@@ -670,15 +674,18 @@ export function useCalDAV(): UseCalDAVReturn {
         const currentEvents = state.events
         const currentCategories = state.categories
 
-        // Snapshot pending deletes once — they're global and don't change mid-sync
-        const pendingDeleteIds = new Set(
-          storage.getPendingChanges()
-            .filter((p) => p.type === 'delete')
-            .map((p) => p.eventId)
-        )
-
         for (const cal of accountCalendars) {
           const fetchedEvents = await client.fetchEvents(cal.url, start, end)
+
+          // Snapshot pending deletes AFTER the network fetch, as late as possible
+          // before reconciliation: a delete queued while the fetch was in flight
+          // must be observed, otherwise sync would re-freshen an event the user
+          // just deleted. Read once per calendar (O(N)), not per event.
+          const pendingDeleteIds = new Set(
+            storage.getPendingChanges()
+              .filter((p) => p.type === 'delete')
+              .map((p) => p.eventId)
+          )
 
           // Get events that belong to this calendar, indexed by id for O(1) lookup
           const calendarEvents = currentEvents.filter((e) => e.calendarId === cal.id)

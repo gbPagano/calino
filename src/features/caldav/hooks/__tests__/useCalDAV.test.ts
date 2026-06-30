@@ -781,6 +781,47 @@ describe('useCalDAV', () => {
       expect(mockAccountStorage.removePendingChange).toHaveBeenCalledWith('pc-del')
     })
 
+    it('removes the event from the store after a successful pending delete', async () => {
+      // A failed delete re-adds the event with syncStatus='failed'. When the
+      // retry succeeds, processPendingChanges must remove it from the store,
+      // otherwise it lingers as a ghost (gone on server, still local).
+      act(() => {
+        useCalendarStore.getState().addEvent({
+          ...mockEvent,
+          id: 'evt-del',
+          syncStatus: 'failed',
+        })
+      })
+      expect(
+        useCalendarStore.getState().events.some((e) => e.id === 'evt-del')
+      ).toBe(true)
+
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+      mockAccountStorage.getPendingChanges.mockReturnValue([
+        {
+          id: 'pc-del',
+          type: 'delete',
+          eventId: 'evt-del',
+          calendarId: 'cal-1',
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 0,
+        },
+      ] as any)
+
+      renderHook(() => useCalDAV())
+
+      await waitFor(() => {
+        expect(mockSyncEngineInstance.deleteEvent).toHaveBeenCalled()
+      })
+
+      await waitFor(() => {
+        expect(
+          useCalendarStore.getState().events.some((e) => e.id === 'evt-del')
+        ).toBe(false)
+      })
+    })
+
     it('retries pending changes on 30-second interval', async () => {
       vi.useFakeTimers()
 

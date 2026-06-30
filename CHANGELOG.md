@@ -2,6 +2,23 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.16.3] - 2026-06-30
+
+### New Features
+- **Event locations open in Google Maps** — an event's location is now a tappable link that opens the address directly in Google Maps.
+
+### Bug Fixes
+- **Calendar renaming now sticks** — renaming a synced (CalDAV) calendar could silently snap back to the old name if the server rejected the change. Your rename is now kept locally and the server is updated in the background; if the server refuses, you get a notice instead of losing the new name.
+- **Deleted events no longer reappear** — an event you deleted could linger locally after the deletion was retried and succeeded on the server. It's now properly removed.
+- **Month view shows all visible events** — events landing on the trailing/leading days of adjacent months (the greyed-out days that fill out the month grid) were missing and now show up again.
+- **Search stays current after sync** — search results no longer show stale matches after a background sync; the index refreshes so results reflect your latest events.
+
+### Improvements
+- **Faster calendar views** — month, week, and day views render noticeably faster, especially on months with many recurring events.
+- **Faster sync** — syncing accounts with large numbers of events is quicker.
+- **Smoother event previews** — hovering to preview an event no longer re-renders the entire event list.
+- **Cleaner location links** — location links no longer carry a permanent underline.
+
 ## [0.15.2] - 2026-06-20
 
 ### Bug Fixes

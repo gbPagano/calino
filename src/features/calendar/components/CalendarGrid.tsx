@@ -318,7 +318,7 @@ export function CalendarGrid(): JSX.Element {
     return [...days.slice(idx), ...days.slice(0, idx)]
   }, [firstDayOfWeek])
 
-  const date = parseISO(currentDate)
+  const date = useMemo(() => parseISO(currentDate), [currentDate])
 
   const days = useMemo(() => {
     const monthStart = startOfMonth(date)

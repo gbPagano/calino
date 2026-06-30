@@ -195,7 +195,7 @@ export function WeekView(): JSX.Element {
     }
   }, [isMobile])
 
-  const date = parseISO(currentDate)
+  const date = useMemo(() => parseISO(currentDate), [currentDate])
 
   const weekDays = useMemo(() => {
     const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })

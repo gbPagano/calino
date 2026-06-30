@@ -166,7 +166,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     }
   }, [])
 
-  const date = parseISO(currentDate)
+  const date = useMemo(() => parseISO(currentDate), [currentDate])
   const dateKey = format(date, 'yyyy-MM-dd')
 
   const allDayEvents = useMemo(() => {

@@ -90,9 +90,10 @@ export class SyncEngine {
     }
 
     const serverEventIds = new Set(parsedEvents.map((e) => e.id))
+    const localEventsById = new Map(existingEvents.map((e) => [e.id, e]))
 
     for (const serverEvent of parsedEvents) {
-      const localEvent = existingEvents.find((e) => e.id === serverEvent.id)
+      const localEvent = localEventsById.get(serverEvent.id)
 
       if (!localEvent) {
         result.added.push(serverEvent.id)
@@ -161,8 +162,6 @@ export class SyncEngine {
     } else {
       iCalString = eventToICAL(enriched)
     }
-    console.log('[SyncEngine] updateEvent iCal:', iCalString)
-    console.log('[SyncEngine] updateEvent attachments:', JSON.stringify(enriched.attachments))
     const eventUrl = `${calendar.url}${event.id}.ics`
 
     return this.client.updateEvent(calendar.url, eventUrl, iCalString, etag)

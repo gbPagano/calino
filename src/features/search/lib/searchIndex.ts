@@ -250,9 +250,11 @@ function recurringEventOverlapsRange(
     const searchStart = fromDate ?? new Date(0)
     const searchEnd = toDate ?? new Date('2099-12-31')
 
-    // Get up to 2 occurrences — one is enough to confirm overlap
-    const occurrences = rrule.between(searchStart, searchEnd, true)
-    return occurrences.length > 0
+    // Only the first occurrence at/after searchStart matters — using after()
+    // instead of between() avoids materializing every occurrence up to searchEnd
+    // (which can be tens of thousands for an unbounded daily rule).
+    const firstOccurrence = rrule.after(searchStart, true)
+    return firstOccurrence !== null && firstOccurrence <= searchEnd
   } catch {
     return false
   }

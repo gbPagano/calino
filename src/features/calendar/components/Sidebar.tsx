@@ -214,23 +214,23 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
 
   const handleFinishRename = async (): Promise<void> => {
     if (editingId && editName.trim()) {
-      const oldName = calendars.find((c) => c.id === editingId)?.name
       const newName = editName.trim()
-      
-      // Update local store immediately
-      updateCalendar(editingId, { name: newName })
-      
-      // If it's a CalDAV calendar, also update on server
       const calendar = calendars.find((c) => c.id === editingId)
+
+      // The local rename is authoritative and persists immediately (same as
+      // color changes). We don't roll it back when the server push fails —
+      // reverting the name the user just typed is hostile, and many CalDAV
+      // servers reject displayname PROPPATCH outright.
+      updateCalendar(editingId, { name: newName })
+
+      // Best-effort: push the new name to the CalDAV server. On failure keep
+      // the local rename and just surface the problem.
       if (calendar?.accountId) {
         try {
           await updateCalDAVCalendar(editingId, { name: newName })
         } catch (error) {
-          // Rollback local rename on server failure
-          if (oldName) {
-            updateCalendar(editingId, { name: oldName })
-          }
-          showToast(error instanceof Error ? error.message : 'Failed to rename calendar')
+          const detail = error instanceof Error ? error.message : 'unknown error'
+          showToast(`Renamed locally, but the server update failed: ${detail}`)
         }
       }
     }

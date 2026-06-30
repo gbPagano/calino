@@ -101,7 +101,7 @@ export function DayEventsPopup({
                 </div>
                 {event.location && (
                   <div className={styles.eventLocation}>
-                    <LocationLink location={event.location} className={styles.eventLocation} />
+                    <LocationLink location={event.location} />
                   </div>
                 )}
               </div>

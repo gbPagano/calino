@@ -296,7 +296,7 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
                         </div>
                         {event.location && (
                           <div className={styles.agendaEventSub}>
-                            <LocationLink location={event.location} className={styles.agendaEventSub} />
+                            <LocationLink location={event.location} />
                           </div>
                         )}
                       </div>

@@ -60,7 +60,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     }
 
     requestAnimationFrame(updateThemeColor)
-  }, [effectiveMode, themeMode])
+  }, [effectiveMode, themeMode, currentThemeId, isBuiltIn])
 
   const themeModeRef = useRef(themeMode)
   useEffect(() => {

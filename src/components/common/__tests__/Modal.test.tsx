@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Modal } from '../Modal'
 
@@ -46,7 +46,8 @@ describe('Modal', () => {
       await user.click(overlay)
     }
 
-    expect(handleClose).toHaveBeenCalledTimes(1)
+    // onClose fires after the exit animation completes.
+    await waitFor(() => expect(handleClose).toHaveBeenCalledTimes(1))
   })
 
   it('does not call onClose when modal content is clicked', async () => {
@@ -76,7 +77,7 @@ describe('Modal', () => {
 
     await user.keyboard('{Escape}')
 
-    expect(handleClose).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(handleClose).toHaveBeenCalledTimes(1))
   })
 
   it('has correct ARIA attributes', () => {
@@ -117,6 +118,6 @@ describe('Modal', () => {
 
     await user.click(screen.getByRole('button', { name: /close/i }))
 
-    expect(handleClose).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(handleClose).toHaveBeenCalledTimes(1))
   })
 })

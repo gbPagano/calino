@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ShortcutsHelp } from '../ShortcutsHelp'
 
 describe('ShortcutsHelp', () => {
@@ -21,10 +21,11 @@ describe('ShortcutsHelp', () => {
     expect(screen.getAllByText('C').length).toBeGreaterThan(0)
   })
 
-  it('calls onClose when the modal close button is clicked', () => {
+  it('calls onClose when the modal close button is clicked', async () => {
     const onClose = vi.fn()
     render(<ShortcutsHelp isOpen={true} onClose={onClose} />)
     fireEvent.click(screen.getByRole('button', { name: /close/i }))
-    expect(onClose).toHaveBeenCalled()
+    // onClose fires after the exit animation completes.
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
 })

@@ -57,7 +57,8 @@ describe('AddCalendarModal', () => {
 
     await user.click(screen.getByRole('button', { name: /cancel/i }))
 
-    expect(handleClose).toHaveBeenCalledTimes(1)
+    // onClose fires after the exit animation completes.
+    await waitFor(() => expect(handleClose).toHaveBeenCalledTimes(1))
   })
 
   it('calls onClose when close button is clicked', async () => {
@@ -68,7 +69,7 @@ describe('AddCalendarModal', () => {
 
     await user.click(screen.getByRole('button', { name: /close/i }))
 
-    expect(handleClose).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(handleClose).toHaveBeenCalledTimes(1))
   })
 
   it('calls onClose when backdrop is clicked', async () => {
@@ -82,7 +83,7 @@ describe('AddCalendarModal', () => {
       await user.click(backdrop)
     }
 
-    expect(handleClose).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(handleClose).toHaveBeenCalledTimes(1))
   })
 
   it('shows validation error when submitting empty form', async () => {

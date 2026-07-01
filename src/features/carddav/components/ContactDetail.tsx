@@ -46,11 +46,11 @@ function getAge(birthday: string): number {
   return age
 }
 
-function daysUntilNextBirthday(birthday: string): number {
+function daysUntilNext(date: string): number {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const birthDate = new Date(
-    birthday.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'),
+    date.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'),
   )
   const thisYear = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate())
   if (thisYear < today) {
@@ -131,6 +131,8 @@ interface ContactDetailProps {
   confirmDelete?: boolean
   onAddBirthdayToCalendar?: () => void
   hasBirthdayEvent?: boolean
+  onAddAnniversaryToCalendar?: () => void
+  hasAnniversaryEvent?: boolean
 }
 
 export function ContactDetail({
@@ -141,6 +143,8 @@ export function ContactDetail({
   confirmDelete,
   onAddBirthdayToCalendar,
   hasBirthdayEvent = false,
+  onAddAnniversaryToCalendar,
+  hasAnniversaryEvent = false,
 }: ContactDetailProps): JSX.Element {
   const [inlineEditing, setInlineEditing] = useState<InlineEdit | null>(null)
 
@@ -469,12 +473,12 @@ export function ContactDetail({
               <span className={styles.birthdayEmoji}>{'\uD83C\uDF82'}</span>
               <div className={styles.birthdayLabel}>
                 BIRTHDAY
-                {daysUntilNextBirthday(contact.birthday) > 0 && (
+                {daysUntilNext(contact.birthday) > 0 && (
                   <span className={styles.birthdayCountdown}>
-                    (in {daysUntilNextBirthday(contact.birthday)} days)
+                    (in {daysUntilNext(contact.birthday)} days)
                   </span>
                 )}
-                {daysUntilNextBirthday(contact.birthday) === 0 && (
+                {daysUntilNext(contact.birthday) === 0 && (
                   <span className={styles.birthdayCountdown}>
                     (today!)
                   </span>
@@ -515,10 +519,44 @@ export function ContactDetail({
           {contact.anniversary && (
             <div className={styles.birthdayCard}>
               <span className={styles.birthdayEmoji}>{'\u2764\uFE0F'}</span>
-              <div className={styles.birthdayLabel}>ANNIVERSARY</div>
+              <div className={styles.birthdayLabel}>
+                ANNIVERSARY
+                {daysUntilNext(contact.anniversary) > 0 && (
+                  <span className={styles.birthdayCountdown}>
+                    (in {daysUntilNext(contact.anniversary)} days)
+                  </span>
+                )}
+                {daysUntilNext(contact.anniversary) === 0 && (
+                  <span className={styles.birthdayCountdown}>
+                    (today!)
+                  </span>
+                )}
+              </div>
               <div className={styles.birthdayDate}>
                 {formatDate(contact.anniversary)}
               </div>
+              {onAddAnniversaryToCalendar && (
+                <button
+                  type="button"
+                  onClick={onAddAnniversaryToCalendar}
+                  disabled={hasAnniversaryEvent}
+                  style={{
+                    marginTop: 8,
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    border: '1px solid var(--line)',
+                    background: hasAnniversaryEvent ? 'var(--color-bg-tertiary)' : 'transparent',
+                    color: hasAnniversaryEvent ? 'var(--text-muted)' : 'var(--accent)',
+                    cursor: hasAnniversaryEvent ? 'default' : 'pointer',
+                    fontSize: 11,
+                    fontFamily: 'inherit',
+                    fontWeight: 500,
+                    transition: 'background 0.2s, color 0.2s',
+                  }}
+                >
+                  {hasAnniversaryEvent ? '\u2713 On calendar' : '\uD83D\uDCC5 Add to calendar'}
+                </button>
+              )}
             </div>
           )}
 

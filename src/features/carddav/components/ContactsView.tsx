@@ -6,7 +6,7 @@ import { useCalendarStore } from '@/store/calendarStore'
 import { useCardDAV } from '@/features/carddav/hooks/useCardDAV'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { deleteContactWithUndo } from '@/lib/deleteContactWithUndo'
-import { createBirthdayEvent, hasBirthdayEvent } from '@/lib/birthdayReminders'
+import { createBirthdayEvent, hasBirthdayEvent, createAnniversaryEvent, hasAnniversaryEvent } from '@/lib/birthdayReminders'
 import { showToast } from '@/lib/toast'
 import type { Contact } from '../types'
 import { ContactList } from './ContactList'
@@ -230,6 +230,33 @@ export function ContactsView(): JSX.Element {
     [calendars, addEvent]
   )
 
+  const handleAddAnniversaryToCalendar = useCallback(
+    (contact: Contact): void => {
+      if (!contact.anniversary) return
+      const defaultCalendar = calendars.find((c) => c.isDefault) ?? calendars[0]
+      if (!defaultCalendar) {
+        showToast('No calendar available')
+        return
+      }
+
+      const event = createAnniversaryEvent({
+        contactId: contact.id,
+        contactName: contact.displayName,
+        anniversary: contact.anniversary,
+        calendarId: defaultCalendar.id,
+      })
+
+      addEvent(event)
+      showToast('Anniversary added to calendar', {
+        duration: 8000,
+        onUndo: () => {
+          useCalendarStore.getState().deleteEvent(event.id)
+        },
+      })
+    },
+    [calendars, addEvent]
+  )
+
   const handleFormClose = (): void => {
     setIsFormOpen(false)
     setEditingContact(null)
@@ -302,6 +329,14 @@ export function ContactsView(): JSX.Element {
             }
             hasBirthdayEvent={
               selectedContact.birthday != null && hasBirthdayEvent(selectedContact.id, events)
+            }
+            onAddAnniversaryToCalendar={
+              selectedContact.anniversary
+                ? () => handleAddAnniversaryToCalendar(selectedContact)
+                : undefined
+            }
+            hasAnniversaryEvent={
+              selectedContact.anniversary != null && hasAnniversaryEvent(selectedContact.id, events)
             }
           />
         ) : (

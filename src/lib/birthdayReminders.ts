@@ -9,6 +9,25 @@ interface CreateBirthdayEventOptions {
   calendarId: string
 }
 
+interface CreateAnniversaryEventOptions {
+  contactId: string
+  contactName: string
+  anniversary: string // YYYY-MM-DD
+  calendarId: string
+}
+
+/**
+ * Build the DTSTART date string (YYYY-MM-DD) for an annual event from a
+ * MM/DD-bearing date. A fixed year is used — the yearly RRULE handles recurrence.
+ */
+function annualStartDateStr(date: string): string {
+  const parts = date.split('-')
+  const month = parseInt(parts[1] ?? '1', 10)
+  const day = parseInt(parts[2] ?? '1', 10)
+  const year = new Date().getFullYear()
+  return toLocalDateString(new Date(year, month - 1, day))
+}
+
 /**
  * Create an annual recurring all-day event for a contact's birthday.
  */
@@ -17,16 +36,7 @@ export function createBirthdayEvent(
 ): CalendarEvent {
   const { contactId, contactName, birthday, calendarId } = options
 
-  // Parse month and day from birthday
-  const parts = birthday.split('-')
-  const month = parseInt(parts[1] ?? '1', 10)
-  const day = parseInt(parts[2] ?? '1', 10)
-
-  // Use a fixed year for DTSTART — the RRULE BYMONTH/BYDAY handles recurrence
-  const year = new Date().getFullYear()
-  const startDate = new Date(year, month - 1, day)
-
-  const dateStr = toLocalDateString(startDate)
+  const dateStr = annualStartDateStr(birthday)
 
   return {
     id: uuidv4(),
@@ -54,4 +64,42 @@ export function hasBirthdayEvent(
   events: CalendarEvent[]
 ): boolean {
   return events.some((e) => e.url === `calino:contact:${contactId}`)
+}
+
+/**
+ * Create an annual recurring all-day event for a contact's anniversary.
+ */
+export function createAnniversaryEvent(
+  options: CreateAnniversaryEventOptions
+): CalendarEvent {
+  const { contactId, contactName, anniversary, calendarId } = options
+
+  const dateStr = annualStartDateStr(anniversary)
+
+  return {
+    id: uuidv4(),
+    calendarId,
+    title: `💍 ${contactName}'s anniversary`,
+    description: `Anniversary of ${contactName}`,
+    start: `${dateStr}T00:00:00`,
+    end: `${dateStr}T00:00:00`,
+    isAllDay: true,
+    recurrence: {
+      frequency: 'yearly',
+      interval: 1,
+    },
+    categories: ['anniversary'],
+    // Link back to the contact — distinct marker so it doesn't collide with birthday
+    url: `calino:contact:${contactId}:anniversary`,
+  }
+}
+
+/**
+ * Check if an anniversary event already exists for this contact.
+ */
+export function hasAnniversaryEvent(
+  contactId: string,
+  events: CalendarEvent[]
+): boolean {
+  return events.some((e) => e.url === `calino:contact:${contactId}:anniversary`)
 }

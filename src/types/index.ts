@@ -194,6 +194,7 @@ export interface UserSettings {
   caldavDebugMode: boolean
   hideCompletedTasksInMonthView: boolean
   useCategoryColors: boolean
+  showEventIcons: boolean
   sidebarWidth: number
   sidebarCollapsed: boolean
   journalEnabled: boolean

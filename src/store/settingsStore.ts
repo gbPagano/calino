@@ -124,6 +124,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   caldavDebugMode: false,
   hideCompletedTasksInMonthView: true,
   useCategoryColors: true,
+  showEventIcons: true,
   sidebarWidth: 300,
   sidebarCollapsed: false,
   journalEnabled: false,

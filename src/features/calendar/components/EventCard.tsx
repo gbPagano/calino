@@ -21,6 +21,8 @@ import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 import { extractOriginalEventId, hasDueTime, formatTravelDuration } from '@/lib/events'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { LocationLink } from './LocationLink'
+import { EventBackground } from '@/components/common/EventBackground'
+import { matchEventBackground } from '@/lib/eventBackground'
 import styles from './EventCard.module.css'
 
 
@@ -132,6 +134,12 @@ export const EventCard = React.memo(function EventCard({
     useCategoryColors,
   })
   const isTask = event.type === 'task'
+  // Decorative keyword icon — only on full-size cards, never on the dense
+  // "pill" variants (compact / dot / mobile-month) where there's no room, and
+  // only when the user hasn't turned event icons off.
+  const showEventIcons = useSettingsStore((state) => state.showEventIcons)
+  const showBackground = showEventIcons && !compact && !dotMode && !isMobileMonth
+  const backgroundId = showBackground ? matchEventBackground(event.title || event.location) : null
   const isRecurring = !!event.recurrence || !!event.rruleString
   const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
   const isFragmentMiddle = event.isFragment && !event.isFirstFragment && !event.isLastFragment
@@ -289,6 +297,9 @@ export const EventCard = React.memo(function EventCard({
         onMouseLeave={event.isFragment ? () => setHoveredEventId(null) : undefined}
         {...bind}
       >
+        {backgroundId && (
+          <EventBackground id={backgroundId} className={styles.keywordBackground} />
+        )}
         {event.syncStatus === 'failed' && (
           <div className={styles.syncFailedIcon} title="Sync failed - changes not saved to server">
             <SyncWarningIcon />

@@ -97,6 +97,7 @@ export function ThemeSettings(): JSX.Element {
   const lightTheme = useSettingsStore((s) => s.lightTheme)
   const darkTheme = useSettingsStore((s) => s.darkTheme)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
+  const showEventIcons = useSettingsStore((s) => s.showEventIcons)
   const { loadedThemes, refetchThemes } = useTheme()
 
   useEffect(() => {
@@ -183,6 +184,24 @@ export function ThemeSettings(): JSX.Element {
               onClick={() => updateSettings({ darkTheme: t.id })}
             />
           ))}
+        </div>
+        <div className={styles.row} data-component="setting-row" data-setting="show-event-icons" data-value={String(showEventIcons)}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Event icons</div>
+            <div className={styles.rowDesc}>Show a matching icon on events based on their title (e.g. a coffee cup for "Coffee")</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle} data-component="toggle" data-setting="show-event-icons">
+              <input
+                type="checkbox"
+                checked={showEventIcons}
+                aria-label="Show event icons"
+                onChange={() => updateSettings({ showEventIcons: !showEventIcons })}
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
         </div>
         <div className={`${styles.row} ${styles.rowDisabled}`} title="Not available yet">
           <div className={styles.rowInfo}>

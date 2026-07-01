@@ -31,6 +31,7 @@ import {
   startOfDay,
   endOfDay,
   addDays,
+  differenceInCalendarDays,
 } from 'date-fns'
 import { pad2 } from '@/lib/datetime'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -248,7 +249,9 @@ export function CalendarGrid(): JSX.Element {
 
   const handleDragStart = (event: DragStartEvent): void => {
     hapticIfEnabled('light')
-    const eventId = String(event.active.id)
+    // Fragment ids are `${eventId}::${day}`; strip the day suffix to find the
+    // full underlying event.
+    const eventId = String(event.active.id).split('::')[0]
     const draggedEvent = events.find((e) => e.id === eventId)
     draggedEventRef.current = draggedEvent || null
     setActiveEvent(draggedEvent || null)
@@ -269,13 +272,24 @@ export function CalendarGrid(): JSX.Element {
     draggedEventRef.current = null
     if (!originalEvent) return
 
+    // Fragment ids are `${eventId}::${grabbedDay}`. When a multi-day event is
+    // dragged by a fragment other than its first day, shift the drop target back
+    // by that fragment's offset from the start so the whole span moves as one.
+    const [activeId, grabbedDay] = String(active.id).split('::')
+
     const originalStart = parseISO(originalEvent.start)
     const originalEnd = parseISO(originalEvent.end)
     const durationMs = originalEnd.getTime() - originalStart.getTime()
 
+    let targetDayStr = dayStr
+    if (grabbedDay) {
+      const offset = differenceInCalendarDays(parseISO(grabbedDay), originalStart)
+      targetDayStr = format(addDays(parseISO(dayStr), -offset), 'yyyy-MM-dd')
+    }
+
     const hours = pad2(originalStart.getHours())
     const minutes = pad2(originalStart.getMinutes())
-    const newStart = parseISO(`${dayStr}T${hours}:${minutes}:00`)
+    const newStart = parseISO(`${targetDayStr}T${hours}:${minutes}:00`)
     const newEnd = new Date(newStart.getTime() + durationMs)
 
     const isTask = originalEvent.type === 'task'
@@ -302,7 +316,7 @@ export function CalendarGrid(): JSX.Element {
       ...(isTask && { dueDate: newDueDate }),
     }
 
-    storeUpdateEvent(String(active.id), updates)
+    storeUpdateEvent(activeId, updates)
 
     await safeCalDAVUpdate(
       caldavUpdateEvent,

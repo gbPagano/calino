@@ -117,7 +117,12 @@ export const EventCard = React.memo(function EventCard({
     transform,
     isDragging: isCurrentDragging,
   } = useDraggable({
-    id: event.id,
+    // Each fragment of a multi-day event shares event.id, which would give
+    // duplicate draggable ids. Encode the fragment's day so drag handling knows
+    // which day was grabbed and can move the whole span by the right offset.
+    id: event.isFragment
+      ? `${event.id}::${format(parseISO(event.start), 'yyyy-MM-dd')}`
+      : event.id,
   })
 
   const useCategoryColors = useSettingsStore((state) => state.useCategoryColors)

@@ -11,6 +11,8 @@ import { DeleteDialog } from './DeleteDialog'
 import { RecurrenceDialog } from './RecurrenceDialog'
 import { LocationLink } from './LocationLink'
 import { RecurringIcon } from '@/components/common/icons'
+import { EventBackground } from '@/components/common/EventBackground'
+import { matchEventBackground } from '@/lib/eventBackground'
 import { describeRecurrence } from '@/lib/recurrence'
 import { hasDueTime, extractOriginalEventId } from '@/lib/events'
 import type { CalendarEvent } from '@/types'
@@ -41,6 +43,7 @@ export function EventPreviewPopup({
   const popupRef = useRef<HTMLDivElement>(null)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
   const dateFormat = useSettingsStore((state) => state.dateFormat)
+  const showEventIcons = useSettingsStore((state) => state.showEventIcons)
   const openModal = useCalendarStore((state) => state.openModal)
   const closePreview = useCalendarStore((state) => state.closePreview)
   const [isClosing, setIsClosing] = useState(false)
@@ -551,6 +554,9 @@ export function EventPreviewPopup({
 
   const reminderLabel = getReminderLabel()
 
+  // Decorative keyword icon for the popup header (uses live-edited title).
+  const backgroundId = showEventIcons ? matchEventBackground(editTitle || event.location) : null
+
   return (
     <>
       {createPortal(
@@ -581,7 +587,17 @@ export function EventPreviewPopup({
                 exit={{ opacity: 0, scale: 0.95, y: -10 }}
                 transition={{ duration: 0.15 }}
               >
-        <div className={styles.header}>
+        <div
+          className={styles.header}
+          data-has-background={backgroundId ? '' : undefined}
+          style={{ ['--event-color' as string]: event.color || '#4285F4' }}
+        >
+          {backgroundId && (
+            <EventBackground
+              id={backgroundId}
+              className={styles.keywordBackground}
+            />
+          )}
           <div className={styles.titleRow}>
             <div
               className={styles.colorDot}

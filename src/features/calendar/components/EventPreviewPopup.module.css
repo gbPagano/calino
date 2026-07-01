@@ -26,6 +26,36 @@
   background: transparent;
 }
 
+/* When a keyword scene is present, give the header a bit more height so the art
+   reads as a small hero strip, and tint it with the event color. */
+.header[data-has-background] {
+  position: relative;
+  overflow: hidden;
+  padding-top: 22px;
+  padding-bottom: 22px;
+  background: color-mix(in srgb, var(--event-color, var(--accent)) 8%, transparent);
+}
+
+.keywordBackground {
+  position: absolute;
+  right: 46px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
+  height: 46px;
+  color: var(--event-color, var(--accent));
+  opacity: 0.2;
+  stroke-width: 1.5;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.header[data-has-background] .titleRow,
+.header[data-has-background] .closeBtn {
+  position: relative;
+  z-index: 1;
+}
+
 .titleRow {
   display: flex;
   align-items: center;

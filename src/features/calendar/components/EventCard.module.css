@@ -26,6 +26,40 @@
   height: 100%;
 }
 
+/* ---- Keyword Background (decorative) ---- */
+.keywordBackground {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
+  height: 22px;
+  color: var(--event-color, var(--accent));
+  opacity: 0.16;
+  stroke-width: 1.75;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card:hover .keywordBackground,
+.card.hovered .keywordBackground {
+  opacity: 0.22;
+}
+
+/* Keep textual content above the decorative art. dragContent is otherwise
+   statically positioned, so it needs position:relative for z-index to apply;
+   iconGroup/checkbox are already absolutely positioned, so only bump z-index
+   there (overriding their position would break icon placement). */
+.card > .dragContent {
+  position: relative;
+  z-index: 1;
+}
+
+.card > .iconGroup,
+.card > .checkbox {
+  z-index: 1;
+}
+
 /* ---- Color Rail (Accent Rail) ---- */
 .card::before {
   content: '';

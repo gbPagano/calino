@@ -79,17 +79,43 @@ export function CalendarHeader({
   const viewTabsRef = useRef<HTMLDivElement>(null)
   const viewTabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
-  // Sliding indicator for view tabs
-  useLayoutEffect(() => {
+  // Sliding indicator for view tabs. Measured from the active tab's box —
+  // re-measured whenever the view changes, the container resizes, or web fonts
+  // finish loading (fonts change tab widths after first paint, which otherwise
+  // leaves the indicator misaligned until the next view switch).
+  const measureIndicator = useCallback(() => {
     const container = viewTabsRef.current
     const activeTab = viewTabRefs.current.get(currentView)
-    if (container && activeTab) {
+    if (container && activeTab && activeTab.offsetWidth > 0) {
       setIndicatorStyle({
         left: activeTab.offsetLeft,
         width: activeTab.offsetWidth,
       })
     }
   }, [currentView])
+
+  useLayoutEffect(() => {
+    measureIndicator()
+
+    const container = viewTabsRef.current
+    if (!container) return
+
+    const observer = new ResizeObserver(() => measureIndicator())
+    observer.observe(container)
+
+    // Re-measure once web fonts are ready (tab widths shift on font swap).
+    let cancelled = false
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        if (!cancelled) measureIndicator()
+      })
+    }
+
+    return () => {
+      cancelled = true
+      observer.disconnect()
+    }
+  }, [measureIndicator])
 
   const [showQuickSettings, setShowQuickSettings] = useState(false)
   const quickSettingsTimeoutRef = useState(() => ({ current: undefined as ReturnType<typeof setTimeout> | undefined }))[0]
@@ -178,6 +204,16 @@ export function CalendarHeader({
 
   const handleToday = (): void => {
     setCurrentDate(format(new Date(), 'yyyy-MM-dd'))
+  }
+
+  // Clicking the header title takes you back to month view from anywhere else;
+  // if you're already in month view it keeps the "jump to today" shortcut.
+  const handleTitleClick = (): void => {
+    if (currentView === 'month') {
+      handleToday()
+    } else {
+      handleViewChange('month')
+    }
   }
 
   const handleViewChange = useCallback(
@@ -275,8 +311,16 @@ export function CalendarHeader({
         </button>
       </div>
 
-      {/* Month Title — tappable to go to today on mobile */}
-      <div className={styles.titleGroup} onClick={currentView !== 'contacts' ? handleToday : undefined} role={currentView !== 'contacts' ? 'button' : undefined} tabIndex={currentView !== 'contacts' ? 0 : undefined} onKeyDown={currentView !== 'contacts' ? (e) => { if (e.key === 'Enter') handleToday() } : undefined}>
+      {/* Title — click returns to month view from anywhere (jumps to today when
+          already in month) */}
+      <div
+        className={styles.titleGroup}
+        onClick={handleTitleClick}
+        role="button"
+        tabIndex={0}
+        aria-label={currentView === 'month' ? undefined : 'Go to month view'}
+        onKeyDown={(e) => { if (e.key === 'Enter') handleTitleClick() }}
+      >
         {typeof title === 'object' ? (
           <>
             <h1 className={styles.monthTitle}>{title.month}</h1>

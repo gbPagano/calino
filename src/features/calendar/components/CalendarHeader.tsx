@@ -79,17 +79,43 @@ export function CalendarHeader({
   const viewTabsRef = useRef<HTMLDivElement>(null)
   const viewTabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
-  // Sliding indicator for view tabs
-  useLayoutEffect(() => {
+  // Sliding indicator for view tabs. Measured from the active tab's box —
+  // re-measured whenever the view changes, the container resizes, or web fonts
+  // finish loading (fonts change tab widths after first paint, which otherwise
+  // leaves the indicator misaligned until the next view switch).
+  const measureIndicator = useCallback(() => {
     const container = viewTabsRef.current
     const activeTab = viewTabRefs.current.get(currentView)
-    if (container && activeTab) {
+    if (container && activeTab && activeTab.offsetWidth > 0) {
       setIndicatorStyle({
         left: activeTab.offsetLeft,
         width: activeTab.offsetWidth,
       })
     }
   }, [currentView])
+
+  useLayoutEffect(() => {
+    measureIndicator()
+
+    const container = viewTabsRef.current
+    if (!container) return
+
+    const observer = new ResizeObserver(() => measureIndicator())
+    observer.observe(container)
+
+    // Re-measure once web fonts are ready (tab widths shift on font swap).
+    let cancelled = false
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        if (!cancelled) measureIndicator()
+      })
+    }
+
+    return () => {
+      cancelled = true
+      observer.disconnect()
+    }
+  }, [measureIndicator])
 
   const [showQuickSettings, setShowQuickSettings] = useState(false)
   const quickSettingsTimeoutRef = useState(() => ({ current: undefined as ReturnType<typeof setTimeout> | undefined }))[0]

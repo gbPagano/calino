@@ -145,6 +145,17 @@
   padding-left: 52px;
 }
 
+/* Render the maps link as plain themed text, not a default blue underline. */
+.agendaLocationLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.agendaLocationLink:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--ink-3, #a8a29a);
+}
+
 /* ---- Skip Row ---- */
 .agendaSkip {
   display: flex;

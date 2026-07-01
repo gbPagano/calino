@@ -42,22 +42,20 @@ export function MasterPasswordPrompt() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [blocked, setBlocked] = useState(false)
-  const [remainingSeconds, setRemainingSeconds] = useState(0)
+  // Initialise the blocked state synchronously from storage so we don't trigger
+  // an extra render (and a set-state-in-effect warning) right after mount.
+  const [blocked, setBlocked] = useState(() => getBlockedUntil() > Date.now())
+  const [remainingSeconds, setRemainingSeconds] = useState(() => {
+    const blockedUntil = getBlockedUntil()
+    return blockedUntil > Date.now()
+      ? Math.ceil((blockedUntil - Date.now()) / 1000)
+      : 0
+  })
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus()
-  }, [])
-
-  // Check if currently blocked
-  useEffect(() => {
-    const blockedUntil = getBlockedUntil()
-    if (blockedUntil > Date.now()) {
-      setBlocked(true)
-      setRemainingSeconds(Math.ceil((blockedUntil - Date.now()) / 1000))
-    }
   }, [])
 
   // Countdown timer

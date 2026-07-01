@@ -1,19 +1,14 @@
 import type { JSX } from 'react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import styles from './CookieConsent.module.css'
 
 const COOKIE_KEY = 'calino_cookie_notice'
 
 export function CookieConsent(): JSX.Element | null {
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    const stored = localStorage.getItem(COOKIE_KEY)
-    if (!stored) {
-      setIsVisible(true)
-    }
-  }, [])
+  // Read the stored dismissal synchronously so we don't flash-then-show via an
+  // effect (which also avoids a set-state-in-effect render).
+  const [isVisible, setIsVisible] = useState(() => !localStorage.getItem(COOKIE_KEY))
 
   const handleDismiss = (): void => {
     localStorage.setItem(COOKIE_KEY, 'dismissed')

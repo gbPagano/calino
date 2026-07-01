@@ -180,6 +180,16 @@ export function CalendarHeader({
     setCurrentDate(format(new Date(), 'yyyy-MM-dd'))
   }
 
+  // Clicking the header title takes you back to month view from anywhere else;
+  // if you're already in month view it keeps the "jump to today" shortcut.
+  const handleTitleClick = (): void => {
+    if (currentView === 'month') {
+      handleToday()
+    } else {
+      handleViewChange('month')
+    }
+  }
+
   const handleViewChange = useCallback(
     (view: ViewType) => {
       setCurrentView(view)
@@ -275,8 +285,16 @@ export function CalendarHeader({
         </button>
       </div>
 
-      {/* Month Title — tappable to go to today on mobile */}
-      <div className={styles.titleGroup} onClick={currentView !== 'contacts' ? handleToday : undefined} role={currentView !== 'contacts' ? 'button' : undefined} tabIndex={currentView !== 'contacts' ? 0 : undefined} onKeyDown={currentView !== 'contacts' ? (e) => { if (e.key === 'Enter') handleToday() } : undefined}>
+      {/* Title — click returns to month view from anywhere (jumps to today when
+          already in month) */}
+      <div
+        className={styles.titleGroup}
+        onClick={handleTitleClick}
+        role="button"
+        tabIndex={0}
+        aria-label={currentView === 'month' ? undefined : 'Go to month view'}
+        onKeyDown={(e) => { if (e.key === 'Enter') handleTitleClick() }}
+      >
         {typeof title === 'object' ? (
           <>
             <h1 className={styles.monthTitle}>{title.month}</h1>

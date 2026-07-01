@@ -922,6 +922,9 @@ export function useCalDAV(): UseCalDAVReturn {
           calendarFound: !!calendar,
           accountFound: !!account,
         })
+        // Offline / sample-data mode: no CalDAV accounts configured, so there is
+        // nothing to sync. Skip silently instead of surfacing a sync error.
+        if (allAccounts.length === 0) return
         showToast('Failed to sync event with CalDAV server. It will be retried.')
         return
       }
@@ -995,6 +998,9 @@ export function useCalDAV(): UseCalDAVReturn {
           calendarFound: !!calendar,
           accountFound: !!account,
         })
+        // Offline / sample-data mode: no CalDAV accounts configured, so there is
+        // nothing to sync. Skip silently instead of surfacing a sync error.
+        if (allAccounts.length === 0) return
         showToast('Failed to sync event with CalDAV server. It will be retried.')
         return
       }
@@ -1097,6 +1103,9 @@ export function useCalDAV(): UseCalDAVReturn {
           calendarFound: !!calendar,
           accountFound: !!account,
         })
+        // Offline / sample-data mode: no CalDAV accounts configured, so there is
+        // nothing to sync. Skip silently instead of surfacing a sync error.
+        if (allAccounts.length === 0) return
         showToast('Failed to sync event with CalDAV server. It will be retried.')
         // Re-add to store so the user can see the failure
         if (eventData) {

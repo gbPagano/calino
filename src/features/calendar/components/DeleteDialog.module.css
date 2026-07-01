@@ -41,6 +41,34 @@
   }
 }
 
+.overlay.closing {
+  animation: fadeOut 0.15s ease-in forwards;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.overlay.closing .modal {
+  animation: slideDown 0.15s ease-in forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
 .header {
   display: flex;
   align-items: center;

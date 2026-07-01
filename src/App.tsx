@@ -36,6 +36,7 @@ const AgendaView = lazy(() => import('./features/calendar/components/AgendaView'
 const TodoView = lazy(() => import('./features/calendar/components/TodoView').then(m => ({ default: m.TodoView })))
 const JournalView = lazy(() => import('./features/calendar/components/JournalView').then(m => ({ default: m.JournalView })))
 const ContactsView = lazy(() => import('./features/carddav/components/ContactsView').then(m => ({ default: m.ContactsView })))
+const YearView = lazy(() => import('./features/calendar/components/YearView').then(m => ({ default: m.YearView })))
 
 function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: ViewType }): JSX.Element {
   return (
@@ -58,6 +59,7 @@ function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: Vie
 
 const VIEW_ROUTES: Record<ViewType, string> = {
   month: '/month',
+  year: '/year',
   week: '/week',
   day: '/day',
   agenda: '/agenda',
@@ -68,6 +70,7 @@ const VIEW_ROUTES: Record<ViewType, string> = {
 
 const URL_TO_VIEW: Record<string, ViewType> = {
   '/month': 'month',
+  '/year': 'year',
   '/week': 'week',
   '/day': 'day',
   '/agenda': 'agenda',
@@ -76,7 +79,7 @@ const URL_TO_VIEW: Record<string, ViewType> = {
   '/contacts': 'contacts',
 }
 
-const VIEW_ORDER: ViewType[] = ['month', 'week', 'day', 'agenda', 'todo', 'journal', 'contacts']
+const VIEW_ORDER: ViewType[] = ['month', 'year', 'week', 'day', 'agenda', 'todo', 'journal', 'contacts']
 
 function useViewManager(): void {
   const navigate = useNavigate()
@@ -293,6 +296,8 @@ function CalendarApp(): JSX.Element {
       switch (currentView) {
         case 'month':
           return <CalendarGrid />
+        case 'year':
+          return <YearView />
         case 'week':
           return <WeekView />
         case 'day':
@@ -510,6 +515,7 @@ function App(): JSX.Element {
         <MasterPasswordPrompt />
         <Routes>
           <Route path="/month" element={<CalendarApp />} />
+          <Route path="/year" element={<CalendarApp />} />
           <Route path="/week" element={<CalendarApp />} />
           <Route path="/day" element={<CalendarApp />} />
           <Route path="/agenda" element={<CalendarApp />} />

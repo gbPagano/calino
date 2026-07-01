@@ -1,4 +1,5 @@
 import type { JSX } from 'react'
+import { useAnimatedClose } from '@/hooks/useAnimatedClose'
 import styles from './DeleteDialog.module.css'
 
 type RecurrenceEditMode = 'all' | 'future' | 'this'
@@ -14,14 +15,19 @@ export function DeleteDialog({
   onClose,
   onConfirm,
 }: DeleteDialogProps): JSX.Element | null {
-  if (!isOpen) return null
+  const { rendered, closing, requestClose } = useAnimatedClose(isOpen, onClose, 150)
+
+  if (!rendered) return null
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div
+      className={`${styles.overlay} ${closing ? styles.closing : ''}`}
+      onClick={requestClose}
+    >
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h2 className={styles.title}>Delete recurring event</h2>
-          <button className={styles.closeButton} onClick={onClose} aria-label="Close">
+          <button className={styles.closeButton} onClick={requestClose} aria-label="Close">
             <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path
                 d="M18 6L6 18M6 6L18 18"
@@ -41,7 +47,7 @@ export function DeleteDialog({
             <button type="button" className={styles.deleteButton} onClick={() => onConfirm('this')}>
               This event only
             </button>
-            <button type="button" className={styles.cancelButton} onClick={onClose}>
+            <button type="button" className={styles.cancelButton} onClick={requestClose}>
               Cancel
             </button>
           </div>

@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useCallback, useId } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
+import { useAnimatedClose } from '@/hooks/useAnimatedClose'
 import styles from './Modal.module.css'
 
 export interface ModalProps {
@@ -13,18 +14,19 @@ export interface ModalProps {
 
 export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
   const titleId = useId()
+  const { rendered, closing, requestClose } = useAnimatedClose(isOpen, onClose, 200)
 
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose()
+        requestClose()
       }
     },
-    [onClose]
+    [requestClose]
   )
 
   useEffect(() => {
-    if (isOpen) {
+    if (rendered) {
       document.addEventListener('keydown', handleEscape)
       document.body.style.overflow = 'hidden'
     }
@@ -33,12 +35,16 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
       document.removeEventListener('keydown', handleEscape)
       document.body.style.overflow = ''
     }
-  }, [isOpen, handleEscape])
+  }, [rendered, handleEscape])
 
-  if (!isOpen) return null
+  if (!rendered) return null
 
   return createPortal(
-    <div className={styles.overlay} onClick={onClose} data-component="modal-backdrop">
+    <div
+      className={clsx(styles.overlay, closing && styles.closing)}
+      onClick={requestClose}
+      data-component="modal-backdrop"
+    >
       <div
         className={clsx(styles.modal, className)}
         onClick={(e) => e.stopPropagation()}
@@ -55,7 +61,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
             <button
               type="button"
               className={styles.closeButton}
-              onClick={onClose}
+              onClick={requestClose}
               aria-label="Close"
             >
               ×

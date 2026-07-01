@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import { useAnimatedClose } from '@/hooks/useAnimatedClose'
 import { useSettingsStore, EVENT_COLORS } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useContactStore } from '@/store/contactStore'
@@ -26,7 +27,13 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
   const addAddressBook = useContactStore((state) => state.addAddressBook)
   const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
 
-  if (hasCompletedOnboarding || hasPreconfiguredAccounts) {
+  // Open state is derived from settings; every dismiss path flips it closed,
+  // which the hook detects and animates out before unmounting.
+  const isOpen = !(hasCompletedOnboarding || hasPreconfiguredAccounts)
+  const noop = useCallback(() => {}, [])
+  const { rendered, closing } = useAnimatedClose(isOpen, noop, 200)
+
+  if (!rendered) {
     return null
   }
 
@@ -138,7 +145,10 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
   }
 
   return (
-    <div className={styles.modal} onClick={handleBackdropClick}>
+    <div
+      className={`${styles.modal} ${closing ? styles.closing : ''}`}
+      onClick={handleBackdropClick}
+    >
       <div className={styles.modalContent} role="dialog" aria-modal="true">
 
         <h2 className={styles.title}>Your calendar stays private</h2>

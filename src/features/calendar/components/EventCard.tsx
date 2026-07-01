@@ -14,6 +14,7 @@ import type { CalendarEvent } from '@/types'
 import { getEventColor } from '@/lib/eventColor'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
+import { useHoveredEventStore } from '@/store/hoveredEventStore'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 
@@ -65,6 +66,14 @@ export const EventCard = React.memo(function EventCard({
   const duplicateEvent = useCalendarStore((state) => state.duplicateEvent)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
   const { deleteEvent: deleteCalDAVEvent, updateEvent: updateCalDAVEvent, createEvent: createCalDAVEvent } = useCalDAV()
+  // Cross-fragment hover: a multi-day event is rendered as separate cards per
+  // grid cell. Share one hover highlight by tracking the hovered id in a store.
+  // Subscribe to a boolean so only the previously- and newly-hovered cards
+  // re-render, not every card in the grid.
+  const isSharedHovered = useHoveredEventStore(
+    (state) => state.hoveredEventId === event.id
+  )
+  const setHoveredEventId = useHoveredEventStore((state) => state.setHoveredEventId)
   const openMenuId = useContextMenuStore((state) => state.openMenuId)
   const openMenu = useContextMenuStore((state) => state.openMenu)
   const closeMenu = useContextMenuStore((state) => state.closeMenu)
@@ -268,9 +277,11 @@ export const EventCard = React.memo(function EventCard({
         {...(isFragmentFirst ? { 'data-fragment-first': '' } : {})}
         {...(isFragmentMiddle ? { 'data-fragment-middle': '' } : {})}
         {...(isFragmentLast ? { 'data-fragment-last': '' } : {})}
-        className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${event.completed ? styles.isDone : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${monthView ? styles.monthView : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''} ${dotMode ? styles.dot : ''}`}
+        className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${event.completed ? styles.isDone : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${monthView ? styles.monthView : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''} ${dotMode ? styles.dot : ''} ${event.isFragment && isSharedHovered ? styles.hovered : ''}`}
         onContextMenu={handleContextMenu}
         onClick={handleClick}
+        onMouseEnter={event.isFragment ? () => setHoveredEventId(event.id) : undefined}
+        onMouseLeave={event.isFragment ? () => setHoveredEventId(null) : undefined}
         {...bind}
       >
         {event.syncStatus === 'failed' && (

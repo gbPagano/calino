@@ -44,7 +44,8 @@
 
 
 
-.card:hover {
+.card:hover,
+.card.hovered {
   background: color-mix(in srgb, var(--event-color, var(--accent)) var(--event-bg-mix-hover, 12%), var(--canvas));
   box-shadow: var(--shadow-event-hover, 0 2px 8px rgba(var(--ink-raw, 44, 40, 33), 0.08));
   transform: translateY(-1px);
@@ -371,6 +372,12 @@
   border-right: none !important;
 }
 
+/* In compact/month pills the accent rail is hidden, so the first fragment's
+   rail-clearing left padding over-indents its title vs. neighbouring pills. */
+.compact.fragmentFirst {
+  padding-left: 8px !important;
+}
+
 .fragmentLast {
   border-radius: 0 var(--event-border-radius, 8px) var(--event-border-radius, 8px) 0 !important;
   padding: 2px 4px 2px 10px !important;
@@ -411,7 +418,8 @@
   min-height: 18px;
 }
 
-.task:hover {
+.task:hover,
+.task.hovered {
   box-shadow: none;
   transform: none;
 }

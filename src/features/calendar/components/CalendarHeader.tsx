@@ -11,12 +11,15 @@ import {
   subMonths,
   subWeeks,
   subDays,
+  addYears,
+  subYears,
 } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useConfigStore } from '@/store/configStore'
 import { useGestures } from '@/hooks/useGestures'
+import { useAnimatedClose } from '@/hooks/useAnimatedClose'
 import type { ViewType } from '@/types'
 import styles from './CalendarHeader.module.css'
 
@@ -27,6 +30,7 @@ interface CalendarHeaderProps {
 
 const VIEWS: { value: ViewType; label: string }[] = [
   { value: 'month', label: 'Month' },
+  { value: 'year', label: 'Year' },
   { value: 'week', label: 'Week' },
   { value: 'day', label: 'Day' },
   { value: 'agenda', label: 'Agenda' },
@@ -37,6 +41,7 @@ const VIEWS: { value: ViewType; label: string }[] = [
 
 const VIEW_ROUTES: Record<ViewType, string> = {
   month: '/month',
+  year: '/year',
   week: '/week',
   day: '/day',
   agenda: '/agenda',
@@ -89,6 +94,12 @@ export function CalendarHeader({
   const [showQuickSettings, setShowQuickSettings] = useState(false)
   const quickSettingsTimeoutRef = useState(() => ({ current: undefined as ReturnType<typeof setTimeout> | undefined }))[0]
 
+  // Animate the dropdowns out when their boolean flips false (close-on-select,
+  // click-outside, hover-leave all funnel through the same exit animation).
+  const noop = useCallback(() => {}, [])
+  const viewDropdown = useAnimatedClose(isViewDropdownOpen, noop, 130)
+  const quickSettings = useAnimatedClose(showQuickSettings, noop, 130)
+
   useEffect(() => {
     if (!isViewDropdownOpen) return
     const handleClickOutside = (e: MouseEvent): void => {
@@ -107,6 +118,8 @@ export function CalendarHeader({
     switch (currentView) {
       case 'month':
         return { month: format(date, 'MMMM'), year }
+      case 'year':
+        return year
       case 'week': {
         const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek })
         const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek })
@@ -135,6 +148,9 @@ export function CalendarHeader({
     switch (currentView) {
       case 'month':
         newDate = direction === 'prev' ? subMonths(date, 1) : addMonths(date, 1)
+        break
+      case 'year':
+        newDate = direction === 'prev' ? subYears(date, 1) : addYears(date, 1)
         break
       case 'week':
         newDate = direction === 'prev' ? subWeeks(date, 1) : addWeeks(date, 1)
@@ -181,6 +197,9 @@ export function CalendarHeader({
       switch (currentView) {
         case 'month':
           newDate = dir === 'prev' ? subMonths(date, 1) : addMonths(date, 1)
+          break
+        case 'year':
+          newDate = dir === 'prev' ? subYears(date, 1) : addYears(date, 1)
           break
         case 'week':
           newDate = dir === 'prev' ? subWeeks(date, 1) : addWeeks(date, 1)
@@ -291,7 +310,7 @@ export function CalendarHeader({
           />
           {VIEWS.filter(v => (journalEnabled || v.value !== 'journal') && (contactsEnabled || v.value !== 'contacts')).map((view, index) => (
             <React.Fragment key={view.value}>
-              {index === 3 && <div className={styles.viewTabDivider} />}
+              {index === 4 && <div className={styles.viewTabDivider} />}
               <button
                 ref={(el) => {
                   if (el) viewTabRefs.current.set(view.value, el)
@@ -335,11 +354,11 @@ export function CalendarHeader({
               <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          {isViewDropdownOpen && (
-            <div className={styles.viewDropdownMenu}>
+          {viewDropdown.rendered && (
+            <div className={`${styles.viewDropdownMenu} ${viewDropdown.closing ? styles.viewDropdownClosing : ''}`}>
               {VIEWS.filter(v => (journalEnabled || v.value !== 'journal') && (contactsEnabled || v.value !== 'contacts')).map((view, index) => (
                 <React.Fragment key={view.value}>
-                  {index === 3 && <div className={styles.viewDropdownDivider} />}
+                  {index === 4 && <div className={styles.viewDropdownDivider} />}
                   <button
                     className={`${styles.viewDropdownItem} ${currentView === view.value ? styles.viewDropdownItemActive : ''}`}
                     onClick={() => {
@@ -373,8 +392,8 @@ export function CalendarHeader({
           >
             <SettingsIcon />
           </button>
-            {showQuickSettings && (
-            <div className={styles.quickSettingsDropdown}>
+            {quickSettings.rendered && (
+            <div className={`${styles.quickSettingsDropdown} ${quickSettings.closing ? styles.quickSettingsClosing : ''}`}>
               <div className={styles.quickSettingsItem}>
                 <span className={styles.quickSettingsLabel}>Week numbers</span>
                 <button

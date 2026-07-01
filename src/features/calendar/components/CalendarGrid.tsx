@@ -53,6 +53,7 @@ import styles from './CalendarGrid.module.css'
 
 const VIEW_ROUTES: Record<ViewType, string> = {
   month: '/month',
+  year: '/year',
   week: '/week',
   day: '/day',
   agenda: '/agenda',

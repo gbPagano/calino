@@ -10,6 +10,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: onboardingFadeIn 0.2s ease;
 }
 
 .modalContent {
@@ -23,6 +24,55 @@
   max-height: 90vh;
   overflow-y: auto;
   text-align: center;
+  animation: onboardingSlideUp 0.2s ease;
+}
+
+@keyframes onboardingFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes onboardingSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal.closing {
+  animation: onboardingFadeOut 0.2s ease-in forwards;
+}
+
+@keyframes onboardingFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.modal.closing .modalContent {
+  animation: onboardingSlideDown 0.2s ease-in forwards;
+}
+
+@keyframes onboardingSlideDown {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
 }
 
 .title {

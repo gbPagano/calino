@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { useEffect, useRef } from 'react'
 import { useContextMenuStore } from '@/store/contextMenuStore'
+import { useAnimatedClose } from '@/hooks/useAnimatedClose'
 import styles from './ContextMenu.module.css'
 
 export interface ContextMenuItem {
@@ -21,23 +22,26 @@ interface ContextMenuProps {
 export function ContextMenu({ x, y, items, onClose, menuId }: ContextMenuProps): JSX.Element {
   const menuRef = useRef<HTMLDivElement>(null)
   const openMenuId = useContextMenuStore((state) => state.openMenuId)
+  // The parent mounts/unmounts this component; animate out before unmounting by
+  // routing every dismissal through requestClose (isOpen stays true while mounted).
+  const { closing, requestClose } = useAnimatedClose(true, onClose, 100)
 
   useEffect(() => {
     if (openMenuId && openMenuId !== menuId) {
-      onClose()
+      requestClose()
     }
-  }, [openMenuId, menuId, onClose])
+  }, [openMenuId, menuId, requestClose])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose()
+        requestClose()
       }
     }
 
     const handleEscape = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
-        onClose()
+        requestClose()
       }
     }
 
@@ -47,7 +51,7 @@ export function ContextMenu({ x, y, items, onClose, menuId }: ContextMenuProps):
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [onClose])
+  }, [requestClose])
 
   useEffect(() => {
     if (menuRef.current) {
@@ -77,7 +81,11 @@ export function ContextMenu({ x, y, items, onClose, menuId }: ContextMenuProps):
   }, [x, y])
 
   return (
-    <div ref={menuRef} className={styles.menu} style={{ left: x, top: y }}>
+    <div
+      ref={menuRef}
+      className={`${styles.menu} ${closing ? styles.closing : ''}`}
+      style={{ left: x, top: y }}
+    >
       {items.map((item, index) => (
         <button
           key={index}
@@ -85,7 +93,7 @@ export function ContextMenu({ x, y, items, onClose, menuId }: ContextMenuProps):
           onClick={(e) => {
             e.stopPropagation()
             item.onClick()
-            onClose()
+            requestClose()
           }}
         >
           {item.icon && <span className={styles.icon}>{item.icon}</span>}

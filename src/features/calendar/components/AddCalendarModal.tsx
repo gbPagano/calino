@@ -1,8 +1,9 @@
 import type { JSX } from 'react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { discoverServerUrl } from '@/features/caldav/client/discovery'
+import { useAnimatedClose } from '@/hooks/useAnimatedClose'
 import styles from './AddCalendarModal.module.css'
 
 interface AddCalendarModalProps {
@@ -17,6 +18,13 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
   const [showProxyField, setShowProxyField] = useState(false)
 
   const { addAccount } = useCalDAV()
+
+  const doClose = useCallback((): void => {
+    setConnectionStatus('idle')
+    setConnectionError('')
+    onClose()
+  }, [onClose])
+  const { rendered, closing, requestClose } = useAnimatedClose(isOpen, doClose, 200)
 
   const handleTestConnection = async (
     serverUrl: string,
@@ -111,31 +119,28 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
 
     try {
       await addAccount(serverUrl, username, password, accountName, proxyUrl)
-      handleClose()
+      requestClose()
     } catch {
       setConnectionStatus('error')
       setConnectionError('Failed to add account. Please try again.')
     }
   }
 
-  const handleClose = (): void => {
-    setConnectionStatus('idle')
-    setConnectionError('')
-    onClose()
-  }
-
   const handleBackdropClick = (e: React.MouseEvent): void => {
     if (e.target === e.currentTarget) {
-      handleClose()
+      requestClose()
     }
   }
 
-  if (!isOpen) {
+  if (!rendered) {
     return null
   }
 
   return createPortal(
-    <div className={styles.modal} onClick={handleBackdropClick}>
+    <div
+      className={`${styles.modal} ${closing ? styles.closing : ''}`}
+      onClick={handleBackdropClick}
+    >
       <div
         className={styles.modalContent}
         role="dialog"
@@ -146,7 +151,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
           <h3 className={styles.modalTitle} id="modal-title">
             Add CalDAV Calendar
           </h3>
-          <button className={styles.modalClose} onClick={handleClose} aria-label="Close">
+          <button className={styles.modalClose} onClick={requestClose} aria-label="Close">
             ✕
           </button>
         </div>
@@ -250,7 +255,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
             <button
               type="button"
               className={`${styles.button} ${styles.buttonSecondary}`}
-              onClick={handleClose}
+              onClick={requestClose}
             >
               Cancel
             </button>

@@ -13,6 +13,7 @@ export function CalendarSkeleton({ view = 'month' }: CalendarSkeletonProps): JSX
   return (
     <div className="skeleton" aria-hidden="true">
       {view === 'month' && <MonthSkeleton />}
+      {view === 'year' && <YearSkeleton />}
       {view === 'week' && <WeekSkeleton />}
       {view === 'day' && <DaySkeleton />}
       {view === 'agenda' && <AgendaSkeleton />}
@@ -42,6 +43,29 @@ function MonthSkeleton(): JSX.Element {
                   )}
                   {show(idx, 0.8) && (
                     <div className="skeleton-bar skeleton-bar--event skeleton-bar--event-short" />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function YearSkeleton(): JSX.Element {
+  return (
+    <div className="skeleton-grid">
+      <div className="skeleton-grid-body">
+        {Array.from({ length: 4 }).map((_, row) => (
+          <div key={row} className="skeleton-grid-row">
+            {Array.from({ length: 3 }).map((_, col) => {
+              const idx = row * 3 + col
+              return (
+                <div key={col} className="skeleton-cell">
+                  {show(idx, 0.4) && (
+                    <div className="skeleton-bar skeleton-bar--event" />
                   )}
                 </div>
               )

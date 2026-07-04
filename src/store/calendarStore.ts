@@ -9,6 +9,20 @@ import { config, DEFAULT_CALENDAR_COLOR } from '@/config'
 import { buildRRuleString } from '@/lib/recurrence'
 import { deleteAttachments } from '@/lib/attachmentStore'
 
+// Memo cache for getEventsForDateRange. Keyed by the range; a cached result is
+// reused only when the underlying inputs are still reference-identical (store
+// actions always replace these arrays on mutation, so this is safe). This avoids
+// re-expanding recurrences when multiple components request the same range or a
+// component re-renders without any relevant state change.
+interface RangeCacheEntry {
+  events: CalendarEvent[]
+  calendars: Calendar[]
+  categories: Category[]
+  selectedCategoryIds: string[]
+  result: CalendarEvent[]
+}
+const rangeExpansionCache = new Map<string, RangeCacheEntry>()
+
 export const selectOpenModal = (state: CalendarStore) => state.openModal
 export const selectOpenJournalModal = (state: CalendarStore) => state.openJournalModal
 export const selectAddEvent = (state: CalendarStore) => state.addEvent
@@ -411,6 +425,19 @@ export const useCalendarStore = create<CalendarStore>()(
 
       getEventsForDateRange: (start: string, end: string): CalendarEvent[] => {
         const state = get()
+
+        const cacheKey = `${start}|${end}`
+        const cached = rangeExpansionCache.get(cacheKey)
+        if (
+          cached &&
+          cached.events === state.events &&
+          cached.calendars === state.calendars &&
+          cached.categories === state.categories &&
+          cached.selectedCategoryIds === state.selectedCategoryIds
+        ) {
+          return cached.result
+        }
+
         const visibleCalendarIds = state.calendars.filter((c) => c.isVisible).map((c) => c.id)
         const selectedCategoryIds = state.selectedCategoryIds
         const selectedCategoryNames = selectedCategoryIds.length > 0
@@ -618,6 +645,19 @@ export const useCalendarStore = create<CalendarStore>()(
             }
           }
         }
+
+        // Cap the cache so a session that pans across many ranges can't grow it
+        // unbounded; entries are cheap to recompute.
+        if (rangeExpansionCache.size > 64) {
+          rangeExpansionCache.clear()
+        }
+        rangeExpansionCache.set(cacheKey, {
+          events: state.events,
+          calendars: state.calendars,
+          categories: state.categories,
+          selectedCategoryIds: state.selectedCategoryIds,
+          result: expandedEvents,
+        })
 
         return expandedEvents
       },

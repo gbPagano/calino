@@ -49,6 +49,36 @@ describe('all-day recurrence expansion', () => {
     }
   })
 
+  it('memoizes identical range queries and invalidates after a mutation', () => {
+    const store = useCalendarStore.getState()
+    store.addEvent({
+      id: 'plain',
+      calendarId: defaultCalId(),
+      title: 'Plain',
+      start: '2026-03-06T10:00:00',
+      end: '2026-03-06T11:00:00',
+      isAllDay: false,
+    })
+
+    const first = useCalendarStore.getState().getEventsForDateRange('2026-03-06', '2026-03-06')
+    const second = useCalendarStore.getState().getEventsForDateRange('2026-03-06', '2026-03-06')
+    // Same inputs → same cached array reference.
+    expect(second).toBe(first)
+
+    // Mutating events must invalidate the cache.
+    useCalendarStore.getState().addEvent({
+      id: 'plain2',
+      calendarId: defaultCalId(),
+      title: 'Plain 2',
+      start: '2026-03-06T12:00:00',
+      end: '2026-03-06T13:00:00',
+      isAllDay: false,
+    })
+    const third = useCalendarStore.getState().getEventsForDateRange('2026-03-06', '2026-03-06')
+    expect(third).not.toBe(first)
+    expect(third.length).toBe(first.length + 1)
+  })
+
   it('preserves a multi-day all-day span in each occurrence', () => {
     const store = useCalendarStore.getState()
     // 3-day all-day event: end is exclusive midnight 3 days later.

@@ -161,7 +161,7 @@ yourcaldav.server.com {
     handle @cors {
         header {
             Access-Control-Allow-Origin "*" # or your selfhosted Calino instance URL
-            Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PROPFIND, REPORT, OPTIONS"
+            Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS, MKCOL, COPY, MOVE"
             Access-Control-Allow-Headers "Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match"
         }
         respond "" 204
@@ -169,7 +169,7 @@ yourcaldav.server.com {
 
     header {
         Access-Control-Allow-Origin "*"
-        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PROPFIND, REPORT, OPTIONS"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS, MKCOL, COPY, MOVE"
         Access-Control-Allow-Headers "Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match"
         -Server
     }
@@ -195,12 +195,20 @@ If adding headers to your CalDAV server:
 ```
 Access-Control-Allow-Origin: <your-calino-origin>
 Access-Control-Allow-Headers: Authorization, Content-Type, Depth, If-Match, If-None-Match
-Access-Control-Allow-Methods: GET, PUT, POST, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS
+Access-Control-Allow-Methods: GET, PUT, POST, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS, MKCOL, COPY, MOVE
 ```
+
+> **Note:** `MKCOL`, `COPY`, and `MOVE` are required for settings sync (creating/moving the Calino settings collection). Omitting them still lets calendars load, but settings sync will fail.
 
 ### Self-Hosting a CORS Proxy
 
-If you can't add CORS headers to your CalDAV server, you can run a tiny proxy yourself. See [`docs/CORS_PROXY.md`](./docs/CORS_PROXY.md) for a one-file Cloudflare Worker you can deploy in a few minutes.
+If you can't add CORS headers to your CalDAV server, run a tiny proxy yourself. The easiest option is the bundled Docker proxy — enable it alongside Calino with a compose profile:
+
+```bash
+docker compose --profile proxy up -d
+```
+
+Then set the **Proxy URL** in Calino settings to `http://<your-host>:8081`. It's a separate, zero-dependency container ([`proxy/`](./proxy)) that you can also run standalone or as a Cloudflare Worker. See [`docs/CORS_PROXY.md`](./docs/CORS_PROXY.md) for all options.
 
 # Screenshots
 

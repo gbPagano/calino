@@ -25,7 +25,7 @@ function formatSyncError(error: string): JSX.Element {
           borderRadius: 6, background: 'rgba(44,40,33,0.04)', fontSize: 12,
           fontFamily: 'monospace', lineHeight: 1.5, whiteSpace: 'pre-wrap',
         }}>{`Access-Control-Allow-Origin: *
-Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS, MKCOL, COPY, MOVE
 Access-Control-Allow-Headers: Authorization, Content-Type, Depth, Prefer, If-Match`}</code>
         <span style={{ marginTop: 6, display: 'block' }}>See <a href="https://github.com/nickvdyck/baikal#cors" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Baikal CORS docs</a> for help.</span>
       </>

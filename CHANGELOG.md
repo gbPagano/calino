@@ -2,6 +2,15 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [Unreleased]
+
+### New Features
+- **Bouldering events get an icon** — events mentioning "bouldering" now show the mountain icon, alongside hiking, climbing, and camping.
+- **Self-hostable CORS proxy** — if your CalDAV server can't send CORS headers, you can now run Calino's own lightweight proxy instead of relying on Cloudflare or editing your reverse proxy. If you already run Calino with Docker, enable it alongside the app with a single command (`docker compose --profile proxy up -d`) and point the Proxy URL in settings at it. It can also run standalone or as a Cloudflare Worker.
+
+### Bug Fixes
+- **Settings sync behind a CORS proxy** — the documented proxy configuration was missing the WebDAV methods (`MKCOL`, `COPY`, `MOVE`) that settings sync needs, and didn't follow `.well-known` redirects, so discovery and settings sync could fail. The bundled/hosted proxy and the docs now include everything required.
+
 ## [0.17.0] - 2026-07-01
 
 ### New Features

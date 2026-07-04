@@ -231,6 +231,28 @@ handle /sw.js {
 }
 ```
 
+## CalDAV CORS Proxy (optional)
+
+Calino talks to your CalDAV server directly from the browser. If that server
+doesn't send CORS headers, the browser blocks the requests. Rather than editing
+your reverse proxy, you can run the bundled proxy container — it's included in
+`docker-compose.yml` behind a `proxy` profile, so it's off unless you ask for it:
+
+```bash
+docker compose --profile proxy up -d
+```
+
+This starts a small, separate `caldav-proxy` container on port **8081** (the
+Calino app container is unchanged). In Calino settings set:
+
+- **Server URL** — your CalDAV server, e.g. `https://cal.example.com`
+- **Proxy URL** — `http://<your-host>:8081` (put it behind HTTPS in production)
+
+To restrict which Calino origins may use it, set `CALINO_PROXY_ALLOWED_ORIGINS`
+in your `.env` (comma-separated; empty = open to any origin). Credentials and
+calendar bodies are passed through and never logged. Full details, including a
+Cloudflare Worker alternative, are in [`CORS_PROXY.md`](./CORS_PROXY.md).
+
 ## Troubleshooting
 
 ### Container won't start

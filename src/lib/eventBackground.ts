@@ -58,7 +58,7 @@ export type EventBackgroundId =
  * `food`, `coffee` before `meeting`).
  */
 const RULES: ReadonlyArray<{ id: EventBackgroundId; keywords: readonly string[] }> = [
-  { id: 'mountain', keywords: ['hik', 'trek', 'climb', 'mountain', 'trail', 'summit', 'camp'] },
+  { id: 'mountain', keywords: ['hik', 'trek', 'climb', 'boulder', 'mountain', 'trail', 'summit', 'camp'] },
   { id: 'bike', keywords: ['bike', 'biking', 'cycl', 'ride'] },
   { id: 'coffee', keywords: ['coffee', 'cafe', 'café', 'espresso', 'latte', 'cappuccino', 'brunch'] },
   { id: 'cake', keywords: ['birthday', 'cake', 'anniversary'] },

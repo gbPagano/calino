@@ -32,3 +32,34 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # Optional self-hosted CORS proxy for CalDAV servers that don't send CORS
+  # headers. Off by default — enable with:  docker compose --profile proxy up -d
+  # Then set the Proxy URL in Calino settings to http://<your-host>:8081
+  caldav-proxy:
+    profiles: ["proxy"]
+    build:
+      context: ./proxy
+    ports:
+      - "8081:8081"
+    environment:
+      # Leave empty to allow any origin, or restrict to your Calino instance(s),
+      # e.g. ALLOWED_ORIGINS=https://calendar.example.com
+      - ALLOWED_ORIGINS=${CALINO_PROXY_ALLOWED_ORIGINS:-}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 128m
+    memswap_limit: 128m
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -56,7 +56,7 @@ export default {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods':
-            'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, MKCOL, OPTIONS',
+            'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS, MKCOL, MKCALENDAR, COPY, MOVE',
           'Access-Control-Allow-Headers':
             'Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match',
         },
@@ -68,23 +68,27 @@ export default {
     headers.delete('host')
 
     try {
+      // Follow redirects so .well-known discovery works, then expose the
+      // final URL via X-Target-URL — Calino reads it to locate the real endpoint.
       const response = await fetch(targetUrl, {
         method: request.method,
         headers,
         body: request.body,
-        redirect: 'manual',
+        redirect: 'follow',
       })
 
       const corsHeaders = new Headers(response.headers)
       corsHeaders.set('Access-Control-Allow-Origin', '*')
       corsHeaders.set(
         'Access-Control-Allow-Methods',
-        'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, MKCOL, OPTIONS'
+        'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS, MKCOL, MKCALENDAR, COPY, MOVE'
       )
       corsHeaders.set(
         'Access-Control-Allow-Headers',
         'Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match'
       )
+      corsHeaders.set('Access-Control-Expose-Headers', 'Location, X-Target-URL')
+      corsHeaders.set('X-Target-URL', response.url)
 
       return new Response(response.body, {
         status: response.status,
@@ -105,7 +109,53 @@ export default {
    - **Server URL**: Your CalDAV server (e.g., `https://cal.example.com`)
    - **Proxy URL**: Your worker URL (e.g., `https://your-worker.workers.dev`)
 
-### 4. Third-Party Proxy Services
+### 4. Self-Hosted Docker Proxy (no Cloudflare needed)
+
+If you'd rather not use Cloudflare — or don't want to touch your reverse
+proxy config — Calino ships a tiny standalone proxy in [`proxy/`](../proxy).
+It's a single zero-dependency Node file (`proxy/server.mjs`, Node 18+) with a
+Dockerfile and compose file.
+
+**Easiest — enable it alongside Calino** (uses the profile in the main
+`docker-compose.yml`, so the proxy shares Calino's Docker network):
+
+```bash
+docker compose --profile proxy up -d
+```
+
+**Or run it on its own** from the `proxy/` directory:
+
+```bash
+cd proxy
+docker compose up -d --build
+```
+
+Either way it serves the proxy on port `8081`. Then in Calino settings, enter:
+
+- **Server URL**: Your CalDAV server (e.g., `https://cal.example.com`)
+- **Proxy URL**: `http://<your-host>:8081` (put it behind HTTPS in production)
+
+**Run without Docker:**
+
+```bash
+node proxy/server.mjs   # listens on :8081
+```
+
+**Configuration** (environment variables):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `8081` | Port to listen on |
+| `ALLOWED_ORIGINS` | *(empty)* | Comma-separated Calino origins allowed to use the proxy. Empty = open to any origin (fine for a private deployment). e.g. `https://calendar.example.com` |
+
+It follows redirects and exposes `X-Target-URL` (needed for `.well-known`
+discovery) and advertises the full set of WebDAV methods — `MKCOL`,
+`MKCALENDAR`, `COPY`, `MOVE` — so calendar creation and settings sync work.
+
+> **Tip:** Serve the proxy over HTTPS behind your own reverse proxy (or on the
+> same origin as Calino) so browsers don't block it as mixed content.
+
+### 5. Third-Party Proxy Services
 
 You can also use services like:
 

@@ -909,6 +909,49 @@
   animation: slideDown 0.15s ease-out;
 }
 
+.nlpChip {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 300;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 10px;
+  border: 1px solid var(--popover-border, rgba(0, 0, 0, 0.08));
+  border-radius: 999px;
+  background: var(--popover-bg, #fff);
+  box-shadow: var(--modal-shadow, 0 8px 24px rgba(0, 0, 0, 0.14));
+  cursor: pointer;
+  animation: slideDown 0.15s ease-out;
+}
+
+.nlpChip:hover {
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.04));
+}
+
+.nlpChipIcon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.nlpChipText {
+  font-size: 13px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--color-text-primary, #1a1a1a);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nlpChipKbd {
+  font-size: 10px;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+  color: var(--color-text-secondary, #666);
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.06));
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
 .suggestionItem {
   display: flex;
   flex-direction: column;

@@ -17,6 +17,8 @@ import { DeleteDialog } from './DeleteDialog'
 import { extractOriginalEventId } from '@/lib/events'
 import { isUUID } from '@/lib/uuid'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { parseNaturalLanguage } from '@/features/nlp'
+import type { NLPParseResult } from '@/features/nlp'
 
 import styles from './EventModal.module.css'
 
@@ -378,10 +380,29 @@ export function EventModal(): JSX.Element | null {
   // Title autocomplete
   const [titleSuggestions, setTitleSuggestions] = useState<CalendarEvent[]>([])
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  // Inline natural-language parse of the title, e.g. "lunch tomorrow 1pm".
+  const [nlpSuggestion, setNlpSuggestion] = useState<NLPParseResult | null>(null)
 
   const handleTitleChange = (val: string): void => {
     setTitle(val)
     setHighlightedIndex(-1)
+
+    // Inline NLP: only when creating a new event, and only surface a chip when
+    // the parser actually extracted date/time words (i.e. stripped the title).
+    if (!isEditing && val.trim().length >= 3) {
+      try {
+        const parsed = parseNaturalLanguage(val, {
+          defaultDate: startDate ? parseISO(`${startDate}T00:00:00`) : new Date(),
+        })
+        const strippedSomething = parsed.title.trim().length > 0 && parsed.title.trim() !== val.trim()
+        setNlpSuggestion(strippedSomething && parsed.confidence >= 0.5 ? parsed : null)
+      } catch {
+        setNlpSuggestion(null)
+      }
+    } else {
+      setNlpSuggestion(null)
+    }
+
     if (val.length < 2) {
       setTitleSuggestions([])
       return
@@ -414,10 +435,44 @@ export function EventModal(): JSX.Element | null {
     }
     setTitleSuggestions([])
     setHighlightedIndex(-1)
+    setNlpSuggestion(null)
+    titleInputRef.current?.focus()
+  }
+
+  const applyNlpSuggestion = (parsed: NLPParseResult): void => {
+    setTitle(parsed.title)
+    setStartDate(format(parsed.startDate, 'yyyy-MM-dd'))
+    setIsAllDay(parsed.isAllDay)
+    if (!parsed.isAllDay) {
+      setStartTime(format(parsed.startDate, 'HH:mm'))
+      const end = parsed.endDate
+        ? parsed.startDate < parsed.endDate
+          ? parsed.endDate
+          : new Date(parsed.startDate.getTime() + (parsed.duration ?? 60) * 60000)
+        : new Date(parsed.startDate.getTime() + (parsed.duration ?? 60) * 60000)
+      setEndDate(format(end, 'yyyy-MM-dd'))
+      setEndTime(format(end, 'HH:mm'))
+    } else {
+      setEndDate(format(parsed.endDate ?? parsed.startDate, 'yyyy-MM-dd'))
+    }
+    if (parsed.location) setLocation(parsed.location)
+    if (parsed.recurrence) {
+      setRecurring(true)
+      setRecurrence(parsed.recurrence.frequency)
+      if (parsed.recurrence.interval) setInterval(parsed.recurrence.interval)
+    }
+    setNlpSuggestion(null)
+    setTitleSuggestions([])
     titleInputRef.current?.focus()
   }
 
   const handleTitleKeyDown = (e: React.KeyboardEvent): void => {
+    // Accept an inline NLP parse with Tab (when no history suggestion is active).
+    if (nlpSuggestion && !showSuggestions && (e.key === 'Tab' || (e.key === 'Enter' && e.shiftKey))) {
+      e.preventDefault()
+      applyNlpSuggestion(nlpSuggestion)
+      return
+    }
     if (!showSuggestions) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
@@ -1009,6 +1064,23 @@ export function EventModal(): JSX.Element | null {
                   </button>
                 ))}
               </div>
+            )}
+            {nlpSuggestion && !showSuggestions && (
+              <button
+                type="button"
+                className={styles.nlpChip}
+                onClick={() => applyNlpSuggestion(nlpSuggestion)}
+                data-component="nlp-suggestion"
+              >
+                <span className={styles.nlpChipIcon} aria-hidden="true">✨</span>
+                <span className={styles.nlpChipText}>
+                  {nlpSuggestion.isAllDay
+                    ? format(nlpSuggestion.startDate, 'EEE, MMM d')
+                    : format(nlpSuggestion.startDate, 'EEE, MMM d · h:mm a')}
+                  {nlpSuggestion.recurrence ? ' · repeats' : ''}
+                </span>
+                <kbd className={styles.nlpChipKbd}>Tab</kbd>
+              </button>
             )}
           </div>
           <button className={styles.modalClose} onClick={animateClose} aria-label="Close">

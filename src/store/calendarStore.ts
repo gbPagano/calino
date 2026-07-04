@@ -518,10 +518,44 @@ export const useCalendarStore = create<CalendarStore>()(
               const excludedDates = event.excludedDates || []
 
               for (const occ of occurrences) {
-                const duration = eventEnd.getTime() - eventStart.getTime()
-                const occEnd = new Date(occ.getTime() + duration)
+                // For all-day events we work in whole-day, floating-time terms so
+                // that DST transitions can't shift an occurrence onto the wrong
+                // calendar day. Timed events keep exact millisecond duration.
+                let occStartStr: string
+                let occEndStr: string
+                let occDateStr: string
+                let occKey: string
 
-                const occDateStr = occ.toISOString().split('T')[0]
+                if (event.isAllDay) {
+                  const MS_PER_DAY = 86400000
+                  const durationDays = Math.max(
+                    0,
+                    Math.round((eventEnd.getTime() - eventStart.getTime()) / MS_PER_DAY)
+                  )
+                  // rrule returns occurrences at the dtstart wall-clock time; read the
+                  // local Y/M/D and rebuild floating midnights, adding days via UTC
+                  // date arithmetic (immune to DST hour shifts).
+                  const y = occ.getFullYear()
+                  const m = occ.getMonth()
+                  const d = occ.getDate()
+                  const startDay = new Date(Date.UTC(y, m, d))
+                  const endDay = new Date(Date.UTC(y, m, d))
+                  endDay.setUTCDate(endDay.getUTCDate() + durationDays)
+                  const fmt = (dt: Date) =>
+                    `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`
+                  occDateStr = fmt(startDay)
+                  occStartStr = `${occDateStr}T00:00:00`
+                  occEndStr = `${fmt(endDay)}T00:00:00`
+                  occKey = occDateStr
+                } else {
+                  const duration = eventEnd.getTime() - eventStart.getTime()
+                  const occEnd = new Date(occ.getTime() + duration)
+                  occStartStr = occ.toISOString()
+                  occEndStr = occEnd.toISOString()
+                  occDateStr = occ.toISOString().split('T')[0]
+                  occKey = occ.toISOString()
+                }
+
                 if (excludedDates.some(d => d.split('T')[0] === occDateStr)) {
                   continue
                 }
@@ -529,7 +563,7 @@ export const useCalendarStore = create<CalendarStore>()(
                 const exceptionKey = `${event.calendarId}-${occDateStr}`
                 const exception = exceptionMap.get(exceptionKey)
                 if (exception) {
-                  const occId = `${event.id}-${occ.toISOString()}`
+                  const occId = `${event.id}-${occKey}`
                   if (!seenIds.has(occId)) {
                     seenIds.add(occId)
                     expandedEvents.push({
@@ -542,13 +576,13 @@ export const useCalendarStore = create<CalendarStore>()(
                   continue
                 }
 
-                const occId = `${event.id}-${occ.toISOString()}`
+                const occId = `${event.id}-${occKey}`
                 seenIds.add(occId)
                 expandedEvents.push({
                   ...event,
                   id: occId,
-                  start: occ.toISOString(),
-                  end: occEnd.toISOString(),
+                  start: occStartStr,
+                  end: occEndStr,
                 })
               }
             } catch {

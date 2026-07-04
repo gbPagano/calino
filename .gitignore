@@ -47,6 +47,7 @@ coverage/
 .eslintcache
 PLAN.md
 PERF_AUDIT.md
+OPUS_AUDIT_PROMPT.md
 
 # Local planning / review artifacts
 .mimocode/

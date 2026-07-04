@@ -2,10 +2,10 @@
 
 All notable changes to Calino will be documented in this file.
 
-## [Unreleased]
+## [0.17.1] - 2026-07-04
 
 ### New Features
-- **Bouldering events get an icon** — events mentioning "bouldering" now show the mountain icon, alongside hiking, climbing, and camping.
+- **More events get automatic icons** — added icon matching for bouldering (mountain), meditation and mindfulness (gym), and cleaning/chores (laundry).
 - **Self-hostable CORS proxy** — if your CalDAV server can't send CORS headers, you can now run Calino's own lightweight proxy instead of relying on Cloudflare or editing your reverse proxy. If you already run Calino with Docker, enable it alongside the app with a single command (`docker compose --profile proxy up -d`) and point the Proxy URL in settings at it. It can also run standalone or as a Cloudflare Worker.
 
 ### Bug Fixes

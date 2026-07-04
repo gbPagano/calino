@@ -314,7 +314,9 @@ function CalendarApp(): JSX.Element {
           return <CalendarGrid />
       }
     })()
-    return <ErrorBoundary><ViewLoader viewKey={currentView}>{viewElement}</ViewLoader></ErrorBoundary>
+    // Key the boundary on the view so switching views remounts a fresh
+    // boundary and recovers from a crashed view without a full reload.
+    return <ErrorBoundary key={currentView}><ViewLoader viewKey={currentView}>{viewElement}</ViewLoader></ErrorBoundary>
   }
 
   const handleToggleSidebar = useCallback(() => {
@@ -357,7 +359,9 @@ function CalendarApp(): JSX.Element {
         onOpenCommandPalette={handleOpenCommandPalette}
       />
       <div className="appContent" data-sidebar-collapsed={sidebarCollapsed || undefined}>
-        <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} isCollapsed={sidebarCollapsed} onCollapsedChange={(v) => updateSettings({ sidebarCollapsed: v })} />
+        <ErrorBoundary fallback={null}>
+          <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} isCollapsed={sidebarCollapsed} onCollapsedChange={(v) => updateSettings({ sidebarCollapsed: v })} />
+        </ErrorBoundary>
         <main className="main">{renderView()}</main>
       </div>
       <MobileFAB
@@ -365,7 +369,9 @@ function CalendarApp(): JSX.Element {
         isOpen={isFabMenuOpen}
         onAction={handleFabAction}
       />
-      <EventModal />
+      <ErrorBoundary fallback={null}>
+        <EventModal />
+      </ErrorBoundary>
       {isJournalModalOpen && journalModalDate && (
         <JournalDayModal
           isOpen={isJournalModalOpen}

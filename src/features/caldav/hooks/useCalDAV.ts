@@ -296,8 +296,18 @@ export function useCalDAV(): UseCalDAVReturn {
       const accounts = storage.getAllAccounts()
       if (accounts.length > 0) {
         console.log('[CalDAV] Auto-syncing on mount...', accounts.length, 'accounts')
+        // Surface a single toast if any background sync fails, so a silent
+        // auto-sync failure (offline, bad credentials, server down) doesn't
+        // leave the user with a stale calendar and no indication why.
+        let notified = false
         for (const account of accounts) {
-          syncAccount(account.id)
+          syncAccount(account.id).catch((err) => {
+            console.warn('[CalDAV] Auto-sync failed:', err)
+            if (!notified) {
+              notified = true
+              showToast('Calendar sync failed. Changes will be retried automatically.')
+            }
+          })
         }
       }
     }, 500)

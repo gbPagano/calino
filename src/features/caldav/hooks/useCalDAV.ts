@@ -37,6 +37,11 @@ const isProcessingRef = { current: false }
 let autoConnectDone = false
 // Module-level guard: only sync once per page session (set when timer fires, not when effect runs)
 let hasAutoSynced = false
+// Module-level guard: event IDs whose server DELETE is currently in flight. A
+// concurrent sync must skip these — otherwise it can re-add an event the user
+// just deleted (the pending-change tombstone only exists on the failure path,
+// so the happy path had a resurrection window). Shared across hook instances.
+const inFlightDeletes = new Set<string>()
 
 const MAX_RETRIES = 10
 
@@ -686,6 +691,10 @@ export function useCalDAV(): UseCalDAVReturn {
               .filter((p) => p.type === 'delete')
               .map((p) => p.eventId)
           )
+          // Also skip events whose server DELETE is in flight right now: on the
+          // happy path no pending-change tombstone is written, so without this a
+          // sync racing the delete would re-add the event.
+          for (const id of inFlightDeletes) pendingDeleteIds.add(id)
 
           // Get events that belong to this calendar, indexed by id for O(1) lookup
           const calendarEvents = currentEvents.filter((e) => e.calendarId === cal.id)
@@ -1114,6 +1123,10 @@ export function useCalDAV(): UseCalDAVReturn {
         return
       }
 
+      // Mark this event as being deleted so a concurrent sync won't re-add it
+      // during the server round-trip. Cleared in finally once the outcome is
+      // settled (event removed, or a pending-change tombstone written).
+      inFlightDeletes.add(eventId)
       try {
         const credential = await getCredentialById(account.credentialId)
         if (!credential) {
@@ -1159,6 +1172,10 @@ export function useCalDAV(): UseCalDAVReturn {
           pendingChanges: prev.pendingChanges + 1,
         }))
         throw error
+      } finally {
+        // Outcome is settled: either the event is gone (success) or a pending
+        // delete tombstone now guards it (failure). Safe to stop shadowing it.
+        inFlightDeletes.delete(eventId)
       }
     },
     [caldavDebugMode, storeDeleteEvent, storeAddEvent]

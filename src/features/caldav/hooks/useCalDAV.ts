@@ -1154,7 +1154,12 @@ export function useCalDAV(): UseCalDAVReturn {
         // Bug 17 fix: use the event's etag from the store instead of empty string
         await engine.deleteEvent(eventUrl, effectiveData?.etag || '')
 
-        storeDeleteEvent(eventId)
+        // Only remove from store if the UI hasn't already done an optimistic
+        // delete (the caller may have already removed it before calling us).
+        const stillInStore = useCalendarStore.getState().events.some((e) => e.id === eventId)
+        if (stillInStore) {
+          storeDeleteEvent(eventId)
+        }
 
         if (caldavDebugMode) {
           console.log('[CalDAV] Event deleted successfully!')

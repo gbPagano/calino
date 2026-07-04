@@ -19,6 +19,7 @@ import { isUUID } from '@/lib/uuid'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { parseNaturalLanguage } from '@/features/nlp'
 import type { NLPParseResult } from '@/features/nlp'
+import { useSmartDefaultsStore } from '@/store/smartDefaultsStore'
 
 import styles from './EventModal.module.css'
 
@@ -325,6 +326,21 @@ export function EventModal(): JSX.Element | null {
   const [attachments, setAttachments] = useState<CalendarAttachment[]>([])
   const [relatedTo, setRelatedTo] = useState<string[]>([])
 
+  // Smart defaults: track whether the user has manually overridden the
+  // calendar or the event length, so learned suggestions only fill fields the
+  // user hasn't touched yet.
+  const calendarTouchedRef = useRef(false)
+  const durationTouchedRef = useRef(false)
+
+  const handleEndTimeChange = useCallback((val: string): void => {
+    durationTouchedRef.current = true
+    setEndTime(val)
+  }, [])
+
+  const handleCalendarChange = useCallback((val: string): void => {
+    calendarTouchedRef.current = true
+    setCalendarId(val)
+  }, [])
 
   // Load attachments from IndexedDB when modal opens with existing event
   useEffect(() => {
@@ -401,6 +417,29 @@ export function EventModal(): JSX.Element | null {
       }
     } else {
       setNlpSuggestion(null)
+    }
+
+    // Smart defaults: for a new event, quietly pre-fill the calendar and
+    // event length the user usually picks for this kind of title — but only
+    // for fields they haven't manually overridden this session.
+    if (!isEditing && val.trim().length >= 3) {
+      const suggestion = useSmartDefaultsStore.getState().suggest(val)
+      if (
+        suggestion.calendarId &&
+        !calendarTouchedRef.current &&
+        calendars.some((c) => c.id === suggestion.calendarId)
+      ) {
+        setCalendarId(suggestion.calendarId)
+      }
+      if (suggestion.durationMinutes && !durationTouchedRef.current && !isAllDay) {
+        const [h, m] = startTime.split(':').map(Number)
+        if (Number.isFinite(h) && Number.isFinite(m)) {
+          const endMins = h * 60 + m + suggestion.durationMinutes
+          const endH = Math.floor(endMins / 60) % 24
+          const endM = endMins % 60
+          setEndTime(`${pad2(endH)}:${pad2(endM)}`)
+        }
+      }
     }
 
     if (val.length < 2) {
@@ -518,6 +557,9 @@ export function EventModal(): JSX.Element | null {
         currentCalendars,
         currentCategories
       )
+
+      calendarTouchedRef.current = false
+      durationTouchedRef.current = false
 
       setTitle(formDefaults.title)
       setDescription(formDefaults.description)
@@ -925,6 +967,17 @@ export function EventModal(): JSX.Element | null {
         attachments: attachments.length > 0 ? attachments : undefined,
       }
       addEvent(newEvent)
+      // Learn smart defaults from this creation: the calendar chosen and, for
+      // timed single-day events, the length picked for this kind of title.
+      if (newEvent.title.trim()) {
+        let durationMinutes: number | undefined
+        if (!newEvent.isAllDay) {
+          const diffMs = parseISO(newEvent.end).getTime() - parseISO(newEvent.start).getTime()
+          const mins = Math.round(diffMs / 60000)
+          if (mins > 0 && mins <= 24 * 60) durationMinutes = mins
+        }
+        useSmartDefaultsStore.getState().record(newEvent.title, newEvent.calendarId, durationMinutes)
+      }
       // Move attachments from temp 'new' key to actual event ID
       if (attachments.length > 0) {
         deleteAttachments('new').catch(() => {})
@@ -1126,7 +1179,7 @@ export function EventModal(): JSX.Element | null {
               endDate={endDate}
               onEndDateChange={setEndDate}
               endTime={endTime}
-              onEndTimeChange={setEndTime}
+              onEndTimeChange={handleEndTimeChange}
               recurring={recurring}
               onRecurringChange={setRecurring}
               recurrence={recurrence}
@@ -1186,7 +1239,7 @@ export function EventModal(): JSX.Element | null {
             <select
               id="calendar-select"
               value={calendarId}
-              onChange={(e) => setCalendarId(e.target.value)}
+              onChange={(e) => handleCalendarChange(e.target.value)}
               className={styles.modalSelect}
               data-component="event-calendar-select"
             >

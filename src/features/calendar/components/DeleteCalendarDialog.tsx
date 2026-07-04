@@ -1,7 +1,8 @@
 import type { JSX } from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useModalDismiss } from '@/hooks/useModalDismiss'
 import styles from './DeleteDialog.module.css'
 
 interface DeleteCalendarDialogProps {
@@ -21,6 +22,7 @@ export function DeleteCalendarDialog({
 }: DeleteCalendarDialogProps): JSX.Element | null {
   const [confirmText, setConfirmText] = useState('')
   const events = useCalendarStore((state) => state.events)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -50,6 +52,8 @@ export function DeleteCalendarDialog({
     }
   }
 
+  useModalDismiss(dialogRef, isOpen, handleClose)
+
   if (!isOpen) {
     return null
   }
@@ -57,6 +61,7 @@ export function DeleteCalendarDialog({
   return createPortal(
     <div className={styles.overlay} onClick={handleBackdropClick}>
       <div
+        ref={dialogRef}
         className={styles.modal}
         role="dialog"
         aria-modal="true"

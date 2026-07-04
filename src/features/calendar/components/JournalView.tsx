@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { MarkdownView } from '@/lib/markdown'
 import { showToast } from '@/lib/toast'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
+import { buildEventIndex } from '@/lib/events'
 import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
 import type { CalendarEvent, CalendarAttachment } from '@/types'
 import { AttachmentSection } from './AttachmentSection'
@@ -396,6 +397,9 @@ export function JournalView(): JSX.Element {
     [events]
   )
 
+  // Index events by id so related-event lookups in the entry list are O(1).
+  const eventIndex = useMemo(() => buildEventIndex(events), [events])
+
   // Focus input when composing
   useEffect(() => {
     if (isComposing) {
@@ -709,7 +713,7 @@ export function JournalView(): JSX.Element {
           {entry.relatedTo && entry.relatedTo.length > 0 && (
             <div className={styles.entryRelated}>
               {entry.relatedTo.map((relId) => {
-                const relatedEvent = events.find((e) => e.id === relId)
+                const relatedEvent = eventIndex.get(relId)
                 if (!relatedEvent) return null
                 return (
                   <span key={relId} className={styles.entryRelatedTag}>

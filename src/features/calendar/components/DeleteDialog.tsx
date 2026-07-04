@@ -1,5 +1,7 @@
 import type { JSX } from 'react'
+import { useRef } from 'react'
 import { useAnimatedClose } from '@/hooks/useAnimatedClose'
+import { useModalDismiss } from '@/hooks/useModalDismiss'
 import styles from './DeleteDialog.module.css'
 
 type RecurrenceEditMode = 'all' | 'future' | 'this'
@@ -16,6 +18,8 @@ export function DeleteDialog({
   onConfirm,
 }: DeleteDialogProps): JSX.Element | null {
   const { rendered, closing, requestClose } = useAnimatedClose(isOpen, onClose, 150)
+  const modalRef = useRef<HTMLDivElement>(null)
+  useModalDismiss(modalRef, rendered && !closing, requestClose)
 
   if (!rendered) return null
 
@@ -24,7 +28,13 @@ export function DeleteDialog({
       className={`${styles.overlay} ${closing ? styles.closing : ''}`}
       onClick={requestClose}
     >
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={modalRef}
+        className={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={styles.header}>
           <h2 className={styles.title}>Delete recurring event</h2>
           <button className={styles.closeButton} onClick={requestClose} aria-label="Close">

@@ -6,6 +6,37 @@ export function extractOriginalEventId(eventId: string): string | null {
   return null
 }
 
+/**
+ * Resolves an event by id, falling back to its recurrence-master id when the id
+ * refers to a generated recurring instance (see {@link extractOriginalEventId}).
+ * Centralizes the `find(id) ?? find(originalId)` pattern used across the app.
+ *
+ * Pass a precomputed `Map` (from {@link buildEventIndex}) to avoid O(n) scans in
+ * hot paths; otherwise an array is scanned directly.
+ */
+export function findEventById<T extends { id: string }>(
+  events: readonly T[] | ReadonlyMap<string, T>,
+  id: string | null | undefined
+): T | undefined {
+  if (!id) return undefined
+  const originalId = extractOriginalEventId(id)
+  if (events instanceof Map) {
+    return events.get(id) ?? (originalId !== null ? events.get(originalId) : undefined)
+  }
+  const arr = events as readonly T[]
+  return (
+    arr.find((e) => e.id === id) ??
+    (originalId !== null ? arr.find((e) => e.id === originalId) : undefined)
+  )
+}
+
+/** Builds an id → event Map for O(1) lookups via {@link findEventById}. */
+export function buildEventIndex<T extends { id: string }>(events: readonly T[]): Map<string, T> {
+  const index = new Map<string, T>()
+  for (const event of events) index.set(event.id, event)
+  return index
+}
+
 export function hasDueTime(event: { dueDate?: string | null; isAllDay?: boolean }): boolean {
   if (!event.dueDate) return false
   if (event.isAllDay) return false

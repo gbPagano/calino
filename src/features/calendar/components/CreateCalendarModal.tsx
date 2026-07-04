@@ -1,7 +1,8 @@
 import type { JSX } from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
+import { useModalDismiss } from '@/hooks/useModalDismiss'
 import { EVENT_COLORS } from '@/store/settingsStore'
 import styles from './AddCalendarModal.module.css'
 
@@ -19,6 +20,7 @@ export function CreateCalendarModal({ isOpen, onClose, accountId }: CreateCalend
   const [error, setError] = useState('')
 
   const { accounts, createCalendar } = useCalDAV()
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -74,6 +76,8 @@ export function CreateCalendarModal({ isOpen, onClose, accountId }: CreateCalend
     }
   }
 
+  useModalDismiss(dialogRef, isOpen, handleClose)
+
   if (!isOpen) {
     return null
   }
@@ -83,6 +87,7 @@ export function CreateCalendarModal({ isOpen, onClose, accountId }: CreateCalend
   return createPortal(
     <div className={styles.modal} onClick={handleBackdropClick}>
       <div
+        ref={dialogRef}
         className={styles.modalContent}
         role="dialog"
         aria-modal="true"

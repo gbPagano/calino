@@ -9,6 +9,7 @@ import { showToast } from '@/lib/toast'
 import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
 import type { CalendarEvent, CalendarAttachment } from '@/types'
 import { AttachmentSection } from './AttachmentSection'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import styles from './JournalDayModal.module.css'
 
 interface JournalDayModalProps {
@@ -319,12 +320,14 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen, onClose])
 
+  useFocusTrap(panelRef, isOpen)
+
   if (!isOpen) return null
 
 
   return (
     <div className={styles.scrim}>
-      <div className={styles.panel} ref={panelRef}>
+      <div className={styles.panel} ref={panelRef} role="dialog" aria-modal="true">
         <button className={styles.close} onClick={onClose} aria-label="Close">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
             <path d="M3 3l10 10M13 3L3 13" />

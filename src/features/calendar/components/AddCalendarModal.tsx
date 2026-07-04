@@ -1,9 +1,10 @@
 import type { JSX } from 'react'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { discoverServerUrl } from '@/features/caldav/client/discovery'
 import { useAnimatedClose } from '@/hooks/useAnimatedClose'
+import { useModalDismiss } from '@/hooks/useModalDismiss'
 import styles from './AddCalendarModal.module.css'
 
 interface AddCalendarModalProps {
@@ -25,6 +26,8 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
     onClose()
   }, [onClose])
   const { rendered, closing, requestClose } = useAnimatedClose(isOpen, doClose, 200)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalDismiss(dialogRef, rendered && !closing, requestClose)
 
   const handleTestConnection = async (
     serverUrl: string,
@@ -142,6 +145,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
       onClick={handleBackdropClick}
     >
       <div
+        ref={dialogRef}
         className={styles.modalContent}
         role="dialog"
         aria-modal="true"

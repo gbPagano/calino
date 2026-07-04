@@ -536,7 +536,54 @@ export const EventCard = React.memo(function EventCard({
         )}
     </>
   )
-})
+}, arePropsEqual)
+
+// Recurrence occurrences are rebuilt as fresh objects on every expansion, so the
+// default shallow `event` reference check never hits. Compare the fields the card
+// actually renders instead, plus the primitive layout props.
+function arePropsEqual(prev: EventCardProps, next: EventCardProps): boolean {
+  if (
+    prev.onClick !== next.onClick ||
+    prev.compact !== next.compact ||
+    prev.isDragging !== next.isDragging ||
+    prev.enableResize !== next.enableResize ||
+    prev.hideTopRadius !== next.hideTopRadius ||
+    prev.isMobileMonth !== next.isMobileMonth ||
+    prev.monthView !== next.monthView ||
+    prev.transparent !== next.transparent ||
+    prev.hourHeight !== next.hourHeight ||
+    prev.dotMode !== next.dotMode
+  ) {
+    return false
+  }
+
+  const a = prev.event
+  const b = next.event
+  if (a === b) return true
+
+  return (
+    a.id === b.id &&
+    a.calendarId === b.calendarId &&
+    a.title === b.title &&
+    a.start === b.start &&
+    a.end === b.end &&
+    a.isAllDay === b.isAllDay &&
+    a.completed === b.completed &&
+    a.location === b.location &&
+    a.type === b.type &&
+    a.dueDate === b.dueDate &&
+    a.syncStatus === b.syncStatus &&
+    a.travelDuration === b.travelDuration &&
+    a.rruleString === b.rruleString &&
+    a.isFragment === b.isFragment &&
+    a.isFirstFragment === b.isFirstFragment &&
+    a.isLastFragment === b.isLastFragment &&
+    a.originalStart === b.originalStart &&
+    a.originalEnd === b.originalEnd &&
+    (a.attachments?.length ?? 0) === (b.attachments?.length ?? 0) &&
+    (a.categories?.join(',') ?? '') === (b.categories?.join(',') ?? '')
+  )
+}
 
 function DeleteIcon(): JSX.Element {
   return (

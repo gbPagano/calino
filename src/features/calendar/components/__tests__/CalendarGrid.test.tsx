@@ -96,6 +96,28 @@ describe('CalendarGrid', () => {
     expect(storeAfter.currentDate).toBe('2024-02-15')
   })
 
+  it('ArrowRight moves keyboard focus to the next day cell', () => {
+    const { container } = renderWithRouter(<CalendarGrid />)
+    const cell = container.querySelector<HTMLElement>('[data-date="2024-03-15"]')!
+    cell.focus()
+    fireEvent.keyDown(cell, { key: 'ArrowRight' })
+    expect(document.activeElement).toBe(
+      container.querySelector('[data-date="2024-03-16"]')
+    )
+  })
+
+  it('ArrowDown moves keyboard focus one week down without changing the month', () => {
+    const { container } = renderWithRouter(<CalendarGrid />)
+    const cell = container.querySelector<HTMLElement>('[data-date="2024-03-15"]')!
+    cell.focus()
+    fireEvent.keyDown(cell, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(
+      container.querySelector('[data-date="2024-03-22"]')
+    )
+    // Focus navigation must not trigger the window-level month change.
+    expect(useCalendarStore.getState().currentDate).toBe('2024-03-15')
+  })
+
   it('changeMonth uses current store value not stale ref on rapid calls (Bug #64)', () => {
     renderWithRouter(<CalendarGrid />)
 

@@ -109,6 +109,25 @@ export function CalendarGrid(): JSX.Element {
     pinchScaleRange: { min: 1, max: 1.5 },
   })
 
+  // Arrow-key roving focus across day cells: ←/→ move one day, ↑/↓ move one
+  // week. Enter/Space (handled on each cell) opens the focused day.
+  const handleGridKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const { key } = e
+    if (key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'ArrowUp' && key !== 'ArrowDown') return
+    const active = document.activeElement as HTMLElement | null
+    const cell = active?.closest('[data-date]') as HTMLElement | null
+    if (!cell || !e.currentTarget.contains(cell)) return
+    // Stop the window-level handler (which maps ↑/↓ to month change) from also
+    // firing while a day cell owns keyboard focus.
+    e.preventDefault()
+    e.stopPropagation()
+    const cells = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[data-date]'))
+    const idx = cells.indexOf(cell)
+    if (idx === -1) return
+    const delta = key === 'ArrowLeft' ? -1 : key === 'ArrowRight' ? 1 : key === 'ArrowUp' ? -7 : 7
+    cells[idx + delta]?.focus()
+  }, [])
+
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null)
   const draggedEventRef = useRef<CalendarEvent | null>(null)
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null)
@@ -586,6 +605,7 @@ export function CalendarGrid(): JSX.Element {
                 data-component="calendar-grid"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
+                onKeyDown={handleGridKeyDown}
                 style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
               >
               <div className={`${styles.header} ${!showWeekNumbers ? styles.headerNoWeekNum : ''}`}>
@@ -714,6 +734,7 @@ export function CalendarGrid(): JSX.Element {
           data-component="calendar-grid"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
+          onKeyDown={handleGridKeyDown}
           style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
         >
         <div className={`${styles.header} ${!showWeekNumbers ? styles.headerNoWeekNum : ''}`}>

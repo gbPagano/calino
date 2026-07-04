@@ -541,6 +541,10 @@ export const EventCard = React.memo(function EventCard({
 // Recurrence occurrences are rebuilt as fresh objects on every expansion, so the
 // default shallow `event` reference check never hits. Compare the fields the card
 // actually renders instead, plus the primitive layout props.
+//
+// ⚠️ Keep in sync with CalendarEvent fields rendered by this component. If you
+// add a rendered field to EventCard and forget to add it here, the card won't
+// re-render when that field changes.
 function arePropsEqual(prev: EventCardProps, next: EventCardProps): boolean {
   if (
     prev.onClick !== next.onClick ||

@@ -1,20 +1,25 @@
 import { create } from 'zustand'
-import type { CalendarEvent } from '@/types'
+import type { CalendarEvent, Calendar } from '@/types'
 import { useCalendarStore } from './calendarStore'
 
-// Snapshot-based undo/redo for the events array. Because the calendar store
-// replaces `events` with a new array on every mutation, we can keep cheap
-// reference snapshots in a past/future stack and swap them back in on
-// undo/redo. This covers add / update / delete / duplicate uniformly without
-// per-command inverse logic. Note: it restores the *local* events only —
-// CalDAV reconciliation of an undone change is out of scope and left to the
+// Snapshot-based undo/redo for events and calendars. Because the calendar store
+// replaces `events` and `calendars` with new arrays on every mutation, we can
+// keep cheap reference snapshots in a past/future stack and swap them back in
+// on undo/redo. This covers add / update / delete / duplicate uniformly
+// without per-command inverse logic. Note: it restores the *local* state only
+// — CalDAV reconciliation of an undone change is out of scope and left to the
 // next sync.
 
 const HISTORY_LIMIT = 50
 
+interface Snapshot {
+  events: CalendarEvent[]
+  calendars: Calendar[]
+}
+
 interface HistoryState {
-  past: CalendarEvent[][]
-  future: CalendarEvent[][]
+  past: Snapshot[]
+  future: Snapshot[]
   /** Guards the store subscription while we're applying an undo/redo. */
   isApplying: boolean
   canUndo: () => boolean
@@ -22,6 +27,18 @@ interface HistoryState {
   undo: () => boolean
   redo: () => boolean
   clear: () => void
+}
+
+function takeSnapshot(): Snapshot {
+  const { events, calendars } = useCalendarStore.getState()
+  return { events, calendars }
+}
+
+function restoreSnapshot(snapshot: Snapshot): void {
+  useCalendarStore.setState({
+    events: snapshot.events,
+    calendars: snapshot.calendars,
+  })
 }
 
 export const useHistoryStore = create<HistoryState>((set, get) => ({
@@ -36,9 +53,9 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
     const { past, future } = get()
     if (past.length === 0) return false
     const previous = past[past.length - 1]
-    const current = useCalendarStore.getState().events
+    const current = takeSnapshot()
     set({ isApplying: true })
-    useCalendarStore.setState({ events: previous })
+    restoreSnapshot(previous)
     set({
       past: past.slice(0, -1),
       future: [...future, current],
@@ -51,9 +68,9 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
     const { past, future } = get()
     if (future.length === 0) return false
     const next = future[future.length - 1]
-    const current = useCalendarStore.getState().events
+    const current = takeSnapshot()
     set({ isApplying: true })
-    useCalendarStore.setState({ events: next })
+    restoreSnapshot(next)
     set({
       past: [...past, current],
       future: future.slice(0, -1),
@@ -67,15 +84,19 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
   },
 }))
 
-// Record a snapshot of the previous events array whenever it changes through a
-// normal mutation (i.e. not our own undo/redo swap). Guarded so that test
-// suites which mock the calendar store (without a `subscribe`) don't blow up.
+// Record a snapshot whenever events or calendars change through a normal
+// mutation (i.e. not our own undo/redo swap). We track both arrays because
+// calendar CRUD (add/rename/delete/toggle visibility) is a user action that
+// should be undoable. Guarded so that test suites which mock the calendar
+// store (without a `subscribe`) don't blow up.
 if (typeof useCalendarStore.subscribe === 'function') {
   useCalendarStore.subscribe((state, prevState) => {
     if (useHistoryStore.getState().isApplying) return
-    if (state.events === prevState.events) return
+    const eventsChanged = state.events !== prevState.events
+    const calendarsChanged = state.calendars !== prevState.calendars
+    if (!eventsChanged && !calendarsChanged) return
     useHistoryStore.setState((h) => ({
-      past: [...h.past, prevState.events].slice(-HISTORY_LIMIT),
+      past: [...h.past, { events: prevState.events, calendars: prevState.calendars }].slice(-HISTORY_LIMIT),
       future: [],
     }))
   })

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { useIsMobile } from './hooks/useIsMobile'
+import { useTwoFingerSwipe } from './hooks/useTwoFingerSwipe'
 import { useCalendarStore } from './store/calendarStore'
 import { useSettingsStore } from './store/settingsStore'
 import {
@@ -217,11 +218,30 @@ function CalendarApp(): JSX.Element {
   const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false)
+  const isMobile = useIsMobile()
+  const mainRef = useRef<HTMLElement>(null)
 
   // Initialize CardDAV sync
   useCardDAV()
 
   useViewManager()
+
+  // Mobile: two-finger horizontal swipe cycles through views (single-finger
+  // swipes stay reserved for date navigation inside each view).
+  const currentViewRef = useRef(currentView)
+  currentViewRef.current = currentView
+  const switchViewBy = useCallback(
+    (direction: 'left' | 'right') => {
+      const currentIndex = VIEW_ORDER.indexOf(currentViewRef.current)
+      const delta = direction === 'left' ? 1 : -1
+      const nextIndex = (currentIndex + delta + VIEW_ORDER.length) % VIEW_ORDER.length
+      const newView = VIEW_ORDER[nextIndex]
+      useCalendarStore.getState().setCurrentView(newView)
+      navigate(VIEW_ROUTES[newView], { replace: true })
+    },
+    [navigate]
+  )
+  useTwoFingerSwipe(mainRef, { onSwipe: switchViewBy, enabled: isMobile })
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -362,7 +382,7 @@ function CalendarApp(): JSX.Element {
         <ErrorBoundary fallback={null}>
           <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} isCollapsed={sidebarCollapsed} onCollapsedChange={(v) => updateSettings({ sidebarCollapsed: v })} />
         </ErrorBoundary>
-        <main className="main">{renderView()}</main>
+        <main className="main" ref={mainRef}>{renderView()}</main>
       </div>
       <MobileFAB
         onClick={() => setIsFabMenuOpen(!isFabMenuOpen)}

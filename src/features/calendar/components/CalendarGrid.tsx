@@ -125,7 +125,12 @@ export function CalendarGrid(): JSX.Element {
     const idx = cells.indexOf(cell)
     if (idx === -1) return
     const delta = key === 'ArrowLeft' ? -1 : key === 'ArrowRight' ? 1 : key === 'ArrowUp' ? -7 : 7
-    cells[idx + delta]?.focus()
+    const target = cells[idx + delta]
+    if (!target) return
+    // Move the roving tab stop so Tab/Shift+Tab re-enter at the last cell.
+    cell.tabIndex = -1
+    target.tabIndex = 0
+    target.focus()
   }, [])
 
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null)
@@ -663,6 +668,7 @@ export function CalendarGrid(): JSX.Element {
                               journalEnabled={journalEnabled}
                               isCurrentMonth={isCurrentMonth}
                               isTodayDate={isTodayDate}
+                              isFocusAnchor={dateKey === currentDate}
                               isWeekend={isWeekend}
                               isPastWeek={isPastWeek}
                               compactRecurringEvents={compactRecurringEvents}
@@ -792,6 +798,7 @@ export function CalendarGrid(): JSX.Element {
                         journalEnabled={journalEnabled}
                         isCurrentMonth={isCurrentMonth}
                         isTodayDate={isTodayDate}
+                        isFocusAnchor={dateKey === currentDate}
                         isWeekend={isWeekend}
                         isPastWeek={isPastWeek}
                         compactRecurringEvents={compactRecurringEvents}
@@ -845,6 +852,7 @@ interface DroppableDayProps {
   journalEnabled: boolean
   isCurrentMonth: boolean
   isTodayDate: boolean
+  isFocusAnchor: boolean
   isWeekend: boolean
   isPastWeek: boolean
   compactRecurringEvents: boolean
@@ -868,6 +876,7 @@ const DroppableDay = React.memo(function DroppableDay({
   journalEnabled,
   isCurrentMonth,
   isTodayDate,
+  isFocusAnchor,
   isWeekend,
   isPastWeek,
   compactRecurringEvents,
@@ -916,7 +925,7 @@ const DroppableDay = React.memo(function DroppableDay({
       {...(isWeekend ? { 'data-weekend': '' } : {})}
       {...(isOver ? { 'data-drop-target': '' } : {})}
       role="button"
-      tabIndex={0}
+      tabIndex={isFocusAnchor ? 0 : -1}
       aria-label={format(day, 'EEEE, MMMM d, yyyy')}
       data-date={dateKey}
       onClick={() => onDayClick(day)}

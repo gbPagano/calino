@@ -96,6 +96,13 @@ describe('CalendarGrid', () => {
     expect(storeAfter.currentDate).toBe('2024-02-15')
   })
 
+  it('exposes only the current date as a tab stop (roving tabindex)', () => {
+    const { container } = renderWithRouter(<CalendarGrid />)
+    const tabbable = container.querySelectorAll('[data-date][tabindex="0"]')
+    expect(tabbable).toHaveLength(1)
+    expect(tabbable[0].getAttribute('data-date')).toBe('2024-03-15')
+  })
+
   it('ArrowRight moves keyboard focus to the next day cell', () => {
     const { container } = renderWithRouter(<CalendarGrid />)
     const cell = container.querySelector<HTMLElement>('[data-date="2024-03-15"]')!

@@ -4,6 +4,7 @@ export type { Command, CommandCategory }
 import { addDays, addWeeks, addMonths, subWeeks, subMonths, format } from 'date-fns'
 import type { ThemeMode } from '@/types'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useHistoryStore } from '@/store/historyStore'
 
 interface CommandFactoryDeps {
   navigate: (path: string) => void
@@ -37,6 +38,8 @@ const ICONS = {
   calendar: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v2M10.5 1.5v2"/></svg>',
   arrowRight: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>',
   arrowLeft: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8H3M7 4L3 8l4 4"/></svg>',
+  undo: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a5 5 0 105-5 5 5 0 00-4.5 2.8M2 3v3h3"/></svg>',
+  redo: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8a5 5 0 11-5-5 5 5 0 014.5 2.8M14 3v3h-3"/></svg>',
   skipForward: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4l6 4-6 4V4zM11 4l2 4-2 4"/></svg>',
   skipBack: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4L7 8l6 4V4zM5 4L3 8l2 4"/></svg>',
   chevronRight: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg>',
@@ -207,6 +210,30 @@ const createActionCommands = (deps: CommandFactoryDeps): Command[] => [
     action: () => {
       deps.openModal(undefined, undefined, undefined, 'task')
       return 'Task modal opened'
+    },
+  },
+  {
+    id: 'action-undo',
+    label: 'Undo',
+    description: 'Revert the last change to your events',
+    category: 'actions',
+    keywords: ['undo', 'revert', 'back', 'history'],
+    shortcut: '⌘Z',
+    icon: ICONS.undo,
+    action: () => {
+      return useHistoryStore.getState().undo() ? 'Undone' : 'Nothing to undo'
+    },
+  },
+  {
+    id: 'action-redo',
+    label: 'Redo',
+    description: 'Reapply the last undone change',
+    category: 'actions',
+    keywords: ['redo', 'reapply', 'forward', 'history'],
+    shortcut: '⇧⌘Z',
+    icon: ICONS.redo,
+    action: () => {
+      return useHistoryStore.getState().redo() ? 'Redone' : 'Nothing to redo'
     },
   },
   {

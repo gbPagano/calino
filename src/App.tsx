@@ -5,6 +5,8 @@ import { Toaster } from 'sonner'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useTwoFingerSwipe } from './hooks/useTwoFingerSwipe'
 import { useCalendarStore } from './store/calendarStore'
+import { useHistoryStore } from './store/historyStore'
+import { showToast } from './lib/toast'
 import { useSettingsStore } from './store/settingsStore'
 import {
   CalendarHeader,
@@ -26,7 +28,7 @@ import { useCardDAV } from './features/carddav/hooks/useCardDAV'
 import type { ViewType } from './types'
 
 import { extractOriginalEventId } from './lib/events'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 import './App.css'
 
@@ -39,62 +41,15 @@ const JournalView = lazy(() => import('./features/calendar/components/JournalVie
 const ContactsView = lazy(() => import('./features/carddav/components/ContactsView').then(m => ({ default: m.ContactsView })))
 const YearView = lazy(() => import('./features/calendar/components/YearView').then(m => ({ default: m.YearView })))
 
-// Zoom hierarchy: month (widest) → week → day (tightest). Switching between
-// these animates as a zoom (scale + fade) so the existing pinch-to-zoom feels
-// continuous; all other view switches slide horizontally in the direction of
-// the view order.
-const VIEW_ZOOM_RANK: Partial<Record<ViewType, number>> = { month: 0, week: 1, day: 2 }
-const VIEW_SEQUENCE: ViewType[] = ['month', 'year', 'week', 'day', 'agenda', 'todo', 'journal', 'contacts']
-
-/**
- * Returns a signed direction for the transition between two views:
- *  - zoom in (month→day) → +1, zoom out (day→month) → -1 when both are zoom views
- *  - otherwise the sign of their position delta in the view sequence
- */
-export function transitionDirection(from: ViewType | null, to: ViewType): { axis: 'zoom' | 'slide'; dir: number } {
-  if (from === null || from === to) return { axis: 'zoom', dir: 0 }
-  const fromZoom = VIEW_ZOOM_RANK[from]
-  const toZoom = VIEW_ZOOM_RANK[to]
-  if (fromZoom !== undefined && toZoom !== undefined) {
-    return { axis: 'zoom', dir: Math.sign(toZoom - fromZoom) }
-  }
-  return { axis: 'slide', dir: Math.sign(VIEW_SEQUENCE.indexOf(to) - VIEW_SEQUENCE.indexOf(from)) }
-}
-
 function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: ViewType }): JSX.Element {
-  const reduceMotion = useReducedMotion()
-  const prevViewRef = useRef<ViewType | null>(null)
-  const { axis, dir } = transitionDirection(prevViewRef.current, viewKey)
-  prevViewRef.current = viewKey
-
-  // Zoom-in enters slightly small and grows; zoom-out enters slightly large
-  // and settles. Slides come in from the side we're heading toward.
-  const variants = reduceMotion
-    ? {
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        exit: { opacity: 0 },
-      }
-    : axis === 'zoom'
-      ? {
-          initial: { opacity: 0, scale: dir >= 0 ? 0.94 : 1.06 },
-          animate: { opacity: 1, scale: 1 },
-          exit: { opacity: 0, scale: dir >= 0 ? 1.06 : 0.94 },
-        }
-      : {
-          initial: { opacity: 0, x: dir >= 0 ? 40 : -40 },
-          animate: { opacity: 1, x: 0 },
-          exit: { opacity: 0, x: dir >= 0 ? -40 : 40 },
-        }
-
   return (
     <AnimatePresence mode="wait">
       <motion.div
         key={viewKey}
-        initial={variants.initial}
-        animate={variants.animate}
-        exit={variants.exit}
-        transition={{ duration: reduceMotion ? 0.12 : 0.22, ease: [0.4, 0, 0.2, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
         style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
       >
         <Suspense fallback={<CalendarSkeleton view={viewKey} />}>
@@ -312,6 +267,22 @@ function CalendarApp(): JSX.Element {
         e.preventDefault()
         setIsCommandPaletteOpen(true)
         setOverlayOpen(true)
+        return
+      }
+
+      // Cmd/Ctrl+Z → undo, Cmd/Ctrl+Shift+Z (or Ctrl+Y) → redo
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault()
+        if (e.shiftKey) {
+          if (useHistoryStore.getState().redo()) showToast('Redo')
+        } else {
+          if (useHistoryStore.getState().undo()) showToast('Undo')
+        }
+        return
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault()
+        if (useHistoryStore.getState().redo()) showToast('Redo')
         return
       }
 

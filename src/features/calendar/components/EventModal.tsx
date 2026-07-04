@@ -16,6 +16,7 @@ import { RecurrenceDialog } from './RecurrenceDialog'
 import { DeleteDialog } from './DeleteDialog'
 import { extractOriginalEventId } from '@/lib/events'
 import { isUUID } from '@/lib/uuid'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 import styles from './EventModal.module.css'
 
@@ -368,8 +369,11 @@ export function EventModal(): JSX.Element | null {
   const lastSelectedEventId = useRef<string | null>(null)
   const lastSelectedDate = useRef<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const closeModalRef = useRef(closeModal)
   useEffect(() => { closeModalRef.current = closeModal })
+
+  useFocusTrap(dialogRef, isModalOpen && !isClosing)
 
   // Title autocomplete
   const [titleSuggestions, setTitleSuggestions] = useState<CalendarEvent[]>([])
@@ -951,7 +955,7 @@ export function EventModal(): JSX.Element | null {
 
   return (
     <div className={`${styles.modalBackdrop} ${isClosing ? styles.closing : ''}`} onClick={animateClose} data-component="modal-backdrop">
-      <div className={`${styles.modalCard} ${isClosing ? styles.modalClosing : ''}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title || 'Event modal'} data-component="modal-card">
+      <div ref={dialogRef} className={`${styles.modalCard} ${isClosing ? styles.modalClosing : ''}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title || 'Event modal'} data-component="modal-card">
         <div className={styles.modalBand} data-component="modal-band" />
         <div className={styles.modalHeader}>
           <button

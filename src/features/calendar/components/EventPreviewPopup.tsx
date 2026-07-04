@@ -266,6 +266,20 @@ export function EventPreviewPopup({
     cancelEditingRef.current = cancelEditing
   }, [cancelEditing])
 
+  // Escape cancels an in-progress field edit, otherwise dismisses the popup.
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (editingField) {
+        cancelEditingRef.current()
+      } else {
+        animateClose()
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [editingField, animateClose])
+
   const handleFieldChange = (field: string, value: string): void => {
     setHasChanges(true)
     if (field === 'title') {

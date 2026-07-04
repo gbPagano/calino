@@ -1,7 +1,8 @@
-import { type ReactNode, useEffect, useCallback, useId } from 'react'
+import { type ReactNode, useEffect, useCallback, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { useAnimatedClose } from '@/hooks/useAnimatedClose'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import styles from './Modal.module.css'
 
 export interface ModalProps {
@@ -14,7 +15,10 @@ export interface ModalProps {
 
 export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
   const titleId = useId()
+  const dialogRef = useRef<HTMLDivElement>(null)
   const { rendered, closing, requestClose } = useAnimatedClose(isOpen, onClose, 200)
+
+  useFocusTrap(dialogRef, rendered && !closing)
 
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
@@ -46,6 +50,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
       data-component="modal-backdrop"
     >
       <div
+        ref={dialogRef}
         className={clsx(styles.modal, className)}
         onClick={(e) => e.stopPropagation()}
         role="dialog"

@@ -36,7 +36,6 @@ const isProcessingRef = { current: false }
 // Module-level guard for auto-connect (shared across all hook instances)
 let autoConnectDone = false
 // Module-level guard: only sync once per page session (set when timer fires, not when effect runs)
-let hasAutoSynced = false
 // Module-level guard: event IDs whose server DELETE is currently in flight. A
 // concurrent sync must skip these — otherwise it can re-add an event the user
 // just deleted (the pending-change tombstone only exists on the failure path,
@@ -283,37 +282,6 @@ export function useCalDAV(): UseCalDAVReturn {
     }
     checkCardDAV()
   }, [])
-
-  // Auto-sync on mount when syncEnabled is true
-  // Reads accounts directly from storage in the timer to avoid stale state
-  const syncEnabled = useSettingsStore((state) => state.syncEnabled)
-  useEffect(() => {
-    if (!syncEnabled) return
-
-    const timer = setTimeout(() => {
-      if (hasAutoSynced) return
-      hasAutoSynced = true
-      const accounts = storage.getAllAccounts()
-      if (accounts.length > 0) {
-        console.log('[CalDAV] Auto-syncing on mount...', accounts.length, 'accounts')
-        // Surface a single toast if any background sync fails, so a silent
-        // auto-sync failure (offline, bad credentials, server down) doesn't
-        // leave the user with a stale calendar and no indication why.
-        let notified = false
-        for (const account of accounts) {
-          syncAccount(account.id).catch((err) => {
-            console.warn('[CalDAV] Auto-sync failed:', err)
-            if (!notified) {
-              notified = true
-              showToast('Calendar sync failed. Changes will be retried automatically.')
-            }
-          })
-        }
-      }
-    }, 500)
-
-    return () => clearTimeout(timer)
-  }, [syncEnabled]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const addAccount = useCallback(
     async (

@@ -118,7 +118,6 @@ describe('settingsSync', () => {
     it('should only include syncable fields', () => {
       const parsed = JSON.parse(serializeSettings()) as SettingsSyncPayload
       expect(parsed.settings.timezone).toBeDefined()
-      expect(parsed.settings.syncEnabled).toBeUndefined()
       expect(parsed.settings.caldavDebugMode).toBeUndefined()
     })
 
@@ -169,9 +168,8 @@ describe('settingsSync', () => {
 
     it('should ignore non-syncable remote fields', () => {
       const local = useSettingsStore.getState()
-      const remote = { syncEnabled: false, caldavDebugMode: true } as Record<string, unknown>
+      const remote = { caldavDebugMode: true } as Record<string, unknown>
       const merged = mergeSettings(local, remote as Parameters<typeof mergeSettings>[1])
-      expect(merged.syncEnabled).toBe(local.syncEnabled)
       expect(merged.caldavDebugMode).toBe(local.caldavDebugMode)
     })
   })

@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import type { RecurrenceRule, Reminder, CalendarEvent, CalendarAttachment } from '@/types'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useScrollInput } from '@/hooks/useScrollInput'
@@ -154,6 +155,8 @@ export function EventFormFields({
   attachmentEventId,
 }: EventFormFieldsProps): JSX.Element {
   const [moreOpen, setMoreOpen] = useState(false)
+  const [reminderDropdownOpen, setReminderDropdownOpen] = useState(false)
+  const reminderDropdownRef = useRef<HTMLDivElement>(null)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
   const weekdayLabels = getWeekdayLabels(firstDayOfWeek)
 
@@ -162,6 +165,18 @@ export function EventFormFields({
   const endDateRef = useRef<HTMLInputElement>(null)
   const endTimeRef = useRef<HTMLInputElement>(null)
   useScrollInput([startDateRef, startTimeRef, endDateRef, endTimeRef])
+
+  // Close reminder dropdown on outside click
+  useEffect(() => {
+    if (!reminderDropdownOpen) return
+    const handleClick = (e: MouseEvent): void => {
+      if (reminderDropdownRef.current && !reminderDropdownRef.current.contains(e.target as Node)) {
+        setReminderDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [reminderDropdownOpen])
 
   const handleWeekdayToggle = (displayIndex: number): void => {
     if (!onByWeekdayChange) return
@@ -316,7 +331,7 @@ export function EventFormFields({
                 <label className={styles.label} htmlFor="recurrence-select">
                   Repeat
                 </label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                   <select
                     id="recurrence-select"
                     value={recurrence}
@@ -412,7 +427,7 @@ export function EventFormFields({
                 <label className={styles.label} htmlFor="end-condition-select">
                   Ends
                 </label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
                   <select
                     id="end-condition-select"
                     value={endCondition}
@@ -482,29 +497,62 @@ export function EventFormFields({
             </div>
 
             <div className={styles.field}>
-              <label className={styles.label} htmlFor="reminder-select">
-                Reminder
-              </label>
-              <select
-                id="reminder-select"
-                value={reminders[0]?.minutesBefore ?? ''}
-                onChange={(e) => {
-                  const value = e.target.value ? Number(e.target.value) : undefined
-                  if (value !== undefined) {
-                    onRemindersChange([{ id: 'default', minutesBefore: value, method: 'popup' }])
-                  } else {
-                    onRemindersChange([])
-                  }
-                }}
-                className={styles.select}
-              >
-                <option value="">None</option>
-                {REMINDER_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
+              <label className={styles.label}>Reminders</label>
+              <div className={styles.reminderList}>
+                {reminders.map((reminder) => (
+                  <span key={reminder.id} className={styles.reminderChip}>
+                    {REMINDER_OPTIONS.find((o) => o.value === reminder.minutesBefore)?.label ?? `${reminder.minutesBefore} min`}
+                    <button
+                      type="button"
+                      className={styles.reminderChipRemove}
+                      aria-label={`Remove ${reminder.minutesBefore} min reminder`}
+                      onClick={() => {
+                        onRemindersChange(reminders.filter((r) => r.id !== reminder.id))
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
                 ))}
-              </select>
+                <div className={styles.reminderAddWrapper} ref={reminderDropdownRef}>
+                  <button
+                    type="button"
+                    className={styles.reminderAddBtn}
+                    aria-label="Add reminder"
+                    onClick={() => setReminderDropdownOpen((o) => !o)}
+                  >
+                    + Add
+                  </button>
+                  {reminderDropdownOpen && (
+                    <div className={styles.reminderDropdown} role="listbox">
+                      {REMINDER_OPTIONS.filter(
+                        (opt) => !reminders.some((r) => r.minutesBefore === opt.value)
+                      ).map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={styles.reminderDropdownItem}
+                          role="option"
+                          onClick={() => {
+                            onRemindersChange([
+                              ...reminders,
+                              { id: uuidv4(), minutesBefore: option.value, method: 'popup' },
+                            ])
+                            setReminderDropdownOpen(false)
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                      {REMINDER_OPTIONS.every((opt) =>
+                        reminders.some((r) => r.minutesBefore === opt.value)
+                      ) && (
+                        <div className={styles.reminderDropdownEmpty}>All options added</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -585,7 +633,7 @@ function MonthlyPatternPicker({
   const days31 = Array.from({ length: 31 }, (_, i) => i + 1)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       <select
         value={pattern}
         onChange={(e) => {
@@ -615,7 +663,7 @@ function MonthlyPatternPicker({
       </select>
 
       {pattern === 'dayOfMonth' && (
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
           <span>Day</span>
           <select
             value={dayFromByMonthDay}
@@ -633,7 +681,7 @@ function MonthlyPatternPicker({
       )}
 
       {(pattern === 'nthWeekday' || pattern === 'lastWeekday') && (
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
           {pattern === 'nthWeekday' && (
             <select
               value={posFromBySetPos}

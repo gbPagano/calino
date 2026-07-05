@@ -1,4 +1,4 @@
-import { parseISO, format } from 'date-fns'
+import { parseISO, format, addMinutes } from 'date-fns'
 
 export type NotificationPermissionStatus = 'granted' | 'denied' | 'default'
 
@@ -44,6 +44,75 @@ export interface NotificationData {
   eventDate: string
   title: string
   body: string
+}
+
+export type SnoozeDuration = 5 | 10 | 15 | 30 | 60
+
+export interface SnoozedReminder {
+  eventId: string
+  eventDate: string
+  title: string
+  body: string
+  snoozeUntil: number // timestamp
+}
+
+const SNOOZE_KEY = 'calino-snoozed-reminders'
+
+export function getSnoozedReminders(): SnoozedReminder[] {
+  try {
+    const raw = localStorage.getItem(SNOOZE_KEY)
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed as SnoozedReminder[]
+  } catch {
+    return []
+  }
+}
+
+export function saveSnoozedReminders(reminders: SnoozedReminder[]): void {
+  try {
+    localStorage.setItem(SNOOZE_KEY, JSON.stringify(reminders))
+  } catch {
+    // Storage full or unavailable
+  }
+}
+
+export function snoozeReminder(
+  eventId: string,
+  eventDate: string,
+  title: string,
+  body: string,
+  durationMinutes: SnoozeDuration
+): SnoozedReminder {
+  const snoozed: SnoozedReminder = {
+    eventId,
+    eventDate,
+    title,
+    body,
+    snoozeUntil: addMinutes(new Date(), durationMinutes).getTime(),
+  }
+  const existing = getSnoozedReminders()
+  // Remove any previous snooze for the same event
+  const filtered = existing.filter((r) => r.eventId !== eventId)
+  saveSnoozedReminders([...filtered, snoozed])
+  return snoozed
+}
+
+export function removeSnoozedReminder(eventId: string): void {
+  const existing = getSnoozedReminders()
+  saveSnoozedReminders(existing.filter((r) => r.eventId !== eventId))
+}
+
+export function getDueSnoozedReminders(): SnoozedReminder[] {
+  const now = Date.now()
+  const snoozed = getSnoozedReminders()
+  const due = snoozed.filter((r) => r.snoozeUntil <= now)
+  if (due.length > 0) {
+    // Remove the due ones from storage
+    saveSnoozedReminders(snoozed.filter((r) => r.snoozeUntil > now))
+  }
+  return due
 }
 
 export function showNotification(

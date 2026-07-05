@@ -7,6 +7,8 @@ import styles from './Settings.module.css'
 export function NotificationSettings(): JSX.Element {
   const enableDesktopNotifications = useSettingsStore((s) => s.enableDesktopNotifications)
   const enableSoundAlerts = useSettingsStore((s) => s.enableSoundAlerts)
+  const taskDueDateReminders = useSettingsStore((s) => s.taskDueDateReminders)
+  const overdueTaskBadge = useSettingsStore((s) => s.overdueTaskBadge)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
   const [permissionStatus, setPermissionStatus] = useState(getNotificationPermission)
 
@@ -82,27 +84,37 @@ export function NotificationSettings(): JSX.Element {
 
       <div className={styles.group}>
         <div className={styles.groupLabel}>Tasks</div>
-        <div className={styles.row} data-component="setting-row" data-setting="task-due-date-reminders">
+        <div className={styles.row} data-component="setting-row" data-setting="task-due-date-reminders" data-value={String(taskDueDateReminders)}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Task Due Date Reminders</div>
-            <div className={styles.rowDesc}>Notify when a task's due date arrives</div>
+            <div className={styles.rowDesc}>Notify when a task&apos;s due date arrives</div>
           </div>
           <div className={styles.rowControl}>
             <label className={styles.toggle} data-component="toggle" data-setting="task-due-date-reminders">
-              <input type="checkbox" defaultChecked aria-label="Task due date reminders" />
+              <input
+                type="checkbox"
+                checked={taskDueDateReminders}
+                aria-label="Task due date reminders"
+                onChange={() => updateSettings({ taskDueDateReminders: !taskDueDateReminders })}
+              />
               <span className={styles.pill} />
               <span className={styles.knob} />
             </label>
           </div>
         </div>
-        <div className={styles.row} data-component="setting-row" data-setting="overdue-task-badge">
+        <div className={styles.row} data-component="setting-row" data-setting="overdue-task-badge" data-value={String(overdueTaskBadge)}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Overdue Task Badge</div>
             <div className={styles.rowDesc}>Show a badge on the app icon for overdue tasks</div>
           </div>
           <div className={styles.rowControl}>
             <label className={styles.toggle} data-component="toggle" data-setting="overdue-task-badge">
-              <input type="checkbox" aria-label="Overdue task badge" />
+              <input
+                type="checkbox"
+                checked={overdueTaskBadge}
+                aria-label="Overdue task badge"
+                onChange={() => updateSettings({ overdueTaskBadge: !overdueTaskBadge })}
+              />
               <span className={styles.pill} />
               <span className={styles.knob} />
             </label>

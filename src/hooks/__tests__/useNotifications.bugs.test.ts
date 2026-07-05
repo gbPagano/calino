@@ -4,11 +4,18 @@ import { useNotifications } from '../useNotifications'
 import type { CalendarEvent } from '@/types'
 
 const mockShowNotification = vi.fn()
+const mockToast = vi.fn()
+
+vi.mock('sonner', () => ({
+  toast: (...args: unknown[]) => mockToast(...args),
+}))
 
 vi.mock('@/lib/notifications', () => ({
   showNotification: (...args: unknown[]) => mockShowNotification(...args),
   createNotificationId: (eventId: string, reminderId: string) =>
     `calino-${eventId}-${reminderId}`,
+  getDueSnoozedReminders: () => [],
+  snoozeReminder: vi.fn(),
 }))
 
 let currentEvents: CalendarEvent[] = []
@@ -58,6 +65,7 @@ describe('Bug #82: 1-minute notification polling interval', () => {
     currentEvents = []
     currentEnableNotifications = true
     currentDefaultReminderMinutes = 15
+    mockToast.mockClear()
 
     Object.defineProperty(globalThis, 'Notification', {
       value: { permission: 'granted' },

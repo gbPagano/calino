@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
-import { showNotification, createNotificationId } from '@/lib/notifications'
+import { showNotification, createNotificationId, getDueSnoozedReminders, snoozeReminder } from '@/lib/notifications'
 import { parseISO, isWithinInterval, addMinutes } from 'date-fns'
+import { toast } from 'sonner'
 
 const CHECK_INTERVAL_MS = 60 * 1000
 
@@ -74,13 +75,47 @@ export function useNotifications(): void {
               event.id,
               event.start
             )
+
+            // Show in-app snooze toast
+            toast(`⏰ ${event.title}`, {
+              description: body,
+              duration: 10000,
+              action: {
+                label: 'Snooze 5m',
+                onClick: () => {
+                  snoozeReminder(event.id, event.start, event.title, body, 5)
+                },
+              },
+            })
           }
         })
       })
     }
 
+    const checkSnoozed = (): void => {
+      const due = getDueSnoozedReminders()
+      due.forEach((snoozed) => {
+        showNotification(snoozed.title, snoozed.body, snoozed.eventId, snoozed.eventDate)
+        toast(`⏰ ${snoozed.title}`, {
+          description: snoozed.body,
+          duration: 8000,
+          action: {
+            label: 'View',
+            onClick: () => {
+              const eventDateStr = snoozed.eventDate.split('T')[0]
+              window.location.href = `/?date=${eventDateStr}&event=${snoozed.eventId}`
+            },
+          },
+        })
+      })
+    }
+
     checkReminders()
-    let intervalId = setInterval(checkReminders, CHECK_INTERVAL_MS)
+    checkSnoozed()
+    let intervalId = setInterval(() => {
+      checkReminders()
+      checkSnoozed()
+    }, CHECK_INTERVAL_MS)
 
     // Pause polling when tab is hidden to save CPU
     const handleVisibilityChange = (): void => {
@@ -89,7 +124,11 @@ export function useNotifications(): void {
       } else {
         // Resume and check immediately when tab becomes visible
         checkReminders()
-        intervalId = setInterval(checkReminders, CHECK_INTERVAL_MS)
+        checkSnoozed()
+        intervalId = setInterval(() => {
+          checkReminders()
+          checkSnoozed()
+        }, CHECK_INTERVAL_MS)
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)

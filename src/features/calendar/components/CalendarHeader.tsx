@@ -67,7 +67,6 @@ export function CalendarHeader({
   const contactsEnabled = useSettingsStore((state) => state.contactsEnabled)
   const sidebarWidth = useSettingsStore((state) => state.sidebarWidth)
   const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed)
-  const syncEnabled = useSettingsStore((state) => state.syncEnabled)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
   const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
   const lock = useConfigStore((state) => state.lock)
@@ -464,16 +463,6 @@ export function CalendarHeader({
                   className={`${styles.toggleSwitch} ${hideCompletedTasksInMonthView ? styles.toggleActive : ''}`}
                   onClick={() => updateSettings({ hideCompletedTasksInMonthView: !hideCompletedTasksInMonthView })}
                   aria-label="Toggle hide completed tasks"
-                >
-                  <span className={styles.toggleThumb} />
-                </button>
-              </div>
-              <div className={styles.quickSettingsItem}>
-                <span className={styles.quickSettingsLabel}>Sync on load</span>
-                <button
-                  className={`${styles.toggleSwitch} ${syncEnabled ? styles.toggleActive : ''}`}
-                  onClick={() => updateSettings({ syncEnabled: !syncEnabled })}
-                  aria-label="Toggle sync on load"
                 >
                   <span className={styles.toggleThumb} />
                 </button>

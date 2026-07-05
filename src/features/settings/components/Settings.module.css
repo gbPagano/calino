@@ -42,10 +42,10 @@
 .back {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   height: 36px;
   padding: 0 16px;
-  border-radius: var(--radius-sm, 10px);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--panel);
   box-shadow: 0 1px 2px rgba(var(--ink-raw), 0.05);
@@ -93,7 +93,7 @@
   .navList {
     flex-direction: row;
     overflow-x: auto;
-    gap: 4px;
+    gap: var(--space-1);
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
@@ -125,7 +125,7 @@
   align-items: center;
   gap: 11px;
   padding: 9px 10px;
-  border-radius: var(--radius-sm, 10px);
+  border-radius: var(--radius-sm);
   font-size: 14px;
   color: var(--ink-2);
   cursor: pointer;
@@ -220,7 +220,7 @@
 
 @media (max-width: 768px) {
   .main {
-    padding: 16px;
+    padding: var(--space-4);
   }
 
   .header {
@@ -361,7 +361,7 @@
 .group {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg, 16px);
+  border-radius: var(--radius-lg);
   margin-bottom: 28px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(var(--ink-raw), 0.04), 0 6px 16px rgba(var(--ink-raw), 0.03);
@@ -427,7 +427,7 @@
   -webkit-appearance: none;
   background: var(--canvas);
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm, 9px);
+  border-radius: var(--radius-sm);
   padding: 8px 32px 8px 12px;
   font-size: 14px;
   color: var(--ink);
@@ -510,8 +510,8 @@
 /* ── Segmented Control ──────────────────────────────────────────────────── */
 .seg {
   background: var(--color-bg-tertiary, rgba(var(--ink-raw), 0.045));
-  padding: 4px;
-  border-radius: var(--radius-md, 12px);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
   display: inline-flex;
   gap: 2px;
 }
@@ -519,7 +519,7 @@
 .segTab {
   height: 32px;
   padding: 0 16px;
-  border-radius: var(--radius-sm, 9px);
+  border-radius: var(--radius-sm);
   font-size: 13.5px;
   font-weight: 500;
   color: var(--ink-2);
@@ -650,7 +650,7 @@
 .themePreviewGrid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 4px 0 12px;
 }
 
@@ -661,7 +661,7 @@
   gap: 6px;
   background: none;
   border: 2px solid transparent;
-  border-radius: var(--radius-md, 11px);
+  border-radius: var(--radius-md);
   padding: 6px;
   cursor: pointer;
   transition: border-color 0.15s, transform 0.1s;
@@ -684,11 +684,11 @@
 .themePreviewSwatch {
   width: 100%;
   aspect-ratio: 4 / 3;
-  border-radius: var(--radius-sm, 7px);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 8px;
+  padding: var(--space-2);
   gap: 6px;
 }
 
@@ -697,7 +697,7 @@
   display: flex;
   flex-direction: column;
   padding: 6px;
-  gap: 4px;
+  gap: var(--space-1);
   overflow: hidden;
 }
 
@@ -709,7 +709,7 @@
 .themePreviewRows {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .themePreviewRow {
@@ -727,7 +727,7 @@
 /* ── Accent Color Swatches ──────────────────────────────────────────────── */
 .swatches {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .swatch {
@@ -776,7 +776,7 @@
 .catSwatch {
   width: 14px;
   height: 14px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
   background: var(--cat-color);
 }
@@ -798,7 +798,7 @@
 
 .catActions {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
   opacity: 0;
   transition: opacity 0.12s;
 }
@@ -810,7 +810,7 @@
 .catBtn {
   height: 28px;
   padding: 0 10px;
-  border-radius: var(--radius-sm, 7px);
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 500;
   color: var(--ink-2);
@@ -877,7 +877,7 @@
 .accountIcon {
   width: 36px;
   height: 36px;
-  border-radius: var(--radius-sm, 10px);
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -920,7 +920,7 @@
 .disconnect {
   height: 30px;
   padding: 0 12px;
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   font-size: 12.5px;
   font-weight: 500;
   color: var(--ink-2);
@@ -977,7 +977,7 @@
 .actionBtn {
   height: 36px;
   padding: 0 18px;
-  border-radius: var(--radius-sm, 9px);
+  border-radius: var(--radius-sm);
   font-size: 13.5px;
   font-weight: 500;
   font-family: inherit;
@@ -1033,7 +1033,7 @@
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid var(--line-2);
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .brokenItem:last-child {
@@ -1057,7 +1057,7 @@
   color: var(--ink-2);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
@@ -1073,13 +1073,13 @@
 
 .brokenActions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 
 .brokenBatchActions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 16px 20px;
   border-top: 1px solid var(--line-2);
 }
@@ -1123,7 +1123,7 @@
   .actionRow {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: var(--space-3);
     padding: 14px 16px;
   }
 
@@ -1155,7 +1155,7 @@
 
   /* Tighter group padding */
   .group {
-    border-radius: var(--radius-md, 12px);
+    border-radius: var(--radius-md);
     margin-bottom: 20px;
   }
 
@@ -1180,8 +1180,8 @@
 
 .modalPanel {
   background: var(--panel);
-  border-radius: var(--radius-lg, 16px);
-  padding: 24px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
   max-width: 400px;
   width: 90%;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
@@ -1208,13 +1208,13 @@
 
 .modalFooter {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .modalCancelBtn {
   margin-top: 16px;
   padding: 10px 16px;
-  border-radius: var(--radius-sm, 10px);
+  border-radius: var(--radius-sm);
   border: none;
   background: none;
   cursor: pointer;
@@ -1231,7 +1231,7 @@
 .confirmBtn {
   flex: 1;
   padding: 10px 16px;
-  border-radius: var(--radius-sm, 10px);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--canvas);
   cursor: pointer;
@@ -1247,7 +1247,7 @@
 .confirmBtnDanger {
   flex: 1;
   padding: 10px 16px;
-  border-radius: var(--radius-sm, 10px);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--error-border);
   background: color-mix(in srgb, var(--color-error, #c2697f) 8%, var(--panel));
   color: #bb5d6e;
@@ -1264,7 +1264,7 @@
 /* Account picker buttons */
 .accountPickerBtn {
   padding: 12px 16px;
-  border-radius: var(--radius-sm, 10px);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--canvas);
   cursor: pointer;
@@ -1299,7 +1299,7 @@
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .accountPickerBtnLoadingText {
@@ -1317,7 +1317,7 @@
 .syncError {
   margin-top: 12px;
   padding: 12px 14px;
-  border-radius: var(--radius-sm, 10px);
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--color-error, #c2697f) 8%, var(--panel));
   border: 1px solid var(--error-border);
   font-size: 13px;
@@ -1354,7 +1354,7 @@
 .keywordInput {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-1);
   padding: 4px 8px;
   border-radius: 6px;
   border: 1px solid var(--line);
@@ -1372,9 +1372,9 @@
 .keywordTag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--accent-soft);
   color: var(--accent);
   font-size: 12px;
@@ -1431,25 +1431,25 @@
 .ruleRow {
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .ruleMainRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .ruleKeywords {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-1);
   flex: 1;
 }
 
 .ruleKeywordTag {
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--accent-soft);
   color: var(--accent);
   font-size: 12px;
@@ -1464,7 +1464,7 @@
 
 .ruleCategoryBadge {
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--accent-soft);
   color: var(--accent);
   font-size: 12px;
@@ -1492,7 +1492,7 @@
 .rulePreviewCalendar {
   margin-top: 4px;
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
@@ -1500,7 +1500,7 @@
 .formRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .formInput {
@@ -1595,7 +1595,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .toggleLabel {
@@ -1608,5 +1608,5 @@
 .syncedBadge {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }

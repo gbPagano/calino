@@ -22,8 +22,6 @@ describe('settingsStore', () => {
     expect(settings.defaultEventColor).toBe('#4285F4')
     expect(settings.enableDesktopNotifications).toBe(true)
     expect(settings.enableSoundAlerts).toBe(false)
-    expect(settings.syncEnabled).toBe(false)
-    expect(settings.syncIntervalMinutes).toBe(15)
     expect(settings.conflictResolution).toBe('server-wins')
   })
 
@@ -157,16 +155,6 @@ describe('settingsStore', () => {
     durations.forEach((duration) => {
       store.updateSettings({ defaultDuration: duration })
       expect(useSettingsStore.getState().defaultDuration).toBe(duration)
-    })
-  })
-
-  it('handles sync interval options', () => {
-    const store = useSettingsStore.getState()
-
-    const intervals = [5, 15, 30, 60] as const
-    intervals.forEach((interval) => {
-      store.updateSettings({ syncIntervalMinutes: interval })
-      expect(useSettingsStore.getState().syncIntervalMinutes).toBe(interval)
     })
   })
 

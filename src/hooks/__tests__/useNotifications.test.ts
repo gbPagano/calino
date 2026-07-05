@@ -6,11 +6,18 @@ import type { CalendarEvent } from '@/types'
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
 const mockShowNotification = vi.fn()
+const mockToast = vi.fn()
+
+vi.mock('sonner', () => ({
+  toast: (...args: unknown[]) => mockToast(...args),
+}))
 
 vi.mock('@/lib/notifications', () => ({
   showNotification: (...args: unknown[]) => mockShowNotification(...args),
   createNotificationId: (eventId: string, reminderId: string) =>
     `calino-${eventId}-${reminderId}`,
+  getDueSnoozedReminders: () => [],
+  snoozeReminder: vi.fn(),
 }))
 
 // Minimal zustand store mock: we directly mutate the returned state references
@@ -66,6 +73,7 @@ describe('useNotifications - Bug #81+90: shownReminders behavior', () => {
     currentEvents = []
     currentEnableNotifications = true
     currentDefaultReminderMinutes = 15
+    mockToast.mockClear()
 
     // Mock Notification API
     Object.defineProperty(globalThis, 'Notification', {

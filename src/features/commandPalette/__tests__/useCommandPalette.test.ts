@@ -115,8 +115,6 @@ vi.mock('@/store/settingsStore', () => ({
       defaultEventColor: '#4285F4',
       enableDesktopNotifications: false,
       enableSoundAlerts: false,
-      syncEnabled: false,
-      syncIntervalMinutes: 30,
       conflictResolution: 'local-wins',
       compactRecurringEvents: false,
       compressPastWeeks: false,
@@ -133,6 +131,8 @@ vi.mock('@/store/settingsStore', () => ({
       showEventIcons: true,
       journalEnabled: false,
       contactsEnabled: false,
+      taskDueDateReminders: true,
+      overdueTaskBadge: false,
       updateSettings: vi.fn(),
       resetSettings: vi.fn(),
     }

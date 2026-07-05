@@ -181,8 +181,6 @@ export interface UserSettings {
   defaultEventColor: string
   enableDesktopNotifications: boolean
   enableSoundAlerts: boolean
-  syncEnabled: boolean
-  syncIntervalMinutes: number
   conflictResolution: 'server-wins' | 'local-wins' | 'ask'
   compactRecurringEvents: boolean
   compressPastWeeks: boolean
@@ -199,6 +197,8 @@ export interface UserSettings {
   sidebarCollapsed: boolean
   journalEnabled: boolean
   contactsEnabled: boolean
+  taskDueDateReminders: boolean
+  overdueTaskBadge: boolean
 }
 
 export type SettingsState = UserSettings

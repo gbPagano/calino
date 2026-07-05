@@ -1,6 +1,5 @@
 import type { JSX } from 'react'
 import { useState } from 'react'
-import { useSettingsStore, SYNC_INTERVAL_OPTIONS } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { AddCalendarModal } from '@/features/calendar/components/AddCalendarModal'
 import styles from './Settings.module.css'
@@ -8,9 +7,7 @@ import styles from './Settings.module.css'
 export function CalDAVSettings(): JSX.Element {
   const [isAddingAccount, setIsAddingAccount] = useState(false)
 
-  const syncEnabled = useSettingsStore((s) => s.syncEnabled)
-  const syncIntervalMinutes = useSettingsStore((s) => s.syncIntervalMinutes)
-  const updateSettings = useSettingsStore((s) => s.updateSettings)
+
 
   const { accounts, removeAccount } = useCalDAV()
 
@@ -76,48 +73,6 @@ export function CalDAVSettings(): JSX.Element {
           </svg>
           Add calendar account
         </button>
-      </div>
-
-      <div className={styles.group}>
-        <div className={styles.groupLabel}>Sync Settings</div>
-        <div className={`${styles.row} ${styles.rowDisabled}`} data-component="setting-row" data-setting="sync-frequency" data-value={String(syncIntervalMinutes)} title="Not available yet">
-          <div className={styles.rowInfo}>
-            <div className={styles.rowLabel}>Sync Frequency</div>
-            <div className={styles.rowDesc}>How often to pull changes from connected accounts</div>
-          </div>
-          <div className={styles.rowControl}>
-            <select
-              className={styles.select}
-              value={syncIntervalMinutes}
-              aria-label="Sync frequency"
-              onChange={(e) => updateSettings({ syncIntervalMinutes: Number(e.target.value) })}
-            >
-              {SYNC_INTERVAL_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className={`${styles.row} ${styles.rowDisabled}`} data-component="setting-row" data-setting="sync-on-launch" data-value={String(syncEnabled)} title="Not available yet">
-          <div className={styles.rowInfo}>
-            <div className={styles.rowLabel}>Sync on Launch</div>
-            <div className={styles.rowDesc}>Always refresh when you open the app</div>
-          </div>
-          <div className={styles.rowControl}>
-            <label className={styles.toggle} data-component="toggle" data-setting="sync-on-launch">
-              <input
-                type="checkbox"
-                checked={syncEnabled}
-                aria-label="Sync on launch"
-                onChange={() => updateSettings({ syncEnabled: !syncEnabled })}
-              />
-              <span className={styles.pill} />
-              <span className={styles.knob} />
-            </label>
-          </div>
-        </div>
       </div>
 
       <AddCalendarModal isOpen={isAddingAccount} onClose={() => setIsAddingAccount(false)} />

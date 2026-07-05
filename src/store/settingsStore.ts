@@ -111,8 +111,6 @@ const DEFAULT_SETTINGS: UserSettings = {
   defaultEventColor: DEFAULT_CALENDAR_COLOR,
   enableDesktopNotifications: true,
   enableSoundAlerts: false,
-  syncEnabled: false,
-  syncIntervalMinutes: 15,
   conflictResolution: 'server-wins',
   compactRecurringEvents: true,
   compressPastWeeks: true,
@@ -129,6 +127,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   sidebarCollapsed: false,
   journalEnabled: false,
   contactsEnabled: false,
+  taskDueDateReminders: true,
+  overdueTaskBadge: false,
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -202,13 +202,6 @@ export const REMINDER_OPTIONS: { value: number; label: string }[] = [
   { value: 30, label: '30 minutes before' },
   { value: 60, label: '1 hour before' },
   { value: 1440, label: '1 day before' },
-]
-
-export const SYNC_INTERVAL_OPTIONS: { value: number; label: string }[] = [
-  { value: 5, label: 'Every 5 minutes' },
-  { value: 15, label: 'Every 15 minutes' },
-  { value: 30, label: 'Every 30 minutes' },
-  { value: 60, label: 'Every hour' },
 ]
 
 export const CONFLICT_OPTIONS: { value: 'server-wins' | 'local-wins' | 'ask'; label: string }[] = [

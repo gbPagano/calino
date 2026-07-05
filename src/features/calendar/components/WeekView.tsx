@@ -640,7 +640,7 @@ export function WeekView(): JSX.Element {
                 </div>
                 <div className={styles.eventsOverlay}>
                   <WeekDayColumn {...dayColumnProps[idx]} calendars={calendars} hourHeight={hourHeight} openModal={openModal} />
-                  {isToday(day) && <CurrentTimeIndicator hourHeight={hourHeight} showLabel={false} />}
+                  {isToday(day) && <CurrentTimeIndicator hourHeight={hourHeight} timeFormat={timeFormat} showLabel={false} />}
                 </div>
               </div>
             )
@@ -716,7 +716,7 @@ export function WeekView(): JSX.Element {
                   </div>
                   <div className={styles.eventsOverlay}>
                     <WeekDayColumn {...dayColumnProps[idx]} calendars={calendars} hourHeight={hourHeight} openModal={openModal} />
-                    {isToday(day) && <CurrentTimeIndicator hourHeight={hourHeight} showLabel={false} />}
+                    {isToday(day) && <CurrentTimeIndicator hourHeight={hourHeight} timeFormat={timeFormat} showLabel={false} />}
                   </div>
                 </div>
               )

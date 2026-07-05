@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
-import { format } from 'date-fns'
+import { formatTime } from '@/lib/datetime'
+import type { TimeFormat } from '@/types'
 import styles from './CurrentTimeIndicator.module.css'
 
 interface CurrentTimeIndicatorProps {
   /** Height of one hour in pixels */
   hourHeight: number
+  /** User's time-format preference (12h/24h) */
+  timeFormat: TimeFormat
   /** Whether to show the time label (left gutter) */
   showLabel?: boolean
   /** Optional className for the container */
@@ -13,6 +16,7 @@ interface CurrentTimeIndicatorProps {
 
 export function CurrentTimeIndicator({
   hourHeight,
+  timeFormat,
   showLabel = true,
   className,
 }: CurrentTimeIndicatorProps) {
@@ -36,7 +40,7 @@ export function CurrentTimeIndicator({
     >
       {showLabel && (
         <div className={styles.label}>
-          {format(now, 'h:mm')}
+          {formatTime(now, timeFormat)}
         </div>
       )}
       <div className={styles.line} />

@@ -581,7 +581,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
             {selectionOverlay}
             {renderEvents()}
             {isCurrentDay && (
-              <CurrentTimeIndicator hourHeight={60 * effectiveScale} />
+              <CurrentTimeIndicator hourHeight={60 * effectiveScale} timeFormat={timeFormat} />
             )}
           </div>
         </div>

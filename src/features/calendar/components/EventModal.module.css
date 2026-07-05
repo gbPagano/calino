@@ -370,6 +370,10 @@
 .dateTimeGroup {
   display: flex;
   flex-direction: column;
+  /* Grid items default to min-width:auto, so the native date/time inputs'
+     intrinsic width would push this row past the other fields' right edge.
+     Allow the cells to shrink to their 1fr track so the row aligns. */
+  min-width: 0;
 }
 
 .dateTimeInputs {

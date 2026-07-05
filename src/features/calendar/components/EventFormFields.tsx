@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { v4 as uuidv4 } from 'uuid'
 import type { RecurrenceRule, Reminder, CalendarEvent, CalendarAttachment } from '@/types'
 import { useSettingsStore } from '@/store/settingsStore'
@@ -156,7 +157,9 @@ export function EventFormFields({
 }: EventFormFieldsProps): JSX.Element {
   const [moreOpen, setMoreOpen] = useState(false)
   const [reminderDropdownOpen, setReminderDropdownOpen] = useState(false)
-  const reminderDropdownRef = useRef<HTMLDivElement>(null)
+  const [reminderMenuPos, setReminderMenuPos] = useState({ top: 0, left: 0 })
+  const reminderAddBtnRef = useRef<HTMLButtonElement>(null)
+  const reminderMenuRef = useRef<HTMLDivElement>(null)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
   const weekdayLabels = getWeekdayLabels(firstDayOfWeek)
 
@@ -166,11 +169,16 @@ export function EventFormFields({
   const endTimeRef = useRef<HTMLInputElement>(null)
   useScrollInput([startDateRef, startTimeRef, endDateRef, endTimeRef])
 
-  // Close reminder dropdown on outside click
+  // Close reminder dropdown on outside click. The menu is portaled to
+  // document.body, so it's outside the button's subtree — check both.
   useEffect(() => {
     if (!reminderDropdownOpen) return
     const handleClick = (e: MouseEvent): void => {
-      if (reminderDropdownRef.current && !reminderDropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (
+        !reminderAddBtnRef.current?.contains(target) &&
+        !reminderMenuRef.current?.contains(target)
+      ) {
         setReminderDropdownOpen(false)
       }
     }
@@ -514,43 +522,63 @@ export function EventFormFields({
                     </button>
                   </span>
                 ))}
-                <div className={styles.reminderAddWrapper} ref={reminderDropdownRef}>
+                <div className={styles.reminderAddWrapper}>
                   <button
+                    ref={reminderAddBtnRef}
                     type="button"
                     className={styles.reminderAddBtn}
                     aria-label="Add reminder"
-                    onClick={() => setReminderDropdownOpen((o) => !o)}
+                    onClick={() => {
+                      setReminderDropdownOpen((o) => {
+                        if (!o && reminderAddBtnRef.current) {
+                          const rect = reminderAddBtnRef.current.getBoundingClientRect()
+                          setReminderMenuPos({ top: rect.bottom + 4, left: rect.left })
+                        }
+                        return !o
+                      })
+                    }}
                   >
                     + Add
                   </button>
-                  {reminderDropdownOpen && (
-                    <div className={styles.reminderDropdown} role="listbox">
-                      {REMINDER_OPTIONS.filter(
-                        (opt) => !reminders.some((r) => r.minutesBefore === opt.value)
-                      ).map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          className={styles.reminderDropdownItem}
-                          role="option"
-                          onClick={() => {
-                            onRemindersChange([
-                              ...reminders,
-                              { id: uuidv4(), minutesBefore: option.value, method: 'popup' },
-                            ])
-                            setReminderDropdownOpen(false)
-                          }}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                      {REMINDER_OPTIONS.every((opt) =>
-                        reminders.some((r) => r.minutesBefore === opt.value)
-                      ) && (
-                        <div className={styles.reminderDropdownEmpty}>All options added</div>
-                      )}
-                    </div>
-                  )}
+                  {reminderDropdownOpen &&
+                    createPortal(
+                      <div
+                        ref={reminderMenuRef}
+                        className={styles.reminderDropdown}
+                        role="listbox"
+                        style={{
+                          position: 'fixed',
+                          top: reminderMenuPos.top,
+                          left: reminderMenuPos.left,
+                        }}
+                      >
+                        {REMINDER_OPTIONS.filter(
+                          (opt) => !reminders.some((r) => r.minutesBefore === opt.value)
+                        ).map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={styles.reminderDropdownItem}
+                            role="option"
+                            onClick={() => {
+                              onRemindersChange([
+                                ...reminders,
+                                { id: uuidv4(), minutesBefore: option.value, method: 'popup' },
+                              ])
+                              setReminderDropdownOpen(false)
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                        {REMINDER_OPTIONS.every((opt) =>
+                          reminders.some((r) => r.minutesBefore === opt.value)
+                        ) && (
+                          <div className={styles.reminderDropdownEmpty}>All options added</div>
+                        )}
+                      </div>,
+                      document.body
+                    )}
                 </div>
               </div>
             </div>

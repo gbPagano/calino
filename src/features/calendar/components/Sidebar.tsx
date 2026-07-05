@@ -3,6 +3,7 @@ import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { ContextMenu } from '@/components/common/ContextMenu'
 import {
   format,
@@ -39,6 +40,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollapsed, onCollapsedChange }: SidebarProps): JSX.Element {
+  const prefersReducedMotion = useReducedMotion()
   const [internalCollapsed, setInternalCollapsed] = useState(false)
   const isCollapsed = controlledCollapsed ?? internalCollapsed
   const setIsCollapsed = onCollapsedChange ?? setInternalCollapsed
@@ -361,10 +363,10 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
           <motion.div
             className={styles.overlay}
             onClick={onClose}
-            initial={{ opacity: 0 }}
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
           />
         )}
       </AnimatePresence>
@@ -580,10 +582,10 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
               <AnimatePresence>
                 {isCategoriesExpanded && (
                   <motion.div
-                    initial={{ opacity: 0, y: 5 }}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 5 }}
-                    transition={{ duration: 0.15 }}
+                    exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 5 }}
+                    transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
                     className={styles.categoryCard}
                     onMouseEnter={() => setIsCategoriesExpanded(true)}
                     onMouseLeave={() => setIsCategoriesExpanded(false)}
@@ -756,6 +758,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
 }
 
 function UpdateIndicator(): JSX.Element {
+  const prefersReducedMotion = useReducedMotion()
   const { hasUpdate, latestVersion, releaseUrl, dismiss } = useUpdateCheck()
   const [showPopup, setShowPopup] = useState(false)
   const [popupPos, setPopupPos] = useState<{ x: number; bottom: number } | null>(null)
@@ -824,10 +827,10 @@ function UpdateIndicator(): JSX.Element {
                 bottom: popupPos?.bottom ?? 0,
                 width: 220,
               }}
-              initial={{ opacity: 0, y: 4 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.15 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
             >

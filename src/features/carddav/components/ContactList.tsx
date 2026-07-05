@@ -287,7 +287,7 @@ export function ContactList({ onNewContact, loading }: ContactListProps = {}): J
               width: '100%',
               padding: '4px 8px',
               fontSize: '11px',
-              borderRadius: '6px',
+              borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--line)',
               background: 'var(--bg-secondary)',
               color: 'var(--text-primary)',

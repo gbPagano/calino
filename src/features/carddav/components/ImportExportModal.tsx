@@ -234,7 +234,7 @@ export function ImportExportModal({
                 alignItems: 'center',
                 gap: 8,
                 padding: '6px 8px',
-                borderRadius: 6,
+                borderRadius: 'var(--radius-sm)',
                 background: isDupe ? 'var(--color-bg-tertiary)' : 'transparent',
                 cursor: 'pointer',
                 fontSize: 13,
@@ -260,7 +260,7 @@ export function ImportExportModal({
                   style={{
                     fontSize: 10,
                     padding: '1px 6px',
-                    borderRadius: 4,
+                    borderRadius: 'var(--radius-sm)',
                     background: 'var(--warning, #e6a817)',
                     color: '#000',
                     fontWeight: 600,

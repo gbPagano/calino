@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn var(--dur-base) ease;
 }
 
 @keyframes fadeIn {
@@ -20,12 +20,12 @@
 
 .modal {
   background: var(--color-bg-secondary);
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   max-width: 90vw;
   max-height: 90vh;
   overflow: auto;
-  animation: slideUp 0.2s ease;
+  animation: slideUp var(--dur-base) ease;
 }
 
 @keyframes slideUp {
@@ -40,7 +40,7 @@
 }
 
 .overlay.closing {
-  animation: fadeOut 0.2s ease forwards;
+  animation: fadeOut var(--dur-base) ease forwards;
 }
 
 @keyframes fadeOut {
@@ -53,7 +53,7 @@
 }
 
 .overlay.closing .modal {
-  animation: slideDown 0.2s ease forwards;
+  animation: slideDown var(--dur-base) ease forwards;
 }
 
 @keyframes slideDown {
@@ -96,7 +96,7 @@
   color: var(--color-text-secondary);
   border-radius: 50%;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--dur-base) ease;
 }
 
 .closeButton:hover {

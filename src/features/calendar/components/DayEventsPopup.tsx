@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { format } from 'date-fns'
 import { formatTime } from '@/lib/datetime'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useSettingsStore } from '@/store/settingsStore'
 import type { CalendarEvent } from '@/types'
 import { LocationLink } from './LocationLink'
@@ -26,6 +27,7 @@ export function DayEventsPopup({
 }: DayEventsPopupProps): JSX.Element {
   const popupRef = useRef<HTMLDivElement>(null)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
+  const prefersReducedMotion = useReducedMotion()
   const dateLabel = format(date, 'EEEE, MMMM d')
 
   // Focus the popup on mount for accessibility
@@ -62,10 +64,10 @@ export function DayEventsPopup({
         role="dialog"
         aria-label={`Events for ${dateLabel}`}
         tabIndex={-1}
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.15 }}
+        exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
       >
         <div className={styles.header}>
           <span className={styles.date}>{format(date, 'EEEE, MMMM d')}</span>

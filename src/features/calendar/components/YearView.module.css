@@ -6,7 +6,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 16px;
+  padding: var(--space-4);
   margin: 0 var(--grid-margin, 16px) 24px 0;
 }
 
@@ -37,7 +37,7 @@
 .month {
   background: var(--panel, rgba(var(--ink-raw), 0.03));
   border: 1px solid var(--line, #e5e0d8);
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 12px 14px 14px;
   display: flex;

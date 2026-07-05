@@ -300,7 +300,7 @@ export function CategoriesSettings(): JSX.Element {
             >
               {editingCategoryId === category.id ? (
                 <>
-                  <div className={styles.swatches} style={{ gap: '4px' }}>
+                  <div className={styles.swatches} style={{ gap: 'var(--space-1)' }}>
                     {EVENT_COLORS.slice(0, 8).map((color) => (
                       <button
                         key={color}
@@ -397,7 +397,7 @@ export function CategoriesSettings(): JSX.Element {
                 autoFocus
                 aria-label="New category name"
               />
-              <div className={styles.swatches} style={{ gap: '4px' }}>
+              <div className={styles.swatches} style={{ gap: 'var(--space-1)' }}>
                 {EVENT_COLORS.slice(0, 6).map((color) => (
                   <button
                     key={color}

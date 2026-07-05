@@ -42,11 +42,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             onClick={() => this.setState({ hasError: false, error: null })}
             style={{
               marginTop: '1rem',
-              padding: '8px 16px',
+              padding: 'var(--space-2) var(--space-4)',
               background: '#4285f4',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: 'var(--radius-md)',
               cursor: 'pointer',
             }}
           >

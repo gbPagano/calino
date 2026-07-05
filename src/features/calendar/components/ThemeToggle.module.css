@@ -9,7 +9,7 @@
   background: rgba(var(--color-bg-secondary-rgb, 255, 255, 255), 0.5);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;

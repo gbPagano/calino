@@ -76,7 +76,7 @@ function MonthlyPatternPicker({
   const days31 = Array.from({ length: 31 }, (_, i) => i + 1)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       <select
         value={pattern}
         onChange={(e) => {
@@ -106,7 +106,7 @@ function MonthlyPatternPicker({
       </select>
 
       {pattern === 'dayOfMonth' && (
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
           <span>Day</span>
           <select
             value={dayFromByMonthDay}
@@ -124,7 +124,7 @@ function MonthlyPatternPicker({
       )}
 
       {(pattern === 'nthWeekday' || pattern === 'lastWeekday') && (
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
           {pattern === 'nthWeekday' && (
             <select
               value={posFromBySetPos}
@@ -288,7 +288,7 @@ export function RecurrenceFields({
             <label className={styles.label} htmlFor="recurrence-select">
               Repeat
             </label>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
               <select
                 id="recurrence-select"
                 value={recurrence}
@@ -384,7 +384,7 @@ export function RecurrenceFields({
             <label className={styles.label} htmlFor="end-condition-select">
               Ends
             </label>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
               <select
                 id="end-condition-select"
                 value={endCondition}

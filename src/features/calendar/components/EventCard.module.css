@@ -111,7 +111,7 @@
 .dragContent:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .dragContent:active {
@@ -196,7 +196,7 @@
   margin-top: 1px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   opacity: 0.8;
 }
 
@@ -267,7 +267,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: none;
   background: none;
 }
@@ -277,7 +277,7 @@
   height: 13px;
   display: block;
   opacity: 0.5;
-  transition: opacity 0.14s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: opacity var(--dur-fast), transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .checkbox:hover {
@@ -291,7 +291,7 @@
 .checkbox:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* ---- Compact Mode (Month View) ---- */
@@ -472,7 +472,7 @@
   right: auto;
   width: 15px;
   height: 15px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1.6px solid color-mix(in srgb, var(--event-color, var(--accent)) 60%, var(--ink-3));
   background: transparent;
   display: flex;
@@ -480,7 +480,7 @@
   justify-content: center;
   padding: 0;
   cursor: pointer;
-  transition: background 0.14s, border-color 0.14s;
+  transition: background var(--dur-fast), border-color var(--dur-fast);
 }
 
 .task .taskCheckbox:hover {

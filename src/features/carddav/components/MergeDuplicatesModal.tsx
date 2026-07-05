@@ -113,7 +113,7 @@ export function MergeDuplicatesModal({
                 key={i}
                 style={{
                   border: '1px solid var(--line)',
-                  borderRadius: 8,
+                  borderRadius: 'var(--radius-md)',
                   padding: 12,
                 }}
               >
@@ -151,7 +151,7 @@ export function MergeDuplicatesModal({
                         alignItems: 'center',
                         gap: 8,
                         padding: '6px 8px',
-                        borderRadius: 6,
+                        borderRadius: 'var(--radius-sm)',
                         background: 'var(--color-bg-tertiary)',
                         fontSize: 12,
                       }}
@@ -160,7 +160,7 @@ export function MergeDuplicatesModal({
                         style={{
                           width: 32,
                           height: 32,
-                          borderRadius: '50%',
+                          borderRadius: 'var(--radius-full)',
                           background: 'var(--accent)',
                           color: '#fff',
                           display: 'flex',
@@ -191,7 +191,7 @@ export function MergeDuplicatesModal({
                     type="button"
                     className={styles.btnSave}
                     onClick={() => handleMerge(group)}
-                    style={{ fontSize: 12, padding: '4px 12px' }}
+                    style={{ fontSize: 12, padding: 'var(--space-1) var(--space-3)' }}
                   >
                     Merge {group.contacts.length} contacts
                   </button>

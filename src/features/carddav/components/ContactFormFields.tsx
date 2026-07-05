@@ -285,7 +285,7 @@ export function ContactFormFields({
           style={{
             width: 64,
             height: 64,
-            borderRadius: '50%',
+            borderRadius: 'var(--radius-full)',
             border: '2px dashed var(--color-border-visible, rgba(0,0,0,0.12))',
             display: 'flex',
             alignItems: 'center',
@@ -479,7 +479,7 @@ export function ContactFormFields({
                 alignItems: 'center',
                 gap: 4,
                 padding: '3px 10px',
-                borderRadius: 16,
+                borderRadius: 'var(--radius-xl)',
                 border: '1px solid var(--color-border-visible, rgba(0,0,0,0.08))',
                 background: 'var(--color-accent-light, rgba(176,125,79,0.08))',
                 color: 'var(--accent, #b07d4f)',
@@ -919,7 +919,7 @@ export function ContactFormFields({
       {local.isGroup && (
         <div className={styles.modalField}>
           <label className={styles.label}>Members</label>
-          <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8, padding: 8 }}>
+          <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', padding: 8 }}>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
               Select contacts to add as members:
             </div>

@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useSearch } from './hooks/useSearch'
 import { SearchBar } from './components/SearchBar'
 import { SearchResults } from './components/SearchResults'
@@ -12,6 +13,7 @@ interface SearchProps {
 }
 
 export function Search({ onSelectEvent }: SearchProps): JSX.Element {
+  const prefersReducedMotion = useReducedMotion()
   const {
     query,
     results,
@@ -57,10 +59,10 @@ export function Search({ onSelectEvent }: SearchProps): JSX.Element {
       <AnimatePresence>
         {showResults && (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: 'easeOut' }}
             style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000 }}
           >
             <SearchFilters

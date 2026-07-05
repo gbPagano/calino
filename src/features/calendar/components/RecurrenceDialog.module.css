@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;
   z-index: 99999;
-  animation: fadeIn 0.15s ease-out;
+  animation: fadeIn var(--dur-fast) ease-out;
 }
 
 @keyframes fadeIn {
@@ -23,11 +23,11 @@
 
 .modal {
   background: var(--modal-bg, var(--color-bg-secondary));
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   width: 100%;
   max-width: 320px;
   box-shadow: var(--shadow-card);
-  animation: slideUp 0.15s ease-out;
+  animation: slideUp var(--dur-fast) ease-out;
 }
 
 @keyframes slideUp {
@@ -42,7 +42,7 @@
 }
 
 .overlay.closing {
-  animation: fadeOut 0.15s ease-in forwards;
+  animation: fadeOut var(--dur-fast) ease-in forwards;
 }
 
 @keyframes fadeOut {
@@ -55,7 +55,7 @@
 }
 
 .overlay.closing .modal {
-  animation: slideDown 0.15s ease-in forwards;
+  animation: slideDown var(--dur-fast) ease-in forwards;
 }
 
 @keyframes slideDown {
@@ -95,7 +95,7 @@
   border-radius: 50%;
   color: var(--color-text-secondary, #5f6368);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-fast) ease;
 }
 
 .closeButton:hover {
@@ -104,7 +104,7 @@
 }
 
 .content {
-  padding: 16px;
+  padding: var(--space-4);
 }
 
 .message {
@@ -117,7 +117,7 @@
 .buttons {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .actionButton {
@@ -127,7 +127,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-fast) ease;
   background: var(--color-primary);
   color: var(--color-bg);
 }
@@ -145,7 +145,7 @@
   font-weight: 500;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-fast) ease;
 }
 
 .cancelButton:hover {

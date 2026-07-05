@@ -498,7 +498,7 @@ export function ContactDetail({
                   style={{
                     marginTop: 8,
                     padding: '4px 10px',
-                    borderRadius: 6,
+                    borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--line)',
                     background: hasBirthdayEvent ? 'var(--color-bg-tertiary)' : 'transparent',
                     color: hasBirthdayEvent ? 'var(--text-muted)' : 'var(--accent)',
@@ -543,7 +543,7 @@ export function ContactDetail({
                   style={{
                     marginTop: 8,
                     padding: '4px 10px',
-                    borderRadius: 6,
+                    borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--line)',
                     background: hasAnniversaryEvent ? 'var(--color-bg-tertiary)' : 'transparent',
                     color: hasAnniversaryEvent ? 'var(--text-muted)' : 'var(--accent)',
@@ -589,9 +589,9 @@ export function ContactDetail({
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-all',
                 margin: 0,
-                padding: '8px',
+                padding: 'var(--space-2)',
                 background: 'var(--bg-secondary)',
-                borderRadius: '6px',
+                borderRadius: 'var(--radius-sm)',
                 maxHeight: '200px',
                 overflow: 'auto',
               }}>

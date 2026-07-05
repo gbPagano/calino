@@ -38,6 +38,7 @@ import type { ViewType } from './types'
 import { findEventById } from './lib/events'
 import { shortcutsSuppressed } from './lib/keyboard'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useReducedMotion } from './hooks/useReducedMotion'
 
 import './App.css'
 
@@ -51,6 +52,7 @@ const ContactsView = lazy(() => import('./features/carddav/components/ContactsVi
 const YearView = lazy(() => import('./features/calendar/components/YearView').then(m => ({ default: m.YearView })))
 
 function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: ViewType }): JSX.Element {
+  const reducedMotion = useReducedMotion()
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -58,7 +60,7 @@ function ViewLoader({ children, viewKey }: { children: JSX.Element; viewKey: Vie
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
+        transition={{ duration: reducedMotion ? 0 : 0.15 }}
         style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
       >
         <Suspense fallback={<CalendarSkeleton view={viewKey} />}>
@@ -225,7 +227,9 @@ function CalendarApp(): JSX.Element {
   // Mobile: two-finger horizontal swipe cycles through views (single-finger
   // swipes stay reserved for date navigation inside each view).
   const currentViewRef = useRef(currentView)
-  currentViewRef.current = currentView
+  useEffect(() => {
+    currentViewRef.current = currentView
+  }, [currentView])
   const switchViewBy = useCallback(
     (direction: 'left' | 'right') => {
       const currentIndex = VIEW_ORDER.indexOf(currentViewRef.current)

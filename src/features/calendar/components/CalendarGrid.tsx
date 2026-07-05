@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import {
   DndContext,
   DragOverlay,
@@ -64,6 +65,7 @@ const VIEW_ROUTES: Record<ViewType, string> = {
 }
 
 export function CalendarGrid(): JSX.Element {
+  const prefersReducedMotion = useReducedMotion()
   const currentDate = useCalendarStore((state) => state.currentDate)
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
@@ -625,10 +627,10 @@ export function CalendarGrid(): JSX.Element {
                 <motion.div
                   key={currentDate}
                   className={styles.daysContainer}
-                  initial={{ opacity: 0, y: scrollDirection === 'down' ? -10 : 10 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: scrollDirection === 'down' ? -10 : 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: scrollDirection === 'down' ? 10 : -10 }}
-                  transition={{ duration: 0.1 }}
+                  exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: scrollDirection === 'down' ? 10 : -10 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.1 }}
                 >
                   {weekNumbers.map((weekNum, weekIdx) => {
                     const weekEnd = days[weekIdx * 7 + 6]
@@ -755,10 +757,10 @@ export function CalendarGrid(): JSX.Element {
           <motion.div
             key={currentDate}
             className={styles.daysContainer}
-            initial={{ opacity: 0, y: scrollDirection === 'down' ? -10 : 10 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: scrollDirection === 'down' ? -10 : 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: scrollDirection === 'down' ? 10 : -10 }}
-            transition={{ duration: 0.1 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: scrollDirection === 'down' ? 10 : -10 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.1 }}
           >
             {weekNumbers.map((weekNum, weekIdx) => {
               const weekEnd = days[weekIdx * 7 + 6]

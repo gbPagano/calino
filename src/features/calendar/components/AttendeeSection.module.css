@@ -14,10 +14,10 @@
 .organizerBadge {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 6px 10px;
   background: var(--color-bg-secondary, #f5f5f5);
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   margin-bottom: 6px;
   font-size: 13px;
 }
@@ -43,17 +43,17 @@
 .attendeeList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   margin-bottom: 8px;
 }
 
 .attendeeRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 5px 8px;
   background: var(--color-bg-secondary, #f5f5f5);
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   font-size: 13px;
 }
 
@@ -138,7 +138,7 @@
   cursor: pointer;
   padding: 2px 4px;
   line-height: 1;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 

@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { format, parseISO, isToday, isBefore, startOfDay, addDays, isWithinInterval } from 'date-fns'
@@ -15,6 +16,7 @@ interface MiniTasksSectionProps {
 }
 
 export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps): JSX.Element {
+  const prefersReducedMotion = useReducedMotion()
   const events = useCalendarStore((state) => state.events)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const openModal = useCalendarStore((state) => state.openModal)
@@ -116,9 +118,9 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                 {upcomingTasks.map((task) => (
                   <motion.div
                     key={task.id}
-                    initial={{ opacity: 0, y: -10 }}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
+                    exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10, transition: { duration: prefersReducedMotion ? 0 : 0.15 } }}
                     className={`${styles.taskRow} ${task.id === completingTaskId ? styles.taskCompleting : ''}`}
                     onMouseEnter={(e) => {
                       setHoveredTask(task.id)

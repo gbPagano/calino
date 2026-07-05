@@ -18,7 +18,7 @@
 }
 
 .skeleton-bar {
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(
     90deg,
     var(--color-bg-tertiary) 25%,
@@ -35,51 +35,51 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 12px 16px;
-  gap: 8px;
+  padding: var(--space-3) var(--space-4);
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .skeleton-grid-header {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: var(--space-2);
   padding-bottom: 8px;
   border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.06));
 }
 
 .skeleton-bar--day-label {
   height: 16px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-grid-body {
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .skeleton-grid-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: var(--space-2);
   flex: 1;
 }
 
 .skeleton-cell {
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-secondary, rgba(0, 0, 0, 0.02));
-  padding: 6px;
+  padding: var(--space-1);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .skeleton-bar--event {
   height: 14px;
   width: 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-bar--event-short {
@@ -92,7 +92,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   gap: 0;
   min-width: 0;
 }
@@ -100,7 +100,7 @@
 .skeleton-week-header {
   display: grid;
   grid-template-columns: 48px repeat(7, 1fr);
-  gap: 8px;
+  gap: var(--space-2);
   padding-bottom: 8px;
   border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.06));
 }
@@ -109,19 +109,19 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .skeleton-bar--week-day-label {
   width: 28px;
   height: 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-bar--week-date {
   width: 20px;
   height: 20px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
 }
 
 .skeleton-week-body {
@@ -133,7 +133,7 @@
 .skeleton-week-row {
   display: grid;
   grid-template-columns: 48px repeat(7, 1fr);
-  gap: 8px;
+  gap: var(--space-2);
   flex: 1;
   border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
 }
@@ -147,13 +147,13 @@
 }
 
 .skeleton-week-cell {
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-bar--week-event {
   height: 100%;
   min-height: 20px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* ── Day ───────────────────────────────────── */
@@ -162,7 +162,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 12px 24px;
+  padding: var(--space-3) var(--space-6);
   gap: 0;
   min-width: 0;
 }
@@ -175,7 +175,7 @@
 .skeleton-bar--day-title {
   width: 140px;
   height: 22px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-day-body {
@@ -187,19 +187,19 @@
 .skeleton-day-row {
   display: grid;
   grid-template-columns: 56px 1fr;
-  gap: 16px;
+  gap: var(--space-4);
   flex: 1;
   border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
 }
 
 .skeleton-day-cell {
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-bar--day-event {
   height: 100%;
   min-height: 28px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 /* ── Agenda ────────────────────────────────── */
@@ -208,21 +208,21 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px 24px;
-  gap: 16px;
+  padding: var(--space-4) var(--space-6);
+  gap: var(--space-4);
   min-width: 0;
 }
 
 .skeleton-agenda-item {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: flex-start;
 }
 
 .skeleton-bar--agenda-date {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   flex-shrink: 0;
 }
 
@@ -230,19 +230,19 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
 }
 
 .skeleton-bar--agenda-title {
   width: 70%;
   height: 16px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-bar--agenda-time {
   width: 40%;
   height: 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* ── Todo ──────────────────────────────────── */
@@ -251,21 +251,21 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px 24px;
-  gap: 12px;
+  padding: var(--space-4) var(--space-6);
+  gap: var(--space-3);
   min-width: 0;
 }
 
 .skeleton-todo-item {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: flex-start;
 }
 
 .skeleton-bar--todo-check {
   width: 20px;
   height: 20px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
@@ -273,19 +273,19 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
 }
 
 .skeleton-bar--todo-title {
   width: 60%;
   height: 16px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-bar--todo-due {
   width: 30%;
   height: 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* Journal skeleton */
@@ -293,45 +293,45 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 4px 0 72px;
+  padding: var(--space-1) 0 var(--space-10);
   min-height: 0;
 }
 
 .skeleton-journal-inner {
   max-width: 860px;
   margin: 0 auto;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .skeleton-journal-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
-  padding: 8px 14px 14px;
-  margin-bottom: 6px;
+  gap: var(--space-5);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  margin-bottom: var(--space-1);
   border-bottom: 1px solid var(--line-2, rgba(44, 40, 33, 0.05));
 }
 
 .skeleton-bar--journal-count {
   width: 80px;
   height: 14px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-bar--journal-button {
   width: 90px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .skeleton-journal-entry {
   display: flex;
-  gap: 16px;
-  padding: 12px 0;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
 }
 
 .skeleton-journal-date {
@@ -339,13 +339,13 @@
   flex-direction: column;
   align-items: center;
   min-width: 40px;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .skeleton-bar--journal-day {
   width: 24px;
   height: 24px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
 }
 
 .skeleton-bar--journal-weekday {
@@ -358,20 +358,20 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   padding-top: 2px;
 }
 
 .skeleton-bar--journal-title {
   width: 40%;
   height: 14px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-bar--journal-body {
   width: 100%;
   height: 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .skeleton-bar--journal-body-short {

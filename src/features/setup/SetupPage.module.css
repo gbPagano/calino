@@ -9,13 +9,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .card {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg, 18px);
+  border-radius: var(--radius-lg);
   box-shadow: 0 24px 80px rgba(var(--ink-raw), 0.08), 0 6px 20px rgba(var(--ink-raw), 0.05);
   width: 100%;
   max-width: 520px;
@@ -54,7 +54,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin-bottom: 28px;
 }
 
@@ -191,14 +191,14 @@
 .accountList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   margin-bottom: 16px;
 }
 
 .accountRow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--canvas);
@@ -208,7 +208,7 @@
 .accountIcon {
   width: 32px;
   height: 32px;
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -246,7 +246,7 @@
   border: none;
   cursor: pointer;
   color: var(--ink-2);
-  padding: 4px;
+  padding: var(--space-1);
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -263,7 +263,7 @@
 /* ── Buttons ────────────────────────────────────────────────────────────── */
 .actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
   margin-top: 24px;
 }
@@ -325,7 +325,7 @@
 .instructions {
   background: var(--canvas);
   border: 1px solid var(--line);
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--radius-md);
   padding: 20px;
   margin-bottom: 20px;
 }
@@ -350,7 +350,7 @@
   font-size: 13px;
   background: rgba(var(--ink-raw), 0.06);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--accent);
 }
 
@@ -358,7 +358,7 @@
   margin-top: 12px;
   padding: 10px 12px;
   background: rgba(234, 67, 53, 0.06);
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   font-size: 13px;
   color: var(--ink);
   line-height: 1.5;

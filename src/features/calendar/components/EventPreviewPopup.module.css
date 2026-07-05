@@ -11,7 +11,7 @@
   background: var(--popover-glass, var(--popover-bg, #fff));
   backdrop-filter: blur(12px) saturate(1.4);
   -webkit-backdrop-filter: blur(12px) saturate(1.4);
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--radius-md);
   box-shadow: var(--modal-shadow, 0 8px 32px rgba(0, 0, 0, 0.2));
   border: 1px solid var(--popover-border, rgba(0, 0, 0, 0.05));
   overflow: hidden;
@@ -82,8 +82,8 @@
   flex: 1;
   padding: 2px 4px;
   margin: -2px -4px;
-  border-radius: 4px;
-  transition: background-color 0.15s;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast);
 }
 
 .title:hover {
@@ -113,10 +113,10 @@
   padding: 0;
   background: none;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-secondary, #5f6368);
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color var(--dur-fast);
 }
 
 .closeBtn:hover {
@@ -139,8 +139,8 @@
   cursor: pointer;
   padding: 2px 4px;
   margin: -2px -4px;
-  border-radius: 4px;
-  transition: background-color 0.15s;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast);
 }
 
 .field:hover {
@@ -174,10 +174,10 @@
   font-size: 11px;
   white-space: nowrap;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--dur-fast) ease;
   z-index: 10;
 }
 
@@ -196,12 +196,12 @@
   align-items: center;
   margin-left: 6px;
   padding: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--ink-2, #6b6b6b);
   text-decoration: none;
   flex-shrink: 0;
   opacity: 0.6;
-  transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
+  transition: opacity var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 
 .locationMapLink:hover {
@@ -224,7 +224,7 @@
 .inlineTimeInputs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .inlineTimeInputs .inlineInput {
@@ -257,8 +257,8 @@
   cursor: pointer;
   padding: 2px 4px;
   margin: -2px -4px;
-  border-radius: 4px;
-  transition: background-color 0.15s;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast);
 }
 
 .descriptionText:hover {
@@ -283,10 +283,10 @@
   font-size: 13px;
   color: var(--color-text-secondary, #5f6368);
   cursor: pointer;
-  padding: 4px;
+  padding: var(--space-1);
   margin: -4px;
-  border-radius: 4px;
-  transition: background-color 0.15s;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast);
 }
 
 .addDescription:hover {
@@ -314,7 +314,7 @@
   border: 1px solid var(--color-border-subtle, #e8eaed);
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color var(--dur-fast);
 }
 
 .deleteBtn:hover {
@@ -334,7 +334,7 @@
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color var(--dur-fast);
   flex-shrink: 0;
 }
 
@@ -352,7 +352,7 @@
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color var(--dur-fast);
 }
 
 .openBtn:hover {

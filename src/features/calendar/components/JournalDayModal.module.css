@@ -21,7 +21,7 @@
 .panel {
   background: var(--modal-bg, #faf9f7);
   border: 1px solid var(--modal-border, transparent);
-  border-radius: var(--radius-lg, 18px);
+  border-radius: var(--radius-lg);
   box-shadow: var(--modal-shadow, 0 24px 80px rgba(0, 0, 0, 0.18), 0 6px 20px rgba(0, 0, 0, 0.10));
   width: 520px;
   max-width: calc(100vw - 40px);
@@ -46,7 +46,7 @@
   right: 16px;
   width: 32px;
   height: 32px;
-  border-radius: var(--radius-sm, 9px);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -125,7 +125,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 32px 16px;
   text-align: center;
 }
@@ -139,10 +139,10 @@
 .entry {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   padding-bottom: 16px;
   cursor: default;
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   padding: 8px 8px 16px;
   transition: background 0.12s;
 }
@@ -207,7 +207,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
   background: rgba(var(--ink-raw), 0.06);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 1px 5px;
 }
 
@@ -258,7 +258,7 @@
 .entryCategoryTag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   padding: 2px 8px;
   border-radius: 10px;
   background: var(--accent-soft, rgba(196, 168, 154, 0.08));
@@ -270,7 +270,7 @@
 .entryLink {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   margin-top: 4px;
   padding: 2px 0;
   color: var(--accent);
@@ -359,7 +359,7 @@
   align-items: center;
   gap: 5px;
   padding: 4px 10px;
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--panel);
   color: var(--ink-2);
@@ -394,7 +394,7 @@
 
 .composeActions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
   margin-top: 8px;
 }
@@ -407,7 +407,7 @@
 .addToggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   padding: 4px 0;
   border: none;
   background: none;
@@ -425,8 +425,8 @@
 .addPanelContent {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: var(--space-3);
+  padding: var(--space-3);
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
@@ -471,7 +471,7 @@
   width: 100%;
   padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-family: inherit;
   background: var(--panel);
@@ -487,7 +487,7 @@
 .relatedList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   max-height: 160px;
   overflow-y: auto;
 }
@@ -496,10 +496,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   background: var(--panel);
   cursor: pointer;
   text-align: left;
@@ -534,7 +534,7 @@
 
 .btnAccent {
   padding: 7px 22px;
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   background: var(--accent);
   color: #fff;
   font-size: 13px;
@@ -554,7 +554,7 @@
 
 .btnGhost {
   padding: 7px 18px;
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
   background: var(--color-surface, var(--panel));
   color: var(--color-text-secondary, var(--ink-3));
@@ -576,7 +576,7 @@
 .footer {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
@@ -590,7 +590,7 @@
   gap: 7px;
   margin-left: auto;
   padding: 7px 18px;
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
   background: var(--color-surface, var(--panel));
   color: var(--color-text-secondary, var(--ink-2));
@@ -615,7 +615,7 @@
 
 .btnDelete {
   padding: 7px 18px;
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border-visible, rgba(0, 0, 0, 0.08));
   background: var(--color-surface, var(--panel));
   color: var(--color-error-muted, #c47068);
@@ -650,7 +650,7 @@
   .dateCol {
     flex-direction: row;
     align-items: baseline;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .day {

@@ -22,7 +22,7 @@ function formatSyncError(error: string): JSX.Element {
         <br />
         <code style={{
           display: 'block', marginTop: 6, padding: '6px 10px',
-          borderRadius: 6, background: 'rgba(44,40,33,0.04)', fontSize: 12,
+          borderRadius: 'var(--radius-sm)', background: 'rgba(44,40,33,0.04)', fontSize: 12,
           fontFamily: 'monospace', lineHeight: 1.5, whiteSpace: 'pre-wrap',
         }}>{`Access-Control-Allow-Origin: *
 Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS, MKCOL, COPY, MOVE

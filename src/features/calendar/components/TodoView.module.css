@@ -64,9 +64,9 @@
   position: relative;
   display: flex;
   gap: 0;
-  padding: 4px;
+  padding: var(--space-1);
   background: var(--view-switcher-bg, rgba(var(--ink-raw, 44, 40, 33), 0.045));
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--radius-md);
 }
 
 .tab {
@@ -78,7 +78,7 @@
   color: var(--ink-2, #6f6a62);
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm, 9px);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: color 0.14s ease;
   font-family: inherit;
@@ -102,7 +102,7 @@
   height: var(--view-switcher-indicator-height, 32px);
   background: var(--panel, #ffffff);
   box-shadow: 0 1px 2px rgba(var(--ink-raw), 0.08), 0 0 0 1px var(--line, rgba(var(--ink-raw), 0.09));
-  border-radius: var(--radius-sm, 9px);
+  border-radius: var(--radius-sm);
   transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 0;
 }
@@ -111,7 +111,7 @@
 .addTask {
   height: 36px;
   padding: 0 15px;
-  border-radius: var(--radius-sm, 10px);
+  border-radius: var(--radius-sm);
   background: var(--accent, #b07d4f);
   color: #fff;
   font-size: 13.5px;
@@ -147,7 +147,7 @@
 .groupHeader {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 0 14px;
   margin: 26px 0 2px;
 }
@@ -198,7 +198,7 @@
   gap: 14px;
   align-items: start;
   padding: 12px 14px;
-  border-radius: var(--radius-md, 13px);
+  border-radius: var(--radius-md);
   transition: background 0.12s, transform 0.12s, box-shadow 0.12s;
 }
 
@@ -329,7 +329,7 @@
 .taskMeta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding-top: 2px;
   white-space: nowrap;
 }
@@ -387,7 +387,7 @@
   align-items: center;
   padding: 12px 14px;
   margin: 8px 0 4px;
-  border-radius: var(--radius-md, 13px);
+  border-radius: var(--radius-md);
   background: var(--tag-bg);
   box-shadow: inset 0 0 0 1px var(--focus-ring);
 }

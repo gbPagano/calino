@@ -54,6 +54,9 @@ export function RecurrenceDialog({
             <button type="button" className={styles.actionButton} onClick={() => onConfirm('all')}>
               All events
             </button>
+            <button type="button" className={styles.actionButton} onClick={() => onConfirm('future')}>
+              This and following events
+            </button>
             <button type="button" className={styles.actionButton} onClick={() => onConfirm('this')}>
               This event only
             </button>

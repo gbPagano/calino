@@ -1403,4 +1403,84 @@ describe('calendarStore', () => {
       expect(event?.categories?.filter((c) => c === 'Work')).toHaveLength(1)
     })
   })
+
+  describe('Bug: recurrence exception + EXDATE collision', () => {
+    it('shows only exception when master has both EXDATE and recurrenceId for same date', () => {
+      const store = useCalendarStore.getState()
+
+      // Master event: weekly on Mondays
+      store.addEvent({
+        id: 'master-exdate',
+        calendarId: 'default',
+        title: 'Weekly Meeting',
+        start: '2024-03-18T09:00:00.000Z',
+        end: '2024-03-18T10:00:00.000Z',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+        rruleString: 'FREQ=WEEKLY;INTERVAL=1',
+        // Simulate the state after the fix: EXDATE added when exception was created
+        excludedDates: ['2024-03-25T00:00:00.000Z'],
+      })
+
+      // Exception event for March 25 (different time and title)
+      store.addEvent({
+        id: 'master-exdate-2024-03-25T09:00:00.000Z',
+        calendarId: 'default',
+        title: 'Rescheduled Meeting',
+        start: '2024-03-25T14:00:00.000Z',
+        end: '2024-03-25T15:00:00.000Z',
+        isAllDay: false,
+        recurrenceId: '2024-03-25T09:00:00.000Z',
+      })
+
+      const events = store.getEventsForDateRange('2024-03-18', '2024-04-01')
+
+      // Should have 3 occurrences: Mar 18 (master), Mar 25 (exception), Apr 1 (master)
+      expect(events.length).toBe(3)
+
+      // March 25 should appear exactly once as the exception
+      const march25 = events.filter((e) => e.start.startsWith('2024-03-25'))
+      expect(march25.length).toBe(1)
+      expect(march25[0].title).toBe('Rescheduled Meeting')
+      expect(march25[0].start).toBe('2024-03-25T14:00:00.000Z')
+    })
+
+    it('does not show duplicate when exception exists alongside EXDATE', () => {
+      const store = useCalendarStore.getState()
+
+      // Master event: daily
+      store.addEvent({
+        id: 'daily-exdate',
+        calendarId: 'default',
+        title: 'Daily Standup',
+        start: '2024-04-01T08:00:00.000Z',
+        end: '2024-04-01T08:30:00.000Z',
+        isAllDay: false,
+        recurrence: { frequency: 'daily', interval: 1 },
+        rruleString: 'FREQ=DAILY;INTERVAL=1',
+        excludedDates: ['2024-04-03T00:00:00.000Z'],
+      })
+
+      // Exception event for April 3
+      store.addEvent({
+        id: 'daily-exdate-2024-04-03T08:00:00.000Z',
+        calendarId: 'default',
+        title: 'Special Standup',
+        start: '2024-04-03T10:00:00.000Z',
+        end: '2024-04-03T11:00:00.000Z',
+        isAllDay: false,
+        recurrenceId: '2024-04-03T08:00:00.000Z',
+      })
+
+      const events = store.getEventsForDateRange('2024-04-01', '2024-04-05')
+
+      // Should have 5 occurrences (Apr 1-5), with Apr 3 being the exception
+      expect(events.length).toBe(5)
+
+      // April 3 should appear exactly once
+      const apr3 = events.filter((e) => e.start.startsWith('2024-04-03'))
+      expect(apr3.length).toBe(1)
+      expect(apr3[0].title).toBe('Special Standup')
+    })
+  })
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { EventModal } from '../components/EventModal'
 import { useCalendarStore } from '@/store/calendarStore'
 
@@ -323,6 +323,71 @@ describe('EventModal', () => {
 
       // RecurrenceDialog should appear
       expect(screen.getByText('Edit recurring event')).toBeInTheDocument()
+    })
+  })
+
+  describe('recurrence edit modes', () => {
+    const seedSeries = () => {
+      const store = useCalendarStore.getState()
+      store.addEvent({
+        id: 'series-master',
+        calendarId: 'default',
+        title: 'Original Title',
+        start: '2024-03-01T10:00:00',
+        end: '2024-03-01T11:00:00',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+      })
+      // Open the 3rd occurrence (2024-03-15) as a recurring instance
+      store.openModal(undefined, undefined, 'series-master-2024-03-15T10:00:00.000Z')
+    }
+
+    it('"This and following events" splits the series without touching past occurrences', async () => {
+      seedSeries()
+      render(<EventModal />)
+
+      fireEvent.change(screen.getByPlaceholderText('Event title'), {
+        target: { value: 'New Title' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: /save/i }))
+      fireEvent.click(screen.getByRole('button', { name: /this and following events/i }))
+
+      await waitFor(() => {
+        const events = useCalendarStore.getState().events
+        // Master keeps the old title and is truncated to before the split date.
+        const master = events.find((e) => e.id === 'series-master')
+        expect(master?.title).toBe('Original Title')
+        expect(master?.recurrence?.endDate).toContain('2024-03-14')
+        // A new series carries the new title and starts on the clicked occurrence.
+        const newSeries = events.find((e) => e.id !== 'series-master' && e.title === 'New Title')
+        expect(newSeries).toBeDefined()
+        expect(newSeries?.start).toContain('2024-03-15')
+        expect(newSeries?.recurrence?.frequency).toBe('weekly')
+      })
+    })
+
+    it('"This event only" creates an exception on the clicked occurrence date, not the master start', async () => {
+      seedSeries()
+      render(<EventModal />)
+
+      fireEvent.change(screen.getByPlaceholderText('Event title'), {
+        target: { value: 'Just This One' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: /save/i }))
+      fireEvent.click(screen.getByRole('button', { name: /this event only/i }))
+
+      await waitFor(() => {
+        const events = useCalendarStore.getState().events
+        // Master title unchanged; the occurrence is excluded from expansion.
+        const master = events.find((e) => e.id === 'series-master')
+        expect(master?.title).toBe('Original Title')
+        expect(master?.excludedDates).toContain('2024-03-15')
+        // Exception event lands on the clicked date (2024-03-15), not 2024-03-01.
+        const exception = events.find((e) => e.title === 'Just This One')
+        expect(exception).toBeDefined()
+        expect(exception?.start).toContain('2024-03-15')
+        expect(exception?.recurrence).toBeUndefined()
+      })
     })
   })
 })

@@ -8,6 +8,8 @@ import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { showToast } from '@/lib/toast'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
+import { buildRRuleString } from '@/lib/recurrence'
+import { buildMasterTruncation } from '@/lib/recurrenceSplit'
 import type { CalendarEvent, CalendarAttachment, RecurrenceRule, TaskPriority, Reminder } from '@/types'
 import { putAttachments, getAttachments, deleteAttachments } from '@/lib/attachmentStore'
 import { TaskFormFields } from './TaskFormFields'
@@ -16,6 +18,7 @@ import { RecurrenceDialog } from './RecurrenceDialog'
 import { DeleteDialog } from './DeleteDialog'
 import { getInitialFormState } from './eventModalState'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { parseNaturalLanguage } from '@/features/nlp'
 import type { NLPParseResult } from '@/features/nlp'
 import { useSmartDefaultsStore } from '@/store/smartDefaultsStore'
@@ -38,13 +41,14 @@ export function EventModal(): JSX.Element | null {
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const closeModal = useCalendarStore((state) => state.closeModal)
   const [isClosing, setIsClosing] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
   const animateClose = useCallback(() => {
     setIsClosing(true)
     setTimeout(() => {
       setIsClosing(false)
       closeModal()
-    }, 180)
-  }, [closeModal])
+    }, prefersReducedMotion ? 0 : 200)
+  }, [closeModal, prefersReducedMotion])
   const {
     createEvent: createCalDAVEvent,
     updateEvent: updateCalDAVEvent,
@@ -579,6 +583,34 @@ export function EventModal(): JSX.Element | null {
         : undefined
 
     if (isEditing && selectedEventId) {
+      // For recurring-instance edits ("this occurrence" / "this and following"),
+      // the clicked occurrence's date is encoded in the instance id as
+      // `masterId-<ISO>` and differs from the form's start date (which reflects
+      // the master's first occurrence). Anchor those edits to the clicked
+      // occurrence's date, preserving the event's time-of-day and duration
+      // (including any edits the user made in the form). Falls back to the form
+      // date for non-instance ids (plain master edits).
+      const occInstanceMatch = selectedEventId.match(
+        /-(\d{4}-\d{2}-\d{2})T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+      )
+      const occDateStr = occInstanceMatch ? occInstanceMatch[1] : startDate
+      const durationMs = new Date(endDateTime).getTime() - new Date(startDateTime).getTime()
+      const occStartDateTime = isAllDay
+        ? `${occDateStr}T00:00:00`
+        : new Date(`${occDateStr}T${startTime}:00`).toISOString()
+      let occEndDateTime: string
+      if (isAllDay) {
+        const spanDays = Math.round(
+          (new Date(`${endDate}T00:00:00Z`).getTime() - new Date(`${startDate}T00:00:00Z`).getTime()) /
+            86400000
+        )
+        const endD = new Date(`${occDateStr}T00:00:00Z`)
+        endD.setUTCDate(endD.getUTCDate() + spanDays)
+        occEndDateTime = `${endD.toISOString().split('T')[0]}T00:00:00`
+      } else {
+        occEndDateTime = new Date(new Date(occStartDateTime).getTime() + durationMs).toISOString()
+      }
+
       if (mode === 'this' && originalEventId) {
         const masterEvent = events.find((e) => e.id === originalEventId)
         if (!masterEvent) {
@@ -601,8 +633,8 @@ export function EventModal(): JSX.Element | null {
           title,
           description: description || undefined,
           location: location || undefined,
-          start: startDateTime,
-          end: endDateTime,
+          start: occStartDateTime,
+          end: occEndDateTime,
           isAllDay,
           recurrence: undefined,
           rruleString: undefined,
@@ -624,6 +656,101 @@ export function EventModal(): JSX.Element | null {
           await createCalDAVEvent(masterEvent.calendarId, exceptionEvent)
         } catch {
           showToast('Failed to sync event with CalDAV server. It will be retried.')
+        }
+
+        // Add EXDATE to master so rrule expansion skips this date and only
+        // the exception event is shown.  Without this the master would still
+        // generate an occurrence on that date, creating a visible duplicate.
+        const occurrenceDate = originalOccurrenceDate.split('T')[0]
+        const masterExcludedDates = masterEvent.excludedDates || []
+        if (!masterExcludedDates.includes(occurrenceDate)) {
+          const updatedExcludedDates = [...masterExcludedDates, occurrenceDate]
+          updateEvent(originalEventId, { excludedDates: updatedExcludedDates })
+          await safeCalDAVUpdate(
+            updateCalDAVEvent,
+            masterEvent.calendarId,
+            { ...masterEvent, excludedDates: updatedExcludedDates },
+            { excludedDates: updatedExcludedDates }
+          ).catch(() => {})
+        }
+      } else if (mode === 'future' && originalEventId) {
+        // "This and following events": split the series at the current
+        // occurrence.  The master event keeps all past occurrences (ending
+        // the day before), and a new master event is created for this
+        // occurrence onward with the updated properties.
+        const masterEvent = events.find((e) => e.id === originalEventId)
+        if (!masterEvent) {
+          showToast('Master event not found. Cannot split series.')
+          return
+        }
+
+        const isoDateMatch = selectedEventId.match(
+          /(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/
+        )
+        const originalOccurrenceDate = isoDateMatch ? isoDateMatch[2] : null
+        if (!originalOccurrenceDate) {
+          showToast('Invalid event data. Cannot split series.')
+          return
+        }
+
+        const occurrenceDateStr = originalOccurrenceDate.split('T')[0]
+        // Update master: end its recurrence the day before the split and add an
+        // EXDATE for the split date (shared with the preview popup's split path).
+        const {
+          excludedDates: updatedExcludedDates,
+          recurrence: masterRecurrence,
+          rruleString: masterRruleString,
+        } = buildMasterTruncation(masterEvent, occurrenceDateStr)
+
+        updateEvent(originalEventId, {
+          excludedDates: updatedExcludedDates,
+          recurrence: masterRecurrence,
+          rruleString: masterRruleString,
+        })
+        await safeCalDAVUpdate(
+          updateCalDAVEvent,
+          masterEvent.calendarId,
+          {
+            ...masterEvent,
+            excludedDates: updatedExcludedDates,
+            recurrence: masterRecurrence,
+            rruleString: masterRruleString,
+          },
+          {
+            excludedDates: updatedExcludedDates,
+            recurrence: masterRecurrence,
+            rruleString: masterRruleString,
+          }
+        ).catch(() => {})
+
+        // Create the new series starting from the current occurrence
+        const newSeriesEvent: CalendarEvent = {
+          id: uuidv4(),
+          calendarId: masterEvent.calendarId,
+          title,
+          description: description || undefined,
+          location: location || undefined,
+          start: occStartDateTime,
+          end: occEndDateTime,
+          isAllDay,
+          recurrence: recurrenceRule,
+          rruleString: recurrenceRule ? buildRRuleString(recurrenceRule) : undefined,
+          travelDuration,
+          reminders,
+          transparency,
+          sequence: 0,
+          relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        }
+
+        addEvent(newSeriesEvent)
+        if (attachments.length > 0) {
+          putAttachments(newSeriesEvent.id, attachments).catch(() => {})
+        }
+        try {
+          await createCalDAVEvent(masterEvent.calendarId, newSeriesEvent)
+        } catch {
+          showToast('Failed to sync new series with CalDAV server. It will be retried.')
         }
       } else {
         const eventId = originalEventId || selectedEventId

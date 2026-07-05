@@ -1,8 +1,11 @@
 import { type JSX, useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { format, parseISO, isSameDay } from 'date-fns'
+import { v4 as uuidv4 } from 'uuid'
 import { formatTime } from '@/lib/datetime'
+import { buildMasterTruncation } from '@/lib/recurrenceSplit'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
@@ -47,11 +50,12 @@ export function EventPreviewPopup({
   const openModal = useCalendarStore((state) => state.openModal)
   const closePreview = useCalendarStore((state) => state.closePreview)
   const [isClosing, setIsClosing] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
   const animateClose = useCallback(() => {
     if (isClosing) return
     setIsClosing(true)
-    setTimeout(() => closePreview(), 150)
-  }, [closePreview, isClosing])
+    setTimeout(() => closePreview(), prefersReducedMotion ? 0 : 150)
+  }, [closePreview, isClosing, prefersReducedMotion])
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const { updateEvent: updateCalDAVEvent, deleteEvent: deleteCalDAVEvent } = useCalDAV()
@@ -168,7 +172,11 @@ export function EventPreviewPopup({
         updates.start = `${editDate}T00:00:00`
         updates.isAllDay = true
       }
-    } else if (!isTask) {
+    } else if (!isTask && (editDate || editTime || editEndDate || editEndTime)) {
+      // Only build start/end when the user actually edited a date or time field.
+      // Otherwise a title/location-only edit would carry the clicked occurrence's
+      // date into `updates.start` and, for an "All events" edit, move the whole
+      // series anchor onto that date — silently dropping every earlier occurrence.
       const originalDate = format(parseISO(effectiveStart), 'yyyy-MM-dd')
       const dateToUse = editDate || originalDate
       const startTime = editTime || format(parseISO(effectiveStart), 'HH:mm')
@@ -201,10 +209,20 @@ export function EventPreviewPopup({
   const handleRecurrenceDialogConfirm = async (mode: 'all' | 'future' | 'this'): Promise<void> => {
     if (!pendingUpdates) return
 
+    const store = useCalendarStore.getState()
+    const masterEvent = store.events.find((e) => e.id === eventIdToUse)
+    const occurrenceStartISO = originalEventId
+      ? clickedEventId.slice(originalEventId.length + 1)
+      : event.start
+    const occurrenceDateStr = occurrenceStartISO.split('T')[0]
+
     if (mode === 'this') {
-      const existingException = useCalendarStore
-        .getState()
-        .events.find((e) => e.id === clickedEventId && !e.rruleString && !e.recurrence)
+      // Edit only this occurrence: create/patch a standalone exception at the
+      // clicked occurrence's date and exclude that date from the master so it
+      // isn't rendered twice.
+      const existingException = store.events.find(
+        (e) => e.id === clickedEventId && !e.rruleString && !e.recurrence
+      )
 
       if (existingException) {
         updateEvent(clickedEventId, pendingUpdates)
@@ -214,29 +232,96 @@ export function EventPreviewPopup({
           // error handled by useCalDAV
         }
       } else {
-        const newEvent: CalendarEvent = {
+        const exceptionEvent: CalendarEvent = {
           id: clickedEventId,
           title: pendingUpdates.title ?? event.title,
           description: pendingUpdates.description ?? event.description,
           location: pendingUpdates.location ?? event.location,
-          start: pendingUpdates.start ?? event.start,
-          end: pendingUpdates.end ?? event.end,
+          start: pendingUpdates.start ?? effectiveStart,
+          end: pendingUpdates.end ?? effectiveEnd,
           isAllDay: event.isAllDay,
           calendarId: event.calendarId,
           recurrence: undefined,
           rruleString: undefined,
+          recurrenceId: occurrenceStartISO,
         }
-        useCalendarStore.getState().addEvent(newEvent)
+        store.addEvent(exceptionEvent)
         try {
-          await updateCalDAVEvent(event.calendarId, newEvent)
+          await updateCalDAVEvent(event.calendarId, exceptionEvent)
         } catch {
           // error handled by useCalDAV
         }
+        if (masterEvent) {
+          const excluded = masterEvent.excludedDates || []
+          if (!excluded.includes(occurrenceDateStr)) {
+            const updatedExcludedDates = [...excluded, occurrenceDateStr]
+            updateEvent(masterEvent.id, { excludedDates: updatedExcludedDates })
+            safeCalDAVUpdate(
+              updateCalDAVEvent,
+              masterEvent.calendarId,
+              { ...masterEvent, excludedDates: updatedExcludedDates },
+              { excludedDates: updatedExcludedDates }
+            )
+          }
+        }
+      }
+    } else if (mode === 'future' && masterEvent && originalEventId) {
+      // Split the series at this occurrence: truncate the master to before it and
+      // start a new series here carrying the edited fields. The new series keeps
+      // the master's original recurrence rule (captured before truncation).
+      const newSeriesRecurrence = masterEvent.recurrence
+      const newSeriesRrule = masterEvent.rruleString
+      const { excludedDates, recurrence, rruleString } = buildMasterTruncation(
+        masterEvent,
+        occurrenceDateStr
+      )
+      updateEvent(masterEvent.id, { excludedDates, recurrence, rruleString })
+      safeCalDAVUpdate(
+        updateCalDAVEvent,
+        masterEvent.calendarId,
+        { ...masterEvent, excludedDates, recurrence, rruleString },
+        { excludedDates, recurrence, rruleString }
+      )
+
+      const newSeriesEvent: CalendarEvent = {
+        id: uuidv4(),
+        calendarId: masterEvent.calendarId,
+        title: pendingUpdates.title ?? masterEvent.title,
+        description: pendingUpdates.description ?? masterEvent.description,
+        location: pendingUpdates.location ?? masterEvent.location,
+        start: pendingUpdates.start ?? effectiveStart,
+        end: pendingUpdates.end ?? effectiveEnd,
+        isAllDay: masterEvent.isAllDay,
+        recurrence: newSeriesRecurrence,
+        rruleString: newSeriesRrule,
+        reminders: masterEvent.reminders,
+        transparency: masterEvent.transparency,
+      }
+      store.addEvent(newSeriesEvent)
+      try {
+        await updateCalDAVEvent(masterEvent.calendarId, newSeriesEvent)
+      } catch {
+        // error handled by useCalDAV
       }
     } else {
-      updateEvent(eventIdToUse, pendingUpdates)
+      // 'all' — apply the edits to the whole series WITHOUT moving its anchor.
+      // pendingUpdates.start/end were derived from the clicked occurrence's date;
+      // re-anchor any time-of-day change onto the master's own dates so earlier
+      // occurrences aren't dropped.
+      const allUpdates: Partial<CalendarEvent> = { ...pendingUpdates }
+      if (masterEvent) {
+        if (allUpdates.start) {
+          const masterDate = format(parseISO(masterEvent.start), 'yyyy-MM-dd')
+          allUpdates.start = `${masterDate}T${allUpdates.start.split('T')[1]}`
+        }
+        if (allUpdates.end) {
+          const masterEndDate = format(parseISO(masterEvent.end), 'yyyy-MM-dd')
+          allUpdates.end = `${masterEndDate}T${allUpdates.end.split('T')[1]}`
+        }
+      }
+      updateEvent(eventIdToUse, allUpdates)
       try {
-        await updateCalDAVEvent(event.calendarId, { ...event, ...pendingUpdates })
+        await updateCalDAVEvent(event.calendarId, { ...event, ...allUpdates })
       } catch {
         // error handled by useCalDAV
       }
@@ -301,11 +386,12 @@ export function EventPreviewPopup({
 
   const handleOpen = (): void => {
     closePreview()
-    if (originalEventId) {
-      openModal(undefined, undefined, originalEventId)
-    } else {
-      openModal(undefined, undefined, event.id)
-    }
+    // Pass the clicked occurrence id (for recurring instances this is
+    // `masterId-<ISO>`, otherwise the plain event id) so the editor can tell
+    // which occurrence is being edited. Passing the master id here would make
+    // "This event only" / "This and following events" silently edit the whole
+    // series.
+    openModal(undefined, undefined, clickedEventId)
   }
 
   const isRecurring = !!event.recurrence || !!event.rruleString || !!originalEventId
@@ -596,10 +682,10 @@ export function EventPreviewPopup({
                 className={styles.popup}
                 data-component="event-preview"
                 style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
-                initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95, y: -10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                transition={{ duration: 0.15 }}
+                exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: -10 }}
+                transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
               >
         <div
           className={styles.header}

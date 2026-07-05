@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { EventPreviewPopup } from '../components/EventPreviewPopup'
 import { useCalendarStore } from '@/store/calendarStore'
 import type { CalendarEvent } from '@/types'
@@ -282,5 +282,101 @@ describe('EventPreviewPopup', () => {
     )
 
     expect(screen.getByText('30 min travel')).toBeInTheDocument()
+  })
+
+  describe('editing a recurring occurrence', () => {
+    // Master starts 2024-03-01; the popup is opened on the 3rd occurrence
+    // (2024-03-15) via its instance id `series-<ISO>`.
+    const seedSeries = (): CalendarEvent => {
+      const store = useCalendarStore.getState()
+      const master: CalendarEvent = {
+        id: 'series',
+        title: 'Weekly Sync',
+        start: '2024-03-01T10:00:00.000Z',
+        end: '2024-03-01T11:00:00.000Z',
+        calendarId: 'default',
+        isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+      }
+      store.addEvent(master)
+      return master
+    }
+    const instanceId = 'series-2024-03-15T10:00:00.000Z'
+
+    it('"All events" title edit does NOT move the series anchor (no dropped occurrences)', async () => {
+      const master = seedSeries()
+      render(
+        <EventPreviewPopup event={master} position={mockPosition} clickedEventId={instanceId} />
+      )
+
+      fireEvent.click(screen.getByText('Weekly Sync'))
+      fireEvent.change(screen.getByDisplayValue('Weekly Sync'), {
+        target: { value: 'Renamed Sync' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+      fireEvent.click(screen.getByRole('button', { name: 'All events' }))
+
+      await waitFor(() => {
+        const updated = useCalendarStore.getState().events.find((e) => e.id === 'series')
+        expect(updated?.title).toBe('Renamed Sync')
+        // The anchor stays on the master's original start — earlier occurrences survive.
+        expect(updated?.start).toBe('2024-03-01T10:00:00.000Z')
+        expect(updated?.recurrence?.endDate).toBeUndefined()
+      })
+    })
+
+    it('"This and following events" truncates the master and starts a new series at the occurrence', async () => {
+      const master = seedSeries()
+      render(
+        <EventPreviewPopup event={master} position={mockPosition} clickedEventId={instanceId} />
+      )
+
+      fireEvent.click(screen.getByText('Weekly Sync'))
+      fireEvent.change(screen.getByDisplayValue('Weekly Sync'), {
+        target: { value: 'New Series' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+      fireEvent.click(screen.getByRole('button', { name: 'This and following events' }))
+
+      await waitFor(() => {
+        const events = useCalendarStore.getState().events
+        const original = events.find((e) => e.id === 'series')
+        // Master keeps its title/anchor but is truncated to before the split.
+        expect(original?.title).toBe('Weekly Sync')
+        expect(original?.start).toBe('2024-03-01T10:00:00.000Z')
+        expect(original?.recurrence?.endDate).toContain('2024-03-14')
+        // A new series carries the new title starting on the clicked occurrence.
+        const newSeries = events.find((e) => e.id !== 'series' && e.title === 'New Series')
+        expect(newSeries).toBeDefined()
+        expect(newSeries?.start).toContain('2024-03-15')
+        expect(newSeries?.recurrence?.frequency).toBe('weekly')
+      })
+    })
+
+    it('"This event only" edits just the occurrence and excludes it from the master', async () => {
+      const master = seedSeries()
+      render(
+        <EventPreviewPopup event={master} position={mockPosition} clickedEventId={instanceId} />
+      )
+
+      fireEvent.click(screen.getByText('Weekly Sync'))
+      fireEvent.change(screen.getByDisplayValue('Weekly Sync'), {
+        target: { value: 'Just This One' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+      fireEvent.click(screen.getByRole('button', { name: 'This event only' }))
+
+      await waitFor(() => {
+        const events = useCalendarStore.getState().events
+        const original = events.find((e) => e.id === 'series')
+        expect(original?.title).toBe('Weekly Sync')
+        expect(original?.excludedDates).toContain('2024-03-15')
+        // Exception lands on the clicked occurrence date, not the master's start.
+        const exception = events.find((e) => e.id === instanceId)
+        expect(exception?.title).toBe('Just This One')
+        expect(exception?.start).toContain('2024-03-15')
+        expect(exception?.recurrence).toBeUndefined()
+      })
+    })
   })
 })

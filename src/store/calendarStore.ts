@@ -583,10 +583,8 @@ export const useCalendarStore = create<CalendarStore>()(
                   occKey = occ.toISOString()
                 }
 
-                if (excludedDates.some(d => d.split('T')[0] === occDateStr)) {
-                  continue
-                }
-
+                // Check for exception first — if one exists for this date, use it
+                // regardless of whether the date is also in excludedDates.
                 const exceptionKey = `${event.calendarId}-${occDateStr}`
                 const exception = exceptionMap.get(exceptionKey)
                 if (exception) {
@@ -600,6 +598,11 @@ export const useCalendarStore = create<CalendarStore>()(
                       end: exception.end,
                     })
                   }
+                  continue
+                }
+
+                // No exception — honour EXDATE exclusions
+                if (excludedDates.some(d => d.split('T')[0] === occDateStr)) {
                   continue
                 }
 

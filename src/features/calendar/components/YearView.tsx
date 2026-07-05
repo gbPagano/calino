@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useMemo, type MouseEvent } from 'react'
+import { Fragment, useMemo, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   format,
@@ -14,6 +14,9 @@ import {
   eachDayOfInterval,
   isSameMonth,
   isToday,
+  getISOWeek,
+  getDay,
+  addDays,
 } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
@@ -38,6 +41,7 @@ export function YearView(): JSX.Element {
   const setCurrentView = useCalendarStore((state) => state.setCurrentView)
   const getEventsForDateRange = useCalendarStore((state) => state.getEventsForDateRange)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
+  const showWeekNumbers = useSettingsStore((state) => state.showWeekNumbers)
   const navigate = useNavigate()
 
   const date = useMemo(() => parseISO(currentDate), [currentDate])
@@ -84,6 +88,13 @@ export function YearView(): JSX.Element {
     navigate(VIEW_ROUTES.day, { replace: true })
   }
 
+  const handleWeekClick = (weekStart: Date, e: MouseEvent): void => {
+    e.stopPropagation()
+    setCurrentDate(format(weekStart, 'yyyy-MM-dd'))
+    setCurrentView('week')
+    navigate(VIEW_ROUTES.week, { replace: true })
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.grid}>
@@ -92,6 +103,11 @@ export function YearView(): JSX.Element {
             start: startOfWeek(startOfMonth(m), { weekStartsOn: firstDayOfWeek }),
             end: endOfWeek(endOfMonth(m), { weekStartsOn: firstDayOfWeek }),
           })
+
+          const weeks: Date[][] = []
+          for (let i = 0; i < days.length; i += 7) {
+            weeks.push(days.slice(i, i + 7))
+          }
 
           return (
             <div
@@ -108,34 +124,55 @@ export function YearView(): JSX.Element {
               }}
             >
               <div className={styles.monthHeader}>{format(m, 'MMMM')}</div>
-              <div className={styles.weekdayRow}>
+              <div className={`${styles.weekdayRow} ${showWeekNumbers ? styles.withWeekNum : ''}`}>
+                {showWeekNumbers && <span className={styles.weekdayInitial} aria-hidden="true" />}
                 {weekdayInitials.map((w, i) => (
                   <span key={i} className={styles.weekdayInitial}>
                     {w}
                   </span>
                 ))}
               </div>
-              <div className={styles.dayGrid}>
-                {days.map((day) => {
-                  const dayKey = format(day, 'yyyy-MM-dd')
-                  const isOutside = !isSameMonth(day, m)
-
-                  if (isOutside) {
-                    return <span key={dayKey} className={styles.emptyDay} aria-hidden="true" />
-                  }
-
-                  const isTodayDate = isToday(day)
-                  const hasEvents = eventDayKeys.has(dayKey)
+              <div className={`${styles.dayGrid} ${showWeekNumbers ? styles.withWeekNum : ''}`}>
+                {weeks.map((week) => {
+                  // Derive the ISO week number from the row's Thursday — the ISO-8601
+                  // anchor day — so the number is correct regardless of whether the
+                  // visual week starts on Monday or Sunday.
+                  const thursday = addDays(week[0], (4 - getDay(week[0]) + 7) % 7)
 
                   return (
-                    <button
-                      key={dayKey}
-                      className={`${styles.day} ${isTodayDate ? styles.today : ''}`}
-                      onClick={(e) => handleDayClick(day, e)}
-                    >
-                      {format(day, 'd')}
-                      {hasEvents && <span className={styles.eventDot} />}
-                    </button>
+                    <Fragment key={week[0].toISOString()}>
+                      {showWeekNumbers && (
+                        <button
+                          className={styles.weekNum}
+                          title={`Week ${getISOWeek(thursday)}`}
+                          onClick={(e) => handleWeekClick(week[0], e)}
+                        >
+                          {getISOWeek(thursday)}
+                        </button>
+                      )}
+                      {week.map((day) => {
+                        const dayKey = format(day, 'yyyy-MM-dd')
+                        const isOutside = !isSameMonth(day, m)
+
+                        if (isOutside) {
+                          return <span key={dayKey} className={styles.emptyDay} aria-hidden="true" />
+                        }
+
+                        const isTodayDate = isToday(day)
+                        const hasEvents = eventDayKeys.has(dayKey)
+
+                        return (
+                          <button
+                            key={dayKey}
+                            className={`${styles.day} ${isTodayDate ? styles.today : ''}`}
+                            onClick={(e) => handleDayClick(day, e)}
+                          >
+                            {format(day, 'd')}
+                            {hasEvents && <span className={styles.eventDot} />}
+                          </button>
+                        )
+                      })}
+                    </Fragment>
                   )
                 })}
               </div>

@@ -91,6 +91,36 @@
   margin: 0 auto;
 }
 
+/* Leading ISO week-number column (when "Show week numbers" is enabled) */
+.weekdayRow.withWeekNum,
+.dayGrid.withWeekNum {
+  grid-template-columns: 20px repeat(7, 1fr);
+  max-width: 244px;
+}
+
+.weekNum {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 26px;
+  margin: 1px auto;
+  padding: 0;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted, #9c9384);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.weekNum:hover {
+  background: var(--panel-hover, rgba(0, 0, 0, 0.05));
+  color: var(--accent, #b07d4f);
+}
+
 .day,
 .emptyDay {
   width: 26px;

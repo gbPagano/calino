@@ -39,6 +39,7 @@ import { useContextMenuStore } from '@/store/contextMenuStore'
 import { useWindowHeight } from '@/hooks/useWindowHeight'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { HOURS } from '@/lib/hours'
+import { CurrentTimeIndicator } from './CurrentTimeIndicator'
 import styles from './WeekView.module.css'
 
 const BASE_HOUR_HEIGHT = 60
@@ -273,6 +274,7 @@ export function WeekView(): JSX.Element {
   const bodyRef = useRef<HTMLDivElement>(null)
   const lastDateRef = useRef(date.toISOString())
   const hasScrolledForDate = useRef(false)
+  const isCurrentWeek = weekDays.some((d) => isToday(d))
 
   useLayoutEffect(() => {
     if (isMobile || !bodyRef.current) return
@@ -289,27 +291,36 @@ export function WeekView(): JSX.Element {
     const rafId = requestAnimationFrame(() => {
       if (!bodyRef.current) return
 
-      const sortedAllEvents: CalendarEvent[] = []
-      eventsMap.forEach((dayEvents) => {
-        sortedAllEvents.push(...dayEvents)
-      })
+      if (isCurrentWeek) {
+        // Scroll to current time with padding above
+        const now = new Date()
+        const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes()
+        const fraction = minutesSinceMidnight / (24 * 60)
+        const scrollTop = fraction * bodyRef.current.scrollHeight - bodyRef.current.clientHeight * 0.3
+        bodyRef.current.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' })
+      } else {
+        const sortedAllEvents: CalendarEvent[] = []
+        eventsMap.forEach((dayEvents) => {
+          sortedAllEvents.push(...dayEvents)
+        })
 
-      if (sortedAllEvents.length === 0) return
+        if (sortedAllEvents.length === 0) return
 
-      sortedAllEvents.sort((a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime())
-      const firstEvent = sortedAllEvents[0]
-      const eventStart = parseISO(firstEvent.start)
-      const hours = eventStart.getHours()
-      const minutes = eventStart.getMinutes()
-      const fraction = (hours * 60 + minutes) / (24 * 60)
-      const scrollTop = fraction * bodyRef.current.scrollHeight - 60
+        sortedAllEvents.sort((a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime())
+        const firstEvent = sortedAllEvents[0]
+        const eventStart = parseISO(firstEvent.start)
+        const hours = eventStart.getHours()
+        const minutes = eventStart.getMinutes()
+        const fraction = (hours * 60 + minutes) / (24 * 60)
+        const scrollTop = fraction * bodyRef.current.scrollHeight - 60
+        bodyRef.current.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' })
+      }
 
-      bodyRef.current.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' })
       hasScrolledForDate.current = true
     })
 
     return () => cancelAnimationFrame(rafId)
-  }, [eventsMap, date, isMobile, hourHeight])
+  }, [eventsMap, date, isMobile, hourHeight, isCurrentWeek])
 
   useLayoutEffect(() => {
     if (isMobile) return
@@ -532,7 +543,7 @@ export function WeekView(): JSX.Element {
             return (
               <div
                 key={day.toISOString()}
-                className={styles.dayColumn}
+                className={`${styles.dayColumn} ${isToday(day) ? styles.todayColumn : ''}`}
                 onContextMenu={(e) => {
                   e.preventDefault()
                   openMenu('weekview')
@@ -555,6 +566,7 @@ export function WeekView(): JSX.Element {
                 </div>
                 <div className={styles.eventsOverlay}>
                   <WeekDayColumn {...dayColumnProps[idx]} calendars={calendars} hourHeight={hourHeight} openModal={openModal} />
+                  {isToday(day) && <CurrentTimeIndicator hourHeight={hourHeight} showLabel={false} />}
                 </div>
               </div>
             )
@@ -656,6 +668,7 @@ export function WeekView(): JSX.Element {
                   </div>
                   <div className={styles.eventsOverlay}>
                     <WeekDayColumn {...dayColumnProps[idx]} calendars={calendars} hourHeight={hourHeight} openModal={openModal} />
+                    {isToday(day) && <CurrentTimeIndicator hourHeight={hourHeight} showLabel={false} />}
                   </div>
                 </div>
               )

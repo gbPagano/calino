@@ -1,0 +1,48 @@
+/* ============================================================================
+   CurrentTimeIndicator — Live "now" line
+   ============================================================================ */
+
+.container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.label {
+  position: absolute;
+  right: calc(100% + 4px);
+  top: -8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #e53935;
+  white-space: nowrap;
+  background: var(--panel, #ffffff);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  line-height: 14px;
+}
+
+.line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: #e53935;
+  box-shadow: 0 1px 3px rgba(229, 57, 53, 0.3);
+}
+
+/* Small circle on the left edge (gutter) */
+.line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e53935;
+}

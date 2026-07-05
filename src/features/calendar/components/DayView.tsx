@@ -10,14 +10,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import {
-  format,
-  startOfDay,
-  endOfDay,
-  parseISO,
-  isToday,
-  addDays,
-} from 'date-fns'
+import { format, startOfDay, endOfDay, parseISO, isToday, addDays } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
@@ -34,6 +27,7 @@ import { positionEvents } from '@/lib/eventPositioning'
 import { positionedEventStyle, transparentEventStyle, travelBarStyle } from '../lib/eventLayout'
 import { pad2 } from '@/lib/datetime'
 import { HOURS } from '@/lib/hours'
+import { CurrentTimeIndicator } from './CurrentTimeIndicator'
 import type { CalendarEvent } from '@/types'
 import styles from './DayView.module.css'
 
@@ -227,7 +221,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
   const hasScrolledForDate = useRef(false)
 
   useLayoutEffect(() => {
-    if (dayEvents.length === 0 || !bodyRef.current) return
+    if (!bodyRef.current) return
 
     const currentDateStr = date.toISOString()
 
@@ -239,19 +233,31 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     if (hasScrolledForDate.current) return
 
     const rafId = requestAnimationFrame(() => {
-      if (!bodyRef.current || dayEvents.length === 0) return
+      if (!bodyRef.current) return
 
-      const sortedEvents = [...dayEvents].sort(
-        (a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime()
-      )
-      const firstEvent = sortedEvents[0]
-      const eventStart = parseISO(firstEvent.start)
-      const hours = eventStart.getHours()
-      const minutes = eventStart.getMinutes()
-      const fraction = (hours * 60 + minutes) / (24 * 60)
-      const scrollTop = fraction * bodyRef.current.scrollHeight - 60
+      const scrollToNow = isToday(date)
 
-      bodyRef.current.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' })
+      if (scrollToNow) {
+        // Scroll to current time with 2h padding above
+        const now = new Date()
+        const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes()
+        const fraction = minutesSinceMidnight / (24 * 60)
+        const scrollTop = fraction * bodyRef.current.scrollHeight - bodyRef.current.clientHeight * 0.3
+        bodyRef.current.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' })
+      } else if (dayEvents.length > 0) {
+        // Scroll to first event
+        const sortedEvents = [...dayEvents].sort(
+          (a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime()
+        )
+        const firstEvent = sortedEvents[0]
+        const eventStart = parseISO(firstEvent.start)
+        const hours = eventStart.getHours()
+        const minutes = eventStart.getMinutes()
+        const fraction = (hours * 60 + minutes) / (24 * 60)
+        const scrollTop = fraction * bodyRef.current.scrollHeight - 60
+        bodyRef.current.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' })
+      }
+
       hasScrolledForDate.current = true
     })
 
@@ -548,6 +554,9 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
           <div ref={eventsOverlayRef} className={styles.eventsOverlay}>
             {selectionOverlay}
             {renderEvents()}
+            {isCurrentDay && (
+              <CurrentTimeIndicator hourHeight={60 * effectiveScale} />
+            )}
           </div>
         </div>
       </div>

@@ -2,6 +2,30 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.18.0] - 2026-07-05
+
+### New Features
+- **Undo and redo** — made a change you didn't mean to? Undo and redo now work across event edits, moves, deletes, and calendar changes, so you can step back and forward through your recent actions.
+- **Live "now" line** — day and week views now show a red line marking the current time, with a time label that updates as the day goes on.
+- **Type dates right into the title** — when creating an event, natural phrases like "lunch tomorrow at 1" or "dentist next friday" are recognized inline and fill in the date and time for you.
+- **Smarter defaults** — Calino learns from your habits: recurring event names now pre-select the calendar and duration you usually give them.
+- **Jump to a week from the year view** — ISO week numbers in the year view are now clickable and take you straight to that week.
+- **Two-finger swipe between views** — on a trackpad or touchscreen, swipe horizontally with two fingers to move between calendar views.
+- **More control over reminders** — task reminders now have real on/off toggles, and events can carry multiple reminders.
+
+### Bug Fixes
+- **24-hour clock respected on the "now" line** — the current-time label in day view now follows your 12h/24h setting instead of always showing 12-hour time.
+- **Editing one occurrence of a repeating event** — changing a single occurrence of a recurring event now applies to just that occurrence as intended.
+- **All-day repeating events across daylight-saving changes** — all-day recurring events no longer drift onto the wrong day around DST transitions.
+- **Deleted events stay deleted** — closed a race where an event you deleted could briefly come back during a background sync.
+
+### Improvements
+- **App keeps running if one part hiccups** — each major area now has its own safety net, so a problem in one view no longer takes down the whole app; you'll see a gentle notice if a background sync fails.
+- **Smoother, calmer animations** — refreshed zoom and slide transitions between views, with full support for the system "reduce motion" setting.
+- **Better keyboard and screen-reader navigation** — arrow keys move across the month grid, a single Tab enters it, modals keep focus inside them, and Esc dismisses event previews.
+- **Faster rendering** — month, week, and day views redraw more efficiently, especially on busy months.
+- **Simpler sync settings** — removed the auto-sync toggle from settings in favor of consistent background syncing.
+
 ## [0.17.1] - 2026-07-04
 
 ### New Features

@@ -7,6 +7,9 @@ import {
   useSensors,
   PointerSensor,
   useDroppable,
+  pointerWithin,
+  rectIntersection,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
@@ -139,6 +142,13 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     })
   )
 
+  // Prefer the droppable directly under the pointer (so dropping on the thin
+  // header strip registers), falling back to rect overlap for the hour grid.
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    const pointerCollisions = pointerWithin(args)
+    return pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args)
+  }, [])
+
   useEffect(() => {
     const handleWheelZoom = (e: WheelEvent): void => {
       if (e.ctrlKey) {
@@ -162,6 +172,12 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
 
   const date = useMemo(() => parseISO(currentDate), [currentDate])
   const dateKey = format(date, 'yyyy-MM-dd')
+
+  // The header doubles as a drop target: dragging a timed event onto it turns
+  // the event into an all-day event (the inverse of dragging a pill down).
+  const { setNodeRef: setAllDayDropRef, isOver: isAllDayDropOver } = useDroppable({
+    id: `allday::${dateKey}`,
+  })
 
   const allDayEvents = useMemo(() => {
     return getEventsForDateRange(dateKey, dateKey).filter((e) => e.type !== 'task' && e.type !== 'journal' && e.isAllDay)
@@ -365,6 +381,29 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     if (!over) return
 
     const droppableId = String(over.id)
+
+    // Dropped on the header → convert a timed event into an all-day event.
+    if (droppableId.startsWith('allday::')) {
+      const dayStr = droppableId.slice('allday::'.length)
+      const originalEvent = events.find((e) => e.id === active.id)
+      if (!originalEvent || originalEvent.isAllDay) return
+
+      const allDayUpdates = {
+        start: `${dayStr}T00:00:00`,
+        end: `${dayStr}T00:00:00`,
+        isAllDay: true,
+      }
+      storeUpdateEvent(String(active.id), allDayUpdates)
+      await safeCalDAVUpdate(
+        caldavUpdateEvent,
+        originalEvent.calendarId,
+        { ...originalEvent, ...allDayUpdates },
+        allDayUpdates,
+        'Failed to sync dragged event'
+      )
+      return
+    }
+
     const lastDashIndex = droppableId.lastIndexOf('-')
     const dayStr = droppableId.substring(0, lastDashIndex)
     const hourStr = droppableId.substring(lastDashIndex + 1)
@@ -375,14 +414,26 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     const originalEvent = events.find((e) => e.id === active.id)
     if (!originalEvent) return
 
-    const originalStart = parseISO(originalEvent.start)
-    const originalEnd = parseISO(originalEvent.end)
-    const durationMs = originalEnd.getTime() - originalStart.getTime()
-    const newEnd = new Date(newStart.getTime() + durationMs)
-
-    const updates = {
-      start: newStart.toISOString(),
-      end: newEnd.toISOString(),
+    // Dragging an all-day event into the timed grid turns it into a regular
+    // timed event: default it to a 1-hour block starting at the drop time.
+    // Otherwise preserve the event's existing duration.
+    let updates: { start: string; end: string; isAllDay?: boolean }
+    if (originalEvent.isAllDay) {
+      const newEnd = new Date(newStart.getTime() + 60 * 60 * 1000)
+      updates = {
+        start: newStart.toISOString(),
+        end: newEnd.toISOString(),
+        isAllDay: false,
+      }
+    } else {
+      const originalStart = parseISO(originalEvent.start)
+      const originalEnd = parseISO(originalEvent.end)
+      const durationMs = originalEnd.getTime() - originalStart.getTime()
+      const newEnd = new Date(newStart.getTime() + durationMs)
+      updates = {
+        start: newStart.toISOString(),
+        end: newEnd.toISOString(),
+      }
     }
 
     storeUpdateEvent(String(active.id), updates)
@@ -459,7 +510,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
   const dateStr = format(date, 'yyyy-MM-dd')
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div
         className={styles.container}
         ref={containerRef}
@@ -477,7 +528,8 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
         {...bind}
       >
         <div
-          className={`${styles.header} ${isScrolled ? styles.headerShadow : ''} ${allDayEvents.length > 0 ? styles.hasAllDayEvents : ''}`}
+          ref={setAllDayDropRef}
+          className={`${styles.header} ${isScrolled ? styles.headerShadow : ''} ${allDayEvents.length > 0 ? styles.hasAllDayEvents : ''} ${isAllDayDropOver && activeEvent && !activeEvent.isAllDay ? styles.headerDropActive : ''}`}
         >
           {onBack && (
             <button className={styles.backButton} onClick={onBack} aria-label="Back to agenda">
@@ -494,40 +546,14 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
             {allDayEvents.length > 0 && (
               <div className={styles.allDayEventsInHeader}>
                 {allDayEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    className={styles.allDayEvent}
-                    style={{
-                      backgroundColor: `${getEventColor(event, { categories: [], calendars, useCategoryColors: false })}20`,
-                      borderLeftColor: getEventColor(event, { categories: [], calendars, useCategoryColors: false }),
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      openModal(undefined, undefined, event.id)
-                    }}
-                  >
-                    <span className={styles.allDayEventTitle}>{event.title}</span>
-                  </div>
+                  <EventCard key={event.id} event={event} compact monthView enableResize={false} />
                 ))}
               </div>
             )}
             {dayTasks.length > 0 && (
               <div className={styles.allDayEventsInHeader}>
                 {dayTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={styles.allDayEvent}
-                    style={{
-                      backgroundColor: `${getEventColor(task, { categories: [], calendars, useCategoryColors: false })}20`,
-                      borderLeftColor: getEventColor(task, { categories: [], calendars, useCategoryColors: false }),
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      openModal(undefined, undefined, task.id, 'task')
-                    }}
-                  >
-                    <span className={styles.allDayEventTitle}>{task.title}</span>
-                  </div>
+                  <EventCard key={task.id} event={task} compact monthView enableResize={false} />
                 ))}
               </div>
             )}

@@ -125,6 +125,10 @@ export const EventCard = React.memo(function EventCard({
     id: event.isFragment
       ? `${event.id}::${format(parseISO(event.start), 'yyyy-MM-dd')}`
       : event.id,
+    // Carry the layout variant so the DragOverlay can render a preview that
+    // matches the source card (e.g. keep a compact pill looking like a pill
+    // instead of expanding into a full card).
+    data: { compact, monthView, dotMode, isMobileMonth },
   })
 
   const useCategoryColors = useSettingsStore((state) => state.useCategoryColors)

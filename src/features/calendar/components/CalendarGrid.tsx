@@ -136,6 +136,7 @@ export function CalendarGrid(): JSX.Element {
   }, [])
 
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null)
+  const [activeLayout, setActiveLayout] = useState<{ compact: boolean; monthView: boolean; dotMode: boolean; isMobileMonth: boolean }>({ compact: false, monthView: false, dotMode: false, isMobileMonth: false })
   const draggedEventRef = useRef<CalendarEvent | null>(null)
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null)
   const [scale, setScale] = useState(1)
@@ -281,6 +282,13 @@ export function CalendarGrid(): JSX.Element {
     const draggedEvent = events.find((e) => e.id === eventId)
     draggedEventRef.current = draggedEvent || null
     setActiveEvent(draggedEvent || null)
+    const data = event.active.data.current as { compact?: boolean; monthView?: boolean; dotMode?: boolean; isMobileMonth?: boolean } | undefined
+    setActiveLayout({
+      compact: !!data?.compact,
+      monthView: !!data?.monthView,
+      dotMode: !!data?.dotMode,
+      isMobileMonth: !!data?.isMobileMonth,
+    })
   }
 
   const handleDragEnd = async (event: DragEndEvent): Promise<void> => {
@@ -701,7 +709,7 @@ export function CalendarGrid(): JSX.Element {
               </AnimatePresence>
             </div>
             </div>
-            <DragOverlay>{activeEvent ? <EventCard event={activeEvent} /> : null}</DragOverlay>
+            <DragOverlay>{activeEvent ? <EventCard event={activeEvent} compact={activeLayout.compact} monthView={activeLayout.monthView} dotMode={activeLayout.dotMode} isMobileMonth={activeLayout.isMobileMonth} enableResize={false} /> : null}</DragOverlay>
           </DndContext>
         </div>
         <div className={styles.splitHandleH} onMouseDown={handleGridResizeStart} onTouchStart={handleGridResizeTouchStart} />
@@ -831,7 +839,7 @@ export function CalendarGrid(): JSX.Element {
         </AnimatePresence>
       </div>
       </div>
-      <DragOverlay>{activeEvent ? <EventCard event={activeEvent} /> : null}</DragOverlay>
+      <DragOverlay>{activeEvent ? <EventCard event={activeEvent} compact={activeLayout.compact} monthView={activeLayout.monthView} dotMode={activeLayout.dotMode} isMobileMonth={activeLayout.isMobileMonth} enableResize={false} /> : null}</DragOverlay>
     </DndContext>
     {isJournalModalOpen && journalModalDate && (
       <JournalDayModal

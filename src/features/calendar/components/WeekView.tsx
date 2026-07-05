@@ -7,6 +7,9 @@ import {
   useSensors,
   PointerSensor,
   useDroppable,
+  pointerWithin,
+  rectIntersection,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
@@ -28,7 +31,6 @@ import type { CalendarEvent } from '@/types'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
-import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { EventCard } from './EventCard'
 import WeekDayColumn from './WeekDayColumn'
@@ -63,6 +65,37 @@ const DroppableCell = React.memo(function DroppableCell({ day, hour, onClick, on
       onClick={onClick}
       onMouseDown={onMouseDown}
     />
+  )
+})
+
+interface DayHeaderProps {
+  day: Date
+  isTodayDay: boolean
+  allDayEvents: CalendarEvent[]
+  activeIsTimed: boolean
+}
+
+// Each day header doubles as an all-day drop target: dragging a timed event
+// onto it turns the event into an all-day event (the inverse of dragging a pill
+// down into the grid).
+const DayHeader = React.memo(function DayHeader({ day, isTodayDay, allDayEvents, activeIsTimed }: DayHeaderProps): JSX.Element {
+  const { setNodeRef, isOver } = useDroppable({ id: `allday::${format(day, 'yyyy-MM-dd')}` })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`${styles.dayHeader} ${isTodayDay ? styles.today : ''} ${allDayEvents.length > 0 ? styles.hasAllDayEvents : ''} ${isOver && activeIsTimed ? styles.dayHeaderDropActive : ''}`}
+    >
+      <div className={styles.dayName}>{format(day, 'EEE')}</div>
+      <div className={styles.dayNumber}>{format(day, 'd')}</div>
+      {allDayEvents.length > 0 && (
+        <div className={styles.allDayEventsInHeader}>
+          {allDayEvents.map((event) => (
+            <EventCard key={event.id} event={event} compact monthView enableResize={false} />
+          ))}
+        </div>
+      )}
+    </div>
   )
 })
 
@@ -146,6 +179,13 @@ export function WeekView(): JSX.Element {
       },
     })
   )
+
+  // Prefer the droppable directly under the pointer (so dropping on the thin
+  // day-header strip registers), falling back to rect overlap for the hour grid.
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    const pointerCollisions = pointerWithin(args)
+    return pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args)
+  }, [])
 
   useEffect(() => {
     const handleWheelZoom = (e: WheelEvent): void => {
@@ -476,6 +516,29 @@ export function WeekView(): JSX.Element {
     if (!over) return
 
     const droppableId = String(over.id)
+
+    // Dropped on a day header → convert a timed event into an all-day event.
+    if (droppableId.startsWith('allday::')) {
+      const dayStr = droppableId.slice('allday::'.length)
+      const originalEvent = events.find((e) => e.id === active.id)
+      if (!originalEvent || originalEvent.isAllDay) return
+
+      const allDayUpdates = {
+        start: `${dayStr}T00:00:00`,
+        end: `${dayStr}T00:00:00`,
+        isAllDay: true,
+      }
+      storeUpdateEvent(String(active.id), allDayUpdates)
+      await safeCalDAVUpdate(
+        caldavUpdateEvent,
+        originalEvent.calendarId,
+        { ...originalEvent, ...allDayUpdates },
+        allDayUpdates,
+        'Failed to sync dragged event'
+      )
+      return
+    }
+
     const lastDashIndex = droppableId.lastIndexOf('-')
     const dayStr = droppableId.substring(0, lastDashIndex)
     const hourStr = droppableId.substring(lastDashIndex + 1)
@@ -487,14 +550,25 @@ export function WeekView(): JSX.Element {
     const originalEvent = events.find((e) => e.id === active.id)
     if (!originalEvent) return
 
-    const originalStart = parseISO(originalEvent.start)
-    const originalEnd = parseISO(originalEvent.end)
-    const durationMs = originalEnd.getTime() - originalStart.getTime()
-    const newEnd = new Date(newStart.getTime() + durationMs)
-
-    const updates = {
-      start: newStart.toISOString(),
-      end: newEnd.toISOString(),
+    // Dragging an all-day event into the timed grid turns it into a regular
+    // timed event: default it to a 1-hour block. Otherwise preserve duration.
+    let updates: { start: string; end: string; isAllDay?: boolean }
+    if (originalEvent.isAllDay) {
+      const newEnd = new Date(newStart.getTime() + 60 * 60 * 1000)
+      updates = {
+        start: newStart.toISOString(),
+        end: newEnd.toISOString(),
+        isAllDay: false,
+      }
+    } else {
+      const originalStart = parseISO(originalEvent.start)
+      const originalEnd = parseISO(originalEvent.end)
+      const durationMs = originalEnd.getTime() - originalStart.getTime()
+      const newEnd = new Date(newStart.getTime() + durationMs)
+      updates = {
+        start: newStart.toISOString(),
+        end: newEnd.toISOString(),
+      }
     }
 
     storeUpdateEvent(String(active.id), updates)
@@ -587,41 +661,15 @@ export function WeekView(): JSX.Element {
         <div className={`${styles.header} ${isScrolled ? styles.headerShadow : ''}`}>
           <div className={styles.weekNumberHeader}>W{weekNumber}</div>
           <div className={styles.headerDays}>
-            {weekDays.map((day, idx) => {
-              const dayAllDayEvents = allDayEventsByDay[idx]
-              return (
-                <div
-                  key={day.toISOString()}
-                  className={`${styles.dayHeader} ${isToday(day) ? styles.today : ''} ${dayAllDayEvents.length > 0 ? styles.hasAllDayEvents : ''}`}
-                >
-                  <div className={styles.dayName}>{format(day, 'EEE')}</div>
-                  <div className={styles.dayNumber}>{format(day, 'd')}</div>
-                  {dayAllDayEvents.length > 0 && (
-                    <div className={styles.allDayEventsInHeader}>
-                      {dayAllDayEvents.map((event) => (
-                        <div
-                          key={event.id}
-                          className={styles.allDayEvent}
-                          style={{
-                            backgroundColor: `${event.color || calendars.find((c) => c.id === event.calendarId)?.color || DEFAULT_CALENDAR_COLOR}20`,
-                            borderLeftColor:
-                              event.color ||
-                              calendars.find((c) => c.id === event.calendarId)?.color ||
-                              DEFAULT_CALENDAR_COLOR,
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            openModal(undefined, undefined, event.id)
-                          }}
-                        >
-                          <span className={styles.allDayEventTitle}>{event.title}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+            {weekDays.map((day, idx) => (
+              <DayHeader
+                key={day.toISOString()}
+                day={day}
+                isTodayDay={isToday(day)}
+                allDayEvents={allDayEventsByDay[idx]}
+                activeIsTimed={!!activeEvent && !activeEvent.isAllDay}
+              />
+            ))}
           </div>
         </div>
         <div
@@ -680,7 +728,7 @@ export function WeekView(): JSX.Element {
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div
         className={styles.container}
         ref={containerRef}

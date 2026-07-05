@@ -22,9 +22,9 @@ export function useTwoFingerSwipe(
   { onSwipe, enabled = true, threshold = 60 }: UseTwoFingerSwipeOptions
 ): void {
   const onSwipeRef = useRef(onSwipe)
-  onSwipeRef.current = onSwipe
 
   useEffect(() => {
+    onSwipeRef.current = onSwipe
     const el = ref.current
     if (!el || !enabled) return
 

@@ -567,18 +567,14 @@ export function EventModal(): JSX.Element | null {
       return
     }
 
-    // End-before-start validation. R3.4 — the modal used to accept
-    // negative-duration events. We only check inside the same handler
-    // (not saveEvent) so the same toast UX reaches the user as title-empty.
-    if (!isAllDay) {
-      const startMs = new Date(`${startDate}T${startTime}:00`).getTime()
-      const endMs = new Date(`${endDate}T${endTime}:00`).getTime()
-      if (endMs <= startMs) {
-        showToast('End time must be after start time')
-        return
-      }
-    } else if (endDate < startDate) {
-      showToast('End date must be on or after start date')
+    if (isTimeRangeInvalid) {
+      // R3.4 — end-before-start. Toast text mirrors what saveEvent shows
+      // when the same condition is hit via the recurrence-dialog path.
+      showToast(
+        isAllDay
+          ? 'End date must be on or after start date'
+          : 'End time must be after start time'
+      )
       return
     }
 
@@ -590,16 +586,20 @@ export function EventModal(): JSX.Element | null {
     saveEvent('all')
   }
 
-  // R3.4 — derived flag used by the Save button to disable itself
-  // before the user attempts to submit.
-  const isTimeRangeInvalid = ((): boolean => {
+  // R3.4 — single source of truth for end-before-start. Used by:
+  //   - the form's Save button (disabled prop)
+  //   - the submit handler (toast + early return)
+  //   - saveEvent (called from the recurrence-dialog confirm path)
+  //   Each of those three sites used to inline-compute this; consolidating
+  // here keeps them in lockstep.
+  const isTimeRangeInvalid = useMemo(() => {
     if (!isAllDay) {
       const startMs = new Date(`${startDate}T${startTime}:00`).getTime()
       const endMs = new Date(`${endDate}T${endTime}:00`).getTime()
       return endMs <= startMs
     }
     return endDate < startDate
-  })()
+  }, [isAllDay, startDate, startTime, endDate, endTime])
 
   const saveEvent = async (mode: RecurrenceEditMode): Promise<void> => {
     if (isEditing && !hasChanges) {
@@ -609,6 +609,24 @@ export function EventModal(): JSX.Element | null {
 
     if (!title.trim()) {
       showToast('Title is required')
+      return
+    }
+
+    // R3.4 follow-up: also check the time range here. The handleSubmit guard
+    // catches the form-submit path, but saveEvent is also called directly
+    // from handleRecurrenceDialogConfirm (when editing a recurring event
+    // opens the "edit one / edit following / edit all" dialog) — that path
+    // bypasses handleSubmit's check, so a recurring event edit with
+    // end<start would slip through.
+    if (!isAllDay) {
+      const startMs = new Date(`${startDate}T${startTime}:00`).getTime()
+      const endMs = new Date(`${endDate}T${endTime}:00`).getTime()
+      if (endMs <= startMs) {
+        showToast('End time must be after start time')
+        return
+      }
+    } else if (endDate < startDate) {
+      showToast('End date must be on or after start date')
       return
     }
 

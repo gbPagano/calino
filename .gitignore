@@ -39,6 +39,11 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# Playwright artifacts (test-results/ holds failure screenshots and
+# traces; .last-run.json is the per-CI-run summary)
+e2e/test-results/
+playwright-report/
+
 # Misc
 *.local
 .cache/

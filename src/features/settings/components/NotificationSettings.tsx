@@ -1,8 +1,15 @@
 import type { JSX } from 'react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { useSettingsStore } from '@/store/settingsStore'
 import { showTestNotification, requestNotificationPermission, getNotificationPermission } from '@/lib/notifications'
 import styles from './Settings.module.css'
+
+// R3.9 — copy reused by both the toggle and the test button when the
+// browser denies the permission prompt. Surfaced to the user instead of
+// silently doing nothing.
+const PERMISSION_DENIED_TOAST =
+  'Notifications are blocked. Update site permissions in your browser settings to enable reminders.'
 
 export function NotificationSettings(): JSX.Element {
   const enableDesktopNotifications = useSettingsStore((s) => s.enableDesktopNotifications)
@@ -16,11 +23,16 @@ export function NotificationSettings(): JSX.Element {
     if (permissionStatus === 'default') {
       const newPermission = await requestNotificationPermission()
       setPermissionStatus(newPermission)
+      if (newPermission === 'denied') {
+        toast.error(PERMISSION_DENIED_TOAST, { duration: 8000 })
+        return
+      }
       if (newPermission !== 'granted') {
         return
       }
     }
     if (permissionStatus === 'denied') {
+      toast.error(PERMISSION_DENIED_TOAST, { duration: 8000 })
       return
     }
     updateSettings({ enableDesktopNotifications: !enableDesktopNotifications })
@@ -30,9 +42,17 @@ export function NotificationSettings(): JSX.Element {
     if (permissionStatus === 'default') {
       const newPermission = await requestNotificationPermission()
       setPermissionStatus(newPermission)
+      if (newPermission === 'denied') {
+        toast.error(PERMISSION_DENIED_TOAST, { duration: 8000 })
+        return
+      }
       if (newPermission !== 'granted') {
         return
       }
+    }
+    if (permissionStatus === 'denied') {
+      toast.error(PERMISSION_DENIED_TOAST, { duration: 8000 })
+      return
     }
     showTestNotification()
   }

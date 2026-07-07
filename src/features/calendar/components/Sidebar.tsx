@@ -491,6 +491,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
                 <button
                   className={styles.addCalendarButton}
                   onClick={() => setShowAddCalendar(true)}
+                  aria-label="Add a CalDAV account"
                   data-component="sidebar-empty-add"
                 >
                   + Add a CalDAV account

@@ -736,7 +736,19 @@ export function EventPreviewPopup({
 
           
 
-          <div className={styles.field} onClick={() => startEditing('time')}>
+          <div
+            className={styles.field}
+            onClick={() => startEditing('time')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                startEditing('time')
+              }
+            }}
+            aria-label="Edit time"
+          >
             <svg aria-hidden="true" className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
               <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
               <path d="M7 4V7L9 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -745,7 +757,19 @@ export function EventPreviewPopup({
           </div>
 
           {(editLocation || event.location) && (
-            <div className={styles.field} onClick={() => startEditing('location')}>
+            <div
+              className={styles.field}
+              onClick={() => startEditing('location')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  startEditing('location')
+                }
+              }}
+              aria-label="Edit location"
+            >
               <svg aria-hidden="true" className={styles.icon} width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path
                   d="M7 6.5C8.10457 6.5 9 5.60457 9 4.5C9 3.39543 8.10457 2.5 7 2.5C5.89543 2.5 5 3.39543 5 4.5C5 5.60457 5.89543 6.5 7 6.5Z"

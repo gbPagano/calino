@@ -297,6 +297,15 @@ export const EventCard = React.memo(function EventCard({
         className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${event.completed ? styles.isDone : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${monthView ? styles.monthView : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''} ${dotMode ? styles.dot : ''} ${event.isFragment && isSharedHovered ? styles.hovered : ''}`}
         onContextMenu={handleContextMenu}
         onClick={handleClick}
+        // role="button" requires Enter and Space activation for keyboard
+        // users. The drag/resize listeners in `bind` are pointer-only
+        // (mouse + touch) so they don't conflict with key handling here.
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleClick(e as unknown as React.MouseEvent)
+          }
+        }}
         onMouseEnter={event.isFragment ? () => setHoveredEventId(event.id) : undefined}
         onMouseLeave={event.isFragment ? () => setHoveredEventId(null) : undefined}
         {...bind}

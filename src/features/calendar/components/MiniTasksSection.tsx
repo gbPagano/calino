@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { createPortal } from 'react-dom'
@@ -24,7 +24,18 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
   const [hoveredTask, setHoveredTask] = useState<string | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null)
+  // Tick once a minute so the "today" boundary advances even when the user
+  // is idle (e.g. leaves the app open across midnight). Without this, the
+  // "upcoming" filter would go stale until events change.
+  const [, setNowTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((n) => n + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
 
+  // `now` captured here. Re-evaluates on any events change AND every
+  // minute (the `nowTick` interval above). Together they keep "today"
+  // current without the user having to interact with the app.
   const upcomingTasks = useMemo(() => {
     const today = startOfDay(new Date())
     const weekFromNow = addDays(today, 7)
@@ -86,7 +97,12 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
 
   return (
     <div className={styles.tasksSection} data-component="tasks-section">
-      <button className={styles.tasksHeader} onClick={onToggle}>
+      <button
+        className={styles.tasksHeader}
+        onClick={onToggle}
+        aria-expanded={isExpanded}
+        data-component="tasks-header"
+      >
         <div className={styles.tasksHeaderLeft}>
           <span className={styles.tasksTitle}>Tasks</span>
           {activeCount > 0 && <span className={styles.tasksCount}>{activeCount}</span>}

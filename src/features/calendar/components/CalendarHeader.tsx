@@ -317,8 +317,13 @@ export function CalendarHeader({
         onClick={handleTitleClick}
         role="button"
         tabIndex={0}
-        aria-label={currentView === 'month' ? undefined : 'Go to month view'}
-        onKeyDown={(e) => { if (e.key === 'Enter') handleTitleClick() }}
+        aria-label={currentView === 'month' ? 'Go to today' : 'Go to month view'}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleTitleClick()
+          }
+        }}
       >
         {typeof title === 'object' ? (
           <>
@@ -407,6 +412,43 @@ export function CalendarHeader({
               role="menu"
               id="view-dropdown-menu"
               data-component="view-dropdown-menu"
+              onKeyDown={(e) => {
+                // WAI-ARIA menu keyboard pattern: arrow keys move focus
+                // between items, Home/End jump to first/last, Escape closes
+                // and returns focus to the trigger.
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  setIsViewDropdownOpen(false)
+                  viewDropdownRef.current?.querySelector<HTMLButtonElement>(
+                    'button[aria-haspopup="menu"]'
+                  )?.focus()
+                  return
+                }
+                const items = Array.from(
+                  viewDropdownRef.current?.querySelectorAll<HTMLButtonElement>(
+                    '[role="menuitem"]'
+                  ) ?? []
+                )
+                if (items.length === 0) return
+                const currentIndex = items.findIndex((el) => el === document.activeElement)
+                let nextIndex = currentIndex
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault()
+                  nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % items.length
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault()
+                  nextIndex = currentIndex < 0 ? items.length - 1 : (currentIndex - 1 + items.length) % items.length
+                } else if (e.key === 'Home') {
+                  e.preventDefault()
+                  nextIndex = 0
+                } else if (e.key === 'End') {
+                  e.preventDefault()
+                  nextIndex = items.length - 1
+                } else {
+                  return
+                }
+                items[nextIndex]?.focus()
+              }}
             >
               {VIEWS.filter(v => (journalEnabled || v.value !== 'journal') && (contactsEnabled || v.value !== 'contacts')).map((view, index) => (
                 <React.Fragment key={view.value}>
@@ -418,6 +460,7 @@ export function CalendarHeader({
                       setIsViewDropdownOpen(false)
                     }}
                     role="menuitem"
+                    tabIndex={isViewDropdownOpen ? 0 : -1}
                   >
                     {view.label}
                   </button>

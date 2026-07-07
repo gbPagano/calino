@@ -40,7 +40,13 @@ describe('CalendarHeader', () => {
 
   it('renders today button', () => {
     renderWithRouter(<CalendarHeader />)
-    expect(screen.getByRole('button', { name: /today/i })).toBeInTheDocument()
+    // R3 review: the header now has TWO "today"-named buttons (the
+    // "Today" navigator and the title group with aria-label "Go to
+    // today" when in month view). Scope to the navigator via
+    // data-component.
+    expect(
+      document.querySelector('[data-component="today-button"]')
+    ).toBeInTheDocument()
   })
 
   it('renders navigation buttons', () => {

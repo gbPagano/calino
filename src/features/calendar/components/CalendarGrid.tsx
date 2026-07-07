@@ -80,6 +80,10 @@ export function CalendarGrid(): JSX.Element {
     [selectedCategoryIds, categories]
   )
   const getEventsForDateRange = useCalendarStore((state) => state.getEventsForDateRange)
+  // R4.3: primitive version counter is a stable dep for the per-range memos
+  // below (replaces the raw `events` array ref which would force a re-run on
+  // every mutation even when the visible range's result is unchanged).
+  const rangeExpansionVersion = useCalendarStore((state) => state.rangeExpansionVersion)
   const openModal = useCalendarStore((state) => state.openModal)
   const storeUpdateEvent = useCalendarStore((state) => state.updateEvent)
   const setCurrentDate = useCalendarStore((state) => state.setCurrentDate)
@@ -440,7 +444,7 @@ export function CalendarGrid(): JSX.Element {
     })
 
     return map
-  }, [date, firstDayOfWeek, events, calendars, selectedCategoryNames, getEventsForDateRange])
+  }, [date, firstDayOfWeek, rangeExpansionVersion, calendars, selectedCategoryNames, getEventsForDateRange])
 
   const tasksMap = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()
@@ -467,7 +471,7 @@ export function CalendarGrid(): JSX.Element {
     return map
   }, [events, calendars, hideCompletedTasksInMonthView, selectedCategoryNames])
 
-  const journalDates = useMemo(() => getJournalDates(events), [events])
+  const journalDates = useMemo(() => getJournalDates(events), [events, rangeExpansionVersion])
 
   const handleGridResizeStart = (e: React.MouseEvent): void => {
     e.preventDefault()

@@ -104,6 +104,9 @@ export function WeekView(): JSX.Element {
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
   const getEventsForDateRange = useCalendarStore((state) => state.getEventsForDateRange)
+  // Subscribed to a primitive counter so the eventsMap memo only depends on
+  // a number, not the events array reference (R4.3).
+  const rangeExpansionVersion = useCalendarStore((state) => state.rangeExpansionVersion)
   const openModal = useCalendarStore((state) => state.openModal)
   const storeUpdateEvent = useCalendarStore((state) => state.updateEvent)
   const setCurrentDate = useCalendarStore((state) => state.setCurrentDate)
@@ -291,7 +294,7 @@ export function WeekView(): JSX.Element {
     }
 
     return { allDayEventsMap: allDay, eventsMap: timed, timedFragmentsMap: timedFragments }
-  }, [date, firstDayOfWeek, getEventsForDateRange, events])
+  }, [date, firstDayOfWeek, getEventsForDateRange, rangeExpansionVersion])
 
   const tasksMap = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()
@@ -309,7 +312,7 @@ export function WeekView(): JSX.Element {
         map.set(taskDate, [...existing, task])
       })
     return map
-  }, [events, calendars])
+  }, [events, calendars, rangeExpansionVersion])
 
   const bodyRef = useRef<HTMLDivElement>(null)
   const lastDateRef = useRef(date.toISOString())

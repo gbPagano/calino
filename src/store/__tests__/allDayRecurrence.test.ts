@@ -79,6 +79,70 @@ describe('all-day recurrence expansion', () => {
     expect(third.length).toBe(first.length + 1)
   })
 
+  it('invalidates the cache when calendar visibility is toggled (R4.1)', () => {
+    const store = useCalendarStore.getState()
+    store.addEvent({
+      id: 'visible',
+      calendarId: defaultCalId(),
+      title: 'Visible',
+      start: '2026-03-06T10:00:00',
+      end: '2026-03-06T11:00:00',
+      isAllDay: false,
+    })
+    // Add a second calendar with an event that is initially hidden.
+    store.addCalendar({
+      id: 'cal-extra',
+      name: 'Extra',
+      color: '#00f',
+      isVisible: true,
+      isDefault: false,
+      showTasksInViews: false,
+    })
+    store.addEvent({
+      id: 'invisible',
+      calendarId: 'cal-extra',
+      title: 'Invisible',
+      start: '2026-03-06T12:00:00',
+      end: '2026-03-06T13:00:00',
+      isAllDay: false,
+    })
+
+    const first = useCalendarStore.getState().getEventsForDateRange('2026-03-06', '2026-03-06')
+    expect(first.find((e) => e.title === 'Invisible')).toBeDefined()
+
+    // Toggling visibility of the second calendar must invalidate the cache
+    // (regression guard for the version counter — without the bump on
+    // toggleCalendarVisibility the cached array would still include the
+    // now-hidden event).
+    store.toggleCalendarVisibility('cal-extra')
+    const second = useCalendarStore.getState().getEventsForDateRange('2026-03-06', '2026-03-06')
+    expect(second).not.toBe(first)
+    expect(second.find((e) => e.title === 'Invisible')).toBeUndefined()
+  })
+
+  it('invalidates the cache when the category filter changes (R4.1)', () => {
+    const store = useCalendarStore.getState()
+    store.addCategory({ id: 'cat-1', name: 'Work', color: '#f00' })
+    store.addEvent({
+      id: 'work',
+      calendarId: defaultCalId(),
+      title: 'Standup',
+      start: '2026-03-06T10:00:00',
+      end: '2026-03-06T11:00:00',
+      isAllDay: false,
+      categories: ['Work'],
+    })
+
+    const unfiltered = useCalendarStore.getState().getEventsForDateRange('2026-03-06', '2026-03-06')
+    expect(unfiltered).toHaveLength(1)
+
+    // Apply the filter — cached result must NOT bleed through.
+    store.toggleCategoryFilter('cat-1')
+    const filtered = useCalendarStore.getState().getEventsForDateRange('2026-03-06', '2026-03-06')
+    expect(filtered).not.toBe(unfiltered)
+    expect(filtered).toHaveLength(1) // matches the only Work event
+  })
+
   it('preserves a multi-day all-day span in each occurrence', () => {
     const store = useCalendarStore.getState()
     // 3-day all-day event: end is exclusive midnight 3 days later.

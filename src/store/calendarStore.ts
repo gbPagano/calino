@@ -10,18 +10,30 @@ import { buildRRuleString } from '@/lib/recurrence'
 import { deleteAttachments } from '@/lib/attachmentStore'
 
 // Memo cache for getEventsForDateRange. Keyed by the range; a cached result is
-// reused only when the underlying inputs are still reference-identical (store
-// actions always replace these arrays on mutation, so this is safe). This avoids
-// re-expanding recurrences when multiple components request the same range or a
-// component re-renders without any relevant state change.
+// reused only when its stored `version` matches the current
+// `rangeExpansionVersion` AND the relevant visibility filters are still
+// reference-identical (calendars / categories / selectedCategoryIds). This
+// avoids re-expanding recurrences when multiple components request the same
+// range or a component re-renders without any relevant state change.
+//
+// Why a version counter rather than reference-equality on `events`:
+// The naive check (`cached.events === state.events`) is correct but couples
+// the cache lifetime to a single field. Any store action that doesn't touch
+// the events array (e.g. toggleCalendarVisibility) would silently miss the
+// invalidation. With a counter bumped by every mutation that affects the
+// query result, the invalidation contract is in one place.
+let rangeExpansionVersion = 0
 interface RangeCacheEntry {
-  events: CalendarEvent[]
+  version: number
   calendars: Calendar[]
   categories: Category[]
   selectedCategoryIds: string[]
   result: CalendarEvent[]
 }
 const rangeExpansionCache = new Map<string, RangeCacheEntry>()
+const bumpRangeExpansionVersion = (): void => {
+  rangeExpansionVersion++
+}
 
 export const selectOpenModal = (state: CalendarStore) => state.openModal
 export const selectOpenJournalModal = (state: CalendarStore) => state.openJournalModal
@@ -38,6 +50,7 @@ export const selectAddCategory = (state: CalendarStore) => state.addCategory
 export const selectCategories = (state: CalendarStore) => state.categories
 export const selectSetCurrentView = (state: CalendarStore) => state.setCurrentView
 export const selectSetCurrentDate = (state: CalendarStore) => state.setCurrentDate
+export const selectRangeExpansionVersion = (state: CalendarStore) => state.rangeExpansionVersion
 
 const DEFAULT_CALENDAR: Calendar = {
   id: 'default',
@@ -59,7 +72,11 @@ export const useCalendarStore = create<CalendarStore>()(
       selectedCategoryIds: [],
       currentDate: format(new Date(), 'yyyy-MM-dd'),
       currentView: config.defaultView,
-selectedEventId: null,
+      // Bumped by every mutation that affects getEventsForDateRange results.
+      // Excluded from persistence (see partialize below) so it stays in sync
+      // with the module-level rangeExpansionCache, which is also non-persistent.
+      rangeExpansionVersion: 0,
+      selectedEventId: null,
       isModalOpen: false,
       selectedDate: null,
       selectedEndDate: null,
@@ -104,6 +121,7 @@ selectedEventId: null,
         set((state) => ({
           events: [...state.events, finalEvent],
         }))
+        bumpRangeExpansionVersion()
       },
 
       updateEvent: (id: string, updates: Partial<CalendarEvent>): void => {
@@ -157,6 +175,7 @@ selectedEventId: null,
         set((state) => ({
           events: state.events.map((e) => (e.id === id ? { ...e, ...safeUpdates } : e)),
         }))
+        bumpRangeExpansionVersion()
       },
 
       deleteEvent: (id: string): void => {
@@ -165,6 +184,7 @@ selectedEventId: null,
         set((state) => ({
           events: state.events.filter((e) => e.id !== id),
         }))
+        bumpRangeExpansionVersion()
       },
 
       addBrokenEvent: (event: CalendarEvent, reason: string): void => {
@@ -225,6 +245,7 @@ selectedEventId: null,
         set((state) => ({
           events: [...state.events, newEvent],
         }))
+        bumpRangeExpansionVersion()
 
         return newEvent.id
       },
@@ -242,12 +263,14 @@ selectedEventId: null,
           }
           return { calendars: [...state.calendars, calendar] }
         })
+        bumpRangeExpansionVersion()
       },
 
       updateCalendar: (id: string, updates: Partial<Calendar>): void => {
         set((state) => ({
           calendars: state.calendars.map((c) => (c.id === id ? { ...c, ...updates } : c)),
         }))
+        bumpRangeExpansionVersion()
       },
 
       deleteCalendar: (id: string): void => {
@@ -263,6 +286,7 @@ selectedEventId: null,
             events: state.events.filter((e) => e.calendarId !== id),
           }
         })
+        bumpRangeExpansionVersion()
       },
 
       toggleCalendarVisibility: (id: string): void => {
@@ -271,6 +295,7 @@ selectedEventId: null,
             c.id === id ? { ...c, isVisible: !c.isVisible } : c
           ),
         }))
+        bumpRangeExpansionVersion()
       },
 
       setDefaultCalendar: (id: string): void => {
@@ -282,12 +307,14 @@ selectedEventId: null,
             isDefault: c.id === id,
           })),
         }))
+        bumpRangeExpansionVersion()
       },
 
       addCategory: (category: Category): void => {
         set((state) => ({
           categories: [...state.categories, category],
         }))
+        bumpRangeExpansionVersion()
       },
 
       updateCategory: (id: string, updates: Partial<Category>): void => {
@@ -321,6 +348,7 @@ selectedEventId: null,
             })),
           }
         })
+        bumpRangeExpansionVersion()
       },
 
       deleteCategory: (id: string): void => {
@@ -337,6 +365,7 @@ selectedEventId: null,
             })),
           }
         })
+        bumpRangeExpansionVersion()
       },
 
       addAutoCategoryRule: (rule: AutoCategoryRule): void => {
@@ -366,6 +395,7 @@ selectedEventId: null,
           ? [...current, categoryId]
           : current.filter((id) => id !== categoryId)
         set({ selectedCategoryIds: newValue })
+        bumpRangeExpansionVersion()
       },
 
       setCurrentDate: (date: string): void => {
@@ -439,7 +469,7 @@ selectedEventId: null,
         const cached = rangeExpansionCache.get(cacheKey)
         if (
           cached &&
-          cached.events === state.events &&
+          cached.version === rangeExpansionVersion &&
           cached.calendars === state.calendars &&
           cached.categories === state.categories &&
           cached.selectedCategoryIds === state.selectedCategoryIds
@@ -664,7 +694,7 @@ selectedEventId: null,
           rangeExpansionCache.clear()
         }
         rangeExpansionCache.set(cacheKey, {
-          events: state.events,
+          version: rangeExpansionVersion,
           calendars: state.calendars,
           categories: state.categories,
           selectedCategoryIds: state.selectedCategoryIds,

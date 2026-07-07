@@ -146,6 +146,15 @@ export interface CalendarState {
   isJournalModalOpen: boolean
   journalModalDate: string | null
   journalStartInCompose: boolean
+  /**
+   * Bumped by every store action that affects the result of
+   * `getEventsForDateRange` (add/update/delete events, add/update/delete
+   * calendars & categories, toggle calendar visibility, change the selected
+   * category filter). Used to invalidate the range-expansion cache and as a
+   * stable dep in `useMemo` callers that derive per-range structures
+   * (WeekView, CalendarGrid). Excluded from persistence.
+   */
+  rangeExpansionVersion: number
 }
 
 export interface CalendarActions {

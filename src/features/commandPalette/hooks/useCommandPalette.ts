@@ -315,7 +315,10 @@ export function useCommandPalette({ toggleSidebar, sidebarOpen }: UseCommandPale
         .filter((cmd) => {
           const labelMatch = cmd.label.toLowerCase().includes(filter)
           const keywordMatch = cmd.keywords.some((kw) => kw.toLowerCase().includes(filter))
-          const descMatch = cmd.description?.toLowerCase().includes(filter)
+          // Description may be a function for live date-dependent text; resolve
+          // it for filter matching.
+          const descText = typeof cmd.description === 'function' ? cmd.description() : cmd.description
+          const descMatch = descText?.toLowerCase().includes(filter)
           return labelMatch || keywordMatch || descMatch
         })
         .slice(0, 8)
@@ -369,9 +372,12 @@ export function useCommandPalette({ toggleSidebar, sidebarOpen }: UseCommandPale
 // --- builders ---
 
 function commandToItem(cmd: Command): CommandPaletteItem {
+  // Description may be a function (for live date-dependent text); resolve it
+  // for the cmdk `value` field so it participates in fuzzy matching.
+  const descText = typeof cmd.description === 'function' ? cmd.description() : cmd.description
   return {
     id: cmd.id,
-    value: `${cmd.label} ${cmd.keywords.join(' ')} ${cmd.description ?? ''}`,
+    value: `${cmd.label} ${cmd.keywords.join(' ')} ${descText ?? ''}`,
     group: categoryToGroup(cmd.category),
     keywords: cmd.keywords,
     shortcut: cmd.shortcut,

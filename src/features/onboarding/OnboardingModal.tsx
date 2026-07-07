@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAnimatedClose } from '@/hooks/useAnimatedClose'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useSettingsStore, EVENT_COLORS } from '@/store/settingsStore'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useContactStore } from '@/store/contactStore'
@@ -32,6 +33,26 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
   const isOpen = !(hasCompletedOnboarding || hasPreconfiguredAccounts)
   const noop = useCallback(() => {}, [])
   const { rendered, closing } = useAnimatedClose(isOpen, noop, 200)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  useFocusTrap(contentRef, rendered && !closing)
+
+  // Escape dismisses the onboarding modal — the generic Modal component
+  // handles this for itself, but OnboardingModal uses a custom backdrop
+  // so it needs its own keydown handler.
+  useEffect(() => {
+    if (!rendered || closing) return
+    const handleKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        // Update the setting so the closing animation runs; the hook
+        // detects the open→close transition and unmounts.
+        useSettingsStore.getState().updateSettings({ hasCompletedOnboarding: true })
+      }
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [rendered, closing])
 
   if (!rendered) {
     return null
@@ -144,14 +165,20 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
     }
   }
 
-  return (
-    <div
-      className={`${styles.modal} ${closing ? styles.closing : ''}`}
-      onClick={handleBackdropClick}
-    >
-      <div className={styles.modalContent} role="dialog" aria-modal="true">
+    return (
+      <div
+        className={`${styles.modal} ${closing ? styles.closing : ''}`}
+        onClick={handleBackdropClick}
+      >
+        <div
+          ref={contentRef}
+          className={styles.modalContent}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="onboarding-title"
+        >
 
-        <h2 className={styles.title}>Your calendar stays private</h2>
+        <h2 className={styles.title} id="onboarding-title">Your calendar stays private</h2>
 
         <p className={styles.description}>
           All your events are stored locally in your browser. Calino doesn't send any data to
@@ -177,8 +204,30 @@ export function OnboardingModal({ onAddCalendar }: OnboardingModalProps): JSX.El
                 className={styles.demoButton}
                 onClick={handleLoadDemoData}
                 disabled={isLoadingDemo}
+                data-component="demo-button"
               >
-                {isLoadingDemo ? 'Loading...' : 'Try with sample data'}
+                {isLoadingDemo && (
+                  <svg
+                    className={styles.demoButtonSpinner}
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    aria-hidden="true"
+                    data-component="demo-spinner"
+                  >
+                    <circle
+                      cx="7"
+                      cy="7"
+                      r="5.5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeDasharray="20 12"
+                    />
+                  </svg>
+                )}
+                {isLoadingDemo ? 'Loading…' : 'Try with sample data'}
               </button>
               <button className={styles.skipButton} onClick={handleDismiss}>
                 I'll do it later

@@ -1,6 +1,10 @@
 import { toast as sonnerToast } from 'sonner'
 
-const APP_KEY_PREFIX = 'calino-'
+// Calino state lives under two prefixes depending on age of the key:
+// modern zustand-persisted slices use `calino-` (hyphen), but the CalDAV
+// account storage (predates the unified prefix) uses `calino_` (underscore).
+// `clear()` must remove BOTH so the user can actually wipe Calino data.
+const APP_KEY_PREFIXES = ['calino-', 'calino_'] as const
 
 function getLocalStorage(): Storage | null {
   try {
@@ -67,7 +71,7 @@ export const safeLocalStorage: Storage = {
       const keysToRemove: string[] = []
       for (let i = 0; i < ls.length; i++) {
         const key = ls.key(i)
-        if (key && key.startsWith(APP_KEY_PREFIX)) {
+        if (key && APP_KEY_PREFIXES.some((p) => key.startsWith(p))) {
           keysToRemove.push(key)
         }
       }

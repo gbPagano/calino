@@ -57,17 +57,21 @@ const ICONS = {
 } as const
 
 const createNavigationCommands = (deps: CommandFactoryDeps): Command[] => {
-  const today = new Date()
+  // NOTE: don't capture `new Date()` here — registry is built once per render
+  // but the palette can stay open across midnight, and computed descriptions
+  // are still rendered (search filter + CommandItem) on every keystroke.
+  // Each action computes its own `today` so results stay correct.
   return [
     {
       id: 'nav-today',
       label: 'Go to Today',
-      description: format(today, 'EEEE, d MMMM yyyy'),
+      description: () => format(new Date(), 'EEEE, d MMMM yyyy'),
       category: 'navigation',
       keywords: ['today', 'current', 'now', 'home'],
       shortcut: 'T',
       icon: ICONS.calendar,
       action: () => {
+        const today = new Date()
         deps.setCurrentDate(format(today, 'yyyy-MM-dd'))
         return 'Navigated to today'
       },
@@ -75,64 +79,75 @@ const createNavigationCommands = (deps: CommandFactoryDeps): Command[] => {
     {
       id: 'nav-tomorrow',
       label: 'Go to Tomorrow',
-      description: format(addDays(today, 1), 'EEEE, d MMMM yyyy'),
+      description: () => format(addDays(new Date(), 1), 'EEEE, d MMMM yyyy'),
       category: 'navigation',
       keywords: ['tomorrow', 'next day'],
       icon: ICONS.chevronRight,
       action: () => {
-        deps.setCurrentDate(format(addDays(today, 1), 'yyyy-MM-dd'))
+        const tomorrow = addDays(new Date(), 1)
+        deps.setCurrentDate(format(tomorrow, 'yyyy-MM-dd'))
         return 'Navigated to tomorrow'
       },
     },
     {
       id: 'nav-next-week',
       label: 'Next Week',
-      description: `${format(addWeeks(today, 1), 'd MMM')} – ${format(addWeeks(today, 1), 'd MMM')}`,
+      description: () => {
+        const next = addWeeks(new Date(), 1)
+        return `${format(next, 'd MMM')} – ${format(next, 'd MMM')}`
+      },
       category: 'navigation',
       keywords: ['next week', 'forward'],
       icon: ICONS.skipForward,
       shortcut: ']',
       action: () => {
-        deps.setCurrentDate(format(addWeeks(today, 1), 'yyyy-MM-dd'))
+        const next = addWeeks(new Date(), 1)
+        deps.setCurrentDate(format(next, 'yyyy-MM-dd'))
         return 'Navigated to next week'
       },
     },
     {
       id: 'nav-prev-week',
       label: 'Previous Week',
-      description: `${format(subWeeks(today, 1), 'd MMM')} – ${format(subWeeks(today, 1), 'd MMM')}`,
+      description: () => {
+        const prev = subWeeks(new Date(), 1)
+        return `${format(prev, 'd MMM')} – ${format(prev, 'd MMM')}`
+      },
       category: 'navigation',
       keywords: ['previous week', 'last week', 'back'],
       icon: ICONS.skipBack,
       shortcut: '[',
       action: () => {
-        deps.setCurrentDate(format(subWeeks(today, 1), 'yyyy-MM-dd'))
+        const prev = subWeeks(new Date(), 1)
+        deps.setCurrentDate(format(prev, 'yyyy-MM-dd'))
         return 'Navigated to previous week'
       },
     },
     {
       id: 'nav-next-month',
       label: 'Next Month',
-      description: format(addMonths(today, 1), 'MMMM yyyy'),
+      description: () => format(addMonths(new Date(), 1), 'MMMM yyyy'),
       category: 'navigation',
       keywords: ['next month'],
       icon: ICONS.skipForward,
       shortcut: '⇧]',
       action: () => {
-        deps.setCurrentDate(format(addMonths(today, 1), 'yyyy-MM-dd'))
+        const next = addMonths(new Date(), 1)
+        deps.setCurrentDate(format(next, 'yyyy-MM-dd'))
         return 'Navigated to next month'
       },
     },
     {
       id: 'nav-prev-month',
       label: 'Previous Month',
-      description: format(subMonths(today, 1), 'MMMM yyyy'),
+      description: () => format(subMonths(new Date(), 1), 'MMMM yyyy'),
       category: 'navigation',
       keywords: ['previous month', 'last month'],
       icon: ICONS.skipBack,
       shortcut: '⇧[',
       action: () => {
-        deps.setCurrentDate(format(subMonths(today, 1), 'yyyy-MM-dd'))
+        const prev = subMonths(new Date(), 1)
+        deps.setCurrentDate(format(prev, 'yyyy-MM-dd'))
         return 'Navigated to previous month'
       },
     },

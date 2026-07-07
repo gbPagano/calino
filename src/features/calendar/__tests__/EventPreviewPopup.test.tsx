@@ -151,7 +151,7 @@ describe('EventPreviewPopup', () => {
     expect(screen.getByLabelText('Delete')).toBeInTheDocument()
   })
 
-  it('closes popup when Escape is pressed', () => {
+  it('closes popup when Escape is pressed', async () => {
     const store = useCalendarStore.getState()
     store.openPreview('test-event-1', mockPosition)
 
@@ -161,7 +161,12 @@ describe('EventPreviewPopup', () => {
 
     fireEvent.keyDown(document, { key: 'Escape' })
 
-    expect(useCalendarStore.getState().previewEventId).toBeNull()
+    // R3.10 removed the duplicate immediate-close handler. Escape now
+    // triggers animateClose() (150ms close animation), then closePreview()
+    // clears previewEventId. Wait for that to settle.
+    await waitFor(() => {
+      expect(useCalendarStore.getState().previewEventId).toBeNull()
+    })
   })
 
   it('makes title editable when clicked', () => {

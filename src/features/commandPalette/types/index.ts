@@ -5,7 +5,10 @@ export type CommandCategory = 'navigation' | 'actions' | 'settings' | 'event'
 export interface Command {
   id: string
   label: string
-  description?: string
+  // A function description is recomputed each time the palette renders
+  // (e.g. "Go to Today" needs today's date, not a date captured at
+  // registry-build time — otherwise it goes stale at midnight).
+  description?: string | (() => string)
   category: CommandCategory
   keywords: string[]
   shortcut?: string

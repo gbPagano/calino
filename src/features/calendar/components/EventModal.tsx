@@ -567,6 +567,21 @@ export function EventModal(): JSX.Element | null {
       return
     }
 
+    // End-before-start validation. R3.4 — the modal used to accept
+    // negative-duration events. We only check inside the same handler
+    // (not saveEvent) so the same toast UX reaches the user as title-empty.
+    if (!isAllDay) {
+      const startMs = new Date(`${startDate}T${startTime}:00`).getTime()
+      const endMs = new Date(`${endDate}T${endTime}:00`).getTime()
+      if (endMs <= startMs) {
+        showToast('End time must be after start time')
+        return
+      }
+    } else if (endDate < startDate) {
+      showToast('End date must be on or after start date')
+      return
+    }
+
     if (isEditing && isRecurringEvent && hasChanges) {
       setShowRecurrenceDialog(true)
       return
@@ -574,6 +589,17 @@ export function EventModal(): JSX.Element | null {
 
     saveEvent('all')
   }
+
+  // R3.4 — derived flag used by the Save button to disable itself
+  // before the user attempts to submit.
+  const isTimeRangeInvalid = ((): boolean => {
+    if (!isAllDay) {
+      const startMs = new Date(`${startDate}T${startTime}:00`).getTime()
+      const endMs = new Date(`${endDate}T${endTime}:00`).getTime()
+      return endMs <= startMs
+    }
+    return endDate < startDate
+  })()
 
   const saveEvent = async (mode: RecurrenceEditMode): Promise<void> => {
     if (isEditing && !hasChanges) {
@@ -1251,7 +1277,7 @@ export function EventModal(): JSX.Element | null {
               <button type="button" className={styles.modalCancel} onClick={animateClose}>
                 Cancel
               </button>
-              <button type="submit" className={styles.modalSave} disabled={!title.trim()} data-component="modal-save">
+              <button type="submit" className={styles.modalSave} disabled={!title.trim() || isTimeRangeInvalid} data-component="modal-save">
                 {isEditing ? 'Save' : 'Create'}
               </button>
             </div>

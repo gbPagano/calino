@@ -18,6 +18,7 @@ export function renderCommandItemContent({
 }: CommandItemContentProps): JSX.Element {
   if (type === 'command') {
     const cmd = item as Command
+    const desc = typeof cmd.description === 'function' ? cmd.description() : cmd.description
     return (
       <>
         {cmd.icon && (
@@ -28,7 +29,7 @@ export function renderCommandItemContent({
         )}
         <div className={styles.body}>
           <div className={styles.title}>{cmd.label}</div>
-          {cmd.description && <div className={styles.desc}>{cmd.description}</div>}
+          {desc && <div className={styles.desc}>{desc}</div>}
         </div>
         {cmd.shortcut && <kbd className={styles.kbd}>{cmd.shortcut}</kbd>}
       </>

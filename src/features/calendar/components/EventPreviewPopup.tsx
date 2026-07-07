@@ -455,20 +455,6 @@ export function EventPreviewPopup({
   })()
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') {
-        if (editingField) {
-          cancelEditingRef.current()
-        } else {
-          closePreview()
-        }
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [closePreview, editingField])
-
-  useEffect(() => {
     const handleContextMenu = (): void => {
       closePreview()
     }

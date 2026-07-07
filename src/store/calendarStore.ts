@@ -202,6 +202,20 @@ export const useCalendarStore = create<CalendarStore>()(
         }))
       },
 
+      /**
+       * Bump the range-expansion version counter without mutating events.
+       *
+       * Public for the history store (and any other code that calls
+       * `useCalendarStore.setState(...)` directly, bypassing the
+       * per-action `bumpRangeExpansionVersion()` calls). Callers that
+       * mutate `events`, `calendars`, or `categories` via setState
+       * must invoke this afterwards so the range-expansion cache and
+       * any `useMemo` consumers see the new state. R4.1/R4.3.
+       */
+      bumpVersion: (): void => {
+        bumpRangeExpansionVersion()
+      },
+
       fixBrokenEvent: (eventId: string): void => {
         const brokenEvent = get().brokenEvents.find((be) => be.event.id === eventId)
         if (!brokenEvent) return

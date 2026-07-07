@@ -27,9 +27,13 @@ export function useSearch() {
   useEffect(() => {
     // Debounce index rebuild to avoid Fuse.js reconstructing on every
     // events mutation during bulk operations (sync, import, rapid edits).
+    // R4.5: updateSearchIndex returns a Promise that resolves after the
+    // deferred setCollection has run; bump indexVersion inside .then() so
+    // memoized search results recompute against the fresh index.
     const timer = setTimeout(() => {
-      updateSearchIndex(events)
-      setIndexVersion((v) => v + 1)
+      updateSearchIndex(events).then(() => {
+        setIndexVersion((v) => v + 1)
+      })
     }, 500)
     return () => clearTimeout(timer)
   }, [events])

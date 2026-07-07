@@ -144,7 +144,7 @@ describe('searchIndex', () => {
   })
 
   describe('updateSearchIndex', () => {
-    it('updates the search index with new events', () => {
+    it('updates the search index with new events', async () => {
       const newEvents: CalendarEvent[] = [
         ...mockEvents,
         {
@@ -157,7 +157,10 @@ describe('searchIndex', () => {
         },
       ]
 
-      updateSearchIndex(newEvents)
+      // R4.5: updateSearchIndex defers the Fuse.js setCollection to idle
+      // time. Await the returned promise to make the new collection
+      // visible to subsequent searches.
+      await updateSearchIndex(newEvents)
 
       const results = search('new event')
       expect(results).toHaveLength(1)

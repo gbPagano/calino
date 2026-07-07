@@ -96,14 +96,26 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
       // When embedded, skip all tasks (shown in DayView header)
       if (embedded && event.type === 'task') return
       const eventDate = format(parseISO(event.start), 'yyyy-MM-dd')
-      const existing = eventMap.get(eventDate) || []
-      eventMap.set(eventDate, [...existing, { event, date: parseISO(event.start) }])
+      // R4.6: push onto a stable array instead of spreading into a new
+      // one. The previous `eventMap.set(k, [...existing, item])` was
+      // O(k.length) per event, so for a day with N events it was O(N²)
+      // total just to build the map. With push it's O(N).
+      let arr = eventMap.get(eventDate)
+      if (!arr) {
+        arr = []
+        eventMap.set(eventDate, arr)
+      }
+      arr.push({ event, date: parseISO(event.start) })
 
       if (!event.isAllDay) {
         const eventEndDate = format(parseISO(event.end), 'yyyy-MM-dd')
         if (eventEndDate !== eventDate) {
-          const endExisting = eventMap.get(eventEndDate) || []
-          eventMap.set(eventEndDate, [...endExisting, { event, date: parseISO(event.end) }])
+          let endArr = eventMap.get(eventEndDate)
+          if (!endArr) {
+            endArr = []
+            eventMap.set(eventEndDate, endArr)
+          }
+          endArr.push({ event, date: parseISO(event.end) })
         }
       }
     })

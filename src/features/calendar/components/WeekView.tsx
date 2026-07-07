@@ -294,7 +294,7 @@ export function WeekView(): JSX.Element {
     }
 
     return { allDayEventsMap: allDay, eventsMap: timed, timedFragmentsMap: timedFragments }
-  }, [date, firstDayOfWeek, getEventsForDateRange, rangeExpansionVersion])
+  }, [date, firstDayOfWeek, getEventsForDateRange, events, rangeExpansionVersion])
 
   const tasksMap = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()

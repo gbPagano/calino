@@ -444,7 +444,7 @@ export function CalendarGrid(): JSX.Element {
     })
 
     return map
-  }, [date, firstDayOfWeek, rangeExpansionVersion, calendars, selectedCategoryNames, getEventsForDateRange])
+  }, [date, firstDayOfWeek, events, rangeExpansionVersion, calendars, selectedCategoryNames, getEventsForDateRange])
 
   const tasksMap = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()

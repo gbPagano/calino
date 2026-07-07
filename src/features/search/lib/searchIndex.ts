@@ -330,19 +330,47 @@ export function getSearchInstance(): Fuse<CalendarEvent> | null {
   return fuseInstance
 }
 
+/**
+ * Rebuild the search index with the given events.
+ *
+ * Returns a Promise that resolves when the index is ready. R4.5: the
+ * `setCollection` work is deferred to idle time (or setTimeout(0) in
+ * environments without `requestIdleCallback`) so a large sync doesn't
+ * block the main thread and stutter the sync progress UI. Callers that
+ * need to read the fresh index must `await` the returned promise —
+ * `indexedEvents` (used by filter-only mode) is updated synchronously
+ * and is therefore visible immediately.
+ */
 export function updateSearchIndex(
   events: CalendarEvent[],
   options?: SearchOptions
-): void {
+): Promise<void> {
+  // `indexedEvents` is read by filter-only mode and must reflect the new
+  // collection synchronously, before the deferred setCollection runs.
   indexedEvents = events
   if (fuseInstance) {
     if (options) {
       // Re-initialize with new options
       initializeSearchIndex(events, options)
-    } else {
-      fuseInstance.setCollection(events)
+      return Promise.resolve()
     }
-  } else {
-    initializeSearchIndex(events, options)
+    return new Promise<void>((resolve) => {
+      if (typeof globalThis.requestIdleCallback === 'function') {
+        globalThis.requestIdleCallback(
+          () => {
+            fuseInstance!.setCollection(events)
+            resolve()
+          },
+          { timeout: 1000 },
+        )
+      } else {
+        setTimeout(() => {
+          fuseInstance!.setCollection(events)
+          resolve()
+        }, 0)
+      }
+    })
   }
+  initializeSearchIndex(events, options)
+  return Promise.resolve()
 }

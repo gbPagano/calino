@@ -165,6 +165,13 @@ export interface CalendarActions {
   removeBrokenEvent: (eventId: string) => void
   fixBrokenEvent: (eventId: string) => void
   duplicateEvent: (id: string) => string | null
+  /**
+   * Bump the range-expansion version counter without mutating events.
+   * Required after any `setState` call that mutates events/calendars/
+   * categories, so the range-expansion cache and per-view memos
+   * invalidate. R4.1/R4.3 — primarily for the history store.
+   */
+  bumpVersion: () => void
   addCalendar: (calendar: Calendar) => void
   updateCalendar: (id: string, updates: Partial<Calendar>) => void
   deleteCalendar: (id: string) => void

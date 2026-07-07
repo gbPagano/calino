@@ -39,7 +39,7 @@ describe('Bug #99: filterCollection uses stored events instead of Fuse internals
     expect(results).toHaveLength(2)
   })
 
-  it('updateSearchIndex preserves filter-only functionality', () => {
+  it('updateSearchIndex preserves filter-only functionality', async () => {
     const newEvents = [
       ...events,
       {
@@ -51,7 +51,10 @@ describe('Bug #99: filterCollection uses stored events instead of Fuse internals
         isAllDay: false,
       },
     ]
-    updateSearchIndex(newEvents)
+    // R4.5: indexedEvents (used by filter-only mode) is updated
+    // synchronously, so this test doesn't strictly need to await —
+    // but awaiting matches the new contract and makes the intent clear.
+    await updateSearchIndex(newEvents)
 
     const results = search('', { calendarIds: ['cal3'] })
     expect(results).toHaveLength(1)

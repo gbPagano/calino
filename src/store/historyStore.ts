@@ -39,6 +39,11 @@ function restoreSnapshot(snapshot: Snapshot): void {
     events: snapshot.events,
     calendars: snapshot.calendars,
   })
+  // R4.1/R4.3: undo/redo bypasses the calendar store's per-action
+  // `bumpRangeExpansionVersion()` calls. Bump the counter explicitly so
+  // the range-expansion cache and per-view useMemos (WeekView,
+  // CalendarGrid) invalidate and re-read the restored snapshot.
+  useCalendarStore.getState().bumpVersion()
 }
 
 export const useHistoryStore = create<HistoryState>((set, get) => ({

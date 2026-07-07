@@ -1,4 +1,4 @@
-import type { JSX } from 'react'
+import type { JSX, MouseEvent as ReactMouseEvent } from 'react'
 import { useCallback, useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
@@ -76,6 +76,7 @@ const VIEW_ROUTES: Record<ViewType, string> = {
   month: '/month',
   year: '/year',
   week: '/week',
+  '3day': '/3day',
   day: '/day',
   agenda: '/agenda',
   todo: '/tasks',
@@ -87,6 +88,7 @@ const URL_TO_VIEW: Record<string, ViewType> = {
   '/month': 'month',
   '/year': 'year',
   '/week': 'week',
+  '/3day': '3day',
   '/day': 'day',
   '/agenda': 'agenda',
   '/tasks': 'todo',
@@ -94,7 +96,7 @@ const URL_TO_VIEW: Record<string, ViewType> = {
   '/contacts': 'contacts',
 }
 
-const VIEW_ORDER: ViewType[] = ['month', 'year', 'week', 'day', 'agenda', 'todo', 'journal', 'contacts']
+const VIEW_ORDER: ViewType[] = ['month', 'year', 'week', '3day', 'day', 'agenda', 'todo', 'journal', 'contacts']
 
 function useViewManager(): void {
   const navigate = useNavigate()
@@ -216,6 +218,8 @@ function CalendarApp(): JSX.Element {
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed)
+  const agendaSidebarOpen = useSettingsStore((state) => state.agendaSidebarOpen)
+  const agendaSidebarWidth = useSettingsStore((state) => state.agendaSidebarWidth)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false)
   const isMobile = useIsMobile()
@@ -334,6 +338,8 @@ function CalendarApp(): JSX.Element {
           return <YearView />
         case 'week':
           return <WeekView />
+        case '3day':
+          return <WeekView dayCount={3} />
         case 'day':
           return <DayView />
         case 'agenda':
@@ -370,6 +376,30 @@ function CalendarApp(): JSX.Element {
     setOverlayOpen(true)
   }, [setOverlayOpen])
 
+  // Right-hand agenda panel resize. The panel sits on the right, so dragging
+  // its left edge leftwards (negative delta) widens it.
+  const handleAgendaResizeStart = useCallback(
+    (e: ReactMouseEvent): void => {
+      e.preventDefault()
+      const startX = e.clientX
+      const startWidth = useSettingsStore.getState().agendaSidebarWidth
+      const onMove = (ev: MouseEvent): void => {
+        const delta = ev.clientX - startX
+        const newWidth = Math.min(560, Math.max(260, startWidth - delta))
+        updateSettings({ agendaSidebarWidth: newWidth })
+      }
+      const onUp = (): void => {
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onUp)
+        document.body.style.userSelect = ''
+      }
+      document.body.style.userSelect = 'none'
+      document.addEventListener('mousemove', onMove)
+      document.addEventListener('mouseup', onUp)
+    },
+    [updateSettings]
+  )
+
   const handleFabAction = useCallback(
     (action: 'event' | 'task' | 'commandPalette' | 'settings' | 'sidebar') => {
       setIsFabMenuOpen(false)
@@ -397,6 +427,34 @@ function CalendarApp(): JSX.Element {
           <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} isCollapsed={sidebarCollapsed} onCollapsedChange={(v) => updateSettings({ sidebarCollapsed: v })} />
         </ErrorBoundary>
         <main className="main" ref={mainRef}>{renderView()}</main>
+        {agendaSidebarOpen && (
+          <aside className="agendaSidebar" style={{ width: agendaSidebarWidth }}>
+            <div
+              className="agendaSidebarResizer"
+              onMouseDown={handleAgendaResizeStart}
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize agenda panel"
+            />
+            <div className="agendaSidebarHeader">
+              <span>Agenda</span>
+              <button
+                className="agendaSidebarClose"
+                onClick={() => updateSettings({ agendaSidebarOpen: false })}
+                aria-label="Close agenda panel"
+              >
+                ×
+              </button>
+            </div>
+            <div className="agendaSidebarBody">
+              <ErrorBoundary fallback={null}>
+                <Suspense fallback={null}>
+                  <AgendaView embedded />
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+          </aside>
+        )}
       </div>
       <MobileFAB
         onClick={() => setIsFabMenuOpen(!isFabMenuOpen)}
@@ -512,6 +570,7 @@ function App(): JSX.Element {
           <Route path="/month" element={<CalendarApp />} />
           <Route path="/year" element={<CalendarApp />} />
           <Route path="/week" element={<CalendarApp />} />
+          <Route path="/3day" element={<CalendarApp />} />
           <Route path="/day" element={<CalendarApp />} />
           <Route path="/agenda" element={<CalendarApp />} />
           <Route path="/tasks" element={<CalendarApp />} />

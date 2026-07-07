@@ -99,7 +99,7 @@ const DayHeader = React.memo(function DayHeader({ day, isTodayDay, allDayEvents,
   )
 })
 
-export function WeekView(): JSX.Element {
+export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Element {
   const currentDate = useCalendarStore((state) => state.currentDate)
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
@@ -154,14 +154,21 @@ export function WeekView(): JSX.Element {
       let newDate: Date
 
       if (direction === 'left' || direction === 'right') {
-        newDate = direction === 'left' ? addWeeks(date, 1) : addWeeks(date, -1)
+        newDate =
+          dayCount === 7
+            ? direction === 'left'
+              ? addWeeks(date, 1)
+              : addWeeks(date, -1)
+            : direction === 'left'
+              ? addDays(date, dayCount)
+              : addDays(date, -dayCount)
       } else {
-        newDate = direction === 'up' ? addDays(date, 7) : addDays(date, -7)
+        newDate = direction === 'up' ? addDays(date, dayCount) : addDays(date, -dayCount)
       }
 
       setCurrentDate(newDate.toISOString().split('T')[0])
     },
-    [currentDate, setCurrentDate]
+    [currentDate, setCurrentDate, dayCount]
   )
 
   const handlePinch = useCallback((scaleValue: number) => {
@@ -241,18 +248,29 @@ export function WeekView(): JSX.Element {
 
   const date = useMemo(() => parseISO(currentDate), [currentDate])
 
-  const weekDays = useMemo(() => {
-    const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
-    const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
-    return eachDayOfInterval({ start: weekStart, end: weekEnd })
-  }, [date, firstDayOfWeek])
+  // Range start/end: a full calendar week (aligned to firstDayOfWeek) when
+  // dayCount === 7, otherwise a rolling window of `dayCount` days anchored on
+  // the current date (used by the 3-day view).
+  const { rangeStart, rangeEnd } = useMemo(() => {
+    if (dayCount === 7) {
+      return {
+        rangeStart: startOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 }),
+        rangeEnd: endOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 }),
+      }
+    }
+    const start = startOfDay(date)
+    return { rangeStart: start, rangeEnd: endOfDay(addDays(start, dayCount - 1)) }
+  }, [date, firstDayOfWeek, dayCount])
+
+  const weekDays = useMemo(
+    () => eachDayOfInterval({ start: rangeStart, end: rangeEnd }),
+    [rangeStart, rangeEnd]
+  )
 
   const { allDayEventsMap, eventsMap, timedFragmentsMap } = useMemo(() => {
-    const weekStart = startOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
-    const weekEnd = endOfWeek(date, { weekStartsOn: firstDayOfWeek || 0 })
     const weekEvents = getEventsForDateRange(
-      format(weekStart, 'yyyy-MM-dd'),
-      format(weekEnd, 'yyyy-MM-dd')
+      format(rangeStart, 'yyyy-MM-dd'),
+      format(rangeEnd, 'yyyy-MM-dd')
     )
 
     const allDay = new Map<string, CalendarEvent[]>()
@@ -301,7 +319,7 @@ export function WeekView(): JSX.Element {
     // could in theory miss the bump. The linter flags these as
     // 'unnecessary dependencies' but the e2e undo/redo test would
     // catch a regression if either were removed. R4.1/R4.3 review fix.
-  }, [date, firstDayOfWeek, calendars, getEventsForDateRange, events, rangeExpansionVersion])
+  }, [rangeStart, rangeEnd, calendars, getEventsForDateRange, events, rangeExpansionVersion])
 
   const tasksMap = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()
@@ -420,11 +438,11 @@ export function WeekView(): JSX.Element {
 
       const rect = daysContainer.getBoundingClientRect()
       const x = e.clientX - rect.left
-      const dayWidth = rect.width / 7
+      const dayWidth = rect.width / weekDays.length
       const dayIndex = Math.floor(x / dayWidth)
       const y = e.clientY - rect.top
 
-      const day = weekDays[Math.min(Math.max(dayIndex, 0), 6)]
+      const day = weekDays[Math.min(Math.max(dayIndex, 0), weekDays.length - 1)]
       if (!day) return
 
       const totalMinutes = (y / rect.height) * 24 * 60
@@ -483,7 +501,7 @@ export function WeekView(): JSX.Element {
     const topPct = (startMinutes / (24 * 60)) * 100
     const heightPct = ((endMinutes - startMinutes) / (24 * 60)) * 100
 
-    const dayWidth = 100 / 7
+    const dayWidth = 100 / weekDays.length
     const left = startDayIndex * dayWidth
     const width = (endDayIndex - startDayIndex + 1) * dayWidth
 
@@ -677,7 +695,7 @@ export function WeekView(): JSX.Element {
     return (
       <>
         <div className={`${styles.header} ${isScrolled ? styles.headerShadow : ''}`}>
-          <div className={styles.weekNumberHeader}>W{weekNumber}</div>
+          <div className={styles.weekNumberHeader}>{dayCount === 7 ? `W${weekNumber}` : ''}</div>
           <div className={styles.headerDays}>
             {weekDays.map((day, idx) => (
               <DayHeader
@@ -750,12 +768,12 @@ export function WeekView(): JSX.Element {
       <div
         className={styles.container}
         ref={containerRef}
-        style={{ '--hour-height': `${60 * effectiveScale}px` } as React.CSSProperties}
+        style={{ '--hour-height': `${60 * effectiveScale}px`, '--day-count': weekDays.length } as React.CSSProperties}
         {...bind}
       >
         {isMobile ? renderMobileContent() : renderDesktopContent()}
         {(() => {
-          const tasksByDay: CalendarEvent[][] = Array(7)
+          const tasksByDay: CalendarEvent[][] = Array(weekDays.length)
             .fill(null)
             .map(() => [])
           weekDays.forEach((day, idx) => {

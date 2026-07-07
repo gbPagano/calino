@@ -292,11 +292,12 @@
 }
 
 .themeModeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 5px 8px;
   color: var(--ink-2);
   border-radius: 4px;
   cursor: pointer;
@@ -398,7 +399,12 @@
 
 .viewTab {
   height: 32px;
-  padding: 0 14px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Extra bottom padding nudges the centered label up ~1px */
+  padding: 0 14px 2px;
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 500;
@@ -443,6 +449,50 @@
   background: rgba(var(--ink-raw, 44, 40, 33), 0.18);
   margin: 0 2px;
   flex-shrink: 0;
+}
+
+/* Tab that carries a hover sub-menu (Week → 3-day, Agenda → Sidebar).
+   Kept unpositioned so the wrapped tab's offsetParent stays .viewTabs and the
+   sliding-indicator offsetLeft math works; the sub-menu is position: fixed. */
+.viewTabItem {
+  display: flex;
+  align-items: center;
+  z-index: 1;
+}
+
+.viewTabMenu {
+  position: fixed;
+  background: var(--popover-bg, var(--panel));
+  border: 1px solid var(--popover-border, var(--line));
+  border-radius: var(--radius-md);
+  box-shadow: var(--modal-shadow, 0 4px 12px rgba(var(--ink-raw, 44, 40, 33), 0.1));
+  overflow: hidden;
+  z-index: 200;
+  min-width: max-content;
+  padding: 4px;
+  animation: dropdownIn 0.15s ease;
+}
+
+.viewTabMenuItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+
+.viewTabMenuItem:hover {
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.06);
+  color: var(--ink);
 }
 
 /* ---- View Dropdown — ≤1220px ---- */

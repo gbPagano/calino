@@ -36,6 +36,73 @@
   min-height: 0;
   overflow: hidden;
 }
+.agendaSidebar {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--canvas, var(--color-bg-primary));
+  overflow: hidden;
+}
+
+.agendaSidebarResizer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  z-index: 5;
+}
+
+.agendaSidebarResizer:hover {
+  background: var(--accent-soft, rgba(var(--ink-raw, 44, 40, 33), 0.08));
+}
+
+.agendaSidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-bottom: 1px solid var(--line, rgba(var(--ink-raw, 44, 40, 33), 0.09));
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3, #a39d93);
+  flex-shrink: 0;
+}
+
+.agendaSidebarClose {
+  border: none;
+  background: transparent;
+  color: var(--ink-3, #a39d93);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: var(--radius-sm, 6px);
+  transition: background 0.12s, color 0.12s;
+}
+
+.agendaSidebarClose:hover {
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.06);
+  color: var(--ink, #2c2821);
+}
+
+.agendaSidebarBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+@media (max-width: 768px) {
+  .agendaSidebar {
+    display: none;
+  }
+}
+
 .toast {
   position: fixed;
   top: 20px;

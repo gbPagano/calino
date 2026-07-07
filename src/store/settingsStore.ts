@@ -129,6 +129,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   contactsEnabled: false,
   taskDueDateReminders: true,
   overdueTaskBadge: false,
+  agendaSidebarOpen: false,
+  agendaSidebarWidth: 340,
 }
 
 export const useSettingsStore = create<SettingsStore>()(

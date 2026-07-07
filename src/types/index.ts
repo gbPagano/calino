@@ -122,7 +122,7 @@ export interface Calendar {
   showTasksInViews: boolean
 }
 
-export type ViewType = 'month' | 'week' | 'day' | 'agenda' | 'todo' | 'journal' | 'contacts' | 'year'
+export type ViewType = 'month' | 'week' | '3day' | 'day' | 'agenda' | 'todo' | 'journal' | 'contacts' | 'year'
 
 export interface CalendarState {
   events: CalendarEvent[]
@@ -245,6 +245,8 @@ export interface UserSettings {
   contactsEnabled: boolean
   taskDueDateReminders: boolean
   overdueTaskBadge: boolean
+  agendaSidebarOpen: boolean
+  agendaSidebarWidth: number
 }
 
 export type SettingsState = UserSettings

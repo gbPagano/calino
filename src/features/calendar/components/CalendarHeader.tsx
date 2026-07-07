@@ -43,6 +43,7 @@ const VIEW_ROUTES: Record<ViewType, string> = {
   month: '/month',
   year: '/year',
   week: '/week',
+  '3day': '/3day',
   day: '/day',
   agenda: '/agenda',
   todo: '/tasks',
@@ -67,9 +68,36 @@ export function CalendarHeader({
   const contactsEnabled = useSettingsStore((state) => state.contactsEnabled)
   const sidebarWidth = useSettingsStore((state) => state.sidebarWidth)
   const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed)
+  const agendaSidebarOpen = useSettingsStore((state) => state.agendaSidebarOpen)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
   const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
   const lock = useConfigStore((state) => state.lock)
+
+  // Hover sub-menus attached to individual view tabs (Week → 3-day,
+  // Agenda → Sidebar). Only one is open at a time.
+  const [openTabMenu, setOpenTabMenu] = useState<ViewType | null>(null)
+  // Fixed viewport position for the open sub-menu. The tab strip has
+  // `overflow: hidden`, so the menu is positioned fixed to escape the clip
+  // while remaining a DOM child of its wrapper (keeps hover intact).
+  const [tabMenuPos, setTabMenuPos] = useState<{ left: number; top: number } | null>(null)
+  const tabMenuCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const openTabMenuFor = useCallback((view: ViewType, anchor: HTMLElement) => {
+    if ('ontouchstart' in window) return
+    if (tabMenuCloseTimer.current) {
+      clearTimeout(tabMenuCloseTimer.current)
+      tabMenuCloseTimer.current = null
+    }
+    const rect = anchor.getBoundingClientRect()
+    setTabMenuPos({ left: rect.left, top: rect.bottom + 4 })
+    setOpenTabMenu(view)
+  }, [])
+  const scheduleTabMenuClose = useCallback(() => {
+    if ('ontouchstart' in window) return
+    tabMenuCloseTimer.current = setTimeout(() => {
+      setOpenTabMenu(null)
+      tabMenuCloseTimer.current = null
+    }, 150)
+  }, [])
 
   const [isViewDropdownOpen, setIsViewDropdownOpen] = useState(false)
   const viewDropdownRef = useRef<HTMLDivElement>(null)
@@ -82,16 +110,28 @@ export function CalendarHeader({
   // re-measured whenever the view changes, the container resizes, or web fonts
   // finish loading (fonts change tab widths after first paint, which otherwise
   // leaves the indicator misaligned until the next view switch).
+  // The 3-day view lives under the Week tab, so the indicator tracks the Week
+  // tab while in it.
+  const indicatorView: ViewType = currentView === '3day' ? 'week' : currentView
+  // Last-measured geometry, so redundant re-measures don't re-render.
+  const lastIndicator = useRef<{ left: number; width: number }>({ left: 0, width: 0 })
   const measureIndicator = useCallback(() => {
     const container = viewTabsRef.current
-    const activeTab = viewTabRefs.current.get(currentView)
+    const activeTab = viewTabRefs.current.get(indicatorView)
     if (container && activeTab && activeTab.offsetWidth > 0) {
-      setIndicatorStyle({
-        left: activeTab.offsetLeft,
-        width: activeTab.offsetWidth,
-      })
+      // offsetLeft/offsetWidth (layout box) rather than getBoundingClientRect:
+      // rects reflect in-progress CSS transforms/transitions (the .viewTabs
+      // max-width transition, :active scale) during a cold load, which made
+      // the indicator intermittently mis-sized. The .viewTabItem wrappers are
+      // unpositioned, so the tab's offsetParent stays .viewTabs.
+      const next = { left: activeTab.offsetLeft, width: activeTab.offsetWidth }
+      const prev = lastIndicator.current
+      if (next.left !== prev.left || next.width !== prev.width) {
+        lastIndicator.current = next
+        setIndicatorStyle(next)
+      }
     }
-  }, [currentView])
+  }, [indicatorView])
 
   useLayoutEffect(() => {
     measureIndicator()
@@ -99,20 +139,43 @@ export function CalendarHeader({
     const container = viewTabsRef.current
     if (!container) return
 
+    // On a cold load the tab strip is still settling when the synchronous pass
+    // runs — most importantly, the web font hasn't swapped in yet, so the tabs
+    // are measured at their (wider) fallback-font width, leaving the indicator
+    // too wide. `document.fonts.ready` resolves *before* the swapped font is
+    // laid out, so every font-driven re-measure is deferred one frame. We also
+    // fire a short cascade of delayed re-measures as a safety net for slow
+    // layout/paint on first load.
+    const rafs: number[] = []
+    const timers: ReturnType<typeof setTimeout>[] = []
+    const remeasureNextFrame = (): void => {
+      rafs.push(requestAnimationFrame(() => rafs.push(requestAnimationFrame(measureIndicator))))
+    }
+    remeasureNextFrame()
+    for (const delay of [80, 200, 400, 800]) {
+      timers.push(setTimeout(measureIndicator, delay))
+    }
+
+    // Observe both the container and each tab: a font swap can resize a tab
+    // without changing the container's box.
     const observer = new ResizeObserver(() => measureIndicator())
     observer.observe(container)
+    viewTabRefs.current.forEach((tab) => observer.observe(tab))
 
-    // Re-measure once web fonts are ready (tab widths shift on font swap).
     let cancelled = false
     if (typeof document !== 'undefined' && document.fonts?.ready) {
       document.fonts.ready.then(() => {
-        if (!cancelled) measureIndicator()
+        if (!cancelled) remeasureNextFrame()
       })
     }
+    window.addEventListener('load', measureIndicator)
 
     return () => {
       cancelled = true
+      rafs.forEach(cancelAnimationFrame)
+      timers.forEach(clearTimeout)
       observer.disconnect()
+      window.removeEventListener('load', measureIndicator)
     }
   }, [measureIndicator])
 
@@ -153,6 +216,13 @@ export function CalendarHeader({
         }
         return `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d')}`
       }
+      case '3day': {
+        const end = addDays(date, 2)
+        if (format(date, 'MMM') === format(end, 'MMM')) {
+          return `${format(date, 'MMM d')} – ${format(end, 'd')}`
+        }
+        return `${format(date, 'MMM d')} – ${format(end, 'MMM d')}`
+      }
       case 'day':
         return format(date, 'EEE, MMMM d')
       case 'agenda':
@@ -179,6 +249,9 @@ export function CalendarHeader({
         break
       case 'week':
         newDate = direction === 'prev' ? subWeeks(date, 1) : addWeeks(date, 1)
+        break
+      case '3day':
+        newDate = direction === 'prev' ? subDays(date, 3) : addDays(date, 3)
         break
       case 'day':
         newDate = direction === 'prev' ? subDays(date, 1) : addDays(date, 1)
@@ -223,6 +296,17 @@ export function CalendarHeader({
     [setCurrentView, navigate]
   )
 
+  // Per-tab hover sub-menu items. Absent entries render as a plain tab.
+  const tabMenus: Partial<Record<ViewType, { label: string; onClick: () => void }[]>> = {
+    week: [{ label: '3-day', onClick: () => handleViewChange('3day') }],
+    agenda: [
+      {
+        label: agendaSidebarOpen ? 'Hide sidebar' : 'Sidebar',
+        onClick: () => updateSettings({ agendaSidebarOpen: !agendaSidebarOpen }),
+      },
+    ],
+  }
+
   const handleSwipe = useCallback(
     (direction: 'left' | 'right' | 'up' | 'down') => {
       const dir = direction === 'left' ? 'next' : direction === 'right' ? 'prev' : null
@@ -238,6 +322,9 @@ export function CalendarHeader({
           break
         case 'week':
           newDate = dir === 'prev' ? subWeeks(date, 1) : addWeeks(date, 1)
+          break
+        case '3day':
+          newDate = dir === 'prev' ? subDays(date, 3) : addDays(date, 3)
           break
         case 'day':
           newDate = dir === 'prev' ? subDays(date, 1) : addDays(date, 1)
@@ -356,21 +443,60 @@ export function CalendarHeader({
             style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
             data-component="view-switcher-indicator"
           />
-          {VIEWS.filter(v => (journalEnabled || v.value !== 'journal') && (contactsEnabled || v.value !== 'contacts')).map((view, index) => (
-            <React.Fragment key={view.value}>
-              {index === 4 && <div className={styles.viewTabDivider} />}
+          {VIEWS.filter(v => (journalEnabled || v.value !== 'journal') && (contactsEnabled || v.value !== 'contacts')).map((view, index) => {
+            const isActive =
+              currentView === view.value || (view.value === 'week' && currentView === '3day')
+            const menu = tabMenus[view.value]
+            const tabButton = (
               <button
                 ref={(el) => {
                   if (el) viewTabRefs.current.set(view.value, el)
                   else viewTabRefs.current.delete(view.value)
                 }}
-                className={`${styles.viewTab} ${currentView === view.value ? styles.viewTabActive : ''}`}
+                className={`${styles.viewTab} ${isActive ? styles.viewTabActive : ''}`}
                 onClick={() => handleViewChange(view.value)}
               >
                 {view.label}
               </button>
-            </React.Fragment>
-          ))}
+            )
+            return (
+              <React.Fragment key={view.value}>
+                {index === 4 && <div className={styles.viewTabDivider} />}
+                {menu ? (
+                  <div
+                    className={styles.viewTabItem}
+                    onMouseEnter={(e) => openTabMenuFor(view.value, e.currentTarget)}
+                    onMouseLeave={scheduleTabMenuClose}
+                  >
+                    {tabButton}
+                    {openTabMenu === view.value && tabMenuPos && (
+                      <div
+                        className={styles.viewTabMenu}
+                        role="menu"
+                        style={{ left: tabMenuPos.left, top: tabMenuPos.top }}
+                      >
+                        {menu.map((item) => (
+                          <button
+                            key={item.label}
+                            className={styles.viewTabMenuItem}
+                            role="menuitem"
+                            onClick={() => {
+                              item.onClick()
+                              setOpenTabMenu(null)
+                            }}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  tabButton
+                )}
+              </React.Fragment>
+            )
+          })}
         </div>
         {/* View Dropdown - CSS handles visibility at tablet breakpoint */}
         <div
@@ -517,8 +643,10 @@ export function CalendarHeader({
                       className={`${styles.themeModeBtn} ${themeMode === mode ? styles.themeModeActive : ''}`}
                       onClick={() => updateSettings({ themeMode: mode })}
                       data-component={`theme-mode-${mode}`}
+                      title={mode === 'auto' ? 'Auto' : mode === 'light' ? 'Light' : 'Dark'}
+                      aria-label={mode === 'auto' ? 'Auto' : mode === 'light' ? 'Light' : 'Dark'}
                     >
-                      {mode === 'auto' ? 'Auto' : mode === 'light' ? 'Light' : 'Dark'}
+                      {mode === 'auto' ? <ThemeAutoIcon /> : mode === 'light' ? <ThemeLightIcon /> : <ThemeDarkIcon />}
                     </button>
                   ))}
                 </div>
@@ -592,6 +720,32 @@ function SearchIcon(): JSX.Element {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21L16.65 16.65" />
+    </svg>
+  )
+}
+
+function ThemeAutoIcon(): JSX.Element {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="13" rx="2" />
+      <path d="M8 21h8M12 17v4" />
+    </svg>
+  )
+}
+
+function ThemeLightIcon(): JSX.Element {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </svg>
+  )
+}
+
+function ThemeDarkIcon(): JSX.Element {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
   )
 }

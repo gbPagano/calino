@@ -81,6 +81,9 @@ export function CalendarHeader({
   // while remaining a DOM child of its wrapper (keeps hover intact).
   const [tabMenuPos, setTabMenuPos] = useState<{ left: number; top: number } | null>(null)
   const tabMenuCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Retains which tab's menu is showing so it stays mounted through its exit
+  // animation after `openTabMenu` flips back to null.
+  const [lastTabMenuView, setLastTabMenuView] = useState<ViewType | null>(null)
   const openTabMenuFor = useCallback((view: ViewType, anchor: HTMLElement) => {
     if ('ontouchstart' in window) return
     if (tabMenuCloseTimer.current) {
@@ -89,6 +92,7 @@ export function CalendarHeader({
     }
     const rect = anchor.getBoundingClientRect()
     setTabMenuPos({ left: rect.left, top: rect.bottom + 4 })
+    setLastTabMenuView(view)
     setOpenTabMenu(view)
   }, [])
   const scheduleTabMenuClose = useCallback(() => {
@@ -186,7 +190,10 @@ export function CalendarHeader({
   // click-outside, hover-leave all funnel through the same exit animation).
   const noop = useCallback(() => {}, [])
   const viewDropdown = useAnimatedClose(isViewDropdownOpen, noop, 130)
-  const quickSettings = useAnimatedClose(showQuickSettings, noop, 130)
+  const quickSettings = useAnimatedClose(showQuickSettings, noop, 80)
+  // Hover tab-menus (Week→3-day, Agenda→Sidebar) share one exit animation; the
+  // last-shown view is retained so it can keep rendering while closing.
+  const tabMenu = useAnimatedClose(openTabMenu !== null, noop, 80)
 
   useEffect(() => {
     if (!isViewDropdownOpen) return
@@ -469,9 +476,11 @@ export function CalendarHeader({
                     onMouseLeave={scheduleTabMenuClose}
                   >
                     {tabButton}
-                    {openTabMenu === view.value && tabMenuPos && (
+                    {(openTabMenu === view.value ||
+                      (tabMenu.closing && lastTabMenuView === view.value)) &&
+                      tabMenuPos && (
                       <div
-                        className={styles.viewTabMenu}
+                        className={`${styles.viewTabMenu} ${tabMenu.closing ? styles.viewTabMenuClosing : ''}`}
                         role="menu"
                         style={{ left: tabMenuPos.left, top: tabMenuPos.top }}
                       >

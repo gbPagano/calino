@@ -239,7 +239,7 @@
 }
 
 .quickSettingsDropdown.quickSettingsClosing {
-  animation: dropdownOut 0.13s ease-out forwards;
+  animation: dropdownOut 0.08s ease-out forwards;
 }
 
 @keyframes dropdownOut {
@@ -471,6 +471,10 @@
   min-width: max-content;
   padding: 4px;
   animation: dropdownIn 0.15s ease;
+}
+
+.viewTabMenu.viewTabMenuClosing {
+  animation: viewDropdownOut 0.08s ease-out forwards;
 }
 
 .viewTabMenuItem {

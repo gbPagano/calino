@@ -68,11 +68,21 @@ END:VCALENDAR`,
   } as any
 
   let onLineSpy: ReturnType<typeof vi.spyOn>
+  let fetchSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     vi.clearAllMocks()
     // Default: online
     onLineSpy = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
+
+    // Default global fetch stub so the createEvent → fetchEtag follow-up
+    // PROPFIND (for servers that omit ETag on PUT) doesn't hit the network.
+    // Returns a 207 with no getetag → fetchEtag resolves to ''.
+    fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response('<d:multistatus xmlns:d="DAV:"></d:multistatus>', { status: 207 })
+      )
 
     client = new CalDAVClient(mockCredentials.serverUrl, mockCredentials)
 
@@ -82,6 +92,7 @@ END:VCALENDAR`,
 
   afterEach(() => {
     onLineSpy.mockRestore()
+    fetchSpy.mockRestore()
   })
 
   describe('createCalDAVClient', () => {
@@ -377,6 +388,59 @@ END:VCALENDAR`,
       await expect(
         client.createEvent(mockCalendar.url, mockEventObject.data, 'event-1.ics')
       ).rejects.toThrow('No network connection')
+    })
+
+    // Fastmail/Google/iCloud omit ETag on PUT — recover it via follow-up PROPFIND.
+    it('fetches the etag via PROPFIND when the create response omits it', async () => {
+      await client.connect()
+
+      // No headers on the create response → empty etag → follow-up PROPFIND.
+      mockClientMethods.createCalendarObject.mockResolvedValue({
+        url: mockEventObject.url,
+      })
+      fetchSpy.mockResolvedValueOnce(
+        new Response(
+          `<d:multistatus xmlns:d="DAV:"><d:response><d:href>${mockEventObject.url}</d:href><d:propstat><d:prop><d:getetag>"recovered-etag"</d:getetag></d:prop></d:propstat></d:response></d:multistatus>`,
+          { status: 207 }
+        )
+      )
+
+      const result = await client.createEvent(mockCalendar.url, mockEventObject.data, 'event-1.ics')
+
+      expect(result.etag).toBe('"recovered-etag"')
+      // PROPFIND targeted the new event URL.
+      expect(fetchSpy).toHaveBeenCalledWith(
+        mockEventObject.url,
+        expect.objectContaining({ method: 'PROPFIND' })
+      )
+    })
+
+    it('uses the ETag header when present without a follow-up PROPFIND', async () => {
+      await client.connect()
+
+      mockClientMethods.createCalendarObject.mockResolvedValue({
+        url: mockEventObject.url,
+        headers: new Headers({ etag: '"header-etag"' }),
+      })
+
+      const result = await client.createEvent(mockCalendar.url, mockEventObject.data, 'event-1.ics')
+
+      expect(result.etag).toBe('"header-etag"')
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
+
+    it('returns an empty etag (not throwing) when the follow-up PROPFIND fails', async () => {
+      await client.connect()
+
+      mockClientMethods.createCalendarObject.mockResolvedValue({
+        url: mockEventObject.url,
+      })
+      fetchSpy.mockRejectedValueOnce(new Error('network down'))
+
+      const result = await client.createEvent(mockCalendar.url, mockEventObject.data, 'event-1.ics')
+
+      expect(result.url).toBe(mockEventObject.url)
+      expect(result.etag).toBe('')
     })
   })
 

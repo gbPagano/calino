@@ -32,10 +32,15 @@
 //   sees only the encrypted-by-TLS body.
 // - Target URLs must be https:// unless ALLOWED_TARGETS permits http:// for
 //   a specific host.
+// - Loopback, private, link-local, unique-local, and cloud-metadata IPs
+//   (e.g. 169.254.169.254) are ALWAYS blocked, even with ALLOWED_TARGETS
+//   empty. DNS-rebinding is out of scope; use ALLOWED_TARGETS to lock down
+//   reachable hosts for internet-exposed deployments.
 // - CORS responses echo the verified origin (or `*` if ALLOWED_ORIGINS is
 //   empty) and never reflect attacker-controlled headers.
 
 import { createServer } from 'node:http'
+import { isIP } from 'node:net'
 
 const PORT = Number(process.env.PORT) || 8081
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
@@ -93,6 +98,56 @@ function isOriginAllowed(origin) {
 function getCorsAllowOrigin(origin) {
   if (!ALLOWED_ORIGINS_NORMALIZED.length) return '*'
   return isOriginAllowed(origin) ? origin : null
+}
+
+// Defense-in-depth SSRF guard: block targets that resolve to loopback,
+// private, link-local, unique-local, or cloud-metadata (169.254.169.254) IPs,
+// regardless of ALLOWED_TARGETS. `asciiHost` is already canonicalized by the
+// WHATWG URL parser, so numeric IPv4 forms (0x7f000001, 2130706433) arrive as
+// dotted-quad. Hostnames (DNS names) are allowed here — they can't be
+// range-checked without resolution; DNS-rebinding is out of scope for this
+// pass and ALLOWED_TARGETS remains the strong control.
+function isBlockedHost(asciiHost) {
+  if (asciiHost === 'localhost' || asciiHost.endsWith('.localhost')) return true
+
+  // Strip IPv6 brackets if present (URL hostname keeps them).
+  const host =
+    asciiHost.startsWith('[') && asciiHost.endsWith(']')
+      ? asciiHost.slice(1, -1)
+      : asciiHost
+
+  const kind = isIP(host)
+  if (kind === 4) {
+    const p = host.split('.').map(Number)
+    if (p.some((n) => Number.isNaN(n) || n > 255)) return true // malformed → block
+    const [a, b] = p
+    if (a === 127) return true // loopback 127/8
+    if (a === 10) return true // private 10/8
+    if (a === 172 && b >= 16 && b <= 31) return true // 172.16/12
+    if (a === 192 && b === 168) return true // 192.168/16
+    if (a === 169 && b === 254) return true // link-local + metadata 169.254/16
+    if (a === 0) return true // unspecified 0/8
+    return false
+  }
+  if (kind === 6) {
+    const lower = host.toLowerCase()
+    // IPv4-mapped, dotted form: ::ffff:a.b.c.d
+    const mappedDotted = lower.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/)
+    if (mappedDotted) return isBlockedHost(mappedDotted[1])
+    // IPv4-mapped, hex form (WHATWG canonicalizes to this): ::ffff:7f00:1
+    const mappedHex = lower.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/)
+    if (mappedHex) {
+      const hi = parseInt(mappedHex[1], 16)
+      const lo = parseInt(mappedHex[2], 16)
+      return isBlockedHost(`${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`)
+    }
+    if (lower === '::1' || lower === '::') return true // loopback / unspecified
+    const firstHextet = parseInt(lower.split(':')[0] || '0', 16) || 0
+    if (firstHextet >= 0xfc00 && firstHextet <= 0xfdff) return true // fc00::/7 unique-local
+    if (firstHextet >= 0xfe80 && firstHextet <= 0xfebf) return true // fe80::/10 link-local
+    return false
+  }
+  return false
 }
 
 const server = createServer(async (req, res) => {
@@ -157,6 +212,11 @@ const server = createServer(async (req, res) => {
     }
     if (targetParsed.protocol !== 'https:' && targetParsed.protocol !== 'http:') {
       res.writeHead(400, { 'Content-Type': 'text/plain' }).end('Unsupported target scheme')
+      return
+    }
+    // Unconditional SSRF denylist — applies even when ALLOWED_TARGETS is empty.
+    if (isBlockedHost(asciiHost)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' }).end('Target host not allowed')
       return
     }
     if (targetParsed.protocol === 'http:' && ALLOWED_TARGETS_ASCII.length === 0) {

@@ -287,11 +287,53 @@ export class CalDAVClient {
     })
 
     // Extract ETag from response headers
-    const etag = result.headers?.get('etag') || ''
+    let etag = result.headers?.get('etag') || ''
+
+    // Some servers (Google, iCloud) omit the ETag header on PUT. Persisting an
+    // empty etag with syncStatus 'synced' means the next update sends an empty
+    // If-Match — the stale-etag conflict we want to avoid. Recover it with a
+    // follow-up PROPFIND. Never throw: a missing etag must not fail creation.
+    if (!etag && result.url) {
+      etag = await this.fetchEtag(result.url)
+    }
 
     return {
       url: result.url,
       etag,
+    }
+  }
+
+  /**
+   * Fetch the current ETag for a single calendar object via PROPFIND (Depth 0).
+   * Returns '' on any failure — callers treat a missing etag as non-fatal.
+   */
+  private async fetchEtag(eventUrl: string): Promise<string> {
+    try {
+      const response = await this.proxyFetch(eventUrl, {
+        method: 'PROPFIND',
+        headers: {
+          'Content-Type': 'application/xml; charset=utf-8',
+          Authorization: this.authHeader,
+          Depth: '0',
+        },
+        body: `<?xml version="1.0" encoding="UTF-8" ?>
+<d:propfind xmlns:d="DAV:">
+  <d:prop>
+    <d:getetag/>
+  </d:prop>
+</d:propfind>`,
+      })
+
+      if (!response.ok && response.status !== 207) {
+        return ''
+      }
+
+      const text = await response.text()
+      // Namespace-agnostic getetag match (d:, D:, or default namespace).
+      const etagMatch = text.match(/<[^>]*getetag[^>]*>([^<]+)<\/[^>]*getetag>/)
+      return etagMatch?.[1]?.trim() || ''
+    } catch {
+      return ''
     }
   }
 

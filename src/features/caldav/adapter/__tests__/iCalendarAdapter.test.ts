@@ -1641,6 +1641,40 @@ END:VCALENDAR`
           expect(lines[i].startsWith('  ')).toBe(false) // not two spaces
         }
       })
+
+      // Unfold per RFC 5545: strip CRLF + the single continuation space.
+      const unfold = (s: string): string => s.replace(/\r\n /g, '')
+
+      it('never splits a 2-octet char (é) straddling the 75-octet boundary', () => {
+        // 74 A's + 'é' puts the multibyte char across octet 75.
+        const line = 'A'.repeat(74) + 'é' + 'B'.repeat(30)
+        const out = foldICalLines(line)
+        expect(out).not.toContain('�') // no corruption
+        expect(unfold(out)).toBe(line) // round-trips byte-identical
+        for (const l of out.split('\r\n')) {
+          expect(new TextEncoder().encode(l).length).toBeLessThanOrEqual(75)
+        }
+      })
+
+      it('never splits a 4-octet emoji straddling the boundary', () => {
+        const line = 'A'.repeat(73) + '\u{1F600}' + 'A'.repeat(20)
+        const out = foldICalLines(line)
+        expect(out).not.toContain('�')
+        expect(unfold(out)).toBe(line)
+        for (const l of out.split('\r\n')) {
+          expect(new TextEncoder().encode(l).length).toBeLessThanOrEqual(75)
+        }
+      })
+
+      it('round-trips a long all-multibyte line with no corruption', () => {
+        const line = 'é'.repeat(120) // 240 octets, boundaries land mid-nowhere-safe
+        const out = foldICalLines(line)
+        expect(out).not.toContain('�')
+        expect(unfold(out)).toBe(line)
+        for (const l of out.split('\r\n')) {
+          expect(new TextEncoder().encode(l).length).toBeLessThanOrEqual(75)
+        }
+      })
     })
   })
 })

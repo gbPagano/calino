@@ -114,38 +114,44 @@ export function parseICALData(iCalData: string, calendarId: string): CalendarEve
  * helper re-folds any line that exceeds 75 octets. Continuation
  * lines are prefixed with a single space per §3.1.
  *
- * Note: octets are measured in UTF-8. For non-ASCII content, a
- * split point at exactly 75 / 74 octets may land inside a multi-byte
- * character; the TextDecoder's `fatal: false` mode replaces such
- * sequences with U+FFFD rather than throwing. In practice every
- * field we fold (DESCRIPTION, ATTACH payload, LOCATION) is ASCII
- * in our use cases — settings JSON is base64, descriptions are
- * user text that's almost always ASCII. A v1.1 hardening would
- * back up to a safe character boundary; for v1.0 this is fine.
+ * Octets are measured in UTF-8, but §3.1 also forbids splitting a
+ * multi-octet character across a fold. We therefore walk the line by
+ * Unicode code point and break to a new folded line whenever adding
+ * the next character would exceed the current line's octet budget —
+ * so a split never lands inside a multi-byte char (no U+FFFD
+ * corruption of emoji/accented text near the boundary). A single code
+ * point is at most 4 octets, well under the 74-octet continuation
+ * budget, so every character always fits on a fresh line.
  */
 export function foldICalLines(s: string): string {
   const lines = s.split('\r\n')
   const folded: string[] = []
-  const decoder = new TextDecoder('utf-8', { fatal: false })
+  const encoder = new TextEncoder()
   for (const line of lines) {
-    const octets = new TextEncoder().encode(line)
-    if (octets.length <= 75) {
+    if (encoder.encode(line).length <= 75) {
       folded.push(line)
       continue
     }
-    // First chunk: 75 octets of content (no leading space).
-    // Continuation chunks: 1 leading space + 74 octets of content
-    // = 75 octets per line, per RFC 5545 §3.1.
-    let pos = 0
+    // First line: 75 octets of content (no leading space).
+    // Continuation lines: 1 leading space + up to 74 octets of content
+    // = ≤75 octets per line, per RFC 5545 §3.1.
+    let current = ''
+    let currentOctets = 0
     let first = true
-    while (pos < octets.length) {
-      const chunkSize = first ? 75 : 74
-      const chunk = octets.slice(pos, pos + chunkSize)
-      const text = decoder.decode(chunk)
-      folded.push(first ? text : ' ' + text)
-      pos += chunkSize
-      first = false
+    let budget = 75
+    for (const char of line) {
+      const charOctets = encoder.encode(char).length
+      if (currentOctets + charOctets > budget) {
+        folded.push(first ? current : ' ' + current)
+        first = false
+        budget = 74
+        current = ''
+        currentOctets = 0
+      }
+      current += char
+      currentOctets += charOctets
     }
+    folded.push(first ? current : ' ' + current)
   }
   return folded.join('\r\n')
 }

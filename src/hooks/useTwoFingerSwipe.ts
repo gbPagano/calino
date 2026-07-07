@@ -22,9 +22,13 @@ export function useTwoFingerSwipe(
   { onSwipe, enabled = true, threshold = 60 }: UseTwoFingerSwipeOptions
 ): void {
   const onSwipeRef = useRef(onSwipe)
+  // Re-assign on every render so the ref always points at the latest
+  // callback without forcing the effect to re-bind the touch listeners
+  // every time the parent passes a new onSwipe (the canonical
+  // "latest ref" pattern from the React docs).
+  onSwipeRef.current = onSwipe
 
   useEffect(() => {
-    onSwipeRef.current = onSwipe
     const el = ref.current
     if (!el || !enabled) return
 
@@ -83,5 +87,9 @@ export function useTwoFingerSwipe(
       el.removeEventListener('touchend', reset)
       el.removeEventListener('touchcancel', reset)
     }
+    // onSwipe is read via onSwipeRef.current (updated on every render at
+    // line 27) so the touch listeners don't need to re-attach on every
+    // parent re-render. Excluding it from deps is intentional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ref, enabled, threshold])
 }

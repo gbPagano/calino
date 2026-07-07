@@ -17,7 +17,7 @@
  *   - `seedAccount(page, account)` — adds a CalDAV account to localStorage
  *   - `seedRecurringEvent(page, seed)` — adds a recurring event to the calendar store
  */
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import { clearState } from './fixtures/localstorage'
 
 test.describe('<AREA> — <short description>', () => {

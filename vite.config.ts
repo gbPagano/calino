@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { readFileSync, existsSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'

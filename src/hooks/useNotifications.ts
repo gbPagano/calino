@@ -50,10 +50,11 @@ export function useNotifications(): void {
       // below uses the `neverShown` flag (instead of expanding the
       // checkWindowStart) so the 1-minute window still applies to
       // re-shown triggers (event edits), preserving the dedup contract.
-      // `isCatchUpPass` is true whenever the catch-up window is non-empty
-      // (i.e. the catch-up cutoff is older than the live-window start).
+      // The catch-up window is non-empty whenever CATCH_UP_WINDOW_HOURS
+      // > 1 minute (always true with the 12h default), so we skip the
+      // redundant `isAfter(catchUpCutoff, ...)` guard and just rely on
+      // the two `isAfter` checks in the inner loop to bound the window.
       const catchUpCutoff = addHours(now, -CATCH_UP_WINDOW_HOURS)
-      const isCatchUpPass = isAfter(checkWindowStart, catchUpCutoff)
 
       events.forEach((event) => {
         const reminders = event.reminders?.length ? event.reminders :
@@ -71,11 +72,12 @@ export function useNotifications(): void {
           const neverShown = previousTimestamp === undefined
 
           const inLiveWindow = isWithinInterval(reminderTime, { start: checkWindowStart, end: checkWindowEnd })
-          // R5.1 — catch-up window: in [catchUpCutoff, checkWindowStart] and never shown.
-          // The neverShown gate prevents re-firing on app reloads if the
-          // map was already cleared or evicted; we only catch up for
-          // triggers that genuinely slipped through (machine was asleep).
-          const inCatchUpWindow = isCatchUpPass && neverShown &&
+          // R5.1 — catch-up window: trigger in (catchUpCutoff, checkWindowStart)
+          // and never shown. The neverShown gate prevents re-firing on
+          // app reloads if the map was already cleared or evicted; we
+          // only catch up for triggers that genuinely slipped through
+          // (machine was asleep).
+          const inCatchUpWindow = neverShown &&
             isAfter(reminderTime, catchUpCutoff) &&
             isAfter(checkWindowStart, reminderTime)
 

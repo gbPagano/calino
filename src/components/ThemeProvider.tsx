@@ -34,26 +34,31 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const combinedCSS = useMemo(() => builtInCSS + '\n' + customCSS, [builtInCSS, customCSS])
   const lastCSSRef = useRef<string>('')
 
-  useEffect(() => {
-    if (combinedCSS === lastCSSRef.current) return
-    lastCSSRef.current = combinedCSS
-    const styleElement =
-      document.getElementById('theme-styles') ||
-      (() => {
-        const el = document.createElement('style')
-        el.id = 'theme-styles'
-        document.head.appendChild(el)
-        return el
-      })()
-
-    styleElement.textContent = combinedCSS
-  }, [combinedCSS])
-
   // R5.4 — useLayoutEffect runs synchronously after the DOM is updated
   // but BEFORE the browser paints. The previous requestAnimationFrame
   // version deferred the meta-theme-color update by 1 frame, which
   // caused a brief flash on theme change in mobile Safari.
+  //
+  // The CSS injection AND the data-theme / meta-theme-color update
+  // both run in this single useLayoutEffect so the meta-theme-color
+  // computed-style read happens AFTER the new CSS has been written
+  // — without this ordering, switching to a custom theme would read
+  // --color-accent from the previous theme's CSS for 1 frame.
   useLayoutEffect(() => {
+    if (combinedCSS !== lastCSSRef.current) {
+      lastCSSRef.current = combinedCSS
+      const styleElement =
+        document.getElementById('theme-styles') ||
+        (() => {
+          const el = document.createElement('style')
+          el.id = 'theme-styles'
+          document.head.appendChild(el)
+          return el
+        })()
+
+      styleElement.textContent = combinedCSS
+    }
+
     document.documentElement.setAttribute('data-theme', effectiveMode)
     document.documentElement.setAttribute('data-theme-mode', themeMode)
     if (!isBuiltIn) {
@@ -69,7 +74,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     if (metaThemeColor) {
       metaThemeColor.setAttribute('content', accentColor || '#4285f4')
     }
-  }, [effectiveMode, themeMode, currentThemeId, isBuiltIn])
+  }, [combinedCSS, effectiveMode, themeMode, currentThemeId, isBuiltIn])
 
   const themeModeRef = useRef(themeMode)
   useEffect(() => {

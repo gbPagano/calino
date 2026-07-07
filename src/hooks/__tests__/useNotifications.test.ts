@@ -229,3 +229,59 @@ describe('useNotifications - Bug #81+90: shownReminders behavior', () => {
     expect(mockShowNotification).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('useNotifications - R5.1: 12h catch-up pass for never-shown reminders', () => {
+  // R5.1 — when the page is closed (laptop sleep, app backgrounded, etc.)
+  // and then reopened, the live 1-minute check window will have passed.
+  // The catch-up pass also fires any reminder whose trigger time was in
+  // the last 12 hours but was never recorded as shown. This guards the
+  // "I missed an all-day event" complaint without spamming on long-idle
+  // browsers.
+  //
+  // The 12h window is gated by `neverShown`, so a reminder that already
+  // fired normally will not re-fire from the catch-up pass.
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.clearAllMocks()
+    currentEvents = []
+    currentEnableNotifications = true
+    currentDefaultReminderMinutes = 15
+    mockToast.mockClear()
+
+    Object.defineProperty(globalThis, 'Notification', {
+      value: { permission: 'granted' },
+      writable: true,
+      configurable: true,
+    })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('fires a reminder whose trigger was 2h15m ago and never shown (catch-up pass)', () => {
+    // Arrange: pick a fixed "now" so the math is obvious. The event
+    // starts 2 hours before "now"; with a 15-min default reminder, the
+    // trigger time lands at 2h15m in the past. That is OUTSIDE the
+    // 1-minute live window but INSIDE the 12h catch-up window, and the
+    // shownReminders map is fresh (new hook mount) so the reminder has
+    // never been shown — exactly the "machine was asleep" scenario.
+    const now = new Date('2026-07-07T12:00:00Z')
+    vi.setSystemTime(now)
+    const eventStart = new Date(now.getTime() - 2 * 60 * 60_000) // 2 hours ago
+    currentEvents = [makeEvent('evt1', eventStart)]
+
+    // Act
+    renderHook(() => useNotifications())
+
+    // Assert: catch-up pass fires the notification exactly once
+    expect(mockShowNotification).toHaveBeenCalledTimes(1)
+    expect(mockShowNotification).toHaveBeenCalledWith(
+      'Event evt1',
+      expect.any(String),
+      'evt1',
+      eventStart.toISOString(),
+    )
+  })
+})

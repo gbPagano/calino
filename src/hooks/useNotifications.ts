@@ -2,10 +2,16 @@ import { useEffect, useRef } from 'react'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { showNotification, createNotificationId, getDueSnoozedReminders, snoozeReminder } from '@/lib/notifications'
-import { parseISO, isWithinInterval, addMinutes } from 'date-fns'
+import { parseISO, isWithinInterval, addMinutes, addHours, isAfter } from 'date-fns'
 import { toast } from 'sonner'
 
 const CHECK_INTERVAL_MS = 60 * 1000
+// R5.1 — when the page is closed (laptop sleep, app backgrounded, etc.)
+// and then reopened, also fire reminders whose trigger time was in the
+// last 12 hours but never recorded as shown. The 12h window matches the
+// most common "I missed an all-day event" complaint without spamming on
+// long-idle browsers.
+const CATCH_UP_WINDOW_HOURS = 12
 
 export function useNotifications(): void {
   const events = useCalendarStore((state) => state.events)
@@ -38,9 +44,19 @@ export function useNotifications(): void {
       const now = new Date()
       const checkWindowStart = addMinutes(now, -1)
       const checkWindowEnd = addMinutes(now, 1)
+      // R5.1 — also accept triggers in the last 12h that have never been
+      // shown. This handles laptop sleep / app backgrounded scenarios
+      // where the 1-minute window would have been missed. The condition
+      // below uses the `neverShown` flag (instead of expanding the
+      // checkWindowStart) so the 1-minute window still applies to
+      // re-shown triggers (event edits), preserving the dedup contract.
+      // `isCatchUpPass` is true whenever the catch-up window is non-empty
+      // (i.e. the catch-up cutoff is older than the live-window start).
+      const catchUpCutoff = addHours(now, -CATCH_UP_WINDOW_HOURS)
+      const isCatchUpPass = isAfter(checkWindowStart, catchUpCutoff)
 
       events.forEach((event) => {
-        const reminders = event.reminders?.length ? event.reminders : 
+        const reminders = event.reminders?.length ? event.reminders :
           event.type === 'event' || !event.type ? [{ id: 'default', minutesBefore: defaultReminderMinutes, method: 'popup' as const }] : []
 
         if (reminders.length === 0) return
@@ -52,11 +68,21 @@ export function useNotifications(): void {
           const reminderId = createNotificationId(event.id, reminder.id)
           const triggerTimestamp = reminderTime.getTime()
           const previousTimestamp = shownReminders.current.get(reminderId)
+          const neverShown = previousTimestamp === undefined
+
+          const inLiveWindow = isWithinInterval(reminderTime, { start: checkWindowStart, end: checkWindowEnd })
+          // R5.1 — catch-up window: in [catchUpCutoff, checkWindowStart] and never shown.
+          // The neverShown gate prevents re-firing on app reloads if the
+          // map was already cleared or evicted; we only catch up for
+          // triggers that genuinely slipped through (machine was asleep).
+          const inCatchUpWindow = isCatchUpPass && neverShown &&
+            isAfter(reminderTime, catchUpCutoff) &&
+            isAfter(checkWindowStart, reminderTime)
 
           const shouldFire =
-            isWithinInterval(reminderTime, { start: checkWindowStart, end: checkWindowEnd }) &&
+            (inLiveWindow || inCatchUpWindow) &&
             // Fire if never shown, or if the trigger time changed (event was edited)
-            (previousTimestamp === undefined || previousTimestamp !== triggerTimestamp)
+            (neverShown || previousTimestamp !== triggerTimestamp)
 
           if (shouldFire) {
             shownReminders.current.set(reminderId, triggerTimestamp)

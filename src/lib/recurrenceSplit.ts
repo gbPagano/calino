@@ -31,10 +31,13 @@ export function buildMasterTruncation(
   dayBefore.setUTCDate(dayBefore.getUTCDate() - 1)
   const masterEndDate = format(dayBefore, "yyyy-MM-dd'T'23:59:59'Z'")
 
-  const excluded = master.excludedDates || []
-  const excludedDates = excluded.includes(occurrenceDateStr)
-    ? excluded
-    : [...excluded, occurrenceDateStr]
+  // R5.2 — the master is already truncated to the day before the split
+  // point (masterEndDate below), so it will not generate any occurrence
+  // on or after occurrenceDateStr. Adding occurrenceDateStr to
+  // excludedDates was a no-op that polluted the master's EXDATE list on
+  // every "this and following events" split. Drop the push; the master
+  // is correct without it.
+  const excludedDates = master.excludedDates || []
 
   const recurrence: RecurrenceRule | undefined = master.recurrence
     ? { ...master.recurrence, endDate: masterEndDate, count: undefined, isAllDay: master.isAllDay }

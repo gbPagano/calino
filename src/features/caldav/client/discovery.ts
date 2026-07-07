@@ -3,6 +3,61 @@ import { createDAVClient } from 'tsdav'
 const DISCOVERY_TIMEOUT_MS = 8_000
 
 /**
+ * Known CalDAV providers that require non-standard URLs.
+ * Maps a hostname (or hostname pattern) to:
+ *   - baseUrl: the CalDAV root
+ *   - urlTemplate: a URL template where {email} is replaced with the user's email.
+ *     When the user enters just the base URL, we expand the template using the username.
+ *     null means no template (we can only suggest, not auto-construct).
+ */
+const KNOWN_CALENDAR_PROVIDERS: Record<string, { baseUrl: string; urlTemplate: string | null }> = {
+  'fastmail.com': {
+    baseUrl: 'https://caldav.fastmail.com',
+    urlTemplate: 'https://caldav.fastmail.com/dav/principals/user/{email}/',
+  },
+}
+
+/**
+ * For known providers, try to expand the server URL using the username (email).
+ * Returns the expanded URL if the provider is recognized and the URL looks like
+ * a bare base (no principal path), or null if we can't expand.
+ */
+export function expandProviderUrl(serverUrl: string, username: string): string | null {
+  try {
+    const parsed = new URL(serverUrl)
+    const bareDomain = parsed.hostname.replace(/^www\./, '')
+    for (const [domain, info] of Object.entries(KNOWN_CALENDAR_PROVIDERS)) {
+      if (bareDomain === domain || bareDomain.endsWith('.' + domain)) {
+        // Only expand when the URL is the bare base (no meaningful path).
+        // Don't replace URLs that already point to a specific CalDAV path.
+        const path = parsed.pathname.replace(/\/$/, '')
+        const isBareBase = path === '' || path === '/dav'
+        if (isBareBase && username.includes('@') && info.urlTemplate) {
+          return info.urlTemplate.replace('{email}', encodeURIComponent(username))
+        }
+      }
+    }
+  } catch { /* invalid URL — ignore */ }
+  return null
+}
+
+/**
+ * Suggest a user-friendly URL hint when the connection fails.
+ * Returns null when we don't have provider-specific guidance.
+ */
+export function suggestCalDAVUrl(serverUrl: string): string | null {
+  try {
+    const hostname = new URL(serverUrl).hostname
+    for (const [domain, info] of Object.entries(KNOWN_CALENDAR_PROVIDERS)) {
+      if (hostname === domain || hostname.endsWith('.' + domain)) {
+        return `For ${domain}, try entering: ${info.urlTemplate.replace('{email}', 'your-email@' + domain)}`
+      }
+    }
+  } catch { /* invalid URL — ignore */ }
+  return null
+}
+
+/**
  * Discover the CalDAV base URL by probing /.well-known/caldav (RFC 6749 §3.1).
  *
  * The server responds with a redirect (301/302) to its actual CalDAV endpoint:
@@ -35,6 +90,24 @@ export async function discoverServerUrl(baseUrl: string, proxyUrl?: string): Pro
       '[CalDAV] Discovery: well-known probe failed:',
       error instanceof Error ? error.message : String(error)
     )
+  }
+
+  // Well-known didn't work. Try the caldav. subdomain as a fallback.
+  // Many providers (Fastmail, etc.) host CalDAV at caldav.{domain} but don't
+  // set up a well-known redirect from the main domain.
+  try {
+    const parsed = new URL(normalizedUrl)
+    const bareDomain = parsed.hostname.replace(/^www\./, '')
+    if (!bareDomain.startsWith('caldav.')) {
+      const caldavBase = `${parsed.protocol}//caldav.${bareDomain}${parsed.port ? `:${parsed.port}` : ''}`
+      const caldavDiscovered = await probeWellKnown(caldavBase, proxyUrl)
+      if (caldavDiscovered) {
+        console.log('[CalDAV] Discovery: caldav. subdomain probe succeeded:', caldavDiscovered)
+        return caldavDiscovered
+      }
+    }
+  } catch {
+    // caldav. subdomain probe failed — fall through to base URL
   }
 
   console.log('[CalDAV] Discovery: falling back to base URL:', normalizedUrl)
@@ -96,7 +169,9 @@ async function probeWellKnownDirect(
     }
 
     // We were redirected to a different path — that's the real CalDAV endpoint.
-    return buildBaseUrl(baseUrl, finalPath)
+    // Pass finalUrl.origin so cross-domain redirects (e.g. www → caldav subdomain)
+    // keep the redirect target's host instead of the original server's host.
+    return buildBaseUrl(baseUrl, finalPath, finalUrl.origin)
   } finally {
     clearTimeout(timer)
   }
@@ -125,7 +200,7 @@ async function probeWellKnownViaProxy(
       const finalUrl = new URL(targetUrl)
       const finalPath = finalUrl.pathname
       if (!isWellKnownPath(finalPath)) {
-        return buildBaseUrl(baseUrl, finalPath)
+        return buildBaseUrl(baseUrl, finalPath, finalUrl.origin)
       }
     }
 
@@ -148,9 +223,14 @@ async function probeWellKnownViaProxy(
   }
 }
 
-/** Build a normalized base URL from the server's origin + discovered path. */
-function buildBaseUrl(serverBaseUrl: string, discoveredPath: string): string {
-  const origin = new URL(serverBaseUrl).origin
+/**
+ * Build a normalized base URL from the server's origin + discovered path.
+ * When the redirect crosses domains (e.g. www.fastmail.com → caldav.fastmail.com),
+ * the caller should pass `finalOrigin` so we use the redirect target's host,
+ * not the original server's host.
+ */
+function buildBaseUrl(serverBaseUrl: string, discoveredPath: string, finalOrigin?: string): string {
+  const origin = finalOrigin || new URL(serverBaseUrl).origin
   // Keep trailing slash if the server redirected to one (e.g. Davis → /dav/).
   // Some servers (Davis) require the trailing slash for PROPFIND to work;
   // others (Baikal, Radicale) work either way. tsdav uses new URL() which

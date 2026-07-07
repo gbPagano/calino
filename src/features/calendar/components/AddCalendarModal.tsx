@@ -2,7 +2,7 @@ import type { JSX } from 'react'
 import { useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
-import { discoverServerUrl } from '@/features/caldav/client/discovery'
+import { discoverServerUrl, suggestCalDAVUrl, expandProviderUrl } from '@/features/caldav/client/discovery'
 import { useAnimatedClose } from '@/hooks/useAnimatedClose'
 import { useModalDismiss } from '@/hooks/useModalDismiss'
 import styles from './AddCalendarModal.module.css'
@@ -15,6 +15,7 @@ interface AddCalendarModalProps {
 export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JSX.Element | null {
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [connectionError, setConnectionError] = useState<string>('')
+  const [connectionHint, setConnectionHint] = useState<string>('')
   const [isTesting, setIsTesting] = useState(false)
   const [showProxyField, setShowProxyField] = useState(false)
 
@@ -23,6 +24,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
   const doClose = useCallback((): void => {
     setConnectionStatus('idle')
     setConnectionError('')
+    setConnectionHint('')
     onClose()
   }, [onClose])
   const { rendered, closing, requestClose } = useAnimatedClose(isOpen, doClose, 200)
@@ -33,11 +35,13 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
     serverUrl: string,
     username: string,
     password: string,
-    proxyUrl?: string
+    proxyUrl?: string,
+    originalUrl?: string
   ): Promise<boolean> => {
     setIsTesting(true)
     setConnectionStatus('idle')
     setConnectionError('')
+    setConnectionHint('')
 
     try {
       // Discover the actual CalDAV endpoint via .well-known/caldav
@@ -90,6 +94,11 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
       setConnectionStatus(result.ok ? 'success' : 'error')
       if (!result.ok) {
         setConnectionError(`Server returned status ${result.status}`)
+        const hintUrl = originalUrl || serverUrl
+        const hint = suggestCalDAVUrl(hintUrl)
+        if (hint) {
+          setConnectionHint(hint)
+        }
       }
       return result.ok
     } catch (error) {
@@ -97,6 +106,11 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
       setConnectionError(
         `Connection failed: ${errorMsg}. This may be a CORS issue - the server must allow cross-origin requests.`
       )
+      const hintUrl = originalUrl || serverUrl
+      const hint = suggestCalDAVUrl(hintUrl)
+      if (hint) {
+        setConnectionHint(hint)
+      }
       setConnectionStatus('error')
       return false
     } finally {
@@ -115,17 +129,25 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
     const accountName = (formData.get('accountName') as string) || username
     const proxyUrl = (formData.get('proxyUrl') as string) || undefined
 
-    const success = await handleTestConnection(serverUrl, username, password, proxyUrl)
+    // Expand known provider URLs (e.g. Fastmail base → principal URL)
+    const expanded = expandProviderUrl(serverUrl, username)
+    const effectiveUrl = expanded || serverUrl
+
+    const success = await handleTestConnection(effectiveUrl, username, password, proxyUrl, serverUrl)
     if (!success) {
       return
     }
 
     try {
-      await addAccount(serverUrl, username, password, accountName, proxyUrl)
+      await addAccount(effectiveUrl, username, password, accountName, proxyUrl)
       requestClose()
     } catch {
       setConnectionStatus('error')
       setConnectionError('Failed to add account. Please try again.')
+      const hint = suggestCalDAVUrl(serverUrl)
+      if (hint) {
+        setConnectionHint(hint)
+      }
     }
   }
 
@@ -255,6 +277,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
             <p className={styles.successMessage}>✓ Connection successful!</p>
           )}
           {connectionStatus === 'error' && <p className={styles.errorMessage}>{connectionError}</p>}
+          {connectionHint && <div className={styles.hintMessage}>{connectionHint}</div>}
           <div className={styles.modalFooter}>
             <button
               type="button"

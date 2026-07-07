@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { discoverServerUrl } from '../discovery'
+import { discoverServerUrl, suggestCalDAVUrl, expandProviderUrl } from '../discovery'
 
 describe('discovery', () => {
   beforeEach(() => {
@@ -302,6 +302,213 @@ describe('discovery', () => {
       const result = await discoverServerUrl('https://caldav.example.com')
 
       expect(result).toBe('https://caldav.example.com')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // caldav. subdomain fallback
+  // -----------------------------------------------------------------------
+  describe('caldav. subdomain fallback', () => {
+    it('tries caldav. subdomain when .well-known fails on main domain', async () => {
+      vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      let callCount = 0
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(() => {
+          callCount++
+          if (callCount === 1) {
+            // First call: .well-known on www.fastmail.com → 404
+            return Promise.resolve(new Response(null, { status: 404 }))
+          }
+          // Second call: .well-known on caldav.fastmail.com → 301 redirect
+          // With redirect:'follow', the final URL is the redirect target
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            url: 'https://caldav.fastmail.com/dav/calendars',
+            headers: new Headers(),
+          } as unknown as Response)
+        })
+      )
+
+      const result = await discoverServerUrl('https://www.fastmail.com/dav/user@fastmail.com/')
+
+      // Should discover through caldav. subdomain, using the redirect target's origin
+      expect(result).toBe('https://caldav.fastmail.com/dav/calendars')
+    })
+
+    it('does not try caldav. subdomain when it is already the hostname', async () => {
+      vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(new Response(null, { status: 404 }))
+      )
+
+      const result = await discoverServerUrl('https://caldav.fastmail.com/')
+
+      // Only one fetch call (no caldav. subdomain retry since it's already caldav.)
+      expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1)
+      expect(result).toBe('https://caldav.fastmail.com')
+    })
+
+    it('strips www. prefix before trying caldav. subdomain', async () => {
+      vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      let callCount = 0
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(() => {
+          callCount++
+          if (callCount === 1) {
+            return Promise.resolve(new Response(null, { status: 404 }))
+          }
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            url: 'https://caldav.example.com/dav.php',
+            headers: new Headers(),
+          } as unknown as Response)
+        })
+      )
+
+      const result = await discoverServerUrl('https://www.example.com/dav/')
+
+      expect(result).toBe('https://caldav.example.com/dav.php')
+    })
+
+    it('falls back to base URL when caldav. subdomain also fails', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(new Response(null, { status: 404 }))
+      )
+
+      const result = await discoverServerUrl('https://www.example.com/dav/')
+
+      expect(result).toBe('https://www.example.com/dav')
+    })
+
+    it('preserves port when trying caldav. subdomain', async () => {
+      vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      let callCount = 0
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(() => {
+          callCount++
+          if (callCount === 1) {
+            return Promise.resolve(new Response(null, { status: 404 }))
+          }
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            url: 'http://caldav.example.local:8080/dav.php',
+            headers: new Headers(),
+          } as unknown as Response)
+        })
+      )
+
+      const result = await discoverServerUrl('http://www.example.local:8080/dav/')
+
+      expect(result).toBe('http://caldav.example.local:8080/dav.php')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // Cross-domain redirect origin handling
+  // -----------------------------------------------------------------------
+  describe('cross-domain redirect origin', () => {
+    it('uses redirect target origin when well-known redirects to different host', async () => {
+      vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      // Simulate www.fastmail.com/.well-known/caldav redirecting to caldav.fastmail.com
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          url: 'https://caldav.fastmail.com/dav/calendars',
+          headers: new Headers(),
+        } as unknown as Response)
+      )
+
+      const result = await discoverServerUrl('https://www.fastmail.com/')
+
+      // Must use caldav.fastmail.com's origin, NOT www.fastmail.com's origin
+      expect(result).toBe('https://caldav.fastmail.com/dav/calendars')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // suggestCalDAVUrl helper
+  // -----------------------------------------------------------------------
+  describe('suggestCalDAVUrl', () => {
+    it('returns hint for Fastmail URLs', () => {
+      const hint = suggestCalDAVUrl('https://www.fastmail.com/dav/user@fastmail.com/')
+      expect(hint).toContain('fastmail.com')
+      expect(hint).toContain('caldav.fastmail.com')
+      expect(hint).toContain('your-email@fastmail.com')
+    })
+
+    it('returns hint for caldav. subdomain of Fastmail', () => {
+      const hint = suggestCalDAVUrl('https://caldav.fastmail.com/')
+      expect(hint).toContain('fastmail.com')
+    })
+
+    it('returns null for unknown providers', () => {
+      const hint = suggestCalDAVUrl('https://caldav.example.com/')
+      expect(hint).toBeNull()
+    })
+
+    it('returns null for invalid URLs', () => {
+      const hint = suggestCalDAVUrl('not-a-url')
+      expect(hint).toBeNull()
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // expandProviderUrl helper
+  // -----------------------------------------------------------------------
+  describe('expandProviderUrl', () => {
+    it('expands Fastmail base URL using email username', () => {
+      const result = expandProviderUrl('https://caldav.fastmail.com/', 'user@fastmail.com')
+      expect(result).toBe('https://caldav.fastmail.com/dav/principals/user/user%40fastmail.com/')
+    })
+
+    it('expands www. Fastmail URL using email username', () => {
+      const result = expandProviderUrl('https://www.fastmail.com/', 'alice@example.com')
+      expect(result).toBe('https://caldav.fastmail.com/dav/principals/user/alice%40example.com/')
+    })
+
+    it('does not expand if URL already has /principals/ path', () => {
+      const result = expandProviderUrl(
+        'https://caldav.fastmail.com/dav/principals/user/user@fastmail.com/',
+        'user@fastmail.com'
+      )
+      expect(result).toBeNull()
+    })
+
+    it('does not expand if URL has a specific CalDAV path like /dav/calendars/', () => {
+      const result = expandProviderUrl('https://caldav.fastmail.com/dav/calendars/', 'user@fastmail.com')
+      expect(result).toBeNull()
+    })
+
+    it('does not expand if username is not an email', () => {
+      const result = expandProviderUrl('https://caldav.fastmail.com/', 'just-a-username')
+      expect(result).toBeNull()
+    })
+
+    it('returns null for unknown providers', () => {
+      const result = expandProviderUrl('https://caldav.example.com/', 'user@example.com')
+      expect(result).toBeNull()
+    })
+
+    it('returns null for invalid URLs', () => {
+      const result = expandProviderUrl('not-a-url', 'user@example.com')
+      expect(result).toBeNull()
     })
   })
 })

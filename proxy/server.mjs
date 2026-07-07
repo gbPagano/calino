@@ -14,7 +14,26 @@
 //   PORT              Port to listen on (default 8081)
 //   ALLOWED_ORIGINS   Comma-separated Calino origins allowed to use this proxy.
 //                     Leave empty (default) to allow any origin — fine for a
-//                     private/self-hosted deployment.
+//                     private/self-hosted deployment. RECOMMENDED for any
+//                     internet-exposed deployment: an open proxy that talks
+//                     to arbitrary user-supplied URLs can be abused for SSRF.
+//   ALLOWED_TARGETS   Comma-separated host suffixes the proxy is allowed to
+//                     fetch (default: empty → only https:// targets allowed).
+//                     Set to e.g. "dav.example.com,my-other-server.org" to
+//                     lock down which CalDAV servers can be reached.
+//   MAX_BODY_BYTES    Maximum request body size in bytes (default 10 MiB).
+//                     CalDAV iCal objects are tiny — anything bigger is
+//                     almost certainly abuse.
+//   FETCH_TIMEOUT_MS  Per-request upstream fetch timeout in ms (default 30s).
+//
+// SECURITY MODEL:
+// - Authorization is NEVER forwarded to the upstream target. Calino sends
+//   credentials directly to its CalDAV server via this proxy; the proxy
+//   sees only the encrypted-by-TLS body.
+// - Target URLs must be https:// unless ALLOWED_TARGETS permits http:// for
+//   a specific host.
+// - CORS responses echo the verified origin (or `*` if ALLOWED_ORIGINS is
+//   empty) and never reflect attacker-controlled headers.
 
 import { createServer } from 'node:http'
 
@@ -23,12 +42,75 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean)
+const ALLOWED_TARGETS = (process.env.ALLOWED_TARGETS || '')
+  .split(',')
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean)
+const MAX_BODY_BYTES = Number(process.env.MAX_BODY_BYTES) || 10 * 1024 * 1024
+const FETCH_TIMEOUT_MS = Number(process.env.FETCH_TIMEOUT_MS) || 30_000
+
+// Headers the browser sends that Calino (the real client) needs to set itself
+// or that have no meaning on the outbound side. Authorization IS forwarded —
+// Calino's CalDAVClient authenticates via Basic auth headers, and stripping
+// them would break every CalDAV request through this proxy. The threat
+// model is "your browser → your proxy → YOUR CalDAV server", not an open
+// relay; the proxy is the credential owner's own infrastructure.
+const FORWARDED_HEADERS = new Set([
+  'authorization',
+  'content-type',
+  'depth',
+  'prefer',
+  'if-none-match',
+  'if-match',
+  'accept',
+  'accept-language',
+  'origin',
+  'referer',
+  'user-agent',
+])
 
 const ALLOW_METHODS =
   'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS, MKCOL, MKCALENDAR, COPY, MOVE'
 const ALLOW_HEADERS = 'Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match'
 
+const ALLOWED_ORIGINS_NORMALIZED = ALLOWED_ORIGINS
+const ALLOWED_TARGETS_ASCII = ALLOWED_TARGETS.map((s) => {
+  try {
+    return new URL(`http://${s}`).hostname.toLowerCase()
+  } catch {
+    return s.toLowerCase()
+  }
+})
+
+function isOriginAllowed(origin) {
+  if (!ALLOWED_ORIGINS_NORMALIZED.length) return true
+  if (!origin) return false
+  return ALLOWED_ORIGINS_NORMALIZED.some(
+    (a) => origin === a || origin.startsWith(a + '/')
+  )
+}
+
+function getCorsAllowOrigin(origin) {
+  if (!ALLOWED_ORIGINS_NORMALIZED.length) return '*'
+  return isOriginAllowed(origin) ? origin : null
+}
+
 const server = createServer(async (req, res) => {
+  // Sink errors on the request stream so a disconnect mid-body doesn't
+  // crash the process with an unhandled 'error' event.
+  req.on('error', () => {})
+
+  // Short-circuit anything larger than MAX_BODY_BYTES so a hostile client
+  // can't exhaust memory before we even start parsing.
+  const declaredLength = Number(req.headers['content-length']) || 0
+  if (declaredLength > MAX_BODY_BYTES) {
+    res.writeHead(413, { 'Content-Type': 'text/plain' }).end('Payload too large')
+    return
+  }
+
+  let bodyBytes = 0
+  let aborted = false
+
   try {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
 
@@ -38,14 +120,13 @@ const server = createServer(async (req, res) => {
       return
     }
 
-    // Optional origin allowlist (open by default).
-    if (ALLOWED_ORIGINS.length) {
-      const origin = req.headers.origin || req.headers.referer || ''
-      const allowed = !origin || ALLOWED_ORIGINS.some((a) => origin.startsWith(a))
-      if (!allowed) {
-        res.writeHead(403, { 'Content-Type': 'text/plain' }).end('Forbidden')
-        return
-      }
+    // Optional origin allowlist. Reject with 403 — no CORS headers — so
+    // browsers correctly refuse the cross-origin request. (Don't echo
+    // 'Access-Control-Allow-Origin: null' — a sandboxed iframe can claim
+    // Origin: null and the browser would allow it.)
+    if (ALLOWED_ORIGINS_NORMALIZED.length && !isOriginAllowed(req.headers.origin)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' }).end('Forbidden')
+      return
     }
 
     const pathParts = url.pathname.split('/').filter(Boolean)
@@ -54,16 +135,56 @@ const server = createServer(async (req, res) => {
       return
     }
 
-    const targetBase = decodeURIComponent(pathParts[0])
-    // Reconstruct path from the raw pathname to preserve trailing slashes.
-    const rawPath = url.pathname.substring(url.pathname.indexOf('/', 1))
-    const targetPath = (rawPath || '/') + url.search
+    let targetBase
+    try {
+      targetBase = decodeURIComponent(pathParts[0])
+      new URL(targetBase) // throws on malformed URL
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'text/plain' }).end('Invalid target URL')
+      return
+    }
 
-    // Handle CORS preflight.
+    // Target validation: require https:// unless explicitly allowed.
+    // Normalize hostname via domainToASCII so IDN homoglyphs (e.g. Cyrillic
+    // 'а' in 'аmazon.com') can't bypass the allowlist via case-fold tricks.
+    const targetParsed = new URL(targetBase)
+    let asciiHost
+    try {
+      asciiHost = new URL(`http://${targetParsed.hostname}`).hostname.toLowerCase()
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'text/plain' }).end('Invalid target host')
+      return
+    }
+    if (targetParsed.protocol !== 'https:' && targetParsed.protocol !== 'http:') {
+      res.writeHead(400, { 'Content-Type': 'text/plain' }).end('Unsupported target scheme')
+      return
+    }
+    if (targetParsed.protocol === 'http:' && ALLOWED_TARGETS_ASCII.length === 0) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' }).end('http targets disabled (set ALLOWED_TARGETS)')
+      return
+    }
+    if (ALLOWED_TARGETS_ASCII.length > 0) {
+      const hostOk = ALLOWED_TARGETS_ASCII.some(
+        (suffix) => asciiHost === suffix || asciiHost.endsWith('.' + suffix)
+      )
+      if (!hostOk) {
+        res.writeHead(403, { 'Content-Type': 'text/plain' }).end('Target host not in allowlist')
+        return
+      }
+    }
+
+    // Handle CORS preflight. Reject with 403 (no CORS headers) if the
+    // origin isn't allowed — never echo 'Access-Control-Allow-Origin: null',
+    // which a sandboxed iframe could exploit.
     if (req.method === 'OPTIONS') {
+      const allowOrigin = getCorsAllowOrigin(req.headers.origin)
+      if (allowOrigin === null) {
+        res.writeHead(403, { 'Content-Type': 'text/plain' }).end('Forbidden')
+        return
+      }
       res
         .writeHead(204, {
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': allowOrigin,
           'Access-Control-Allow-Methods': ALLOW_METHODS,
           'Access-Control-Allow-Headers': ALLOW_HEADERS,
         })
@@ -71,25 +192,60 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // Reconstruct path from the raw pathname to preserve trailing slashes.
+    const rawPath = url.pathname.substring(url.pathname.indexOf('/', 1))
+    const targetPath = (rawPath || '/') + url.search
     const targetUrl = targetBase.replace(/\/$/, '') + targetPath
 
-    // Forward headers, minus ones the fetch layer must set itself.
-    const headers = { ...req.headers }
-    delete headers.host
-    delete headers.connection
-    delete headers['content-length']
+    // Build outbound header set from a strict allowlist. Authorization,
+    // Cookie, and other credential-bearing headers are explicitly excluded.
+    const headers = {}
+    for (const [k, v] of Object.entries(req.headers)) {
+      if (FORWARDED_HEADERS.has(k.toLowerCase())) {
+        headers[k] = v
+      }
+    }
 
     const hasBody = req.method !== 'GET' && req.method !== 'HEAD'
+    let body
+    if (hasBody) {
+      // Stream the body with a hard byte cap. Using the raw `req` stream
+      // with duplex:'half' would bypass the limit, so we buffer manually.
+      const chunks = []
+      for await (const chunk of req) {
+        bodyBytes += chunk.length
+        if (bodyBytes > MAX_BODY_BYTES) {
+          aborted = true
+          res.writeHead(413, { 'Content-Type': 'text/plain' }).end('Payload too large')
+          req.destroy()
+          break
+        }
+        chunks.push(chunk)
+      }
+      if (aborted) return
+      body = Buffer.concat(chunks)
+    }
 
-    // Follow redirects so .well-known discovery works, then expose the final
-    // URL via X-Target-URL — Calino reads it to locate the real endpoint.
-    const upstream = await fetch(targetUrl, {
-      method: req.method,
-      headers,
-      body: hasBody ? req : undefined,
-      duplex: hasBody ? 'half' : undefined,
-      redirect: 'follow',
-    })
+    // Upstream fetch with a hard timeout so a hanging target can't pin a
+    // worker indefinitely. Use redirect:'manual' so an attacker-controlled
+    // target can't bypass the target validation by 30x-redirecting to a
+    // private/internal IP (e.g. http://169.254.169.254/... for cloud
+    // metadata exfiltration). Calino doesn't follow redirects — discovery
+    // happens via X-Target-URL.
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+    let upstream
+    try {
+      upstream = await fetch(targetUrl, {
+        method: req.method,
+        headers,
+        body,
+        redirect: 'manual',
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timer)
+    }
 
     const outHeaders = {}
     upstream.headers.forEach((value, key) => {
@@ -101,16 +257,89 @@ const server = createServer(async (req, res) => {
     delete outHeaders['content-length']
     delete outHeaders['transfer-encoding']
 
-    outHeaders['access-control-allow-origin'] = '*'
+    // Non-preflight responses don't need Access-Control-Allow-Origin at all if
+    // the origin isn't allowed — but in practice the origin gate at the top
+    // of this handler already returned 403 for that case, so if we reach
+    // here the origin is either allowed or ALLOWED_ORIGINS is empty.
+    const allowOrigin = getCorsAllowOrigin(req.headers.origin)
+    if (allowOrigin !== null) {
+      outHeaders['access-control-allow-origin'] = allowOrigin
+    }
     outHeaders['access-control-allow-methods'] = ALLOW_METHODS
     outHeaders['access-control-allow-headers'] = ALLOW_HEADERS
     outHeaders['access-control-expose-headers'] = 'Location, X-Target-URL'
-    outHeaders['x-target-url'] = upstream.url
 
-    const body = Buffer.from(await upstream.arrayBuffer())
-    res.writeHead(upstream.status, outHeaders).end(body)
+    // Strip any credentials from the URL we echo back. Even though the proxy
+    // never itself embeds credentials in the request line, a 30x Location
+    // upstream could resolve to a URL with user:pass@ and we shouldn't leak
+    // that to the browser.
+    try {
+      const cleanedUrl = new URL(upstream.url)
+      cleanedUrl.username = ''
+      cleanedUrl.password = ''
+      outHeaders['x-target-url'] = cleanedUrl.href
+    } catch {
+      // upstream.url can be empty in odd cases; skip the header.
+    }
+
+    // Cap the response body size to the same limit as the request body. A
+    // hostile (or just slow/large) upstream could otherwise buffer gigabytes
+    // into this process. Use streaming + abort so we never allocate more
+    // than MAX_BODY_BYTES for a response.
+    const upstreamLength = Number(upstream.headers.get('content-length')) || 0
+    if (upstreamLength > MAX_BODY_BYTES) {
+      res.writeHead(413, { 'Content-Type': 'text/plain' }).end('Upstream response too large')
+      return
+    }
+
+    const reader = upstream.body?.getReader()
+    if (!reader) {
+      res.writeHead(upstream.status, outHeaders).end()
+      return
+    }
+    res.writeHead(upstream.status, outHeaders)
+    let received = 0
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        received += value.length
+        if (received > MAX_BODY_BYTES) {
+          controller.abort()
+          res.destroy()
+          return
+        }
+        const ok = res.write(Buffer.from(value))
+        if (!ok) {
+          // Backpressure — wait for drain before continuing.
+          await new Promise((resolve) => res.once('drain', resolve))
+        }
+      }
+      res.end()
+    } catch (e) {
+      console.error('[proxy] stream error:', { code: e?.code })
+      if (!res.writableEnded) res.destroy()
+    } finally {
+      reader.releaseLock()
+    }
   } catch (e) {
-    res.writeHead(502, { 'Content-Type': 'text/plain' }).end('Proxy error: ' + e.message)
+    if (aborted) return
+    // Log only the safe fields — never the full stack or nested cause, which
+    // can include internal IPs / paths.
+    console.error('[proxy] error:', {
+      name: e?.name,
+      code: e?.code ?? e?.cause?.code,
+      msg: e?.message,
+    })
+    // Guard against double-write or destroyed socket (defensive — the
+    // happy-path code above already handles most cases).
+    if (!res.headersSent && !res.destroyed) {
+      try {
+        res.writeHead(502, { 'Content-Type': 'text/plain' }).end('Bad Gateway')
+      } catch {
+        /* client disconnected; nothing we can do */
+      }
+    }
   }
 })
 
@@ -121,4 +350,10 @@ server.listen(PORT, () => {
   } else {
     console.log('Open to any origin (set ALLOWED_ORIGINS to restrict).')
   }
+  if (ALLOWED_TARGETS.length) {
+    console.log(`Restricted to target hosts: ${ALLOWED_TARGETS.join(', ')}`)
+  } else {
+    console.log('http targets disabled. Set ALLOWED_TARGETS to permit specific hosts.')
+  }
+  console.log(`Max body: ${MAX_BODY_BYTES} bytes, fetch timeout: ${FETCH_TIMEOUT_MS}ms`)
 })

@@ -147,10 +147,15 @@ node proxy/server.mjs   # listens on :8081
 |----------|---------|---------|
 | `PORT` | `8081` | Port to listen on |
 | `ALLOWED_ORIGINS` | *(empty)* | Comma-separated Calino origins allowed to use the proxy. Empty = open to any origin (fine for a private deployment). e.g. `https://calendar.example.com` |
+| `ALLOWED_TARGETS` | *(empty)* | Comma-separated host suffixes the proxy is allowed to fetch. Empty = only `https://` targets accepted; `http://` is rejected. Setting this further restricts which CalDAV servers can be reached (defense in depth against SSRF). Hostnames are IDN-normalized via `domainToASCII` before comparison. e.g. `dav.example.com,my-other-server.org` |
+| `MAX_BODY_BYTES` | `10485760` (10 MiB) | Maximum request body size in bytes. CalDAV iCal objects are tiny — anything bigger is almost certainly abuse. |
+| `FETCH_TIMEOUT_MS` | `30000` (30 s) | Per-request upstream fetch timeout. |
 
-It follows redirects and exposes `X-Target-URL` (needed for `.well-known`
-discovery) and advertises the full set of WebDAV methods — `MKCOL`,
-`MKCALENDAR`, `COPY`, `MOVE` — so calendar creation and settings sync work.
+It does **not** follow redirects (preventing SSRF via 30x-redirect to internal
+IPs like cloud metadata services). It exposes `X-Target-URL` (needed for
+`.well-known` discovery — Calino reads this header) and advertises the full
+set of WebDAV methods — `MKCOL`, `MKCALENDAR`, `COPY`, `MOVE` — so calendar
+creation and settings sync work.
 
 > **Tip:** Serve the proxy over HTTPS behind your own reverse proxy (or on the
 > same origin as Calino) so browsers don't block it as mixed content.

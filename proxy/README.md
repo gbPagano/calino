@@ -33,13 +33,17 @@ don't block it as mixed content.
 |----------|---------|---------|
 | `PORT` | `8081` | Port to listen on |
 | `ALLOWED_ORIGINS` | *(empty)* | Comma-separated Calino origins allowed to use the proxy. Empty = open to any origin. |
+| `ALLOWED_TARGETS` | *(empty)* | Comma-separated host suffixes the proxy is allowed to fetch. Empty = only `https://` targets accepted. |
+| `MAX_BODY_BYTES` | `10485760` (10 MiB) | Maximum request body size in bytes. |
+| `FETCH_TIMEOUT_MS` | `30000` (30 s) | Per-request upstream fetch timeout. |
 
 ## Notes
 
 - Credentials (the `Authorization` header) and request/response bodies are
   passed straight through and never logged.
-- Follows redirects and exposes `X-Target-URL` so `.well-known` CalDAV
-  discovery works through the proxy.
+- Does **not** follow redirects — preventing SSRF via 30x-redirect to
+  internal IPs like cloud metadata services. Calino reads `X-Target-URL`
+  for `.well-known` CalDAV discovery.
 - Advertises `MKCOL, MKCALENDAR, COPY, MOVE` so calendar creation and Calino
   settings sync work.
 

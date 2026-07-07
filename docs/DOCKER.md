@@ -137,7 +137,7 @@ The Docker setup follows least-privilege principles:
 | Memory limit | ✅ | `mem_limit: 128m` (static site needs very little) |
 | Server header stripped | ✅ | `header -Server` in Caddyfile |
 | Security headers | ✅ | X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy |
-| Request body limit | ✅ | `max_size 1kb` (no uploads needed) |
+| Request body limit | ✅ | `max_size 1mb` |
 | Log rotation | ✅ | 3 × 10 MB max |
 
 ### Content Security Policy

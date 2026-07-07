@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
+import { configDefaults } from 'vitest/config'
 import { caldavMockPlugin } from './e2e/fixtures/vite-caldav-mock'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
@@ -46,5 +47,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
+    // e2e/ is for Playwright tests, not vitest — keep them out of `pnpm test`.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 })

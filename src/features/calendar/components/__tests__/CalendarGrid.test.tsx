@@ -136,4 +136,43 @@ describe('CalendarGrid', () => {
     // Should be May 2024 (two months forward from March)
     expect(store.currentDate).toBe('2024-05-15')
   })
+
+  it('month-view wrapper divs stay mounted after the last event is deleted (so AnimatePresence can run the exit animation)', () => {
+    // Regression for: "Deleting doesn't have an animation" in month view.
+    // Root cause: the .events and .tasks wrapper divs were wrapped in
+    // `{dayEvents.length > 0 && ...}` conditionals. Deleting the LAST
+    // event on a day flipped the conditional false, and React unmounted
+    // the entire <div> (including its AnimatePresence) before
+    // framer-motion could run the exit animation.
+    //
+    // The fix removes the outer conditional so the wrappers are always
+    // rendered. Empty containers collapse to 0 height via flexbox (no
+    // visual impact).
+    const store = useCalendarStore.getState()
+    store.addEvent({
+      id: 'last-event-on-day',
+      calendarId: 'default',
+      title: 'Only Event On Day',
+      start: '2024-03-15T09:00:00',
+      end: '2024-03-15T10:00:00',
+      isAllDay: false,
+    })
+
+    const { container } = renderWithRouter(<CalendarGrid />)
+    // Before delete: the wrapper div exists.
+    const eventsBefore = container.querySelectorAll('[class*="events"]')
+    expect(eventsBefore.length).toBeGreaterThan(0)
+
+    // Delete the only event on this day.
+    store.deleteEvent('last-event-on-day')
+
+    // After delete: the wrapper divs must STILL be in the DOM so
+    // AnimatePresence can intercept the unmount and run the exit.
+    // Empty containers are fine — flexbox collapses them to 0 height.
+    const eventsAfter = container.querySelectorAll('[class*="events"]')
+    expect(eventsAfter.length).toBe(eventsBefore.length)
+
+    // And the data-component="day-tasks" wrapper is always present too.
+    expect(container.querySelector('[data-component="day-tasks"]')).toBeInTheDocument()
+  })
 })

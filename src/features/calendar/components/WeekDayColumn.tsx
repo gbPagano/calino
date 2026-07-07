@@ -2,6 +2,7 @@ import { memo } from 'react'
 import type { JSX } from 'react'
 import { parseISO } from 'date-fns'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useDndContext } from '@dnd-kit/core'
 import type { CalendarEvent, Calendar } from '@/types'
 import { EventCard } from './EventCard'
 import { getEventColor } from '@/lib/eventColor'
@@ -33,6 +34,14 @@ const WeekDayColumn = memo(function WeekDayColumn({
   // pattern: skip the `initial` state entirely, opacity-only exit.
   const cardInitial = reducedMotion ? false : 'initial'
   const cardExit = reducedMotion ? { opacity: 0 } : 'exit'
+  // Skip the exit animation when this event is the active drag — the
+  // DragOverlay already shows the move visually, and the source exit
+  // reads as a ghostly "jump back" to the original position.
+  // Multi-day fragment draggables use `${event.id}::${date}` so strip
+  // the date suffix to compare against `event.id`.
+  const { active } = useDndContext()
+  const activeMasterId = active ? active.id.toString().split('::')[0] : null
+  const skipExit = (id: string): boolean => activeMasterId === id
 
   const allDayEvents = [...events, ...fragments]
 
@@ -53,7 +62,7 @@ const WeekDayColumn = memo(function WeekDayColumn({
         variants={eventCardVariants}
         initial={cardInitial}
         animate="animate"
-        exit={cardExit}
+        exit={skipExit(event.id) ? undefined : cardExit}
         transition={enterTransition}
         className={`${styles.eventPositioned} ${styles.eventTransparent}`}
         style={{ ...style, backgroundColor: `${eventColor}20` }}
@@ -75,7 +84,7 @@ const WeekDayColumn = memo(function WeekDayColumn({
           variants={eventCardVariants}
           initial={cardInitial}
           animate="animate"
-          exit={cardExit}
+          exit={skipExit(event.id) ? undefined : cardExit}
           transition={enterTransition}
           className={styles.travelBar}
           style={{ ...travelBarStyle(event, column, totalColumns), backgroundColor: `${eventColor}15` }}
@@ -94,7 +103,7 @@ const WeekDayColumn = memo(function WeekDayColumn({
         variants={eventCardVariants}
         initial={cardInitial}
         animate="animate"
-        exit={cardExit}
+        exit={skipExit(event.id) ? undefined : cardExit}
         transition={enterTransition}
         className={styles.eventPositioned}
         style={positionedEventStyle(event, column, totalColumns)}

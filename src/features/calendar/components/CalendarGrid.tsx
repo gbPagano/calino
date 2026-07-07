@@ -7,6 +7,7 @@ import {
   DndContext,
   DragOverlay,
   useDroppable,
+  useDndContext,
   useSensor,
   useSensors,
   PointerSensor,
@@ -921,6 +922,14 @@ const DroppableDay = React.memo(function DroppableDay({
   // skip `initial` entirely and use an opacity-only exit (no scale).
   const cardInitial = prefersReducedMotion ? false : 'initial'
   const cardExit = prefersReducedMotion ? { opacity: 0 } : 'exit'
+  // Skip the exit animation when this event is the active drag — the
+  // DragOverlay already shows the move visually, and the source exit
+  // reads as a ghostly "jump back" to the original position. Multi-day
+  // fragment draggables use `${event.id}::${date}` so strip the date
+  // suffix to compare against `event.id`.
+  const { active } = useDndContext()
+  const activeMasterId = active ? active.id.toString().split('::')[0] : null
+  const skipExit = (id: string): boolean => activeMasterId === id
 
   const handleMoreEventsClick = (e: React.MouseEvent): void => {
     e.stopPropagation()
@@ -1008,7 +1017,7 @@ const DroppableDay = React.memo(function DroppableDay({
                   variants={eventCardVariants}
                   initial={cardInitial}
                   animate="animate"
-                  exit={cardExit}
+                  exit={skipExit(event.id) ? undefined : cardExit}
                   transition={eventCardTransition}
                 >
                   <EventCard
@@ -1028,7 +1037,7 @@ const DroppableDay = React.memo(function DroppableDay({
                 variants={eventCardVariants}
                 initial={cardInitial}
                 animate="animate"
-                exit={cardExit}
+                exit={skipExit(task.id) ? undefined : cardExit}
                 transition={eventCardTransition}
               >
                 <EventCard
@@ -1054,73 +1063,82 @@ const DroppableDay = React.memo(function DroppableDay({
         </div>
       ) : (
         <>
-          {dayEvents.length > 0 && (
-            <div className={styles.events}>
-              <AnimatePresence initial={false}>
-                {dayEvents.slice(0, monthViewEventLimit).map((event) => {
-                  const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
-                  const shouldCompact =
-                    isPastWeek ||
-                    (compactRecurringEvents && (!!event.rruleString || !!event.recurrence || event.isAllDay || isMultiDay)) ||
-                    event.isFragment
-                  return (
-                    <motion.div
-                      key={event.id}
-                      variants={eventCardVariants}
-                      initial={cardInitial}
-                      animate="animate"
-                      exit={cardExit}
-                      transition={eventCardTransition}
-                    >
-                      <EventCard
-                        event={event}
-                        compact={shouldCompact}
-                        isMobileMonth={isMobile}
-                        enableResize={false}
-                        monthView
-                      />
-                    </motion.div>
-                  )
-                })}
-              </AnimatePresence>
-              {dayEvents.length > monthViewEventLimit && (
-                <button
-                  ref={moreEventsRef}
-                  className={styles.moreEvents}
-                  onClick={handleMoreEventsClick}
-                >
-                  +{dayEvents.length - monthViewEventLimit} more
-                </button>
-              )}
-            </div>
-          )}
-          {dayTasks.length > 0 && (
-            <div className={styles.tasks} data-component="day-tasks">
-              <AnimatePresence mode="popLayout" initial={false}>
-                {dayTasks.slice(0, monthViewEventLimit).map((task) => (
+          {/*
+            IMPORTANT: these wrappers must always render, even when
+            dayEvents / dayTasks is empty. If we wrapped them in
+            `{dayEvents.length > 0 && ...}`, deleting the LAST event
+            on a day would flip the conditional false and the parent
+            <div> (with its AnimatePresence) would unmount before
+            framer-motion could run the exit animation. The empty
+            container collapses to 0 height via flexbox (no visual
+            impact). The compact-mobile branch above (line ~996)
+            already does this — keeping the pattern consistent.
+            The `+more` overflow button stays conditional so empty
+            days don't show a stale "+0 more".
+          */}
+          <div className={styles.events}>
+            <AnimatePresence initial={false}>
+              {dayEvents.slice(0, monthViewEventLimit).map((event) => {
+                const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
+                const shouldCompact =
+                  isPastWeek ||
+                  (compactRecurringEvents && (!!event.rruleString || !!event.recurrence || event.isAllDay || isMultiDay)) ||
+                  event.isFragment
+                return (
                   <motion.div
-                    key={task.id}
+                    key={event.id}
                     variants={eventCardVariants}
                     initial={cardInitial}
                     animate="animate"
-                    exit={cardExit}
+                    exit={skipExit(event.id) ? undefined : cardExit}
                     transition={eventCardTransition}
                   >
                     <EventCard
-                      event={task}
-                      compact
+                      event={event}
+                      compact={shouldCompact}
                       isMobileMonth={isMobile}
                       enableResize={false}
                       monthView
                     />
                   </motion.div>
-                ))}
-              </AnimatePresence>
-              {dayTasks.length > monthViewEventLimit && (
-                <div className={styles.moreEvents}>+{dayTasks.length - monthViewEventLimit} more</div>
-              )}
-            </div>
-          )}
+                )
+              })}
+            </AnimatePresence>
+            {dayEvents.length > monthViewEventLimit && (
+              <button
+                ref={moreEventsRef}
+                className={styles.moreEvents}
+                onClick={handleMoreEventsClick}
+              >
+                +{dayEvents.length - monthViewEventLimit} more
+              </button>
+            )}
+          </div>
+          <div className={styles.tasks} data-component="day-tasks">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {dayTasks.slice(0, monthViewEventLimit).map((task) => (
+                <motion.div
+                  key={task.id}
+                  variants={eventCardVariants}
+                  initial={cardInitial}
+                  animate="animate"
+                  exit={skipExit(task.id) ? undefined : cardExit}
+                  transition={eventCardTransition}
+                >
+                  <EventCard
+                    event={task}
+                    compact
+                    isMobileMonth={isMobile}
+                    enableResize={false}
+                    monthView
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            {dayTasks.length > monthViewEventLimit && (
+              <div className={styles.moreEvents}>+{dayTasks.length - monthViewEventLimit} more</div>
+            )}
+          </div>
         </>
       )}
       {showPopup && (

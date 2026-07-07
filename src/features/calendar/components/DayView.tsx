@@ -7,6 +7,7 @@ import {
   useSensors,
   PointerSensor,
   useDroppable,
+  useDndContext,
   pointerWithin,
   rectIntersection,
   type CollisionDetection,
@@ -84,6 +85,15 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
   const [dragStart, setDragStart] = useState<string | null>(null)
   const [dragEnd, setDragEnd] = useState<string | null>(null)
   const reducedMotion = useReducedMotion()
+  // When an event is being dragged, the source motion.div runs an
+  // exit animation when its key disappears from this day's list —
+  // but the DragOverlay already provides the move visual, so the
+  // extra exit fade at the source reads as a ghostly "jump back" to
+  // the original location. Skip the exit when this event is the
+  // active drag. Multi-day events use id `${event.id}::${date}` so
+  // strip the date suffix to compare against `event.id`.
+  const { active } = useDndContext()
+  const activeMasterId = active ? active.id.toString().split('::')[0] : null
   const openMenuId = useContextMenuStore((state) => state.openMenuId)
   const openMenu = useContextMenuStore((state) => state.openMenu)
   const closeMenu = useContextMenuStore((state) => state.closeMenu)
@@ -472,6 +482,11 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     // speaks one language for reduced-motion handling.
     const cardInitial = reducedMotion ? false : 'initial'
     const cardExit = reducedMotion ? { opacity: 0 } : 'exit'
+    // Compute the skip-exit flag per event: when this event is the
+    // active drag, its source motion.div would otherwise run exit at
+    // the original position (looking like a "jump back"). The
+    // DragOverlay already shows the move visually, so skip the exit.
+    const skipExit = (id: string): boolean => activeMasterId === id
 
     for (const event of transparentEvents) {
       const eventColor = getEventColor(event, { categories: [], calendars, useCategoryColors: false })
@@ -483,7 +498,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
           variants={eventCardVariants}
           initial={cardInitial}
           animate="animate"
-          exit={cardExit}
+          exit={skipExit(event.id) ? undefined : cardExit}
           transition={enterTransition}
           className={`${styles.eventPositioned} ${styles.eventTransparent}`}
           style={{ ...style, backgroundColor: `${eventColor}20` }}
@@ -506,7 +521,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
             variants={eventCardVariants}
             initial={cardInitial}
             animate="animate"
-            exit={cardExit}
+            exit={skipExit(event.id) ? undefined : cardExit}
             transition={enterTransition}
             className={styles.travelBar}
             style={{ ...travelBarStyle(event, column, totalColumns), backgroundColor: `${eventColor}15` }}
@@ -525,7 +540,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
           variants={eventCardVariants}
           initial={cardInitial}
           animate="animate"
-          exit={cardExit}
+          exit={skipExit(event.id) ? undefined : cardExit}
           transition={enterTransition}
           className={styles.eventPositioned}
           style={{ ...style, zIndex: event.isFragment ? 1 : 2 }}

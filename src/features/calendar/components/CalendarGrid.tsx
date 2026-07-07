@@ -44,6 +44,7 @@ import { EventCard } from './EventCard'
 import { DayEventsPopup } from './DayEventsPopup'
 import { ContextMenu } from '@/components/common/ContextMenu'
 import { useGestures } from '@/hooks/useGestures'
+import { eventCardVariants } from '../lib/eventAnimations'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { useIsTallWindow, useIsWideWindow } from '@/hooks/useWindowHeight'
 import { AgendaView } from './AgendaView'
@@ -911,6 +912,15 @@ const DroppableDay = React.memo(function DroppableDay({
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const moreEventsRef = useRef<HTMLButtonElement>(null)
+  // Shared event-card enter transition for the month view. Collapses
+  // to 0ms when the user prefers reduced motion (matches the view-
+  // transition pattern below).
+  const prefersReducedMotion = useReducedMotion()
+  const eventCardTransition = { duration: prefersReducedMotion ? 0 : 0.18, ease: 'easeOut' as const }
+  // Reduced-motion handling matches the DayView / WeekDayColumn pattern:
+  // skip `initial` entirely and use an opacity-only exit (no scale).
+  const cardInitial = prefersReducedMotion ? false : 'initial'
+  const cardExit = prefersReducedMotion ? { opacity: 0 } : 'exit'
 
   const handleMoreEventsClick = (e: React.MouseEvent): void => {
     e.stopPropagation()
@@ -985,27 +995,53 @@ const DroppableDay = React.memo(function DroppableDay({
       </div>
       {isCompactMobile ? (
         <div className={styles.dotRow}>
-          {dayEvents.slice(0, monthViewEventLimit).map((event) => {
-            const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
-            const shouldCompact =
-              isPastWeek ||
-              (compactRecurringEvents && (!!event.rruleString || !!event.recurrence || event.isAllDay || isMultiDay)) ||
-              event.isFragment
-            return (
-              <EventCard
-                key={event.id}
-                event={event}
-                compact={shouldCompact}
-                isMobileMonth={isMobile}
-                dotMode
-                enableResize={false}
-                monthView
-              />
-            )
-          })}
-          {dayTasks.slice(0, monthViewEventLimit).map((task) => (
-            <EventCard key={task.id} event={task} compact isMobileMonth={isMobile} dotMode enableResize={false} monthView />
-          ))}
+          <AnimatePresence initial={false}>
+            {dayEvents.slice(0, monthViewEventLimit).map((event) => {
+              const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
+              const shouldCompact =
+                isPastWeek ||
+                (compactRecurringEvents && (!!event.rruleString || !!event.recurrence || event.isAllDay || isMultiDay)) ||
+                event.isFragment
+              return (
+                <motion.div
+                  key={event.id}
+                  variants={eventCardVariants}
+                  initial={cardInitial}
+                  animate="animate"
+                  exit={cardExit}
+                  transition={eventCardTransition}
+                >
+                  <EventCard
+                    event={event}
+                    compact={shouldCompact}
+                    isMobileMonth={isMobile}
+                    dotMode
+                    enableResize={false}
+                    monthView
+                  />
+                </motion.div>
+              )
+            })}
+            {dayTasks.slice(0, monthViewEventLimit).map((task) => (
+              <motion.div
+                key={task.id}
+                variants={eventCardVariants}
+                initial={cardInitial}
+                animate="animate"
+                exit={cardExit}
+                transition={eventCardTransition}
+              >
+                <EventCard
+                  event={task}
+                  compact
+                  isMobileMonth={isMobile}
+                  dotMode
+                  enableResize={false}
+                  monthView
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
           {(dayEvents.length > monthViewEventLimit || dayTasks.length > monthViewEventLimit) && (
             <button
               ref={moreEventsRef}
@@ -1020,7 +1056,7 @@ const DroppableDay = React.memo(function DroppableDay({
         <>
           {dayEvents.length > 0 && (
             <div className={styles.events}>
-              <AnimatePresence>
+              <AnimatePresence initial={false}>
                 {dayEvents.slice(0, monthViewEventLimit).map((event) => {
                   const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
                   const shouldCompact =
@@ -1028,14 +1064,22 @@ const DroppableDay = React.memo(function DroppableDay({
                     (compactRecurringEvents && (!!event.rruleString || !!event.recurrence || event.isAllDay || isMultiDay)) ||
                     event.isFragment
                   return (
-                    <EventCard
+                    <motion.div
                       key={event.id}
-                      event={event}
-                      compact={shouldCompact}
-                      isMobileMonth={isMobile}
-                      enableResize={false}
-                      monthView
-                    />
+                      variants={eventCardVariants}
+                      initial={cardInitial}
+                      animate="animate"
+                      exit={cardExit}
+                      transition={eventCardTransition}
+                    >
+                      <EventCard
+                        event={event}
+                        compact={shouldCompact}
+                        isMobileMonth={isMobile}
+                        enableResize={false}
+                        monthView
+                      />
+                    </motion.div>
                   )
                 })}
               </AnimatePresence>
@@ -1052,9 +1096,24 @@ const DroppableDay = React.memo(function DroppableDay({
           )}
           {dayTasks.length > 0 && (
             <div className={styles.tasks} data-component="day-tasks">
-              <AnimatePresence mode="popLayout">
+              <AnimatePresence mode="popLayout" initial={false}>
                 {dayTasks.slice(0, monthViewEventLimit).map((task) => (
-                  <EventCard key={task.id} event={task} compact isMobileMonth={isMobile} enableResize={false} monthView />
+                  <motion.div
+                    key={task.id}
+                    variants={eventCardVariants}
+                    initial={cardInitial}
+                    animate="animate"
+                    exit={cardExit}
+                    transition={eventCardTransition}
+                  >
+                    <EventCard
+                      event={task}
+                      compact
+                      isMobileMonth={isMobile}
+                      enableResize={false}
+                      monthView
+                    />
+                  </motion.div>
                 ))}
               </AnimatePresence>
               {dayTasks.length > monthViewEventLimit && (

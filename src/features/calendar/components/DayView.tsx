@@ -28,8 +28,11 @@ import { hapticIfEnabled } from '@/lib/haptics'
 import { formatTravelDuration } from '@/lib/events'
 import { positionEvents } from '@/lib/eventPositioning'
 import { positionedEventStyle, transparentEventStyle, travelBarStyle } from '../lib/eventLayout'
+import { eventCardVariants } from '../lib/eventAnimations'
 import { pad2 } from '@/lib/datetime'
 import { HOURS } from '@/lib/hours'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { CurrentTimeIndicator } from './CurrentTimeIndicator'
 import type { CalendarEvent } from '@/types'
 import styles from './DayView.module.css'
@@ -80,6 +83,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
   const [isDraggingToCreate, setIsDraggingToCreate] = useState(false)
   const [dragStart, setDragStart] = useState<string | null>(null)
   const [dragEnd, setDragEnd] = useState<string | null>(null)
+  const reducedMotion = useReducedMotion()
   const openMenuId = useContextMenuStore((state) => state.openMenuId)
   const openMenu = useContextMenuStore((state) => state.openMenu)
   const closeMenu = useContextMenuStore((state) => state.closeMenu)
@@ -447,7 +451,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     )
   }
 
-  const renderEvents = (): JSX.Element[] => {
+  const renderEvents = (): JSX.Element => {
     const sortedEvents = [...dayEvents].sort(
       (a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime()
     )
@@ -455,19 +459,37 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     const transparentEvents = sortedEvents.filter((e) => e.transparency === 'transparent')
 
     const elements: JSX.Element[] = []
+    // Single transition override applied to every motion.div below —
+    // `reducedMotion` collapses the animation to 0ms (jump straight to
+    // the final state) per the same pattern App.tsx uses for view
+    // transitions. The variants themselves stay defined so that the
+    // initial paint still lands on the right state if the component
+    // is re-mounted under a different reduce-motion setting.
+    const enterTransition = { duration: reducedMotion ? 0 : 0.18, ease: 'easeOut' as const }
+    // When the user prefers reduced motion, skip the `initial` state
+    // entirely and use an opacity-only exit (no scale). Matches the
+    // pattern in DayEventsPopup / EventPreviewPopup so the codebase
+    // speaks one language for reduced-motion handling.
+    const cardInitial = reducedMotion ? false : 'initial'
+    const cardExit = reducedMotion ? { opacity: 0 } : 'exit'
 
     for (const event of transparentEvents) {
       const eventColor = getEventColor(event, { categories: [], calendars, useCategoryColors: false })
       const style = transparentEventStyle(event, 4)
 
       elements.push(
-        <div
+        <motion.div
           key={event.id}
+          variants={eventCardVariants}
+          initial={cardInitial}
+          animate="animate"
+          exit={cardExit}
+          transition={enterTransition}
           className={`${styles.eventPositioned} ${styles.eventTransparent}`}
           style={{ ...style, backgroundColor: `${eventColor}20` }}
         >
           <EventCard event={event} transparent />
-        </div>
+        </motion.div>
       )
     }
 
@@ -479,8 +501,13 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
 
       if (event.travelDuration && event.travelDuration > 0) {
         elements.push(
-          <div
+          <motion.div
             key={`${event.id}-travel`}
+            variants={eventCardVariants}
+            initial={cardInitial}
+            animate="animate"
+            exit={cardExit}
+            transition={enterTransition}
             className={styles.travelBar}
             style={{ ...travelBarStyle(event, column, totalColumns), backgroundColor: `${eventColor}15` }}
             onClick={() => openModal(undefined, undefined, event.id)}
@@ -488,22 +515,35 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
             <span className={styles.travelBarInner}>
               {formatTravelDuration(event.travelDuration)} travel
             </span>
-          </div>
+          </motion.div>
         )
       }
 
       elements.push(
-        <div
+        <motion.div
           key={event.id}
+          variants={eventCardVariants}
+          initial={cardInitial}
+          animate="animate"
+          exit={cardExit}
+          transition={enterTransition}
           className={styles.eventPositioned}
           style={{ ...style, zIndex: event.isFragment ? 1 : 2 }}
         >
           <EventCard event={event} hideTopRadius={!!event.travelDuration} />
-        </div>
+        </motion.div>
       )
     }
 
-    return elements
+    // `initial={false}` on AnimatePresence is critical: without it,
+    // framer-motion would run the enter animation on every child
+    // present on first mount (a flash on every navigation), AND it
+    // would suppress exit animations because AnimatePresence can't
+    // distinguish "newly mounted" from "just appeared via re-render"
+    // when initial is enabled. With `initial={false}`, only children
+    // that JOIN later (create, undo, recurring-instance edit)
+    // animate in, and children that LEAVE (delete) animate out.
+    return <AnimatePresence initial={false}>{elements}</AnimatePresence>
   }
 
   const isCurrentDay = isToday(date)

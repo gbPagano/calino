@@ -934,11 +934,17 @@ export function useCalDAV(): UseCalDAVReturn {
           console.log('[CalDAV] Pushing event to server...')
         }
 
-        await engine.pushEvent(eventWithSequence)
+        const { etag } = await engine.pushEvent(eventWithSequence)
 
         if (caldavDebugMode) {
           console.log('[CalDAV] Event pushed successfully!')
         }
+
+        // Capture the server-assigned etag so the next sync round-trip
+        // sends If-Match against the current server resource. Without this
+        // we'd send the empty pre-push etag and strict servers (Radicale,
+        // iCloud) would reject the next update.
+        storeUpdateEvent(event.id, { etag, syncStatus: 'synced' })
 
         storage.updateAccountLastSync(account.id)
         processPendingChanges()
@@ -1036,11 +1042,17 @@ export function useCalDAV(): UseCalDAVReturn {
           console.log('[CalDAV] Updating event on server...')
         }
 
-        await engine.updateEvent(eventWithSequence, event.etag ?? '')
+        const { etag } = await engine.updateEvent(eventWithSequence, event.etag ?? '')
 
         if (caldavDebugMode) {
           console.log('[CalDAV] Event updated successfully!')
         }
+
+        // Capture the new etag returned by the server so the next update
+        // sends If-Match against the current server resource. Without this
+        // we'd keep using the pre-update etag and strict servers would
+        // reject subsequent edits as stale.
+        storeUpdateEvent(event.id, { etag, syncStatus: 'synced' })
 
         storage.updateAccountLastSync(account.id)
         processPendingChanges()
@@ -1218,13 +1230,14 @@ export function useCalDAV(): UseCalDAVReturn {
 
         if (event.etag) {
           // Event previously existed on server; update it
-          await engine.updateEvent(event, event.etag)
+          const { etag } = await engine.updateEvent(event, event.etag)
+          storeUpdateEvent(event.id, { etag, syncStatus: 'synced' })
         } else {
           // Event is new; create it
-          await engine.pushEvent({ ...event, sequence: event.sequence ?? 0 })
+          const { etag } = await engine.pushEvent({ ...event, sequence: event.sequence ?? 0 })
+          storeUpdateEvent(event.id, { etag, syncStatus: 'synced' })
         }
 
-        storeUpdateEvent(event.id, { syncStatus: 'synced' })
         succeeded++
       } catch {
         // Failed again; store a pending change for background retry

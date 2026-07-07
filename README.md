@@ -8,7 +8,11 @@
 
 If you've been looking for a beautiful, modern browser-based CalDAV calendar that doesn't come part of a bloated suite, Calino have you covered.
 
-> **⚠️ Active project:** Calino is under active development. Breaking changes are possible. Please report bugs - they're more than welcome!
+> **Active project:** Calino is under active development. New features and improvements ship regularly — please report bugs, they're more than welcome!
+
+### What's new in v1.0
+
+Calino 1.0 ships iCalendar compliance fixes for strict CalDAV servers (Radicale, iCloud, Google), a 3-state theme picker, a full accessibility audit, and a 10× faster event positioning algorithm. See [CHANGELOG.md](./CHANGELOG.md) for the full list.
 
 <img width="1613" height="942" alt="image" src="https://github.com/user-attachments/assets/832356b1-0b20-4161-8083-06ff71934a16" />
 (more screenshots at the bottom)
@@ -80,6 +84,7 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 
 ### Security
 - **No backend = no attack surface.** Your CalDAV credentials never touch a Calino server — they stay in your browser's localStorage, encrypted with AES-256-GCM
+- **App-level encryption is obfuscation, not security.** Credentials in localStorage are encrypted with a key bundled with the app. Anyone with the JS bundle can derive the same key. For stronger protection, use the master-password setup wizard (`/setup`) — the key is derived from your password and never leaves the device.
 - **No telemetry, no analytics.** Nothing leaves your browser except CalDAV traffic to your own server
 - **Serverless by design.** There's nothing to breach on Calino's side — the app is just static HTML/JS
 - **Docker hardening.** Runs as non-root, minimal base image, no shell access
@@ -87,8 +92,8 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 
 ### Limitations
 - No enterprise features
-- No invitation functionality (for now?)
-- No sharing functionality (for now?)
+- No invitation functionality
+- No sharing functionality
 
 ---
 
@@ -108,6 +113,8 @@ The fastest way to self-host. Pre-built multi-arch images (amd64 + arm64) are on
 ```bash
 docker run -d -p 8080:8080 ghcr.io/ivan-malinovski/calino:main
 ```
+
+> **Tip:** After tagging, `:v1.0` will also be available. Use `:main` for the latest development build, or pin to a specific tag for stability.
 
 Or clone and customize:
 

@@ -311,6 +311,10 @@ export function CalendarGrid(): JSX.Element {
     const originalEvent = draggedEventRef.current
     draggedEventRef.current = null
     if (!originalEvent) return
+    // Defensive: dnd-kit's useDraggable is disabled on recurring events, but
+    // if some other code path triggers a drop on a recurring event, refuse
+    // rather than silently moving the whole series.
+    if (originalEvent.recurrence || originalEvent.rruleString) return
 
     // Fragment ids are `${eventId}::${grabbedDay}`. When a multi-day event is
     // dragged by a fragment other than its first day, shift the drop target back

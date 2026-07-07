@@ -112,6 +112,14 @@ export const EventCard = React.memo(function EventCard({
     }
   }, [openMenuId, menuId])
 
+  const isRecurring = !!event.recurrence || !!event.rruleString
+  const isRecurringInstance = !!originalEventId
+  // Drag-and-drop is disabled for any recurring event (master or generated
+  // instance) and for exceptions. The "which occurrence?" question has to
+  // be answered via the RecurrenceDialog in the modal, so we force the user
+  // through the modal instead of silently moving the whole series.
+  const disableDirectEdit = isRecurring || isRecurringInstance
+
   const {
     attributes,
     listeners,
@@ -129,6 +137,7 @@ export const EventCard = React.memo(function EventCard({
     // matches the source card (e.g. keep a compact pill looking like a pill
     // instead of expanding into a full card).
     data: { compact, monthView, dotMode, isMobileMonth },
+    disabled: disableDirectEdit,
   })
 
   const useCategoryColors = useSettingsStore((state) => state.useCategoryColors)
@@ -144,7 +153,6 @@ export const EventCard = React.memo(function EventCard({
   const showEventIcons = useSettingsStore((state) => state.showEventIcons)
   const showBackground = showEventIcons && !compact && !dotMode && !isMobileMonth
   const backgroundId = showBackground ? matchEventBackground(event.title || event.location) : null
-  const isRecurring = !!event.recurrence || !!event.rruleString
   const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
   const isFragmentMiddle = event.isFragment && !event.isFirstFragment && !event.isLastFragment
   const isFragmentFirst = event.isFragment && event.isFirstFragment
@@ -181,6 +189,11 @@ export const EventCard = React.memo(function EventCard({
 
   const handleResizeStart = (e: React.PointerEvent): void => {
     e.stopPropagation()
+    // Defense-in-depth: the resize handle isn't rendered for recurring events
+    // (see the JSX below), so this guard is unreachable today. Kept so that
+    // if a future code path ever wires a resize trigger to a recurring card,
+    // the modal stays the only path for duration changes on recurring events.
+    if (disableDirectEdit) return
     // Don't preventDefault and don't flip isResizing/didInteract here — let the
     // click fire if the user just taps. Both flags are flipped inside
     // handleResizeMove once the pointer has moved more than a few px.
@@ -252,7 +265,7 @@ export const EventCard = React.memo(function EventCard({
       } as React.CSSProperties)
     : ({
         '--event-color': eventColor,
-        cursor: 'grab',
+        cursor: disableDirectEdit ? 'pointer' : 'grab',
       } as React.CSSProperties)
 
   const handleContextMenu = (e: React.MouseEvent): void => {
@@ -294,7 +307,8 @@ export const EventCard = React.memo(function EventCard({
         {...(isFragmentFirst ? { 'data-fragment-first': '' } : {})}
         {...(isFragmentMiddle ? { 'data-fragment-middle': '' } : {})}
         {...(isFragmentLast ? { 'data-fragment-last': '' } : {})}
-        className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${event.completed ? styles.isDone : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${monthView ? styles.monthView : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''} ${dotMode ? styles.dot : ''} ${event.isFragment && isSharedHovered ? styles.hovered : ''}`}
+        {...(disableDirectEdit ? { 'data-no-drag': '', title: 'Click to edit (recurring event)' } : {})}
+        className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${event.completed ? styles.isDone : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${monthView ? styles.monthView : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''} ${dotMode ? styles.dot : ''} ${event.isFragment && isSharedHovered ? styles.hovered : ''} ${disableDirectEdit ? styles.noDrag : ''}`}
         onContextMenu={handleContextMenu}
         onClick={handleClick}
         // role="button" requires Enter and Space activation for keyboard
@@ -422,7 +436,7 @@ export const EventCard = React.memo(function EventCard({
               </div>
             )}
             </div>
-            {enableResize && (
+            {enableResize && !disableDirectEdit && (
               <div
                 className={styles.resizeHandle}
                 onPointerDown={(e) => {

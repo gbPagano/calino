@@ -170,4 +170,64 @@ describe('EventCard', () => {
     removeSpy.mockRestore()
     unmount()
   })
+
+  describe('recurring event drag-and-drop is disabled', () => {
+    const recurringEvent: CalendarEvent = {
+      ...mockEvent,
+      id: 'recurring-master',
+      recurrence: { frequency: 'weekly', interval: 1 },
+    }
+
+    it('marks a recurring master event as data-no-drag', () => {
+      const { container } = render(<EventCard event={recurringEvent} />)
+      const card = container.querySelector('[data-component="event-card"]')
+      expect(card).toHaveAttribute('data-no-drag')
+    })
+
+    it('does not mark a non-recurring event as data-no-drag', () => {
+      const { container } = render(<EventCard event={mockEvent} />)
+      const card = container.querySelector('[data-component="event-card"]')
+      expect(card).not.toHaveAttribute('data-no-drag')
+    })
+
+    it('marks a generated recurring instance as data-no-drag', () => {
+      // Generated instances have an id like `master-2024-03-15T10:00:00.000Z`.
+      // The event itself doesn't carry `recurrence`/`rruleString` (the master
+      // does), so the disable check has to also catch this id pattern.
+      const instanceEvent: CalendarEvent = {
+        ...mockEvent,
+        id: 'recurring-master-2024-03-15T10:00:00.000Z',
+      }
+      const { container } = render(<EventCard event={instanceEvent} />)
+      const card = container.querySelector('[data-component="event-card"]')
+      expect(card).toHaveAttribute('data-no-drag')
+    })
+
+    it('hides the resize handle for recurring events', () => {
+      const { container } = render(<EventCard event={recurringEvent} />)
+      const resizeHandle = container.querySelector('[class*="resizeHandle"]')
+      expect(resizeHandle).not.toBeInTheDocument()
+    })
+
+    it('shows the resize handle for non-recurring events', () => {
+      const { container } = render(<EventCard event={mockEvent} />)
+      const resizeHandle = container.querySelector('[class*="resizeHandle"]')
+      expect(resizeHandle).toBeInTheDocument()
+    })
+
+    it('sets cursor to pointer on a recurring card (not grab)', () => {
+      const { container } = render(<EventCard event={recurringEvent} />)
+      const card = container.querySelector('[data-component="event-card"]') as HTMLElement
+      // Inline style.cursor takes precedence over CSS for dnd-kit. We assert
+      // the value is `pointer` (not `grab`) so the user understands the card
+      // isn't draggable.
+      expect(card.style.cursor).toBe('pointer')
+    })
+
+    it('shows a tooltip explaining why drag is disabled', () => {
+      const { container } = render(<EventCard event={recurringEvent} />)
+      const card = container.querySelector('[data-component="event-card"]')
+      expect(card).toHaveAttribute('title', 'Click to edit (recurring event)')
+    })
+  })
 })

@@ -26,6 +26,18 @@
   height: 100%;
 }
 
+/* Recurring events: force a pointer cursor on the card and override the
+   drag-handle area so neither dnd-kit's listeners nor the resize handle
+   grab the pointer. The user has to click through the modal to edit. */
+.card.noDrag,
+.card.noDrag .dragContent {
+  cursor: pointer;
+}
+
+.card.noDrag .dragContent:active {
+  cursor: pointer;
+}
+
 /* ---- Keyword Background (decorative) ---- */
 .keywordBackground {
   position: absolute;

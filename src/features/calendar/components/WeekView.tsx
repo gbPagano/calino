@@ -532,6 +532,10 @@ export function WeekView(): JSX.Element {
       const dayStr = droppableId.slice('allday::'.length)
       const originalEvent = events.find((e) => e.id === active.id)
       if (!originalEvent || originalEvent.isAllDay) return
+      // Defensive: dnd-kit's useDraggable is disabled on recurring events, but
+      // if some other code path triggers a drop on a recurring event, refuse
+      // rather than silently moving the whole series.
+      if (originalEvent.recurrence || originalEvent.rruleString) return
 
       const allDayUpdates = {
         start: `${dayStr}T00:00:00`,
@@ -559,6 +563,10 @@ export function WeekView(): JSX.Element {
 
     const originalEvent = events.find((e) => e.id === active.id)
     if (!originalEvent) return
+    // Defensive: dnd-kit's useDraggable is disabled on recurring events, but
+    // if some other code path triggers a drop on a recurring event, refuse
+    // rather than silently moving the whole series.
+    if (originalEvent.recurrence || originalEvent.rruleString) return
 
     // Dragging an all-day event into the timed grid turns it into a regular
     // timed event: default it to a 1-hour block. Otherwise preserve duration.

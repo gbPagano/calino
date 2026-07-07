@@ -50,6 +50,7 @@ export function suggestCalDAVUrl(serverUrl: string): string | null {
     const hostname = new URL(serverUrl).hostname
     for (const [domain, info] of Object.entries(KNOWN_CALENDAR_PROVIDERS)) {
       if (hostname === domain || hostname.endsWith('.' + domain)) {
+        if (!info.urlTemplate) return null
         return `For ${domain}, try entering: ${info.urlTemplate.replace('{email}', 'your-email@' + domain)}`
       }
     }

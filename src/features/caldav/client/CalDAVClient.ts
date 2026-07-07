@@ -853,6 +853,16 @@ export class CalDAVClient {
       throw new Error('No network connection. Please check your internet connection.')
     }
 
+    // R2.7 review follow-up: defense-in-depth — reject any payload that
+    // isn't valid base64 before splicing it into the iCal stream. All
+    // current callers pass the output of `encodeBase64()` (charset
+    // [A-Za-z0-9+/=]), so this branch is unreachable in practice; it
+    // exists to prevent a future caller from injecting CRLF into the
+    // ATTACH line and breaking out into arbitrary iCal properties.
+    if (!/^[A-Za-z0-9+/=]*$/.test(base64Payload)) {
+      throw new Error('Invalid base64 payload for settings sync')
+    }
+
     const settingsUid = CalDAVClient.SETTINGS_EVENT_UID
     const filename = CalDAVClient.SETTINGS_FILENAME
 
@@ -897,7 +907,7 @@ export class CalDAVClient {
       if (!useEtag) {
         throw new Error('Cannot update settings event: no ETag available')
       }
-      if (useSettingsStore.getState().caldavDebugMode) console.log('[SettingsSync] putSettingsEvent: updating existing at', existing.href, 'etag =', useEtag)
+      if (useSettingsStore.getState().caldavDebugMode) console.log('[SettingsSync] putSettingsEvent: updating existing at', existing.href, 'etag =', useEtag ? `${useEtag.slice(0, 8)}…` : useEtag)
       const client = this.getClient()
       const result = await client.updateCalendarObject({
         calendarObject: {
@@ -990,12 +1000,6 @@ export class CalDAVClient {
       throw new Error(`Failed to delete settings calendar: ${resp.status} ${err}`)
     }
   }
-
-  /**
-   * R2.7 — `formatICalDate` removed: ical.js's `comp.toString()` now
-   * emits DTSTAMP itself (R2.7 routes the settings VEVENT through
-   * `eventToICAL`), so the hand-rolled helper had no callers.
-   */
 
   getServerUrl(): string {
     return this.serverUrl

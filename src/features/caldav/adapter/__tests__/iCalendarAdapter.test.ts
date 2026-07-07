@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import ICAL from 'ical.js'
 import {
   eventToICAL,
+  foldICalLines,
   parseICALData,
   parseICALEvent,
   parseICALTask,
@@ -1127,6 +1128,45 @@ END:VCALENDAR`
         // The current code converts to UTC — this must not appear post-fix.
         expect(out).not.toMatch(/EXDATE[^:]*:20250713T1[5-9]0000Z/)
       })
+
+      // R2.3 review follow-up (Gap 4): RECURRENCE-ID;TZID round-trip.
+      // The serializer branches on event.timezone for RECURRENCE-ID just
+      // as it does for EXDATE; this pins the TZID form so a future
+      // refactor that drops setParameter('tzid', ...) is caught.
+      it('preserves RECURRENCE-ID;TZID=... when DTSTART has a TZID', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:master-tzid',
+          'DTSTAMP:20250706T100000Z',
+          'DTSTART;TZID=America/New_York:20250706T150000',
+          'DTEND;TZID=America/New_York:20250706T160000',
+          'SUMMARY:Master with TZID',
+          'RRULE:FREQ=WEEKLY;COUNT=3',
+          'END:VEVENT',
+          'BEGIN:VEVENT',
+          'UID:exception-tzid',
+          'DTSTAMP:20250706T100000Z',
+          'RECURRENCE-ID;TZID=America/New_York:20250713T150000',
+          'DTSTART;TZID=America/New_York:20250713T170000',
+          'DTEND;TZID=America/New_York:20250713T180000',
+          'SUMMARY:Exception (moved 2h)',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const events = parseICALEvent(ics, 'cal-1')
+        const exception = events.find((e) => e.id === 'exception-tzid')
+        expect(exception).toBeDefined()
+        expect(exception!.timezone).toBe('America/New_York')
+        expect(exception!.recurrenceId).toBe('2025-07-13T15:00:00')
+
+        const out = eventToICAL(exception!)
+        expect(out).toContain('RECURRENCE-ID;TZID=America/New_York:20250713T150000')
+        // Must not be UTC-converted (the wall-clock is preserved, not the absolute instant).
+        expect(out).not.toMatch(/RECURRENCE-ID[^:]*:20250713T1[5-9]0000Z/)
+      })
     })
 
     // ---------------------------------------------------------------------
@@ -1382,8 +1422,11 @@ END:VCALENDAR`
         ].join('\r\n')
 
         const event = parseFirstEvent(ics)
-        // Today the parser only handles `-PT` and `PT` prefixes — the `+`
-        // form is dropped and no reminder is captured.
+        // +PT15M is parsed by ical.js's ICAL.Duration as a positive
+        // duration. The reminder's minutesBefore is taken from
+        // Math.abs(...) to handle the sign uniformly; some clients
+        // interpret post-event triggers as positive and pre-event as
+        // negative, but Calino stores minutes-before-event uniformly.
         expect(event.reminders).toHaveLength(1)
         const reminder = event.reminders![0]
         expect(Math.abs(reminder.minutesBefore)).toBe(15)
@@ -1472,8 +1515,8 @@ END:VCALENDAR`
           isAllDay: false,
           calendarId: 'cal-1',
           reminders: [
-            { id: 'r1', method: 'popup' as 'popup', minutesBefore: 15 },
-            { id: 'r2', method: 'email' as 'popup', minutesBefore: 2880 },
+            { id: 'r1', method: 'popup', minutesBefore: 15 },
+            { id: 'r2', method: 'email', minutesBefore: 2880 },
           ],
         }
 
@@ -1485,6 +1528,31 @@ END:VCALENDAR`
         expect(out).toContain('TRIGGER:-PT15M')
         // 2880 minutes = 2 days; the fix should emit the day form, not 2880M.
         expect(out).toMatch(/TRIGGER:-P2D/)
+      })
+
+      // R2.6 review follow-up (Gap 2): the formatReminderTrigger function
+      // has 6 distinct branches — only 2 were exercised by the round-trip
+      // tests above (15 → -PT15M and 2880 → -P2D). These tests pin the
+      // remaining branches so a refactor can't silently degrade them.
+      it.each([
+        [0, 'TRIGGER:-PT0M'],
+        [30, 'TRIGGER:-PT30M'],
+        [60, 'TRIGGER:-PT1H'],
+        [90, 'TRIGGER:-PT1H30M'],
+        [1440, 'TRIGGER:-P1D'],
+        [10080, 'TRIGGER:-P1W'],
+      ])('emits %i minutes as %s', (minutesBefore, expected) => {
+        const event: CalendarEvent = {
+          id: 'r26-trigger-form',
+          title: 'Trigger form test',
+          start: '2025-01-15T15:00:00.000Z',
+          end: '2025-01-15T16:00:00.000Z',
+          isAllDay: false,
+          calendarId: 'cal-1',
+          reminders: [{ id: 'r1', method: 'popup', minutesBefore }],
+        }
+        const out = eventToICAL(event)
+        expect(out).toContain(expected)
       })
     })
 
@@ -1516,6 +1584,61 @@ END:VCALENDAR`
           // octet length = byte length of UTF-8 encoding
           const octets = new TextEncoder().encode(line).length
           expect(octets).toBeLessThanOrEqual(75)
+        }
+      })
+    })
+
+    // ---------------------------------------------------------------------
+    // foldICalLines — direct unit tests for the post-processor
+    // (R2.7 review follow-up, Gap 3).
+    // ---------------------------------------------------------------------
+    describe('foldICalLines', () => {
+      it('returns the empty string unchanged', () => {
+        expect(foldICalLines('')).toBe('')
+      })
+
+      it('passes through a line of exactly 75 octets without folding', () => {
+        const line = 'A'.repeat(75)
+        expect(foldICalLines(line)).toBe(line)
+      })
+
+      it('folds a line of 76 octets into a 75-octet line + 1-octet continuation', () => {
+        const line = 'A'.repeat(76)
+        const out = foldICalLines(line)
+        const lines = out.split('\r\n')
+        expect(lines).toHaveLength(2)
+        expect(lines[0]).toBe('A'.repeat(75))
+        // Continuation: leading space + remaining 1 octet
+        expect(lines[1]).toBe(' A')
+        // Every line ≤75 octets
+        for (const l of lines) {
+          expect(new TextEncoder().encode(l).length).toBeLessThanOrEqual(75)
+        }
+      })
+
+      it('folds each long line independently and passes short lines through verbatim', () => {
+        const long = 'B'.repeat(200)
+        const short = 'short'
+        const out = foldICalLines(`${long}\r\n${short}`)
+        const lines = out.split('\r\n')
+        // 200 = 75 + 75 + 50 → 3 physical lines for the long input
+        // + 1 for the short = 4 total
+        expect(lines).toHaveLength(4)
+        expect(lines[3]).toBe(short)
+        for (const l of lines) {
+          expect(new TextEncoder().encode(l).length).toBeLessThanOrEqual(75)
+        }
+      })
+
+      it('prefixes each continuation with exactly one space per RFC 5545 §3.1', () => {
+        const line = 'C'.repeat(200)
+        const out = foldICalLines(line)
+        const lines = out.split('\r\n')
+        // First line: no leading space. Continuations: exactly one leading space.
+        expect(lines[0].startsWith(' ')).toBe(false)
+        for (let i = 1; i < lines.length; i++) {
+          expect(lines[i].startsWith(' ')).toBe(true)
+          expect(lines[i].startsWith('  ')).toBe(false) // not two spaces
         }
       })
     })

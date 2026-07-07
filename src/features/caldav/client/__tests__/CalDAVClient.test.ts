@@ -422,6 +422,63 @@ END:VCALENDAR`,
       // The old hardcoded value must NOT be used anymore.
       expect(iCalString).not.toContain('UID:00000000-calino-')
     })
+
+    // R2.7 review follow-up (Gap 1): the full VEVENT assembly is the
+    // contract of putSettingsEvent. Without this test, a future refactor
+    // of eventToICAL (e.g. one that folds the SUMMARY line or drops
+    // TRANSP) would silently corrupt the settings sync path while the
+    // per-instance UID test above would still pass.
+    it('produces a fully-formed VCALENDAR with proper CRLF, line folding, and base64 round-trip', async () => {
+      await client.connect()
+      mockClientMethods.fetchCalendars.mockResolvedValue([settingsCalendar])
+      mockClientMethods.createCalendarObject.mockResolvedValue({
+        url: `${settingsCalendarUrl}calino-settings.ics`,
+        headers: new Headers({ etag: '"new-etag"' }),
+      })
+
+      // Use a long enough base64 to exercise line folding on the ATTACH
+      // value. 800 chars of base64 ≈ 600 bytes of decoded JSON.
+      const originalJson = JSON.stringify({ theme: 'dark', reminders: Array.from({ length: 12 }, (_, i) => ({ id: i, label: `pref-${i}` })) })
+      const base64 = btoa(originalJson)
+
+      await client.putSettingsEvent(settingsCalendarUrl, base64, undefined, null)
+
+      const [{ iCalString }] = mockClientMethods.createCalendarObject.mock.calls[0]
+
+      // VCALENDAR / VEVENT scaffold
+      expect(iCalString).toMatch(/^BEGIN:VCALENDAR\r\n/)
+      expect(iCalString).toMatch(/\r\nEND:VCALENDAR$/)
+      expect(iCalString).toContain('BEGIN:VEVENT')
+      expect(iCalString).toContain('END:VEVENT')
+
+      // Required Calino settings fields
+      expect(iCalString).toMatch(/DTSTAMP:\d{8}T\d{6}Z\r\n/)
+      expect(iCalString).toContain('DTSTART:19700101T000000Z')
+      expect(iCalString).toContain('DTEND:19700101T000001Z')
+      expect(iCalString).toContain('SUMMARY:Calino Settings')
+      expect(iCalString).toContain('TRANSP:TRANSPARENT')
+      expect(iCalString).toContain('CLASS:PRIVATE')
+      expect(iCalString).toContain('X-CALINO-VERSION:1')
+
+      // ATTACH line carries the full base64 payload (may be folded across
+      // multiple physical lines — the regex below is CRLF+space tolerant).
+      const unfolded = iCalString.replace(/\r\n[ \t]/g, '')
+      expect(unfolded).toContain(`ATTACH;ENCODING=BASE64;FMTTYPE=app/json:${base64}`)
+
+      // RFC 5545 §3.1 — every physical line must be ≤75 octets.
+      const physicalLines = iCalString.split('\r\n')
+      for (const line of physicalLines) {
+        const octets = new TextEncoder().encode(line).length
+        expect(octets).toBeLessThanOrEqual(75)
+      }
+
+      // No stray LFs without a preceding CR (the spec disallows \n alone).
+      expect(iCalString).not.toMatch(/[^\r]\n/)
+
+      // Round-trip: extractSettingsFromVEVENT must recover the original JSON.
+      const extracted = client.extractSettingsFromVEVENT(iCalString)
+      expect(extracted).toBe(originalJson)
+    })
   })
 
   describe('updateEvent', () => {

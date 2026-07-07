@@ -620,14 +620,14 @@ export function CalendarGrid(): JSX.Element {
       <div className={styles.splitContainer}>
         <div className={styles.gridTop} style={{ flex: `0 0 ${gridRatio * 100}%`, maxHeight: 800 * gridRatio / 0.6 }}>
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className={styles.gridPanel} ref={containerRef} {...bind} style={{ touchAction: 'none' as const }}>
+            <div className={styles.gridPanel} ref={containerRef} {...bind}>
               <div
                 className={styles.grid}
                 data-component="calendar-grid"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
                 onKeyDown={handleGridKeyDown}
-                style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
+                style={{ '--day-cell-height': `${rowHeight}px`, touchAction: 'none' } as React.CSSProperties}
               >
               <div className={`${styles.header} ${!showWeekNumbers ? styles.headerNoWeekNum : ''}`}>
                 {showWeekNumbers && <div className={styles.weekNumHeader}>W#</div>}
@@ -750,14 +750,14 @@ export function CalendarGrid(): JSX.Element {
   return (
     <>
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={styles.gridPanel} ref={containerRef} {...bind} style={{ touchAction: 'none' as const }}>
+      <div className={styles.gridPanel} ref={containerRef} {...bind}>
         <div
           className={styles.grid}
           data-component="calendar-grid"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           onKeyDown={handleGridKeyDown}
-          style={{ '--day-cell-height': `${rowHeight}px` } as React.CSSProperties}
+          style={{ '--day-cell-height': `${rowHeight}px`, touchAction: 'none' } as React.CSSProperties}
         >
         <div className={`${styles.header} ${!showWeekNumbers ? styles.headerNoWeekNum : ''}`}>
           {showWeekNumbers && <div className={styles.weekNumHeader}>W#</div>}

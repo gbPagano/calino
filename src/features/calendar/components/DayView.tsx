@@ -514,7 +514,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
       <div
         className={styles.container}
         ref={containerRef}
-        style={{ '--hour-height': `${60 * effectiveScale}px`, touchAction: 'none' } as React.CSSProperties}
+        style={{ '--hour-height': `${60 * effectiveScale}px` } as React.CSSProperties}
         onContextMenu={(e) => {
           e.preventDefault()
           openMenu('dayview')

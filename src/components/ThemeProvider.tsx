@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef, useLayoutEffect, type ReactNode } from 'react'
 import { useSettingsStore } from '@/store/settingsStore'
 import { loadThemes, getThemeCSS, type ThemeInfo } from '@/lib/themes'
 import { ThemeContext } from './ThemeContext'
@@ -27,7 +27,16 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const isBuiltIn = currentThemeId === 'built-in' || currentThemeId === 'built-in-dark'
   const customCSS = !isBuiltIn ? getThemeCSS(currentThemeId) : ''
 
+  // R5.4 — memoize the combined CSS so we only touch the DOM when the
+  // value actually changed. Without this, the effect runs on every
+  // render and `styleElement.textContent = ...` triggers a reflow even
+  // when the string is byte-identical to the prior render.
+  const combinedCSS = useMemo(() => builtInCSS + '\n' + customCSS, [builtInCSS, customCSS])
+  const lastCSSRef = useRef<string>('')
+
   useEffect(() => {
+    if (combinedCSS === lastCSSRef.current) return
+    lastCSSRef.current = combinedCSS
     const styleElement =
       document.getElementById('theme-styles') ||
       (() => {
@@ -37,10 +46,14 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         return el
       })()
 
-    styleElement.textContent = builtInCSS + '\n' + customCSS
-  }, [builtInCSS, customCSS])
+    styleElement.textContent = combinedCSS
+  }, [combinedCSS])
 
-  useEffect(() => {
+  // R5.4 — useLayoutEffect runs synchronously after the DOM is updated
+  // but BEFORE the browser paints. The previous requestAnimationFrame
+  // version deferred the meta-theme-color update by 1 frame, which
+  // caused a brief flash on theme change in mobile Safari.
+  useLayoutEffect(() => {
     document.documentElement.setAttribute('data-theme', effectiveMode)
     document.documentElement.setAttribute('data-theme-mode', themeMode)
     if (!isBuiltIn) {
@@ -50,16 +63,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       document.documentElement.removeAttribute('data-theme-id')
     }
 
-    const updateThemeColor = () => {
-      const style = getComputedStyle(document.documentElement)
-      const accentColor = style.getPropertyValue('--color-accent').trim()
-      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
-      if (metaThemeColor) {
-        metaThemeColor.setAttribute('content', accentColor || '#4285f4')
-      }
+    const style = getComputedStyle(document.documentElement)
+    const accentColor = style.getPropertyValue('--color-accent').trim()
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', accentColor || '#4285f4')
     }
-
-    requestAnimationFrame(updateThemeColor)
   }, [effectiveMode, themeMode, currentThemeId, isBuiltIn])
 
   const themeModeRef = useRef(themeMode)

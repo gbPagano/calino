@@ -742,7 +742,7 @@ export function WeekView(): JSX.Element {
       <div
         className={styles.container}
         ref={containerRef}
-        style={{ '--hour-height': `${60 * effectiveScale}px`, touchAction: 'none' } as React.CSSProperties}
+        style={{ '--hour-height': `${60 * effectiveScale}px` } as React.CSSProperties}
         {...bind}
       >
         {isMobile ? renderMobileContent() : renderDesktopContent()}

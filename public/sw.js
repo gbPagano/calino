@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calino-v6'
+const CACHE_NAME = 'calino-v7'
 const STATIC_ASSETS = [
   '/manifest.json',
   '/apple-touch-icon.png',
@@ -70,18 +70,37 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
   const eventData = event.notification.data
-  if (eventData && eventData.eventId) {
-    const url = `/?date=${eventData.eventDate.split('T')[0]}&event=${eventData.eventId}`
-    event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-        for (const client of clientList) {
-          if (client.url.includes('/') && 'focus' in client) {
-            client.navigate(url)
-            return client.focus()
-          }
-        }
-        return clients.openWindow(url)
-      })
-    )
+  if (!eventData || !eventData.eventId) return
+
+  // Validate UUID format. Without this, a malicious actor that can
+  // trigger a notification on this origin (e.g. via a future push
+  // channel) could embed "../etc" or other path-traversal in the
+  // eventId and have clients.navigate() follow it. Reject anything
+  // that isn't a real UUID.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_RE.test(eventData.eventId)) {
+    console.warn('[sw] ignoring notification with invalid eventId:', eventData.eventId)
+    return
   }
+
+  // Validate date is a yyyy-MM-dd prefix. eventDate is required for the
+  // URL — if it's missing or malformed, fall back to opening the root.
+  const eventDate = eventData.eventDate
+  if (typeof eventDate !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(eventDate)) {
+    event.waitUntil(clients.openWindow('/'))
+    return
+  }
+
+  const url = `/?date=${eventDate.split('T')[0]}&event=${eventData.eventId}`
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes('/') && 'focus' in client) {
+          client.navigate(url)
+          return client.focus()
+        }
+      }
+      return clients.openWindow(url)
+    })
+  )
 })

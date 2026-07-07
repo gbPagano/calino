@@ -42,6 +42,12 @@ export function EventModal(): JSX.Element | null {
   const updateEvent = useCalendarStore((state) => state.updateEvent)
   const closeModal = useCalendarStore((state) => state.closeModal)
   const [isClosing, setIsClosing] = useState(false)
+  // Re-entrancy guard for the async save path. The ref is the synchronous
+  // trip-wire (state updates don't commit until the next render); the state
+  // is just the visual disable on the Save button so the user gets feedback
+  // that the click was received while the CalDAV sync is still in flight.
+  const [isSaving, setIsSaving] = useState(false)
+  const isSavingRef = useRef(false)
   const prefersReducedMotion = useReducedMotion()
   const animateClose = useCallback(() => {
     setIsClosing(true)
@@ -562,6 +568,11 @@ export function EventModal(): JSX.Element | null {
   const handleSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
 
+    // Synchronous re-entrancy guard. While a save is in flight (the ref is
+    // flipped true by `saveEvent` itself), drop further submit attempts so
+    // duplicate events can't be queued while the CalDAV await is pending.
+    if (isSavingRef.current) return
+
     if (!title.trim()) {
       showToast('Title is required')
       return
@@ -602,225 +613,315 @@ export function EventModal(): JSX.Element | null {
   }, [isAllDay, startDate, startTime, endDate, endTime])
 
   const saveEvent = async (mode: RecurrenceEditMode): Promise<void> => {
-    if (isEditing && !hasChanges) {
-      closeModal()
-      return
-    }
-
-    if (!title.trim()) {
-      showToast('Title is required')
-      return
-    }
-
-    // R3.4 follow-up: also check the time range here. The handleSubmit guard
-    // catches the form-submit path, but saveEvent is also called directly
-    // from handleRecurrenceDialogConfirm (when editing a recurring event
-    // opens the "edit one / edit following / edit all" dialog) — that path
-    // bypasses handleSubmit's check, so a recurring event edit with
-    // end<start would slip through.
-    if (!isAllDay) {
-      const startMs = new Date(`${startDate}T${startTime}:00`).getTime()
-      const endMs = new Date(`${endDate}T${endTime}:00`).getTime()
-      if (endMs <= startMs) {
-        showToast('End time must be after start time')
+    // Defensive guard: also called from `handleRecurrenceDialogConfirm`, which
+    // a user can rapid-click just like the form's Save button.
+    if (isSavingRef.current) return
+    isSavingRef.current = true
+    setIsSaving(true)
+    try {
+      if (isEditing && !hasChanges) {
+        closeModal()
         return
       }
-    } else if (endDate < startDate) {
-      showToast('End date must be on or after start date')
-      return
-    }
 
-    const localStart = isAllDay ? `${startDate}T00:00:00` : `${startDate}T${startTime}:00`
-    const localEnd = isAllDay ? `${endDate}T23:59:59` : `${endDate}T${endTime}:00`
-    const startDateTime = isAllDay ? `${startDate}T00:00:00` : new Date(localStart).toISOString()
-    const endDateTime = isAllDay ? `${endDate}T00:00:00` : new Date(localEnd).toISOString()
-
-    const recurrenceRule: RecurrenceRule | undefined =
-      recurring
-        ? {
-            frequency: recurrence,
-            interval: interval > 1 ? interval : 1,
-            byWeekday: byWeekday.length > 0 ? byWeekday : undefined,
-            byMonthDay: byMonthDay.length > 0 ? byMonthDay : undefined,
-            byMonth: byMonth.length > 0 ? byMonth : undefined,
-            byDayOrdinals: byDayOrdinals.length > 0 ? byDayOrdinals : undefined,
-            endDate: endCondition === 'on' && endOnDate ? `${endOnDate}T23:59:59` : undefined,
-            count: endCondition === 'after' ? endAfterCount : undefined,
-          }
-        : undefined
-
-    if (isEditing && selectedEventId) {
-      // For recurring-instance edits ("this occurrence" / "this and following"),
-      // the clicked occurrence's date is encoded in the instance id as
-      // `masterId-<ISO>` and differs from the form's start date (which reflects
-      // the master's first occurrence). Anchor those edits to the clicked
-      // occurrence's date, preserving the event's time-of-day and duration
-      // (including any edits the user made in the form). Falls back to the form
-      // date for non-instance ids (plain master edits).
-      const occInstanceMatch = selectedEventId.match(
-        /-(\d{4}-\d{2}-\d{2})T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
-      )
-      const occDateStr = occInstanceMatch ? occInstanceMatch[1] : startDate
-      const durationMs = new Date(endDateTime).getTime() - new Date(startDateTime).getTime()
-      const occStartDateTime = isAllDay
-        ? `${occDateStr}T00:00:00`
-        : new Date(`${occDateStr}T${startTime}:00`).toISOString()
-      let occEndDateTime: string
-      if (isAllDay) {
-        const spanDays = Math.round(
-          (new Date(`${endDate}T00:00:00Z`).getTime() - new Date(`${startDate}T00:00:00Z`).getTime()) /
-            86400000
-        )
-        const endD = new Date(`${occDateStr}T00:00:00Z`)
-        endD.setUTCDate(endD.getUTCDate() + spanDays)
-        occEndDateTime = `${endD.toISOString().split('T')[0]}T00:00:00`
-      } else {
-        occEndDateTime = new Date(new Date(occStartDateTime).getTime() + durationMs).toISOString()
+      if (!title.trim()) {
+        showToast('Title is required')
+        return
       }
 
-      if (mode === 'this' && originalEventId) {
-        const masterEvent = events.find((e) => e.id === originalEventId)
-        if (!masterEvent) {
-          showToast('Master event not found. Cannot edit single occurrence.')
+      // R3.4 follow-up: also check the time range here. The handleSubmit guard
+      // catches the form-submit path, but saveEvent is also called directly
+      // from handleRecurrenceDialogConfirm (when editing a recurring event
+      // opens the "edit one / edit following / edit all" dialog) — that path
+      // bypasses handleSubmit's check, so a recurring event edit with
+      // end<start would slip through.
+      if (!isAllDay) {
+        const startMs = new Date(`${startDate}T${startTime}:00`).getTime()
+        const endMs = new Date(`${endDate}T${endTime}:00`).getTime()
+        if (endMs <= startMs) {
+          showToast('End time must be after start time')
           return
         }
+      } else if (endDate < startDate) {
+        showToast('End date must be on or after start date')
+        return
+      }
 
-        const isoDateMatch = selectedEventId.match(
-          /(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/
+      const localStart = isAllDay ? `${startDate}T00:00:00` : `${startDate}T${startTime}:00`
+      const localEnd = isAllDay ? `${endDate}T23:59:59` : `${endDate}T${endTime}:00`
+      const startDateTime = isAllDay ? `${startDate}T00:00:00` : new Date(localStart).toISOString()
+      const endDateTime = isAllDay ? `${endDate}T00:00:00` : new Date(localEnd).toISOString()
+
+      const recurrenceRule: RecurrenceRule | undefined =
+        recurring
+          ? {
+              frequency: recurrence,
+              interval: interval > 1 ? interval : 1,
+              byWeekday: byWeekday.length > 0 ? byWeekday : undefined,
+              byMonthDay: byMonthDay.length > 0 ? byMonthDay : undefined,
+              byMonth: byMonth.length > 0 ? byMonth : undefined,
+              byDayOrdinals: byDayOrdinals.length > 0 ? byDayOrdinals : undefined,
+              endDate: endCondition === 'on' && endOnDate ? `${endOnDate}T23:59:59` : undefined,
+              count: endCondition === 'after' ? endAfterCount : undefined,
+            }
+          : undefined
+
+      if (isEditing && selectedEventId) {
+        // For recurring-instance edits ("this occurrence" / "this and following"),
+        // the clicked occurrence's date is encoded in the instance id as
+        // `masterId-<ISO>` and differs from the form's start date (which reflects
+        // the master's first occurrence). Anchor those edits to the clicked
+        // occurrence's date, preserving the event's time-of-day and duration
+        // (including any edits the user made in the form). Falls back to the form
+        // date for non-instance ids (plain master edits).
+        const occInstanceMatch = selectedEventId.match(
+          /-(\d{4}-\d{2}-\d{2})T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
         )
-        const originalOccurrenceDate = isoDateMatch ? isoDateMatch[2] : null
-        if (!originalOccurrenceDate) {
-          showToast('Invalid event data. Cannot edit single occurrence.')
-          return
+        const occDateStr = occInstanceMatch ? occInstanceMatch[1] : startDate
+        const durationMs = new Date(endDateTime).getTime() - new Date(startDateTime).getTime()
+        const occStartDateTime = isAllDay
+          ? `${occDateStr}T00:00:00`
+          : new Date(`${occDateStr}T${startTime}:00`).toISOString()
+        let occEndDateTime: string
+        if (isAllDay) {
+          const spanDays = Math.round(
+            (new Date(`${endDate}T00:00:00Z`).getTime() - new Date(`${startDate}T00:00:00Z`).getTime()) /
+              86400000
+          )
+          const endD = new Date(`${occDateStr}T00:00:00Z`)
+          endD.setUTCDate(endD.getUTCDate() + spanDays)
+          occEndDateTime = `${endD.toISOString().split('T')[0]}T00:00:00`
+        } else {
+          occEndDateTime = new Date(new Date(occStartDateTime).getTime() + durationMs).toISOString()
         }
 
-        const exceptionEvent: CalendarEvent = {
-          id: `${originalEventId}-${originalOccurrenceDate}`,
-          calendarId: masterEvent.calendarId,
-          title,
-          description: description || undefined,
-          location: location || undefined,
-          start: occStartDateTime,
-          end: occEndDateTime,
-          isAllDay,
-          recurrence: undefined,
-          rruleString: undefined,
-          recurrenceId: originalOccurrenceDate,
-          travelDuration,
-          reminders,
-          transparency,
-          sequence: 0,
-          relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
-          attachments: attachments.length > 0 ? attachments : undefined,
-        }
+        if (mode === 'this' && originalEventId) {
+          const masterEvent = events.find((e) => e.id === originalEventId)
+          if (!masterEvent) {
+            showToast('Master event not found. Cannot edit single occurrence.')
+            return
+          }
 
-        addEvent(exceptionEvent)
-        // Sync IndexedDB for exception event
-        if (attachments.length > 0) {
-          putAttachments(exceptionEvent.id, attachments).catch(() => {})
-        }
-        try {
-          await createCalDAVEvent(masterEvent.calendarId, exceptionEvent)
-        } catch {
-          showToast('Failed to sync event with CalDAV server. It will be retried.')
-        }
+          const isoDateMatch = selectedEventId.match(
+            /(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/
+          )
+          const originalOccurrenceDate = isoDateMatch ? isoDateMatch[2] : null
+          if (!originalOccurrenceDate) {
+            showToast('Invalid event data. Cannot edit single occurrence.')
+            return
+          }
 
-        // Add EXDATE to master so rrule expansion skips this date and only
-        // the exception event is shown.  Without this the master would still
-        // generate an occurrence on that date, creating a visible duplicate.
-        const occurrenceDate = originalOccurrenceDate.split('T')[0]
-        const masterExcludedDates = masterEvent.excludedDates || []
-        if (!masterExcludedDates.includes(occurrenceDate)) {
-          const updatedExcludedDates = [...masterExcludedDates, occurrenceDate]
-          updateEvent(originalEventId, { excludedDates: updatedExcludedDates })
+          const exceptionEvent: CalendarEvent = {
+            id: `${originalEventId}-${originalOccurrenceDate}`,
+            calendarId: masterEvent.calendarId,
+            title,
+            description: description || undefined,
+            location: location || undefined,
+            start: occStartDateTime,
+            end: occEndDateTime,
+            isAllDay,
+            recurrence: undefined,
+            rruleString: undefined,
+            recurrenceId: originalOccurrenceDate,
+            travelDuration,
+            reminders,
+            transparency,
+            sequence: 0,
+            relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
+            attachments: attachments.length > 0 ? attachments : undefined,
+          }
+
+          addEvent(exceptionEvent)
+          // Sync IndexedDB for exception event
+          if (attachments.length > 0) {
+            putAttachments(exceptionEvent.id, attachments).catch(() => {})
+          }
+          try {
+            await createCalDAVEvent(masterEvent.calendarId, exceptionEvent)
+          } catch {
+            showToast('Failed to sync event with CalDAV server. It will be retried.')
+          }
+
+          // Add EXDATE to master so rrule expansion skips this date and only
+          // the exception event is shown.  Without this the master would still
+          // generate an occurrence on that date, creating a visible duplicate.
+          const occurrenceDate = originalOccurrenceDate.split('T')[0]
+          const masterExcludedDates = masterEvent.excludedDates || []
+          if (!masterExcludedDates.includes(occurrenceDate)) {
+            const updatedExcludedDates = [...masterExcludedDates, occurrenceDate]
+            updateEvent(originalEventId, { excludedDates: updatedExcludedDates })
+            await safeCalDAVUpdate(
+              updateCalDAVEvent,
+              masterEvent.calendarId,
+              { ...masterEvent, excludedDates: updatedExcludedDates },
+              { excludedDates: updatedExcludedDates }
+            ).catch(() => {})
+          }
+        } else if (mode === 'future' && originalEventId) {
+          // "This and following events": split the series at the current
+          // occurrence.  The master event keeps all past occurrences (ending
+          // the day before), and a new master event is created for this
+          // occurrence onward with the updated properties.
+          const masterEvent = events.find((e) => e.id === originalEventId)
+          if (!masterEvent) {
+            showToast('Master event not found. Cannot split series.')
+            return
+          }
+
+          const isoDateMatch = selectedEventId.match(
+            /(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/
+          )
+          const originalOccurrenceDate = isoDateMatch ? isoDateMatch[2] : null
+          if (!originalOccurrenceDate) {
+            showToast('Invalid event data. Cannot split series.')
+            return
+          }
+
+          const occurrenceDateStr = originalOccurrenceDate.split('T')[0]
+          // Update master: end its recurrence the day before the split and add an
+          // EXDATE for the split date (shared with the preview popup's split path).
+          const {
+            excludedDates: updatedExcludedDates,
+            recurrence: masterRecurrence,
+            rruleString: masterRruleString,
+          } = buildMasterTruncation(masterEvent, occurrenceDateStr)
+
+          updateEvent(originalEventId, {
+            excludedDates: updatedExcludedDates,
+            recurrence: masterRecurrence,
+            rruleString: masterRruleString,
+          })
           await safeCalDAVUpdate(
             updateCalDAVEvent,
             masterEvent.calendarId,
-            { ...masterEvent, excludedDates: updatedExcludedDates },
-            { excludedDates: updatedExcludedDates }
+            {
+              ...masterEvent,
+              excludedDates: updatedExcludedDates,
+              recurrence: masterRecurrence,
+              rruleString: masterRruleString,
+            },
+            {
+              excludedDates: updatedExcludedDates,
+              recurrence: masterRecurrence,
+              rruleString: masterRruleString,
+            }
           ).catch(() => {})
-        }
-      } else if (mode === 'future' && originalEventId) {
-        // "This and following events": split the series at the current
-        // occurrence.  The master event keeps all past occurrences (ending
-        // the day before), and a new master event is created for this
-        // occurrence onward with the updated properties.
-        const masterEvent = events.find((e) => e.id === originalEventId)
-        if (!masterEvent) {
-          showToast('Master event not found. Cannot split series.')
-          return
-        }
 
-        const isoDateMatch = selectedEventId.match(
-          /(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/
-        )
-        const originalOccurrenceDate = isoDateMatch ? isoDateMatch[2] : null
-        if (!originalOccurrenceDate) {
-          showToast('Invalid event data. Cannot split series.')
-          return
-        }
-
-        const occurrenceDateStr = originalOccurrenceDate.split('T')[0]
-        // Update master: end its recurrence the day before the split and add an
-        // EXDATE for the split date (shared with the preview popup's split path).
-        const {
-          excludedDates: updatedExcludedDates,
-          recurrence: masterRecurrence,
-          rruleString: masterRruleString,
-        } = buildMasterTruncation(masterEvent, occurrenceDateStr)
-
-        updateEvent(originalEventId, {
-          excludedDates: updatedExcludedDates,
-          recurrence: masterRecurrence,
-          rruleString: masterRruleString,
-        })
-        await safeCalDAVUpdate(
-          updateCalDAVEvent,
-          masterEvent.calendarId,
-          {
-            ...masterEvent,
-            excludedDates: updatedExcludedDates,
-            recurrence: masterRecurrence,
-            rruleString: masterRruleString,
-          },
-          {
-            excludedDates: updatedExcludedDates,
-            recurrence: masterRecurrence,
-            rruleString: masterRruleString,
+          // Create the new series starting from the current occurrence
+          const newSeriesEvent: CalendarEvent = {
+            id: uuidv4(),
+            calendarId: masterEvent.calendarId,
+            title,
+            description: description || undefined,
+            location: location || undefined,
+            start: occStartDateTime,
+            end: occEndDateTime,
+            isAllDay,
+            recurrence: recurrenceRule,
+            rruleString: recurrenceRule ? buildRRuleString(recurrenceRule) : undefined,
+            travelDuration,
+            reminders,
+            transparency,
+            sequence: 0,
+            relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
+            attachments: attachments.length > 0 ? attachments : undefined,
           }
-        ).catch(() => {})
 
-        // Create the new series starting from the current occurrence
-        const newSeriesEvent: CalendarEvent = {
-          id: uuidv4(),
-          calendarId: masterEvent.calendarId,
-          title,
-          description: description || undefined,
-          location: location || undefined,
-          start: occStartDateTime,
-          end: occEndDateTime,
-          isAllDay,
-          recurrence: recurrenceRule,
-          rruleString: recurrenceRule ? buildRRuleString(recurrenceRule) : undefined,
-          travelDuration,
-          reminders,
-          transparency,
-          sequence: 0,
-          relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
-          attachments: attachments.length > 0 ? attachments : undefined,
-        }
-
-        addEvent(newSeriesEvent)
-        if (attachments.length > 0) {
-          putAttachments(newSeriesEvent.id, attachments).catch(() => {})
-        }
-        try {
-          await createCalDAVEvent(masterEvent.calendarId, newSeriesEvent)
-        } catch {
-          showToast('Failed to sync new series with CalDAV server. It will be retried.')
+          addEvent(newSeriesEvent)
+          if (attachments.length > 0) {
+            putAttachments(newSeriesEvent.id, attachments).catch(() => {})
+          }
+          try {
+            await createCalDAVEvent(masterEvent.calendarId, newSeriesEvent)
+          } catch {
+            showToast('Failed to sync new series with CalDAV server. It will be retried.')
+          }
+        } else {
+          const eventId = originalEventId || selectedEventId
+          const taskTime = dueAllDay ? '00:00:00' : `${dueTime}:00`
+          const taskEndTime = dueAllDay ? '23:59:59' : `${dueTime}:00`
+          const eventStart = isTaskMode && dueDate ? `${dueDate}T${taskTime}` : startDateTime
+          const eventEnd = isTaskMode && dueDate ? `${dueDate}T${taskEndTime}` : endDateTime
+          // Include time in dueDate for non-all-day tasks so we can display it
+          const taskDueDate =
+            isTaskMode && dueDate ? (dueAllDay ? dueDate : `${dueDate}T${taskTime}`) : undefined
+          updateEvent(eventId!, {
+            title,
+            description: description || undefined,
+            location: location || undefined,
+            start: eventStart,
+            end: eventEnd,
+            isAllDay: isTaskMode ? dueAllDay : isAllDay,
+            calendarId,
+            recurrence: isTaskMode ? undefined : recurrenceRule,
+            travelDuration: isTaskMode ? undefined : travelDuration,
+            type: isTaskMode ? 'task' : 'event',
+            dueDate: taskDueDate,
+            completed: isTaskMode ? completed : undefined,
+            priority: isTaskMode ? priority : undefined,
+            reminders: isTaskMode ? undefined : reminders,
+            transparency: isTaskMode ? undefined : transparency,
+            categories: selectedCategories,
+            relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
+            attachments: attachments.length > 0 ? attachments : undefined,
+          })
+          // Sync IndexedDB with current attachments
+          if (attachments.length > 0) {
+            putAttachments(eventId!, attachments).catch(() => {})
+          } else {
+            deleteAttachments(eventId!).catch(() => {})
+          }
+          const existingEvent = events.find((e) => e.id === eventId)
+          if (existingEvent) {
+            console.log('[EventModal] Saving event. attachments state:', JSON.stringify(attachments))
+            console.log('[EventModal] existingEvent.attachments:', JSON.stringify(existingEvent.attachments))
+            await safeCalDAVUpdate(
+              updateCalDAVEvent,
+              calendarId,
+              {
+                ...existingEvent,
+                title,
+                description: description || undefined,
+                location: location || undefined,
+                start: eventStart,
+                end: eventEnd,
+                isAllDay: isTaskMode ? dueAllDay : isAllDay,
+                calendarId,
+                recurrence: isTaskMode ? undefined : recurrenceRule,
+                travelDuration: isTaskMode ? undefined : travelDuration,
+                type: isTaskMode ? 'task' : 'event',
+                dueDate: taskDueDate,
+                completed: isTaskMode ? completed : undefined,
+                priority: isTaskMode ? priority : undefined,
+                reminders: isTaskMode ? undefined : reminders,
+                transparency: isTaskMode ? undefined : transparency,
+                categories: selectedCategories,
+                relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
+              },
+              {
+                title,
+                description: description || undefined,
+                location: location || undefined,
+                start: eventStart,
+                end: eventEnd,
+                isAllDay: isTaskMode ? dueAllDay : isAllDay,
+                calendarId,
+                recurrence: isTaskMode ? undefined : recurrenceRule,
+                travelDuration: isTaskMode ? undefined : travelDuration,
+                type: isTaskMode ? 'task' : 'event',
+                dueDate: taskDueDate,
+                completed: isTaskMode ? completed : undefined,
+                priority: isTaskMode ? priority : undefined,
+                reminders: isTaskMode ? undefined : reminders,
+                transparency: isTaskMode ? undefined : transparency,
+                categories: selectedCategories,
+                relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
+                attachments: attachments.length > 0 ? attachments : undefined,
+              }
+            )
+          }
         }
       } else {
-        const eventId = originalEventId || selectedEventId
         const taskTime = dueAllDay ? '00:00:00' : `${dueTime}:00`
         const taskEndTime = dueAllDay ? '23:59:59' : `${dueTime}:00`
         const eventStart = isTaskMode && dueDate ? `${dueDate}T${taskTime}` : startDateTime
@@ -828,7 +929,9 @@ export function EventModal(): JSX.Element | null {
         // Include time in dueDate for non-all-day tasks so we can display it
         const taskDueDate =
           isTaskMode && dueDate ? (dueAllDay ? dueDate : `${dueDate}T${taskTime}`) : undefined
-        updateEvent(eventId!, {
+
+        const newEvent: CalendarEvent = {
+          id: uuidv4(),
           title,
           description: description || undefined,
           location: location || undefined,
@@ -847,120 +950,42 @@ export function EventModal(): JSX.Element | null {
           categories: selectedCategories,
           relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
           attachments: attachments.length > 0 ? attachments : undefined,
-        })
-        // Sync IndexedDB with current attachments
+        }
+        addEvent(newEvent)
+        // Learn smart defaults from this creation: the calendar chosen and, for
+        // timed single-day events, the length picked for this kind of title.
+        if (newEvent.title.trim()) {
+          let durationMinutes: number | undefined
+          if (!newEvent.isAllDay) {
+            const diffMs = parseISO(newEvent.end).getTime() - parseISO(newEvent.start).getTime()
+            const mins = Math.round(diffMs / 60000)
+            if (mins > 0 && mins <= 24 * 60) durationMinutes = mins
+          }
+          useSmartDefaultsStore.getState().record(newEvent.title, newEvent.calendarId, durationMinutes)
+        }
+        // Move attachments from temp 'new' key to actual event ID
         if (attachments.length > 0) {
-          putAttachments(eventId!, attachments).catch(() => {})
-        } else {
-          deleteAttachments(eventId!).catch(() => {})
+          deleteAttachments('new').catch(() => {})
+          putAttachments(newEvent.id, attachments).catch(() => {})
         }
-        const existingEvent = events.find((e) => e.id === eventId)
-        if (existingEvent) {
-          console.log('[EventModal] Saving event. attachments state:', JSON.stringify(attachments))
-          console.log('[EventModal] existingEvent.attachments:', JSON.stringify(existingEvent.attachments))
-          await safeCalDAVUpdate(
-            updateCalDAVEvent,
-            calendarId,
-            {
-              ...existingEvent,
-              title,
-              description: description || undefined,
-              location: location || undefined,
-              start: eventStart,
-              end: eventEnd,
-              isAllDay: isTaskMode ? dueAllDay : isAllDay,
-              calendarId,
-              recurrence: isTaskMode ? undefined : recurrenceRule,
-              travelDuration: isTaskMode ? undefined : travelDuration,
-              type: isTaskMode ? 'task' : 'event',
-              dueDate: taskDueDate,
-              completed: isTaskMode ? completed : undefined,
-              priority: isTaskMode ? priority : undefined,
-              reminders: isTaskMode ? undefined : reminders,
-              transparency: isTaskMode ? undefined : transparency,
-              categories: selectedCategories,
-              relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
-            },
-            {
-              title,
-              description: description || undefined,
-              location: location || undefined,
-              start: eventStart,
-              end: eventEnd,
-              isAllDay: isTaskMode ? dueAllDay : isAllDay,
-              calendarId,
-              recurrence: isTaskMode ? undefined : recurrenceRule,
-              travelDuration: isTaskMode ? undefined : travelDuration,
-              type: isTaskMode ? 'task' : 'event',
-              dueDate: taskDueDate,
-              completed: isTaskMode ? completed : undefined,
-              priority: isTaskMode ? priority : undefined,
-              reminders: isTaskMode ? undefined : reminders,
-              transparency: isTaskMode ? undefined : transparency,
-              categories: selectedCategories,
-              relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
-              attachments: attachments.length > 0 ? attachments : undefined,
-            }
-          )
-        }
+        await safeCalDAVUpdate(
+          createCalDAVEvent,
+          calendarId,
+          newEvent,
+          {}
+        )
       }
-    } else {
-      const taskTime = dueAllDay ? '00:00:00' : `${dueTime}:00`
-      const taskEndTime = dueAllDay ? '23:59:59' : `${dueTime}:00`
-      const eventStart = isTaskMode && dueDate ? `${dueDate}T${taskTime}` : startDateTime
-      const eventEnd = isTaskMode && dueDate ? `${dueDate}T${taskEndTime}` : endDateTime
-      // Include time in dueDate for non-all-day tasks so we can display it
-      const taskDueDate =
-        isTaskMode && dueDate ? (dueAllDay ? dueDate : `${dueDate}T${taskTime}`) : undefined
 
-      const newEvent: CalendarEvent = {
-        id: uuidv4(),
-        title,
-        description: description || undefined,
-        location: location || undefined,
-        start: eventStart,
-        end: eventEnd,
-        isAllDay: isTaskMode ? dueAllDay : isAllDay,
-        calendarId,
-        recurrence: isTaskMode ? undefined : recurrenceRule,
-        travelDuration: isTaskMode ? undefined : travelDuration,
-        type: isTaskMode ? 'task' : 'event',
-        dueDate: taskDueDate,
-        completed: isTaskMode ? completed : undefined,
-        priority: isTaskMode ? priority : undefined,
-        reminders: isTaskMode ? undefined : reminders,
-        transparency: isTaskMode ? undefined : transparency,
-        categories: selectedCategories,
-        relatedTo: relatedTo.length > 0 ? relatedTo : undefined,
-        attachments: attachments.length > 0 ? attachments : undefined,
-      }
-      addEvent(newEvent)
-      // Learn smart defaults from this creation: the calendar chosen and, for
-      // timed single-day events, the length picked for this kind of title.
-      if (newEvent.title.trim()) {
-        let durationMinutes: number | undefined
-        if (!newEvent.isAllDay) {
-          const diffMs = parseISO(newEvent.end).getTime() - parseISO(newEvent.start).getTime()
-          const mins = Math.round(diffMs / 60000)
-          if (mins > 0 && mins <= 24 * 60) durationMinutes = mins
-        }
-        useSmartDefaultsStore.getState().record(newEvent.title, newEvent.calendarId, durationMinutes)
-      }
-      // Move attachments from temp 'new' key to actual event ID
-      if (attachments.length > 0) {
-        deleteAttachments('new').catch(() => {})
-        putAttachments(newEvent.id, attachments).catch(() => {})
-      }
-      await safeCalDAVUpdate(
-        createCalDAVEvent,
-        calendarId,
-        newEvent,
-        {}
-      )
+      setShowRecurrenceDialog(false)
+      closeModal()
+    } finally {
+      // Release the guard so a follow-up save (after an early-return toast,
+      // or after the user re-opens the modal) can proceed. `closeModal()`
+      // unmounts this component on the happy path, so resetting `isSaving`
+      // here is harmless.
+      isSavingRef.current = false
+      setIsSaving(false)
     }
-
-    setShowRecurrenceDialog(false)
-    closeModal()
   }
 
   const handleRecurrenceDialogConfirm = async (mode: RecurrenceEditMode): Promise<void> => {
@@ -1296,7 +1321,7 @@ export function EventModal(): JSX.Element | null {
               <button type="button" className={styles.modalCancel} onClick={animateClose}>
                 Cancel
               </button>
-              <button type="submit" className={styles.modalSave} disabled={!title.trim() || isTimeRangeInvalid} data-component="modal-save">
+              <button type="submit" className={styles.modalSave} disabled={!title.trim() || isTimeRangeInvalid || isSaving} data-component="modal-save">
                 {isEditing ? 'Save' : 'Create'}
               </button>
             </div>

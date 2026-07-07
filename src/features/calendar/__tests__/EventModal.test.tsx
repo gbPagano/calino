@@ -169,6 +169,43 @@ describe('EventModal', () => {
     expect(createButton).toBeDisabled()
   })
 
+  it('does not create duplicate event when Create is double-clicked rapidly', async () => {
+    // Regression: clicking Save while a CalDAV sync is in flight used to create
+    // one event per click because `saveEvent` awaited the network round-trip
+    // before calling `closeModal()` and the button stayed enabled the whole
+    // time.  Fix adds a synchronous re-entrancy guard so the second click is
+    // dropped while the first save is still in flight.
+    const store = useCalendarStore.getState()
+    store.openModal()
+
+    render(<EventModal />)
+
+    fireEvent.change(screen.getByPlaceholderText('Event title'), {
+      target: { value: 'Rapid Click Test' },
+    })
+
+    const createButton = screen.getByRole('button', { name: /create/i })
+    // Three synchronous clicks (user mash) — only one event must result.
+    fireEvent.click(createButton)
+    fireEvent.click(createButton)
+    fireEvent.click(createButton)
+
+    await waitFor(() => {
+      const events = useCalendarStore.getState().events
+      expect(events.some((e) => e.title === 'Rapid Click Test')).toBe(true)
+    })
+
+    // Allow the in-flight CalDAV await (and any pending microtasks) to settle
+    // before counting, so the guard isn't masking a duplicate that arrives on
+    // a later tick.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    const matching = useCalendarStore
+      .getState()
+      .events.filter((e) => e.title === 'Rapid Click Test')
+    expect(matching).toHaveLength(1)
+  })
+
   describe('hasChanges with recurrence', () => {
     it('shows recurrence controls when toggling Recurring on a non-recurring event', () => {
       const store = useCalendarStore.getState()

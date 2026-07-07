@@ -610,6 +610,12 @@
   transition-duration: 0.05s;
 }
 
+.modalSave:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .row {
   display: flex;
   gap: var(--space-3);

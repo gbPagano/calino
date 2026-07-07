@@ -1,11 +1,17 @@
 import type { JSX } from 'react'
 import { useState, useRef } from 'react'
+import ICAL from 'ical.js'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useContactStore } from '@/store/contactStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { useCardDAV } from '@/features/carddav/hooks/useCardDAV'
 import { parseICALEvent } from '@/features/caldav/adapter/iCalendarAdapter'
+import {
+  calendarEventToIcalComponent,
+  calendarEventToIcalVjournal,
+  calendarEventToIcalVtodo,
+} from '@/features/caldav/adapter/icalTypeMapping'
 import { parseVCardFile, contactsToVCardFile, downloadFile, readFileAsText } from '@/features/carddav/lib/vCardFileUtils'
 import { showToast } from '@/lib/toast'
 import { MergeDuplicatesModal } from '@/features/carddav/components/MergeDuplicatesModal'
@@ -38,23 +44,27 @@ export function DataSettings(): JSX.Element {
   const handleExportICS = async (): Promise<void> => {
     setIsExporting(true)
     try {
-      const fmtDate = (date: string): string => {
-        const formatted = date.replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-        return formatted.endsWith('Z') || formatted.endsWith('z') ? formatted : formatted + 'Z'
+      // Build a single VCALENDAR with one subcomponent per event. We can't
+      // use the higher-level eventToICAL / taskToICAL / journalToICAL helpers
+      // directly because each wraps its component in its own VCALENDAR
+      // envelope — concatenating those would produce an invalid ICS file
+      // (multiple top-level VCALENDARs).
+      const comp = new ICAL.Component('vcalendar')
+      comp.updatePropertyWithValue('version', '2.0')
+      comp.updatePropertyWithValue('prodid', '-//Calino//Calendar//EN')
+      comp.updatePropertyWithValue('calscale', 'GREGORIAN')
+
+      for (const event of events) {
+        if (event.type === 'task') {
+          comp.addSubcomponent(calendarEventToIcalVtodo(event))
+        } else if (event.type === 'journal') {
+          comp.addSubcomponent(calendarEventToIcalVjournal(event))
+        } else {
+          comp.addSubcomponent(calendarEventToIcalComponent(event))
+        }
       }
 
-      let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Calino//Calendar//EN\r\n'
-      for (const event of events) {
-        ics += 'BEGIN:VEVENT\r\n'
-        ics += `UID:${event.id}\r\n`
-        ics += `DTSTART:${fmtDate(event.start)}\r\n`
-        ics += `DTEND:${fmtDate(event.end)}\r\n`
-        ics += `SUMMARY:${event.title}\r\n`
-        if (event.description) ics += `DESCRIPTION:${event.description}\r\n`
-        if (event.location) ics += `LOCATION:${event.location}\r\n`
-        ics += 'END:VEVENT\r\n'
-      }
-      ics += 'END:VCALENDAR\r\n'
+      const ics = comp.toString()
 
       const blob = new Blob([ics], { type: 'text/calendar' })
       const url = URL.createObjectURL(blob)

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import ICAL from 'ical.js'
 import {
   eventToICAL,
   parseICALData,
@@ -6,6 +7,11 @@ import {
   parseICALTask,
   taskToICAL,
 } from '../iCalendarAdapter'
+import {
+  calendarEventToIcalComponent,
+  calendarEventToIcalVjournal,
+  calendarEventToIcalVtodo,
+} from '../icalTypeMapping'
 import type { CalendarEvent } from '@/types'
 
 describe('iCalendarAdapter', () => {
@@ -826,6 +832,109 @@ END:VCALENDAR`
 
       expect(result).toHaveLength(1)
       expect(result[0]?.type).toBe('task')
+    })
+  })
+
+  // R1.6 regression net for the DataSettings export path. We can't easily
+  // exercise the Blob/anchor-click flow, but the export uses the same
+  // per-event component builders that these tests cover; if those are
+  // lossless, so is the export. The test below pins the multi-component
+  // pattern (single VCALENDAR with several subcomponents) and the
+  // round-trip for an RRULE-bearing event.
+  describe('multi-component VCALENDAR export', () => {
+    function buildVCalendar(events: CalendarEvent[]): string {
+      const comp = new ICAL.Component('vcalendar')
+      comp.updatePropertyWithValue('version', '2.0')
+      comp.updatePropertyWithValue('prodid', '-//Calino//Calendar//EN')
+      comp.updatePropertyWithValue('calscale', 'GREGORIAN')
+      for (const event of events) {
+        if (event.type === 'task') {
+          comp.addSubcomponent(calendarEventToIcalVtodo(event))
+        } else if (event.type === 'journal') {
+          comp.addSubcomponent(calendarEventToIcalVjournal(event))
+        } else {
+          comp.addSubcomponent(calendarEventToIcalComponent(event))
+        }
+      }
+      return comp.toString()
+    }
+
+    it('serializes a recurring event with RRULE + EXDATE losslessly', () => {
+      const event: CalendarEvent = {
+        id: 'weekly-standup',
+        type: 'event',
+        title: 'Weekly Standup',
+        start: '2024-03-04T09:00:00.000Z',
+        end: '2024-03-04T09:30:00.000Z',
+        isAllDay: false,
+        calendarId: 'cal-1',
+        recurrence: { frequency: 'weekly', interval: 1 },
+        excludedDates: ['2024-03-11T09:00:00.000Z'],
+      }
+
+      const ics = buildVCalendar([event])
+
+      // The output must be a single VCALENDAR with one VEVENT inside.
+      expect(ics.match(/BEGIN:VCALENDAR/g)).toHaveLength(1)
+      expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1)
+      expect(ics.match(/END:VEVENT/g)).toHaveLength(1)
+      expect(ics.match(/END:VCALENDAR/g)).toHaveLength(1)
+      expect(ics).toContain('RRULE')
+      expect(ics).toContain('EXDATE')
+
+      // Round-trip through the parser and confirm the recurrence + exdate
+      // survived serialization.
+      const parsed = parseICALData(ics, 'cal-1')
+      expect(parsed).toHaveLength(1)
+      expect(parsed[0]?.rruleString ?? parsed[0]?.recurrence).toBeDefined()
+      expect(parsed[0]?.excludedDates).toEqual(['2024-03-11T09:00:00.000Z'])
+    })
+
+    it('handles a mix of events, tasks, and journals in one VCALENDAR', () => {
+      const ev: CalendarEvent = {
+        id: 'e1',
+        type: 'event',
+        title: 'Meeting',
+        start: '2024-03-04T09:00:00.000Z',
+        end: '2024-03-04T10:00:00.000Z',
+        isAllDay: false,
+        calendarId: 'cal-1',
+      }
+      const task: CalendarEvent = {
+        id: 't1',
+        type: 'task',
+        title: 'Buy milk',
+        dueDate: '2024-03-04',
+        calendarId: 'cal-1',
+      }
+      const journal: CalendarEvent = {
+        id: 'j1',
+        type: 'journal',
+        title: 'Daily reflection',
+        start: '2024-03-04T20:00:00.000Z',
+        end: '2024-03-04T20:30:00.000Z',
+        isAllDay: false,
+        calendarId: 'cal-1',
+      }
+
+      const ics = buildVCalendar([ev, task, journal])
+
+      expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1)
+      expect(ics.match(/BEGIN:VTODO/g)).toHaveLength(1)
+      expect(ics.match(/BEGIN:VJOURNAL/g)).toHaveLength(1)
+
+      const parsed = parseICALData(ics, 'cal-1')
+      expect(parsed).toHaveLength(3)
+      expect(parsed.find((p) => p.id === 'e1')).toBeDefined()
+      expect(parsed.find((p) => p.id === 't1')).toBeDefined()
+      expect(parsed.find((p) => p.id === 'j1')).toBeDefined()
+    })
+
+    it('produces empty but valid ICS for an empty event list', () => {
+      const ics = buildVCalendar([])
+      expect(ics).toContain('BEGIN:VCALENDAR')
+      expect(ics).toContain('END:VCALENDAR')
+      expect(ics).not.toContain('BEGIN:VEVENT')
     })
   })
 })

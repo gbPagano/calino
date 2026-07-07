@@ -1,9 +1,24 @@
 /**
  * CalDAV Password Encryption
  *
- * Two modes:
- * 1. App-level encryption (fixed key) — for localStorage CalDAV credentials
- * 2. Master-password encryption (user-provided key) — for self-hosted config files
+ * SECURITY NOTE — please read before relying on this for anything sensitive:
+ *
+ * This module has TWO modes:
+ * 1. **App-level encryption** (`encryptPassword` / `decryptPassword`) — uses
+ *    a fixed key (`APP_SECRET` + `APP_SALT`) hardcoded in this JS bundle.
+ *    It is OBfuscation, not ENcryption: anyone with the JS bundle and
+ *    access to localStorage can derive the same AES key and decrypt stored
+ *    CalDAV credentials. It only protects against casual inspection (e.g.
+ *    another site reading your localStorage via a typo'd domain).
+ *
+ * 2. **Master-password encryption** (`encryptWithMasterPassword` /
+ *    `decryptWithMasterPassword`) — uses a user-supplied password to
+ *    derive the AES key. The key never leaves the device. This is real
+ *    encryption. Used for the optional self-hosted config file.
+ *
+ * For v1 we accept (1) as documented behavior. A future release should
+ * stop persisting the master password at all and instead require the user
+ * to unlock each session.
  */
 
 // ─── App-level encryption (existing) ─────────────────────────────────────────

@@ -59,6 +59,12 @@ async function getStoredMasterPassword(): Promise<string | null> {
 async function setStoredMasterPassword(password: string | null): Promise<void> {
   try {
     if (password) {
+      // SECURITY NOTE: encryptPassword uses the app-level fixed-key
+      // obfuscation (see src/lib/crypto.ts header). This is NOT real
+      // encryption of the master password — anyone with the JS bundle
+      // can decrypt it. The proper fix is to never persist the master
+      // password and require the user to unlock each session; tracked
+      // for v1.1.
       const encrypted = await encryptPassword(password)
       localStorage.setItem(MASTER_PASSWORD_KEY, JSON.stringify(encrypted))
     } else {

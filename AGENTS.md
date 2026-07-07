@@ -13,203 +13,150 @@ pnpm build            # Production build
 pnpm lint             # ESLint
 pnpm lint:fix         # ESLint with auto-fix
 pnpm typecheck        # TypeScript
-pnpm test             # Run tests
+pnpm test             # Run tests (Vitest, jsdom unit tests)
 pnpm test:run         # Run tests once
+pnpm test:e2e         # Run Playwright smoke tests against the dev server
+pnpm test:e2e:ui      # Same, with Playwright's UI inspector
+pnpm test:e2e:headed  # Same, in a visible browser window
 pnpm format           # Prettier format
 pnpm check            # Run all CI checks (typecheck + lint + test + build)
 ```
 
+## Testing — proactive, not reactive
+
+The Playwright suite is a regression net for the refactor. **Treat it as a
+living artifact** — every behavioral change ships with a test, not as a
+follow-up.
+
+### Hard rule: write/update a spec before you stop
+
+If you're changing user-visible behavior in this refactor, your task is not
+done until a Playwright spec exercises the changed path and passes.
+
+This applies to:
+- Stores, hooks, or components that produce visible output (event creation,
+  settings, navigation, view switching, sync flows, undo/redo)
+- Route changes, command palette commands, keyboard shortcuts, modal triggers
+- CalDAV request/response handling, credential storage, sync logic
+- Error and loading states the user can observe
+
+It does **not** apply to:
+- Internal refactors with no observable change (rename, extract, dedupe)
+- Pure type-only changes
+- CSS-only changes that don't change semantics
+
+### How to add a spec
+
+1. **Copy the template**: `e2e/templates/user-flow.spec.ts` →
+   `e2e/<area>.spec.ts`. The template has the conventions baked in.
+2. **Use the existing helpers** from `e2e/fixtures/localstorage.ts`:
+   - `clearState(page)` — wipes Calino state + dismisses onboarding/cookie
+   - `seedAccount(page, account)` — adds a CalDAV account to localStorage
+   - `seedRecurringEvent(page, seed)` — adds a recurring event to the calendar store
+3. **Selector order** (most stable first):
+   1. `data-component="..."` attributes (exposed throughout `src/features/calendar/components/*`)
+   2. `aria-label` for icon-only buttons
+   3. `getByRole('button', { name })` or `getByLabel('...')` for labelled elements
+4. **Assert on user-visible state**, not implementation details. Prefer
+   `getByText(...)` or `toContainText(...)` over checking specific CSS classes
+   or data-* attributes you didn't intend to be public.
+5. **Run the spec twice**: once on unchanged code (must pass — proves the
+   spec actually exercises the feature), then after your change (must still
+   pass). `pnpm test:e2e -- --grep "<test name>"` runs a single test.
+
+### Where tests live
+
+- `e2e/smoke.spec.ts` — top-level smoke: app boot, view switcher, command
+  palette, modal save, undo/redo, settings nav, CalDAV account add,
+  localStorage round-trip. Anything that should pass on every commit.
+- `e2e/<area>.spec.ts` — focused specs for individual features:
+  `events.spec.ts`, `sync.spec.ts`, `themes.spec.ts`, etc. Add to these
+  (or create new files) when you touch a specific feature.
+
+### Naming convention
+
+```
+e2e/
+  smoke.spec.ts                    # broad coverage, runs on every CI
+  events.spec.ts                   # event CRUD, recurrence, NLP
+  sync.spec.ts                     # CalDAV account + sync flow
+  settings.spec.ts                 # settings persistence per section
+  ...
+  fixtures/
+    localstorage.ts                # state-priming helpers
+    vite-caldav-mock.ts            # optional same-origin mock (CALINO_E2E_MOCK=1)
+  templates/
+    user-flow.spec.ts              # starting point for new specs
+```
+
+### What a good E2E test looks like
+
+```ts
+test('editing a recurring event with "This and following events" splits the series', async ({
+  page,
+}) => {
+  // Arrange: deterministic seed, no NLP / no real CalDAV.
+  await seedRecurringEvent(page, { id: 'weekly', title: 'Weekly', ... })
+
+  // Act: drive the UI the way a user would.
+  await page.goto('/week')
+  await page.getByRole('button', { name: /Weekly/ }).first().click()
+  await page.locator('[data-component="event-preview"]')
+    .getByRole('button', { name: /Open event/ }).click()
+  await page.locator('[data-component="event-title-input"]').fill('Weekly (updated)')
+  await page.locator('[data-component="modal-save"]').click()
+
+  // Assert: the dialog appears and the future-only branch works.
+  const dialog = page.getByRole('dialog').filter({ hasText: /Edit recurring event/ })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: /This and following events/ }).click()
+  await expect(dialog).toBeHidden()
+})
+```
+
+## E2E Tests (Playwright)
+
+The E2E suite lives in `e2e/`. It runs against the Vite dev server (started
+automatically by Playwright via `webServer`) and covers the user-visible flows
+a refactor is most likely to break: render, navigation, persistence,
+command palette, event creation, undo/redo, view switcher, and CalDAV
+account plumbing.
+
+```bash
+pnpm test:e2e           # headless, ~12s for the offline tests
+pnpm test:e2e:ui        # interactive — set breakpoints, replay failures
+pnpm test:e2e:headed    # visible browser window
+pnpm test:e2e:report    # open the last HTML report
+```
+
+### Live-CalDAV tests
+
+Two specs in `e2e/smoke.spec.ts` exercise a real CalDAV server:
+`add CalDAV account flow` and `settings persist across reload`. Both
+**skip if any of these env vars is missing** — no credentials are ever
+hardcoded:
+
+```bash
+CALINO_TEST_CALDAV_URL=https://your-server/principal/
+CALINO_TEST_CALDAV_USER=alice
+CALINO_TEST_CALDAV_PASS=secret
+```
+
+Set them in your shell, in a `.env.test` file (gitignored, see
+`e2e/.env.test.example`), or via your CI secrets.
+
+### Known gotchas
+
+- **Vite CSP** blocks `connect-src` to anything other than `'self'` and
+  `https:`. Custom-host mocks need a same-origin path or `--disable-web-security`.
+- **Onboarding modal** must be dismissed or the modal covers everything.
+  `clearState()` handles this; you shouldn't need to touch it.
+- **localStorage init scripts** (`page.addInitScript`) re-run on every
+  navigation, including `page.reload()`. The provided helpers use
+  `sessionStorage` flags so they fire only once per test — copy that
+  pattern if you write your own.
+- **RecurrenceDialog** has no `aria-label` on its dialog element. Scope
+  it with `.filter({ hasText: /Edit recurring event/ })`, not
+  `getByRole('dialog', { name: ... })`.
+
 ## Release Script
-
-`scripts/release.sh` — run all CI checks, bump version, test Docker, and push.
-
-```bash
-./scripts/release.sh                   # Check everything (typecheck, lint, test, build, Docker)
-./scripts/release.sh --patch           # Bump patch, check, commit, push (CI handles Docker)
-./scripts/release.sh --minor           # Bump minor, check, commit, push
-./scripts/release.sh --dry-run         # Full check only — no version bump, no commit, no push
-./scripts/release.sh --no-push         # Bump & commit locally, but don't push
-./scripts/release.sh --no-docker       # Skip Docker build & test
-./scripts/release.sh --docker-push     # Manually build, tag, and push Docker to GHCR
-./scripts/release.sh --help            # Show all options
-```
-
-Docker tags generated by CI on push to `main`:
-- `ghcr.io/ivan-malinovski/calino:main`
-- `ghcr.io/ivan-malinovski/calino:latest`
-- `ghcr.io/ivan-malinovski/calino:<version>`
-- `ghcr.io/ivan-malinovski/calino:sha-<short>`
-
-The script cleans up Docker containers and test images after healthcheck.
-
-## Code Style
-
-- **Imports**: React → External → Internal → Types → Styles
-- **TypeScript**: Explicit params/returns, use interfaces. `any` only where third-party types are incompatible (e.g., CalDAVClient cached calendars).
-- **Components**: Functional only, destructure props, <200 lines
-- **Testing**: Vitest + RTL, follow AAA pattern
-
-## Project Structure
-
-```
-src/
-├── components/     # Common UI (ThemeProvider, common/)
-├── features/      # calendar, events, caldav, nlp, search, commandPalette, settings, onboarding
-├── hooks/         # Custom hooks (useNotifications, useGestures, useIsMobile)
-├── lib/           # events/, recurrence.ts, uuid.ts, hours.ts, eventPositioning.ts, storage.ts, crypto.ts, themes/, notifications.ts
-├── store/         # Zustand stores (calendarStore, settingsStore)
-├── themes/        # CSS themes (built-in.css)
-├── types/         # TypeScript interfaces
-└── test/          # Test setup
-```
-
-## Key Guidelines
-
-- **State**: Use Zustand with persist middleware
-- **Dates**: Store UTC, use `date-fns`, ISO 8601 strings
-- **Sync**: Optimistic UI, queue CalDAV changes
-- **Animations**: Framer Motion for complex, CSS for simple (200-300ms)
-- **Errors**: Custom error classes, user-friendly messages, try/catch async
-- **Mobile**: Touch gestures via `useGestures`, native event listeners for pinch-to-zoom
-- **PWA**: Notifications via `lib/notifications.ts`. Service worker is disabled by default (not supported on GitHub Pages). Enable in `src/main.tsx` if self-hosting with proper CSP headers.
-
-## Routes
-
-| Path                                 | Component               |
-| ------------------------------------ | ----------------------- |
-| `/`                                  | Calendar (default view) |
-| `/month`, `/week`, `/day`, `/agenda` | Calendar views          |
-| `/tasks`                             | TodoView                |
-| `/settings`                          | SettingsPage            |
-| `/privacy`                           | PrivacyPolicy           |
-
-## Key Files
-
-- **Store**: `src/store/calendarStore.ts`, `src/store/settingsStore.ts`
-- **Events lib**: `src/lib/events.ts`, `src/lib/recurrence.ts`, `src/lib/uuid.ts`, `src/lib/hours.ts`, `src/lib/eventPositioning.ts`
-- **Notifications**: `src/lib/notifications.ts`, `src/hooks/useNotifications.ts`
-- **Config**: `src/config.ts` (appName, colors, default themes)
-- **Storage**: `src/lib/storage.ts` (safeLocalStorage wrapper for zustand persist)
-- **Encryption**: `src/lib/crypto.ts` (AES-256-GCM for CalDAV password storage)
-
-## Features
-
-### Power Bar (Command Palette)
-
-- Activated with `Cmd+K` / `Ctrl+K`
-- Smart detection: type "tomorrow meeting at 2pm" for quick event creation
-- Prefix hints: `>` for commands, `@` for navigation
-- Files: `features/commandPalette/`, `hooks/useCommandPalette.ts`, `features/commandPalette/commands/`
-
-### VTODO (Tasks)
-
-- Stored as events with `type: 'task'`
-- Fields: `dueDate`, `dueDateTime`, `isAllDay`, `completed`, `priority` (0-9)
-- Display: checkbox in month view, sticky footer in week/day view
-
-### Zoom
-
-- `Ctrl+scroll` to zoom in/out on WeekView and DayView
-- Events scale with hour rows
-
-### Notifications
-
-- PWA push notifications with configurable reminders
-- Request permission via `requestNotificationPermission()` in `lib/notifications.ts`
-
-### Self-Hosting
-
-- Set `VITE_SITE_URL=https://your-domain.com` in `.env`
-- See `.env.example`
-
-### CalDAV Proxy
-
-If your CalDAV server doesn't support CORS, you can use Calino's hosted proxy:
-
-**Usage:** Set CalDAV URL to:
-
-```
-https://proxy.calino.io/https%3A%2F%2Fyour-caldav-server.com
-```
-
-> The hosted proxy uses a path-based format (`/https%3A%2F%2Fserver/...`). The worker snippet below uses a different query-based format (`?server=`) for self-hosted deployments only — pick one and stick with it. The full, security-hardened path-based version (with Origin checking) lives in [`docs/CORS_PROXY.md`](./docs/CORS_PROXY.md).
-
-**Self-host the proxy:**
-
-```javascript
-export default {
-  async fetch(request) {
-    const url = new URL(request.url)
-    const targetBase = url.searchParams.get('server')
-
-    if (!targetBase) {
-      return new Response('Missing server param', { status: 400 })
-    }
-
-    let targetPath = url.pathname
-
-    if (targetPath === '/' || targetPath === '') {
-      targetPath = '/dav.php'
-    }
-
-    if (targetPath === '/.well-known/caldav') {
-      return Response.redirect(`${targetBase}/dav.php`, 301)
-    }
-
-    if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods':
-            'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS, MKCOL, MKCALENDAR, COPY, MOVE',
-          'Access-Control-Allow-Headers':
-            'Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match',
-        },
-      })
-    }
-
-    const targetUrl = targetBase.replace(/\/$/, '') + targetPath
-
-    const headers = new Headers(request.headers)
-    headers.delete('host')
-
-    try {
-      const response = await fetch(targetUrl, {
-        method: request.method,
-        headers,
-        body: request.body,
-      })
-
-      const corsHeaders = new Headers(response.headers)
-      corsHeaders.set('Access-Control-Allow-Origin', '*')
-      corsHeaders.set(
-        'Access-Control-Allow-Methods',
-        'GET, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT, OPTIONS, MKCOL, MKCALENDAR, COPY, MOVE'
-      )
-      corsHeaders.set(
-        'Access-Control-Allow-Headers',
-        'Authorization, Content-Type, Depth, Prefer, If-None-Match, If-Match'
-      )
-
-      return new Response(response.body, {
-        status: response.status,
-        headers: corsHeaders,
-      })
-    } catch (e) {
-      return new Response('Proxy error: ' + e.message, { status: 502 })
-    }
-  },
-}
-```
-
-## Self-Hosted Config
-
-For self-hosted deployments, Calino supports preconfiguring CalDAV accounts via `calino.config.json`. See [docs/SELF_HOSTED_CONFIG.md](./docs/SELF_HOSTED_CONFIG.md) for details.
-
-**Generate config:** Visit `/setup` in any Calino instance (browser-based, no Node.js required) or use the CLI script:
-
-```bash
-node scripts/encrypt-password.mjs --master "pass" --url "https://caldav.example.com/dav.php" --username "user" --password "caldavpass"
-```
-
-Config file location: project root (`calino.config.json`). Baked into JS bundle at build time.

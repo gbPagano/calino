@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
+import { caldavMockPlugin } from './e2e/fixtures/vite-caldav-mock'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
 
@@ -27,7 +28,7 @@ export default defineConfig({
     __CALINO_CONFIG__: JSON.stringify(calinoConfig),
     __CALINO_SELF_HOSTED__: JSON.stringify(!!calinoConfig || process.env.CALINO_SELF_HOSTED === 'true'),
   },
-  plugins: [react(), nodePolyfills()],
+  plugins: [react(), nodePolyfills(), caldavMockPlugin()],
   server: {
     host: '0.0.0.0',
     allowedHosts: ['jankyboi', 'localhost'],

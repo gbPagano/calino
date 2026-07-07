@@ -31,10 +31,16 @@ export default defineConfig({
   },
   plugins: [react(), nodePolyfills(), caldavMockPlugin()],
   server: {
-    host: '0.0.0.0',
+    // SECURITY: default to localhost-only. The dev server has known
+    // WebSocket arbitrary file read CVEs (CVE-2026-39363, see
+    // GHSA-p9ff-h696-f583) — binding to 0.0.0.0 means anyone on the
+    // local network can read source files via the dev WebSocket. Set
+    // CALINO_DEV_HOST=0.0.0.0 only when you actually need LAN access
+    // (e.g. testing on a phone).
+    host: process.env.CALINO_DEV_HOST ?? 'localhost',
     allowedHosts: ['jankyboi', 'localhost'],
     hmr: {
-      host: '0.0.0.0',
+      host: process.env.CALINO_DEV_HOST ?? 'localhost',
       port: 8080,
     },
   },

@@ -65,8 +65,8 @@
   display: flex;
   gap: 0;
   padding: var(--space-1);
-  background: var(--view-switcher-bg, rgba(var(--ink-raw, 44, 40, 33), 0.045));
-  border-radius: var(--radius-md);
+  background: rgba(var(--ink-raw), 0.045);
+  border-radius: var(--view-switcher-radius, 12px);
 }
 
 .tab {
@@ -99,10 +99,10 @@
 .tabIndicator {
   position: absolute;
   top: 4px;
-  height: var(--view-switcher-indicator-height, 32px);
+  height: 30px;
   background: var(--panel, #ffffff);
   box-shadow: 0 1px 2px rgba(var(--ink-raw), 0.08), 0 0 0 1px var(--line, rgba(var(--ink-raw), 0.09));
-  border-radius: var(--radius-sm);
+  border-radius: var(--view-switcher-indicator-radius, 9px);
   transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 0;
 }
@@ -434,4 +434,33 @@
   margin-bottom: 4px;
   font-family: "Newsreader", Georgia, serif;
   font-size: 19px;
+}
+
+.emptyMessage {
+  margin: 0 0 16px;
+  color: var(--ink-3, #a39d93);
+  font-size: 14px;
+}
+
+.emptyCreateBtn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  background: var(--accent, #b07d4f);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(var(--ink-raw), 0.14);
+  transition: background 0.14s, transform 0.04s;
+  font-family: inherit;
+}
+
+.emptyCreateBtn:hover {
+  background: color-mix(in srgb, var(--accent, #b07d4f) 88%, #000);
+}
+
+.emptyCreateBtn:active {
+  transform: translateY(1px) scale(0.97);
 }

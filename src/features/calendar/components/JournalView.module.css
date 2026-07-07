@@ -48,7 +48,7 @@
   gap: 0;
   padding: var(--space-1);
   background: rgba(var(--ink-raw), 0.045);
-  border-radius: 10px;
+  border-radius: var(--view-switcher-radius, 12px);
 }
 
 .segmentTab {
@@ -84,7 +84,7 @@
   height: 30px;
   background: var(--panel, #ffffff);
   box-shadow: 0 1px 2px rgba(var(--ink-raw), 0.08), 0 0 0 1px var(--line, rgba(var(--ink-raw), 0.09));
-  border-radius: var(--radius-sm);
+  border-radius: var(--view-switcher-indicator-radius, 9px);
   transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 0;
 }

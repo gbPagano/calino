@@ -617,16 +617,6 @@ export function CalendarHeader({
             {quickSettings.rendered && (
             <div className={`${styles.quickSettingsDropdown} ${quickSettings.closing ? styles.quickSettingsClosing : ''}`}>
               <div className={styles.quickSettingsItem}>
-                <span className={styles.quickSettingsLabel}>Week numbers</span>
-                <button
-                  className={`${styles.toggleSwitch} ${showWeekNumbers ? styles.toggleActive : ''}`}
-                  onClick={() => updateSettings({ showWeekNumbers: !showWeekNumbers })}
-                  aria-label="Toggle week numbers"
-                >
-                  <span className={styles.toggleThumb} />
-                </button>
-              </div>
-              <div className={styles.quickSettingsItem}>
                 <span className={styles.quickSettingsLabel}>Theme</span>
                 <div
                   className={styles.themeModeGroup}
@@ -650,6 +640,16 @@ export function CalendarHeader({
                     </button>
                   ))}
                 </div>
+              </div>
+              <div className={styles.quickSettingsItem}>
+                <span className={styles.quickSettingsLabel}>Week numbers</span>
+                <button
+                  className={`${styles.toggleSwitch} ${showWeekNumbers ? styles.toggleActive : ''}`}
+                  onClick={() => updateSettings({ showWeekNumbers: !showWeekNumbers })}
+                  aria-label="Toggle week numbers"
+                >
+                  <span className={styles.toggleThumb} />
+                </button>
               </div>
               <div className={styles.quickSettingsItem}>
                 <span className={styles.quickSettingsLabel}>Hide completed tasks</span>

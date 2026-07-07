@@ -269,7 +269,10 @@ export function TodoView(): JSX.Element {
 
   const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     if (e.key === 'Enter' && composerRef.current?.value.trim()) {
-      openModal(format(new Date(), 'yyyy-MM-dd'), undefined, undefined, 'task')
+      // Forward the composer's text into the modal so the user doesn't have
+      // to retype the title they just typed.
+      openModal(format(new Date(), 'yyyy-MM-dd'), undefined, undefined, 'task', composerRef.current.value.trim())
+      composerRef.current.value = ''
       setComposing(false)
     } else if (e.key === 'Escape') {
       setComposing(false)

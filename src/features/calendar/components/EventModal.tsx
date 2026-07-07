@@ -32,6 +32,7 @@ export function EventModal(): JSX.Element | null {
   const selectedEventId = useCalendarStore((state) => state.selectedEventId)
   const selectedDate = useCalendarStore((state) => state.selectedDate)
   const selectedEndDate = useCalendarStore((state) => state.selectedEndDate)
+  const initialTitle = useCalendarStore((state) => state.initialTitle)
   const selectedEventType = useCalendarStore((state) => state.selectedEventType)
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
@@ -339,7 +340,10 @@ export function EventModal(): JSX.Element | null {
       calendarTouchedRef.current = false
       durationTouchedRef.current = false
 
-      setTitle(formDefaults.title)
+      // Seed from formDefaults; if the caller passed an initialTitle (e.g. the
+      // TodoView composer), override with that. This means the user's typed
+      // text isn't lost when they press Enter in the inline composer.
+      setTitle(initialTitle ?? formDefaults.title)
       setDescription(formDefaults.description)
       setLocation(formDefaults.location)
       setStartDate(formDefaults.startDate)

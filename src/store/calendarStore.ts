@@ -60,10 +60,10 @@ export const useCalendarStore = create<CalendarStore>()(
       currentDate: format(new Date(), 'yyyy-MM-dd'),
       currentView: config.defaultView,
       selectedEventId: null,
-      isModalOpen: false,
+isModalOpen: false,
       selectedDate: null,
       selectedEndDate: null,
-      isOverlayOpen: false,
+      initialTitle: null,
       selectedEventType: 'event',
       showAddCalendar: false,
       previewEventId: null,
@@ -379,13 +379,20 @@ export const useCalendarStore = create<CalendarStore>()(
         set({ selectedEventId: id })
       },
 
-      openModal: (date?: string, endDate?: string, eventId?: string, mode?: EventType): void => {
+      openModal: (
+        date?: string,
+        endDate?: string,
+        eventId?: string,
+        mode?: EventType,
+        initialTitle?: string
+      ): void => {
         set({
           isModalOpen: true,
           selectedEventId: eventId ?? null,
           selectedDate: date ?? null,
           selectedEndDate: endDate ?? null,
           selectedEventType: mode ?? 'event',
+          initialTitle: initialTitle ?? null,
         })
       },
 
@@ -395,6 +402,7 @@ export const useCalendarStore = create<CalendarStore>()(
           selectedEventId: null,
           selectedDate: null,
           selectedEndDate: null,
+          initialTitle: null,
           selectedEventType: 'event',
         })
       },

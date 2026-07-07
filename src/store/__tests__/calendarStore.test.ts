@@ -258,14 +258,41 @@ describe('calendarStore', () => {
       expect(useCalendarStore.getState().selectedDate).toBeNull()
     })
 
-    it('closes modal', () => {
+it('closes modal', () => {
       const store = useCalendarStore.getState()
       store.openModal('2024-03-15')
       store.closeModal()
 
       expect(useCalendarStore.getState().isModalOpen).toBe(false)
-      expect(useCalendarStore.getState().selectedEventId).toBeNull()
+      expect(useCalendarStore.getState().selectedDate).toBeNull()
     })
+
+    // R1.5: TodoView composer forwards its text into the modal via the
+    // 5th openModal parameter so the user doesn't have to retype the
+    // title they just typed in the inline composer.
+    it('forwards initialTitle when opening modal from composer', () => {
+      const store = useCalendarStore.getState()
+      store.openModal('2024-03-15', undefined, undefined, 'task', 'Buy milk')
+
+      expect(useCalendarStore.getState().isModalOpen).toBe(true)
+      expect(useCalendarStore.getState().selectedEventType).toBe('task')
+      expect(useCalendarStore.getState().initialTitle).toBe('Buy milk')
+    })
+
+    it('clears initialTitle when modal closes', () => {
+      const store = useCalendarStore.getState()
+      store.openModal('2024-03-15', undefined, undefined, 'task', 'Buy milk')
+      store.closeModal()
+
+      expect(useCalendarStore.getState().initialTitle).toBeNull()
+    })
+
+    it('defaults initialTitle to null when not passed', () => {
+      const store = useCalendarStore.getState()
+      store.openModal('2024-03-15')
+
+      expect(useCalendarStore.getState().initialTitle).toBeNull()
+})
   })
 
   describe('recurring event expansion with timezone', () => {

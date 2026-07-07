@@ -148,7 +148,10 @@ export const useSettingsStore = create<SettingsStore>()(
       name: 'calino-settings',
       storage: createJSONStorage(() => safeLocalStorage),
       version: 1,
-      migrate: () => DEFAULT_SETTINGS as SettingsStore,
+      migrate: (persistedState: unknown) => ({
+        ...DEFAULT_SETTINGS,
+        ...(persistedState as Partial<UserSettings>),
+      }),
     }
   )
 )

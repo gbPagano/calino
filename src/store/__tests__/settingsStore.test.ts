@@ -208,4 +208,55 @@ describe('settingsStore', () => {
       expect(useSettingsStore.getState().themeMode).toBe(mode)
     })
   })
+
+  describe('migrate()', () => {
+    // R1.2: The previous migrate() discarded all persisted state on a version
+    // bump. These tests pin the new behavior: persisted fields survive, missing
+    // fields fall back to defaults.
+
+    const getMigrate = () =>
+      useSettingsStore.persist.getOptions().migrate as (
+        state: unknown,
+      ) => Record<string, unknown>
+
+    it('preserves persisted user fields on version bump', () => {
+      const persisted = {
+        themeMode: 'dark',
+        timezone: 'America/New_York',
+        defaultView: 'agenda' as const,
+        defaultDuration: 90 as const,
+      }
+      const result = getMigrate()(persisted)
+      expect(result.themeMode).toBe('dark')
+      expect(result.timezone).toBe('America/New_York')
+      expect(result.defaultView).toBe('agenda')
+      expect(result.defaultDuration).toBe(90)
+    })
+
+    it('falls back to defaults for fields not present in persisted state', () => {
+      const result = getMigrate()({ themeMode: 'dark' })
+      // Persisted field survives
+      expect(result.themeMode).toBe('dark')
+      // Missing fields get the defaults
+      expect(result.dateFormat).toBe('dd/MM/yyyy')
+      expect(result.timeFormat).toBe('24h')
+      expect(result.firstDayOfWeek).toBe(1)
+      expect(result.defaultDuration).toBe(60)
+      expect(result.defaultView).toBe('month')
+    })
+
+    it('handles undefined persisted state gracefully', () => {
+      const result = getMigrate()(undefined)
+      // All defaults
+      expect(result.dateFormat).toBe('dd/MM/yyyy')
+      expect(result.timeFormat).toBe('24h')
+      expect(result.themeMode).toBe('auto')
+    })
+
+    it('handles empty persisted state gracefully', () => {
+      const result = getMigrate()({})
+      expect(result.dateFormat).toBe('dd/MM/yyyy')
+      expect(result.themeMode).toBe('auto')
+    })
+  })
 })

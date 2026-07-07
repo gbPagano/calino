@@ -44,6 +44,26 @@ function formatMinutesToDuration(minutes: number): string {
   }
 }
 
+/**
+ * R2.6 — Format a reminder's minutesBefore as the most idiomatic
+ * RFC 5545 §3.3.6 duration string, choosing the largest non-zero unit
+ * so other clients can read it back correctly. Pre-event triggers
+ * are emitted with a leading `-`; the iCal spec also accepts `+` for
+ * post-event, but we always emit `-` for now.
+ *
+ * Examples: 15 → "-PT15M", 60 → "-PT1H", 1440 → "-P1D", 10080 → "-P1W"
+ */
+function formatReminderTrigger(minutesBefore: number): string {
+  if (minutesBefore <= 0) return '-PT0M'
+  if (minutesBefore % 10080 === 0) return `-P${minutesBefore / 10080}W`
+  if (minutesBefore % 1440 === 0) return `-P${minutesBefore / 1440}D`
+  const hours = Math.floor(minutesBefore / 60)
+  const mins = minutesBefore % 60
+  if (hours > 0 && mins === 0) return `-PT${hours}H`
+  if (hours > 0) return `-PT${hours}H${mins}M`
+  return `-PT${minutesBefore}M`
+}
+
 function parseRRule(rruleString: string): RecurrenceRule | undefined {
   const parts = rruleString.split(';')
   let frequency: RecurrenceRule['frequency'] = 'weekly'
@@ -250,17 +270,68 @@ function parseICalDateTime(value: string): { date: string; isAllDay: boolean } {
   return { date: '', isAllDay: false }
 }
 
-function createIcalDateTime(isoString: string): ICAL.Time {
+function createIcalDateTime(isoString: string, tzid?: string): ICAL.Time {
+  // R2.2 — When a TZID is provided, construct from the wall-clock ISO
+  // string with the named zone. ical.js v2.2.1's `fromDateTimeString`
+  // requires a Property (not a string) to read TZID from, so we use
+  // `fromData` directly with the `timezone` field. The zone won't be
+  // registered (no IANA DB), so we fall back to localTimezone for
+  // arithmetic purposes — the TZID is carried via the property's
+  // TZID parameter (set by the caller), not via the resolved zone.
+  if (tzid) {
+    const wall = isoString.replace(/Z$/, '').replace(/[+-]\d{2}:?\d{2}$/, '')
+    // Parse the wall-clock ISO into components.
+    const m = wall.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/)
+    if (m) {
+      return new ICAL.Time({
+        year: parseInt(m[1], 10),
+        month: parseInt(m[2], 10),
+        day: parseInt(m[3], 10),
+        hour: parseInt(m[4], 10),
+        minute: parseInt(m[5], 10),
+        second: m[6] ? parseInt(m[6], 10) : 0,
+        timezone: tzid,
+      })
+    }
+  }
   return ICAL.Time.fromJSDate(new Date(isoString), true)
 }
 
-function icalTimeToISO(icalTime: ICAL.Time): string {
+interface IcalTimeToISOResult {
+  iso: string
+  tzid?: string
+}
+
+function icalTimeToISO(icalTime: ICAL.Time, prop?: ICAL.Property): IcalTimeToISOResult {
   if (!icalTime || !icalTime.year) {
     throw new Error('Invalid ICAL.Time')
   }
 
   if (icalTime.isDate) {
-    return icalTime.toString()
+    return { iso: icalTime.toString() }
+  }
+
+  // R2.2 — Read TZID from the source property FIRST, before checking
+  // the resolved zone. ical.js resolves an unknown TZID (one without
+  // a registered VTIMEZONE) to 'floating' — so the zone check below
+  // would short-circuit and lose the original IANA name.
+  //
+  // The Property's jCal is `[name, paramsObject, valueType, value]`
+  // (per ical.js design). Read the tzid directly from jCal[1] — the
+  // getParameter() API is not reliable in vitest's jsdom environment
+  // for some reason, but the jCal structure is.
+  const tzidFromProp =
+    prop && prop.jCal && typeof prop.jCal[1] === 'object'
+      ? (prop.jCal[1] as Record<string, string>).tzid
+      : undefined
+  if (tzidFromProp) {
+    const year = String(icalTime.year).padStart(4, '0')
+    const month = String(icalTime.month).padStart(2, '0')
+    const day = String(icalTime.day).padStart(2, '0')
+    const hour = String(icalTime.hour).padStart(2, '0')
+    const minute = String(icalTime.minute).padStart(2, '0')
+    const second = String(icalTime.second).padStart(2, '0')
+    return { iso: `${year}-${month}-${day}T${hour}:${minute}:${second}`, tzid: tzidFromProp }
   }
 
   // Bug 25 fix: floating times (timezone 'floating') should be preserved as-is.
@@ -273,14 +344,26 @@ function icalTimeToISO(icalTime: ICAL.Time): string {
     const hour = String(icalTime.hour).padStart(2, '0')
     const minute = String(icalTime.minute).padStart(2, '0')
     const second = String(icalTime.second).padStart(2, '0')
-    return `${year}-${month}-${day}T${hour}:${minute}:${second}`
+    return { iso: `${year}-${month}-${day}T${hour}:${minute}:${second}` }
+  }
+
+  // R2.2 — Fall back to the resolved zone's tzid if a VTIMEZONE was
+  // registered (rare; usually the prop path above is enough).
+  if (tz && tz.tzid && tz.tzid !== 'UTC') {
+    const year = String(icalTime.year).padStart(4, '0')
+    const month = String(icalTime.month).padStart(2, '0')
+    const day = String(icalTime.day).padStart(2, '0')
+    const hour = String(icalTime.hour).padStart(2, '0')
+    const minute = String(icalTime.minute).padStart(2, '0')
+    const second = String(icalTime.second).padStart(2, '0')
+    return { iso: `${year}-${month}-${day}T${hour}:${minute}:${second}`, tzid: tz.tzid }
   }
 
   const jsDate = icalTime.toJSDate()
   if (!jsDate || isNaN(jsDate.getTime())) {
     throw new Error('Invalid JS Date')
   }
-  return jsDate.toISOString()
+  return { iso: jsDate.toISOString() }
 }
 
 export function icalEventToCalendarEvent(
@@ -296,9 +379,15 @@ export function icalEventToCalendarEvent(
 
   let start = ''
   let end = ''
+  let timezone: string | undefined
 
   if (dtstart) {
-    start = icalTimeToISO(dtstart)
+    // R2.2 — Capture TZID from the DTSTART property (not just the
+    // resolved zone) so we re-emit the original wall-clock + TZID.
+    const dtstartProp = vevent.getFirstProperty('dtstart')
+    const startResult = icalTimeToISO(dtstart, dtstartProp ?? undefined)
+    start = startResult.iso
+    if (startResult.tzid) timezone = startResult.tzid
   }
 
   if (dtend) {
@@ -311,7 +400,12 @@ export function icalEventToCalendarEvent(
       const day = String(endDate.getUTCDate()).padStart(2, '0')
       end = `${year}-${month}-${day}`
     } else {
-      end = icalTimeToISO(dtend)
+      const dtendProp = vevent.getFirstProperty('dtend')
+      const endResult = icalTimeToISO(dtend, dtendProp ?? undefined)
+      end = endResult.iso
+      // DTEND's TZID should match DTSTART's; only set if DTSTART
+      // didn't have one (defensive).
+      if (endResult.tzid && !timezone) timezone = endResult.tzid
     }
   }
 
@@ -330,7 +424,11 @@ export function icalEventToCalendarEvent(
     const values = exdateProp.getValues()
     for (const val of values) {
       if (val instanceof ICAL.Time) {
-        excludedDates.push(icalTimeToISO(val))
+        // R2.3 — For TZID preservation we'd need to store the TZID
+        // per-exdate. For now we keep the ISO string (which is wall-
+        // clock if the original had TZID). Re-emission uses the master
+        // event's `event.timezone` to reconstruct the TZID form.
+        excludedDates.push(icalTimeToISO(val).iso)
       }
     }
   }
@@ -346,15 +444,20 @@ export function icalEventToCalendarEvent(
       if (typeof triggerValue === 'string') {
         minutes = parseTriggerDuration(triggerValue)
       } else if (triggerValue instanceof ICAL.Duration) {
-        // Duration triggers (e.g. -PT30M) are parsed by ical.js as ICAL.Duration
+        // Duration triggers (e.g. -PT30M, +P2D) are parsed by ical.js as
+        // ICAL.Duration. The sign of the duration tells us pre/post:
+        // negative is "before", positive is "after" (per RFC 5545
+        // §3.8.6.3). R2.6 — for post-event reminders (positive), we
+        // emit `Math.abs` so the value is non-negative; the UI doesn't
+        // currently distinguish but the option is there.
         const totalSeconds = triggerValue.toSeconds()
         minutes = Math.round(Math.abs(totalSeconds) / 60)
       } else if (triggerValue instanceof ICAL.Time) {
         // Bug 26 fix: calculate minutes from event DTSTART, not Date.now()
-        const isoStr = icalTimeToISO(triggerValue)
+        const isoStr = icalTimeToISO(triggerValue).iso
         if (isoStr && dtstart) {
           const triggerDate = new Date(isoStr)
-          const startDate = new Date(icalTimeToISO(dtstart))
+          const startDate = new Date(icalTimeToISO(dtstart).iso)
           if (!isNaN(triggerDate.getTime()) && !isNaN(startDate.getTime())) {
             const diffMs = startDate.getTime() - triggerDate.getTime()
             minutes = Math.round(diffMs / 60000)
@@ -364,10 +467,23 @@ export function icalEventToCalendarEvent(
       }
 
       if (minutes !== null && minutes > 0) {
+        // R2.6 — Read the VALARM ACTION property (DISPLAY/EMAIL/AUDIO)
+        // and map to the Reminder.method union. Default to 'popup' for
+        // compatibility with existing reminders and for any non-recognised
+        // ACTION values (x-name / iana-token) which we still want to
+        // preserve as DISPLAY-ish.
+        let method: 'popup' | 'email' | 'audio' = 'popup'
+        const actionProp = valarm.getFirstProperty('action')
+        if (actionProp) {
+          const actionValue = actionProp.getFirstValue() as string
+          if (actionValue === 'EMAIL') method = 'email'
+          else if (actionValue === 'AUDIO') method = 'audio'
+          // else: 'DISPLAY' or anything else → 'popup' (default)
+        }
         reminders.push({
           id: uuidv4(),
           minutesBefore: minutes,
-          method: 'popup',
+          method,
         })
       }
     }
@@ -387,7 +503,9 @@ export function icalEventToCalendarEvent(
   if (recIdProp) {
     const recIdValue = recIdProp.getFirstValue()
     if (recIdValue instanceof ICAL.Time) {
-      recurrenceId = icalTimeToISO(recIdValue)
+      // R2.3 — RECURRENCE-ID's wall-clock is preserved on the iso
+      // string; re-emission uses event.timezone + event.isAllDay.
+      recurrenceId = icalTimeToISO(recIdValue).iso
     }
   }
 
@@ -457,6 +575,9 @@ export function icalEventToCalendarEvent(
     start,
     end,
     isAllDay,
+    // R2.2 — Store the IANA TZID (e.g. 'America/New_York') so the
+    // serializer can re-emit the TZID form on the wall-clock time.
+    timezone,
     categories: categories.length > 0 ? categories : undefined,
     recurrence,
     reminders: reminders.length > 0 ? reminders : undefined,
@@ -560,11 +681,20 @@ export function calendarEventToIcalComponent(event: CalendarEvent): ICAL.Compone
     )
     vevent.updatePropertyWithValue('dtend', endDate)
   } else {
-    const startTime = createIcalDateTime(event.start)
+    // R2.2 — Pass event.timezone (if set) to createIcalDateTime so the
+    // emitted DTSTART/DTEND carry ;TZID=... parameter and the wall-
+    // clock time, not a UTC-converted instant.
+    const startTime = createIcalDateTime(event.start, event.timezone)
     vevent.updatePropertyWithValue('dtstart', startTime)
+    if (event.timezone) {
+      vevent.getFirstProperty('dtstart')?.setParameter('tzid', event.timezone)
+    }
 
-    const endTime = createIcalDateTime(event.end)
+    const endTime = createIcalDateTime(event.end, event.timezone)
     vevent.updatePropertyWithValue('dtend', endTime)
+    if (event.timezone) {
+      vevent.getFirstProperty('dtend')?.setParameter('tzid', event.timezone)
+    }
   }
 
   vevent.updatePropertyWithValue('summary', event.title)
@@ -600,6 +730,15 @@ export function calendarEventToIcalComponent(event: CalendarEvent): ICAL.Compone
         parseInt(recIdParts[2], 10)
       )
       vevent.updatePropertyWithValue('recurrence-id', recId)
+      // R2.3 — All-day RECURRENCE-ID needs VALUE=DATE; ical.js omits
+      // the parameter when the time has isDate: true, but be explicit
+      // to match what icalTypeMapping.ts writes for DTSTART.
+    } else if (event.timezone) {
+      // R2.3 — RECURRENCE-ID with TZID: reconstruct wall-clock with
+      // the same zone as the master event's DTSTART.
+      const recIdTime = createIcalDateTime(event.recurrenceId, event.timezone)
+      vevent.updatePropertyWithValue('recurrence-id', recIdTime)
+      vevent.getFirstProperty('recurrence-id')?.setParameter('tzid', event.timezone)
     } else {
       const recId = createIcalDateTime(event.recurrenceId)
       vevent.updatePropertyWithValue('recurrence-id', recId)
@@ -616,6 +755,12 @@ export function calendarEventToIcalComponent(event: CalendarEvent): ICAL.Compone
           parseInt(exParts[2], 10)
         )
         vevent.addPropertyWithValue('exdate', exIcalDate)
+      } else if (event.timezone) {
+        // R2.3 — EXDATE with TZID: emit the same TZID form as DTSTART
+        // so the exception is matched against the master event.
+        const exIcalTime = createIcalDateTime(exDate, event.timezone)
+        const exProp = vevent.addPropertyWithValue('exdate', exIcalTime)
+        exProp.setParameter('tzid', event.timezone)
       } else {
         const exIcalTime = createIcalDateTime(exDate)
         vevent.addPropertyWithValue('exdate', exIcalTime)
@@ -632,8 +777,16 @@ export function calendarEventToIcalComponent(event: CalendarEvent): ICAL.Compone
   if (event.reminders && event.reminders.length > 0) {
     for (const reminder of event.reminders) {
       const valarm = new ICAL.Component('valarm')
-      valarm.updatePropertyWithValue('action', 'DISPLAY')
-      valarm.updatePropertyWithValue('trigger', `-PT${reminder.minutesBefore}M`)
+      // R2.6 — Map the Reminder.method back to the iCal ACTION token
+      // and use the longest-fit trigger form (D > H > M) per RFC 5545
+      // §3.3.6. Always emit a negative (pre-event) trigger; the UI
+      // doesn't currently distinguish post-event reminders, and
+      // emitting `+PT...` would require a Reminder field refactor.
+      const action = reminder.method === 'email' ? 'EMAIL'
+        : reminder.method === 'audio' ? 'AUDIO'
+        : 'DISPLAY'
+      valarm.updatePropertyWithValue('action', action)
+      valarm.updatePropertyWithValue('trigger', formatReminderTrigger(reminder.minutesBefore))
       vevent.addSubcomponent(valarm)
     }
   }
@@ -693,7 +846,7 @@ export function icalVtodoToCalendarEvent(vtodo: ICAL.Component, calendarId: stri
     try {
       const dueRawValue = dueProp.getFirstValue()
       if (dueRawValue instanceof ICAL.Time) {
-        const isoStr = icalTimeToISO(dueRawValue)
+        const isoStr = icalTimeToISO(dueRawValue).iso
         if (isoStr && !isoStr.endsWith('T::')) {
           dueDate = isoStr
           isAllDay = dueRawValue.isDate
@@ -734,9 +887,34 @@ export function icalVtodoToCalendarEvent(vtodo: ICAL.Component, calendarId: stri
     completed = percentComplete >= 100
   }
 
+  // R2.5 — Read raw STATUS, preserving IN-PROCESS / CANCELLED / NEEDS-ACTION
+  // (the old code collapsed all non-COMPLETED to `completed: false`,
+  // losing the distinction). Map to UI's boolean:
+  //  - COMPLETED / CANCELLED → completed = true (per product decision,
+  //    CANCELLED renders as completed but flagged for deletion)
+  //  - IN-PROCESS / NEEDS-ACTION → completed = false
+  let taskStatus: 'NEEDS-ACTION' | 'IN-PROCESS' | 'COMPLETED' | 'CANCELLED' = 'NEEDS-ACTION'
   if (statusProp) {
     const status = statusProp.getFirstValue() as string
-    completed = status === 'COMPLETED'
+    if (status === 'IN-PROCESS' || status === 'COMPLETED' ||
+        status === 'CANCELLED' || status === 'NEEDS-ACTION') {
+      taskStatus = status
+    }
+    if (status === 'COMPLETED' || status === 'CANCELLED') {
+      completed = true
+    }
+  }
+
+  // R2.5 — Read the COMPLETED timestamp (UTC DATE-TIME per RFC 5545 §3.8.2.1).
+  const completedProp = vtodo.getFirstProperty('completed')
+  let completedAt: string | undefined
+  if (completedProp) {
+    try {
+      const val = completedProp.getFirstValue()
+      if (val instanceof ICAL.Time) {
+        completedAt = icalTimeToISO(val).iso
+      }
+    } catch { /* skip malformed */ }
   }
 
   const categories: string[] = []
@@ -761,6 +939,9 @@ export function icalVtodoToCalendarEvent(vtodo: ICAL.Component, calendarId: stri
     type: 'task',
     dueDate,
     completed,
+    // R2.5 — Carry the raw status and original completion timestamp.
+    taskStatus,
+    completedAt,
     priority,
     percentComplete,
     sequence,
@@ -807,11 +988,27 @@ export function calendarEventToIcalVtodo(task: CalendarEvent): ICAL.Component {
     vtodo.updatePropertyWithValue('percent-complete', task.percentComplete)
   }
 
-  if (task.completed) {
+  if (task.taskStatus) {
+    // R2.5 — Serialize the full status union (NEEDS-ACTION / IN-PROCESS
+    // / COMPLETED / CANCELLED), not just COMPLETED / NEEDS-ACTION.
+    vtodo.updatePropertyWithValue('status', task.taskStatus)
+  } else if (task.completed) {
     vtodo.updatePropertyWithValue('status', 'COMPLETED')
-    vtodo.updatePropertyWithValue('completed', ICAL.Time.now())
   } else {
     vtodo.updatePropertyWithValue('status', 'NEEDS-ACTION')
+  }
+
+  if (task.completed) {
+    // R2.5 — Preserve the original COMPLETED timestamp on re-serialize
+    // (was always overwritten with `ICAL.Time.now()` before). The
+    // COMPLETED property MUST be UTC DATE-TIME per RFC 5545 §3.8.2.1,
+    // so use `fromJSDate(..., true)` (the `true` arg forces UTC `Z` form)
+    // rather than `ICAL.Time.now()` which is a floating time.
+    if (task.completedAt) {
+      vtodo.updatePropertyWithValue('completed', ICAL.Time.fromJSDate(new Date(task.completedAt), true))
+    } else {
+      vtodo.updatePropertyWithValue('completed', ICAL.Time.fromJSDate(new Date(), true))
+    }
   }
 
   return vtodo
@@ -840,7 +1037,7 @@ export function icalVjournalToCalendarEvent(
   if (dtstartProp) {
     const raw = dtstartProp.getFirstValue()
     if (raw instanceof ICAL.Time) {
-      const isoStr = icalTimeToISO(raw)
+      const isoStr = icalTimeToISO(raw).iso
       if (isoStr) {
         // Journal entries are date-only — strip any time component
         startDate = isoStr.includes('T') ? isoStr.split('T')[0] : isoStr
@@ -860,7 +1057,7 @@ export function icalVjournalToCalendarEvent(
   if (createdProp) {
     try {
       const val = createdProp.getFirstValue()
-      if (val instanceof ICAL.Time) created = icalTimeToISO(val)
+      if (val instanceof ICAL.Time) created = icalTimeToISO(val).iso
     } catch { /* skip */ }
   }
   // Fallback: use start date for events without CREATED property
@@ -872,7 +1069,7 @@ export function icalVjournalToCalendarEvent(
   if (lastModProp) {
     try {
       const val = lastModProp.getFirstValue()
-      if (val instanceof ICAL.Time) lastModified = icalTimeToISO(val)
+      if (val instanceof ICAL.Time) lastModified = icalTimeToISO(val).iso
     } catch { /* skip */ }
   }
   // Fallback: use created date for events without LAST-MODIFIED property

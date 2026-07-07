@@ -677,12 +677,16 @@ export const useCalendarStore = create<CalendarStore>()(
       storage: createJSONStorage(() => safeLocalStorage),
       version: 1,
       migrate: (persistedState: unknown) => {
-        const state = persistedState as Record<string, unknown> | undefined
+        const state = (persistedState ?? {}) as Partial<CalendarStore>
         return {
-          events: state?.events ?? [],
-          calendars: state?.calendars ?? [],
-          categories: state?.categories ?? [],
-          autoCategoryRules: state?.autoCategoryRules ?? [],
+          events: state.events ?? [],
+          calendars: state.calendars ?? [],
+          categories: state.categories ?? [],
+          autoCategoryRules: state.autoCategoryRules ?? [],
+          brokenEvents: state.brokenEvents ?? [],
+          currentDate: state.currentDate ?? format(new Date(), 'yyyy-MM-dd'),
+          currentView: state.currentView ?? 'month',
+          selectedCategoryIds: state.selectedCategoryIds ?? [],
         }
       },
       partialize: (state) => ({

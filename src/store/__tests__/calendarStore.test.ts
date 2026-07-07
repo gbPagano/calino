@@ -502,6 +502,58 @@ describe('calendarStore', () => {
       expect(state.events.length).toBe(1)
       expect(state.categories.length).toBe(1)
     })
+
+    // R1.3: the migrate() was dropping brokenEvents, currentDate, currentView,
+    // and selectedCategoryIds. These tests pin the new behavior: persisted state
+    // survives a version bump across every key partialize() saves.
+    const getMigrate = () =>
+      useCalendarStore.persist.getOptions().migrate as (
+        state: unknown,
+      ) => Record<string, unknown>
+
+    it('preserves all partialize() keys on version bump', () => {
+      const persisted = {
+        events: [{ id: 'e1', title: 'Persisted event' }],
+        calendars: [{ id: 'c1', name: 'Work', color: '#FF0000' }],
+        categories: [{ id: 'cat1', name: 'Work', color: '#FF0000' }],
+        autoCategoryRules: [{ id: 'r1', pattern: 'meet', categoryId: 'cat1' }],
+        brokenEvents: [{ event: { id: 'b1' }, reason: 'bad', detectedAt: '2024-01-01' }],
+        currentDate: '2024-06-15',
+        currentView: 'week',
+        selectedCategoryIds: ['cat1'],
+      }
+      const result = getMigrate()(persisted)
+      expect(result.events).toHaveLength(1)
+      expect(result.calendars).toHaveLength(1)
+      expect(result.categories).toHaveLength(1)
+      expect(result.autoCategoryRules).toHaveLength(1)
+      expect(result.brokenEvents).toHaveLength(1)
+      expect(result.currentDate).toBe('2024-06-15')
+      expect(result.currentView).toBe('week')
+      expect(result.selectedCategoryIds).toEqual(['cat1'])
+    })
+
+    it('falls back to defaults for missing keys', () => {
+      const result = getMigrate()({ events: [{ id: 'e1' }] })
+      expect(result.events).toHaveLength(1)
+      expect(result.calendars).toEqual([])
+      expect(result.categories).toEqual([])
+      expect(result.autoCategoryRules).toEqual([])
+      expect(result.brokenEvents).toEqual([])
+      expect(result.selectedCategoryIds).toEqual([])
+      // currentDate falls back to today; just verify it's a yyyy-MM-dd string
+      expect(result.currentDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      // currentView falls back to 'month'
+      expect(result.currentView).toBe('month')
+    })
+
+    it('handles undefined persisted state gracefully', () => {
+      const result = getMigrate()(undefined)
+      expect(result.events).toEqual([])
+      expect(result.brokenEvents).toEqual([])
+      expect(result.currentDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(result.currentView).toBe('month')
+    })
   })
 
   describe('Bug 3: updateEvent does not mutate caller object', () => {

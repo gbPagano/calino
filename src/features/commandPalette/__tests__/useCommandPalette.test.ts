@@ -40,6 +40,7 @@ vi.mock('@/store/calendarStore', () => ({
       isModalOpen: false,
       selectedDate: null,
       selectedEndDate: null,
+      initialTitle: null,
       isOverlayOpen: false,
       selectedEventType: 'event',
       showAddCalendar: false,

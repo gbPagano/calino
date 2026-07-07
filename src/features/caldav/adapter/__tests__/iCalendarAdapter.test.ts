@@ -935,6 +935,9 @@ END:VCALENDAR`
         id: 't1',
         type: 'task',
         title: 'Buy milk',
+        start: '2024-03-04T00:00:00.000Z',
+        end: '2024-03-04T00:00:00.000Z',
+        isAllDay: true,
         dueDate: '2024-03-04',
         calendarId: 'cal-1',
       }

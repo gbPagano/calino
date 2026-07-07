@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { Component, type ErrorInfo } from 'react'
+import styles from './ErrorBoundary.module.css'
 
 export interface ErrorBoundaryProps {
   children: ReactNode
@@ -31,24 +32,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         return this.props.fallback
       }
 
+      // R3.1 — themed fallback. Uses the same --color-* / --space-* /
+      // --radius-* tokens the rest of the app uses, so dark mode (and any
+      // future custom theme) renders correctly instead of being stuck on
+      // hardcoded light-mode colors.
       return (
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <h2 style={{ color: '#202124', marginBottom: '1rem' }}>Something went wrong</h2>
-          <p style={{ color: '#5f6368' }}>
+        <div className={styles.errorFallback} role="alert">
+          <h2 className={styles.title}>Something went wrong</h2>
+          <p className={styles.message}>
             {this.state.error?.message || 'An unexpected error occurred'}
           </p>
           <button
             type="button"
+            className={styles.retry}
             onClick={() => this.setState({ hasError: false, error: null })}
-            style={{
-              marginTop: '1rem',
-              padding: 'var(--space-2) var(--space-4)',
-              background: '#4285f4',
-              color: 'white',
-              border: 'none',
-              borderRadius: 'var(--radius-md)',
-              cursor: 'pointer',
-            }}
           >
             Try again
           </button>

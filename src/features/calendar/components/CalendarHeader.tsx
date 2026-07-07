@@ -391,6 +391,10 @@ export function CalendarHeader({
           <button
             className={styles.viewDropdownButton}
             onClick={() => setIsViewDropdownOpen((prev) => !prev)}
+            aria-haspopup="menu"
+            aria-expanded={isViewDropdownOpen}
+            aria-controls="view-dropdown-menu"
+            data-component="view-dropdown-trigger"
           >
             {VIEWS.find((v) => v.value === currentView)?.label}
             <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" className={`${styles.viewDropdownArrow} ${isViewDropdownOpen ? styles.viewDropdownArrowOpen : ''}`}>
@@ -398,16 +402,22 @@ export function CalendarHeader({
             </svg>
           </button>
           {viewDropdown.rendered && (
-            <div className={`${styles.viewDropdownMenu} ${viewDropdown.closing ? styles.viewDropdownClosing : ''}`}>
+            <div
+              className={`${styles.viewDropdownMenu} ${viewDropdown.closing ? styles.viewDropdownClosing : ''}`}
+              role="menu"
+              id="view-dropdown-menu"
+              data-component="view-dropdown-menu"
+            >
               {VIEWS.filter(v => (journalEnabled || v.value !== 'journal') && (contactsEnabled || v.value !== 'contacts')).map((view, index) => (
                 <React.Fragment key={view.value}>
-                  {index === 4 && <div className={styles.viewDropdownDivider} />}
+                  {index === 4 && <div className={styles.viewDropdownDivider} role="separator" />}
                   <button
                     className={`${styles.viewDropdownItem} ${currentView === view.value ? styles.viewDropdownItemActive : ''}`}
                     onClick={() => {
                       handleViewChange(view.value)
                       setIsViewDropdownOpen(false)
                     }}
+                    role="menuitem"
                   >
                     {view.label}
                   </button>
@@ -448,14 +458,27 @@ export function CalendarHeader({
                 </button>
               </div>
               <div className={styles.quickSettingsItem}>
-                <span className={styles.quickSettingsLabel}>Dark mode</span>
-                <button
-                  className={`${styles.toggleSwitch} ${themeMode === 'dark' ? styles.toggleActive : ''}`}
-                  onClick={() => updateSettings({ themeMode: themeMode === 'dark' ? 'light' : 'dark' })}
-                  aria-label="Toggle dark mode"
+                <span className={styles.quickSettingsLabel}>Theme</span>
+                <div
+                  className={styles.themeModeGroup}
+                  role="radiogroup"
+                  aria-label="Theme mode"
+                  data-component="theme-mode-group"
                 >
-                  <span className={styles.toggleThumb} />
-                </button>
+                  {(['auto', 'light', 'dark'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      role="radio"
+                      aria-checked={themeMode === mode}
+                      className={`${styles.themeModeBtn} ${themeMode === mode ? styles.themeModeActive : ''}`}
+                      onClick={() => updateSettings({ themeMode: mode })}
+                      data-component={`theme-mode-${mode}`}
+                    >
+                      {mode === 'auto' ? 'Auto' : mode === 'light' ? 'Light' : 'Dark'}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className={styles.quickSettingsItem}>
                 <span className={styles.quickSettingsLabel}>Hide completed tasks</span>

@@ -446,7 +446,18 @@ export function TodoView(): JSX.Element {
           {groupedTasks.length === 0 && (
             <div className={styles.emptyState}>
               <span className={styles.emptyTitle}>All clear</span>
-              Nothing here right now.
+              <p className={styles.emptyMessage}>Nothing here right now.</p>
+              <button
+                className={styles.emptyCreateBtn}
+                onClick={() => {
+                  setComposing(true)
+                  // Focus the composer input on next tick
+                  setTimeout(() => composerRef.current?.focus(), 0)
+                }}
+                data-component="todo-empty-create"
+              >
+                + Create task
+              </button>
             </div>
           )}
 

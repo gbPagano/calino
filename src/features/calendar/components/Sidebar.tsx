@@ -29,6 +29,7 @@ import { showToast } from '@/lib/toast'
 import { AddCalendarModal } from './AddCalendarModal'
 import { CreateCalendarModal } from './CreateCalendarModal'
 import { DeleteCalendarDialog } from './DeleteCalendarDialog'
+import { EmptyState } from '@/components/common/EmptyState'
 import { MiniTasksSection } from './MiniTasksSection'
 import styles from './Sidebar.module.css'
 
@@ -474,11 +475,29 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
                 className={styles.addCalendarButton}
                 onClick={() => setShowAddCalendar(true)}
                 title="Add CalDAV account"
+                aria-label="Add CalDAV account"
               >
                 <PlusIcon />
               </button>
             </div>
           </div>
+          {/* R3.11 — empty state when no calendars exist. Without this the
+              section header sits alone above nothing, looking broken. */}
+          {calendars.length === 0 && (
+            <EmptyState
+              title="No calendars yet"
+              description="Add a CalDAV account to sync events, or continue offline."
+              action={
+                <button
+                  className={styles.addCalendarButton}
+                  onClick={() => setShowAddCalendar(true)}
+                  data-component="sidebar-empty-add"
+                >
+                  + Add a CalDAV account
+                </button>
+              }
+            />
+          )}
           {calendars.map((calendar) => (
             <label
               key={calendar.id}
@@ -496,6 +515,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
                 style={{ backgroundColor: calendar.color }}
                 onClick={() => handleColorClick(calendar.id, calendar.color)}
                 title="Click to change color"
+                aria-label={`Change ${calendar.name} color`}
               />
               {editingId === calendar.id ? (
                 <input
@@ -520,6 +540,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
                   className={`${styles.syncButton} ${syncingCalendarId === calendar.id || syncState.status === 'syncing' || globalSyncStatus === 'syncing' ? styles.syncing : ''} ${syncStatus[calendar.id] === 'success' ? styles.success : ''} ${syncStatus[calendar.id] === 'error' ? styles.error : ''}`}
                   onClick={() => handleSyncCalendar(calendar.id, calendar.accountId)}
                   title="Sync calendar"
+                  aria-label={`Sync ${calendar.name}`}
                   disabled={!!syncingCalendarId}
                 >
                   {syncStatus[calendar.id] === 'success' ? (

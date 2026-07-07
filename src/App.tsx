@@ -28,6 +28,7 @@ import {
   SettingsIcon,
 } from './components/common/icons'
 import { OnboardingModal } from './features/onboarding/OnboardingModal'
+import { ShortcutsHelp } from './features/calendar/components/ShortcutsHelp'
 import { SetupPage } from './features/setup/SetupPage'
 import { MasterPasswordPrompt } from './features/settings/components/MasterPasswordPrompt'
 import { useConfigStore } from './store/configStore'
@@ -212,6 +213,7 @@ function CalendarApp(): JSX.Element {
   const journalStartInCompose = useCalendarStore((state) => state.journalStartInCompose)
   const closeJournalModal = useCalendarStore((state) => state.closeJournalModal)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
@@ -307,6 +309,14 @@ function CalendarApp(): JSX.Element {
       if (e.key === 'k' || e.key === 'K') {
         e.preventDefault()
         openModal(undefined, undefined, undefined, 'task')
+        return
+      }
+
+      // ? → show keyboard shortcuts (also Shift+/ on most layouts)
+      if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+        e.preventDefault()
+        setIsShortcutsHelpOpen(true)
+        setOverlayOpen(true)
         return
       }
     }
@@ -415,6 +425,13 @@ function CalendarApp(): JSX.Element {
         sidebarOpen={window.innerWidth <= 950 ? isSidebarOpen : !sidebarCollapsed}
       />
       <OnboardingModal onAddCalendar={() => setShowAddCalendar(true)} />
+      <ShortcutsHelp
+        isOpen={isShortcutsHelpOpen}
+        onClose={() => {
+          setIsShortcutsHelpOpen(false)
+          setOverlayOpen(false)
+        }}
+      />
     </div>
   )
 }

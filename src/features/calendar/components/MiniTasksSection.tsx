@@ -139,12 +139,23 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                         setTooltipPosition(null)
                         handleToggleComplete(task)
                       }}
+                      role="checkbox"
+                      aria-checked={task.completed}
+                      aria-label={
+                        task.completed
+                          ? `Mark "${task.title}" as incomplete`
+                          : `Mark "${task.title}" as complete`
+                      }
                     >
                       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <circle cx="12" cy="12" r="9" />
                       </svg>
                     </button>
-                    <div className={styles.taskContent} onClick={() => handleTaskClick(task)}>
+                    <button
+                      type="button"
+                      className={styles.taskContent}
+                      onClick={() => handleTaskClick(task)}
+                    >
                       <span className={styles.taskTitle}>{task.title}</span>
                       {task.dueDate ? (
                         <span
@@ -159,7 +170,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                       ) : (
                         <span className={styles.taskDue}>No date</span>
                       )}
-                    </div>
+                    </button>
                   </motion.div>
                 ))}
               </AnimatePresence>

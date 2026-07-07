@@ -152,12 +152,23 @@ export function useRequestNotificationPermission(): {
       if (Notification.permission === 'default') {
         Notification.requestPermission().then((permission) => {
           if (permission === 'denied') {
+            // R3.9 — surface the cause instead of silently flipping the
+            // setting off. Without this, the user flips the toggle on,
+            // nothing happens, and they assume the app is broken.
             updateSettings({ enableDesktopNotifications: false })
+            toast.error(
+              'Notifications are blocked. Update site permissions in your browser settings to enable reminders.',
+              { duration: 8000 }
+            )
           }
         })
       } else if (Notification.permission === 'denied') {
         // Permission was previously denied — sync the setting
         updateSettings({ enableDesktopNotifications: false })
+        toast.error(
+          'Notifications are blocked. Update site permissions in your browser settings to enable reminders.',
+          { duration: 8000 }
+        )
       }
     }
   }, [enableNotifications, updateSettings])

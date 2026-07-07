@@ -16,6 +16,7 @@ import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 import type { CalendarEvent } from '@/types'
 import { ContextMenu } from '@/components/common/ContextMenu'
+import { EmptyState } from '@/components/common/EmptyState'
 import { getEventColor } from '@/lib/eventColor'
 import { formatTime } from '@/lib/datetime'
 import { LocationLink } from './LocationLink'
@@ -192,13 +193,32 @@ export function AgendaView({ embedded = false }: { embedded?: boolean } = {}): J
     )
   }
 
+  // R3.11 — top-level empty state when the entire month has no events
+  // (or all events have been filtered out by category/calendar). Render
+  // a single EmptyState instead of N day headers, each saying "no events".
+  const allGroupsEmpty = dayGroups.every((g) => !g.hasEvents)
+
   return (
     <div
       ref={containerRef}
       className={`${containerClass} ${isScrolled ? styles.containerShadow : ''}`}
       onScroll={handleScroll}
     >
-      {dayGroups.map((group) => {
+      {allGroupsEmpty ? (
+        <EmptyState
+          title="Nothing scheduled this month"
+          description="Your agenda is clear. Add an event to get started."
+          action={
+            <button
+              className={styles.agendaAdd}
+              onClick={() => handleCreateEvent(new Date())}
+              data-component="agenda-empty-add"
+            >
+              + Create event
+            </button>
+          }
+        />
+      ) : dayGroups.map((group) => {
         if (group.type === 'skip') {
           return renderSkipRow(group)
         }

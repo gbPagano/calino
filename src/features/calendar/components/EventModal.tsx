@@ -1020,6 +1020,7 @@ export function EventModal(): JSX.Element | null {
             type="button"
             className={styles.titleEditIcon}
             onClick={() => titleInputRef.current?.focus()}
+            aria-label="Focus title input"
           >
             <svg aria-hidden="true"
               width="14"

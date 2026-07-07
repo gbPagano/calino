@@ -955,6 +955,7 @@ const DroppableDay = React.memo(function DroppableDay({
             e.stopPropagation()
             onDayNumberClick(day)
           }}
+          aria-label={`Open ${format(day, 'EEEE, MMMM d')} in day view`}
         >
           {format(day, 'd')}
         </button>
@@ -962,6 +963,7 @@ const DroppableDay = React.memo(function DroppableDay({
           <button
             className={styles.journalIndicator}
             title="View journal entries"
+            aria-label={`View journal entries for ${format(day, 'MMMM d')}`}
             onClick={(e) => {
               e.stopPropagation()
               onJournalIndicatorClick(day)

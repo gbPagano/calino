@@ -143,6 +143,36 @@ describe('all-day recurrence expansion', () => {
     expect(filtered).toHaveLength(1) // matches the only Work event
   })
 
+  it('rangeExpansionVersion store property bumps on mutations (R4.1 review fix)', () => {
+    // CRITICAL R4.1 review fix: bumpRangeExpansionVersion was originally
+    // only updating the module-level counter, leaving the store property
+    // `state.rangeExpansionVersion` at 0 forever. Component subscriptions
+    // and useMemo deps that read the store property were dead code.
+    // Verify the property is now kept in sync.
+    const store = useCalendarStore.getState()
+    const initialVersion = store.rangeExpansionVersion
+    expect(typeof initialVersion).toBe('number')
+
+    store.addEvent({
+      id: 'version-test',
+      calendarId: defaultCalId(),
+      title: 'Version test',
+      start: '2026-03-06T10:00:00',
+      end: '2026-03-06T11:00:00',
+      isAllDay: false,
+    })
+    const afterAdd = useCalendarStore.getState().rangeExpansionVersion
+    expect(afterAdd).toBeGreaterThan(initialVersion)
+
+    store.updateEvent('version-test', { title: 'Renamed' })
+    const afterUpdate = useCalendarStore.getState().rangeExpansionVersion
+    expect(afterUpdate).toBeGreaterThan(afterAdd)
+
+    store.deleteEvent('version-test')
+    const afterDelete = useCalendarStore.getState().rangeExpansionVersion
+    expect(afterDelete).toBeGreaterThan(afterUpdate)
+  })
+
   it('preserves a multi-day all-day span in each occurrence', () => {
     const store = useCalendarStore.getState()
     // 3-day all-day event: end is exclusive midnight 3 days later.

@@ -48,6 +48,39 @@ describe('positionEvents — known limitations documented as regression guards',
     expect(result[1].totalColumns).toBe(1)
   })
 
+  it('zero-duration event at the same instant as a longer event: asymmetry is documented', () => {
+    // Edge case: a zero-duration event A (10:00–10:00) and a 30-min
+    // event B (10:00–10:30) share the same start instant. The overlap
+    // check `startMs < other.endMs && endMs > other.startMs` treats
+    // this asymmetrically:
+    //   - B sees A overlapping (B.endMs=10:30 > A.startMs=10:00) → B
+    //     reserves a different column.
+    //   - A does NOT see B overlapping (A.endMs=10:00 > B.startMs=10:00
+    //     is false) → A reports totalColumns=1.
+    // This is a property of the overlap relation, not a bug, but the
+    // asymmetry is worth pinning as a regression guard.
+    const a = makeEvent({ id: 'a', title: 'Event a', ...day(10, 0, 0) })
+    const b = makeEvent({ id: 'b', title: 'Event b', ...day(10, 0, 30) })
+    const result = positionEvents([a, b])
+    expect(result).toHaveLength(2)
+    // Sort by (start asc, end desc) puts b first (longer), a second.
+    const aResult = result.find((r) => r.event.id === 'a')!
+    const bResult = result.find((r) => r.event.id === 'b')!
+    // b goes to column 0; a's start matches b's start so b is still
+    // active when a is placed — a lands in column 1.
+    expect(bResult.column).toBe(0)
+    expect(aResult.column).toBe(1)
+    // totalColumns is per-event: a's overlap scan finds b (A.startMs <
+    // B.endMs is true, but A.endMs > B.startMs is false — 10:00 > 10:00
+    // is false), so a does NOT see b. But the scan includes a itself
+    // (maxCol starts at columns[i]=1), so a reports totalColumns=2.
+    expect(aResult.totalColumns).toBe(2)
+    // b's overlap scan finds a? B.startMs < A.endMs → 10:00 < 10:00 is
+    // false, so b does NOT see a. maxCol starts at columns[i]=0, so b
+    // reports totalColumns=1.
+    expect(bResult.totalColumns).toBe(1)
+  })
+
   it('multi-day timed event: an event that starts on day N and ends on day N+1 is positioned on day N', () => {
     // The algorithm doesn't know about calendar days; it only sees
     // timestamps. A 23:00–01:00 event has its start timestamp on day N, and

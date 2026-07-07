@@ -471,6 +471,8 @@ export function CalendarGrid(): JSX.Element {
     return map
   }, [events, calendars, hideCompletedTasksInMonthView, selectedCategoryNames])
 
+  // `events` and `rangeExpansionVersion` are both kept as deps for
+  // defense-in-depth (see WeekView for the rationale). R4.1/R4.3 review fix.
   const journalDates = useMemo(() => getJournalDates(events), [events, rangeExpansionVersion])
 
   const handleGridResizeStart = (e: React.MouseEvent): void => {

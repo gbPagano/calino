@@ -22,6 +22,13 @@ import { deleteAttachments } from '@/lib/attachmentStore'
 // the events array (e.g. toggleCalendarVisibility) would silently miss the
 // invalidation. With a counter bumped by every mutation that affects the
 // query result, the invalidation contract is in one place.
+//
+// IMPORTANT: bumpRangeExpansionVersion must keep BOTH the module-level
+// counter (for the cache check below) and the store property
+// `state.rangeExpansionVersion` (for component subscriptions and
+// useMemo deps in WeekView/CalendarGrid) in sync. Calling only one of
+// them would either leave the cache stale or leave component memo
+// invalidation dead. R4.1/R4.3 code review fix.
 let rangeExpansionVersion = 0
 interface RangeCacheEntry {
   version: number
@@ -33,6 +40,10 @@ interface RangeCacheEntry {
 const rangeExpansionCache = new Map<string, RangeCacheEntry>()
 const bumpRangeExpansionVersion = (): void => {
   rangeExpansionVersion++
+  // Keep the store property in sync so subscribers and memo deps see
+  // the bump. The action setter is inlined to avoid an import cycle
+  // (the setter is defined inside the create() call below).
+  useCalendarStore.setState({ rangeExpansionVersion })
 }
 
 export const selectOpenModal = (state: CalendarStore) => state.openModal

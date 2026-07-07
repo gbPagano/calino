@@ -294,7 +294,14 @@ export function WeekView(): JSX.Element {
     }
 
     return { allDayEventsMap: allDay, eventsMap: timed, timedFragmentsMap: timedFragments }
-  }, [date, firstDayOfWeek, getEventsForDateRange, events, rangeExpansionVersion])
+    // `events` and `calendars` are kept as deps alongside
+    // `rangeExpansionVersion` for defense-in-depth: the version bump
+    // and the array replacement don't always land in the same Zustand
+    // notify cycle, and direct setState callers (e.g. history store)
+    // could in theory miss the bump. The linter flags these as
+    // 'unnecessary dependencies' but the e2e undo/redo test would
+    // catch a regression if either were removed. R4.1/R4.3 review fix.
+  }, [date, firstDayOfWeek, calendars, getEventsForDateRange, events, rangeExpansionVersion])
 
   const tasksMap = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()

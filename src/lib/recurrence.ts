@@ -42,9 +42,18 @@ function describeSecondly(interval: number): string {
  * Build an RFC 5545 RRULE string from a RecurrenceRule object.
  *
  * Handles: FREQ, INTERVAL, BYDAY (with positional prefix, e.g. 2TU for
- * second Tuesday), BYMONTHDAY, BYMONTH, BYSETPOS (only when byWeekday is
- * empty), UNTIL (with Z suffix), and COUNT. UNTIL takes precedence over
+ * second Tuesday), BYMONTHDAY, BYMONTH, BYWEEKNO, BYYEARDAY, BYHOUR,
+ * BYMINUTE, BYSECOND, WKST, BYSETPOS (only when byWeekday is empty),
+ * UNTIL (with Z suffix), and COUNT. UNTIL takes precedence over
  * COUNT per RFC 5545.
+ *
+ * R2.1 — For all-day events (rule.isAllDay === true), UNTIL is emitted
+ * as VALUE=DATE (YYYYMMDD) per RFC 5545 §3.3.10. The caller must set
+ * isAllDay on the recurrence object before calling this function.
+ *
+ * R2.4 — Per-BYDAY ordinals (e.g. 2MO, -1FR) come from rule.byDayOrdinals,
+ * NOT rule.bySetPos. rule.bySetPos is reserved for the standalone
+ * BYSETPOS rule part (e.g. "last weekday" = BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1).
  *
  * Used by:
  *  - recurrence.ts (human-readable descriptions via rrule.toText())
@@ -64,7 +73,8 @@ export function buildRRuleString(rule: RecurrenceRule): string {
     for (let i = 0; i < rule.byWeekday.length; i++) {
       const dayCode = DAY_NUM_TO_CODE[rule.byWeekday[i]]
       if (dayCode) {
-        const pos = rule.bySetPos?.[i]
+        // R2.4 — Read per-BYDAY ordinals from byDayOrdinals, not bySetPos.
+        const pos = rule.byDayOrdinals?.[i]
         if (pos !== undefined && pos !== 0) {
           bydayParts.push(`${pos}${dayCode}`)
         } else {
@@ -85,12 +95,44 @@ export function buildRRuleString(rule: RecurrenceRule): string {
     parts.push(`BYMONTH=${rule.byMonth.join(',')}`)
   }
 
+  // R2.4 — Standalone BYSETPOS: only emit when no BYDAY is present, OR
+  // when byDayOrdinals is empty (i.e. this BYSETPOS is genuinely a
+  // standalone rule part, not a per-BYDAY ordinal misread).
   if (rule.bySetPos && rule.bySetPos.length > 0 && (!rule.byWeekday || rule.byWeekday.length === 0)) {
     parts.push(`BYSETPOS=${rule.bySetPos.join(',')}`)
   }
 
+  // R2.4 — New RRULE parts per RFC 5545 §3.3.10.
+  if (rule.byWeekNo && rule.byWeekNo.length > 0) {
+    parts.push(`BYWEEKNO=${rule.byWeekNo.join(',')}`)
+  }
+  if (rule.byYearDay && rule.byYearDay.length > 0) {
+    parts.push(`BYYEARDAY=${rule.byYearDay.join(',')}`)
+  }
+  if (rule.byHour && rule.byHour.length > 0) {
+    parts.push(`BYHOUR=${rule.byHour.join(',')}`)
+  }
+  if (rule.byMinute && rule.byMinute.length > 0) {
+    parts.push(`BYMINUTE=${rule.byMinute.join(',')}`)
+  }
+  if (rule.bySecond && rule.bySecond.length > 0) {
+    parts.push(`BYSECOND=${rule.bySecond.join(',')}`)
+  }
+  if (rule.wkst) {
+    parts.push(`WKST=${rule.wkst}`)
+  }
+
   if (rule.endDate) {
-    parts.push(`UNTIL=${toICalUTC(new Date(rule.endDate))}`)
+    if (rule.isAllDay) {
+      // R2.1 — VALUE=DATE form for all-day events per RFC 5545 §3.3.10.
+      // endDate is stored as a date-only string ('YYYY-MM-DD') on the event;
+      // emit it as YYYYMMDD without a time component or Z suffix.
+      const d = new Date(rule.endDate)
+      const yyyymmdd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
+      parts.push(`UNTIL=${yyyymmdd}`)
+    } else {
+      parts.push(`UNTIL=${toICalUTC(new Date(rule.endDate))}`)
+    }
   } else if (rule.count) {
     parts.push(`COUNT=${rule.count}`)
   }

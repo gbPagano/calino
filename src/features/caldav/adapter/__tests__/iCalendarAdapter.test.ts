@@ -971,4 +971,555 @@ END:VCALENDAR`
       expect(ics).not.toContain('BEGIN:VEVENT')
     })
   })
+
+  // =========================================================================
+  // R2 — iCalendar compliance round-trip tests
+  // =========================================================================
+  // These tests pin the expected post-fix behavior for R2.1 through R2.7.
+  // They are designed to FAIL on the current code (which is the point — they
+  // document the spec) and PASS after the corresponding fixes land.
+  //
+  // Where the current type system doesn't yet know about a new field
+  // (`timezone`, `taskStatus`, `completedAt`, `byWeekNo`, `wkst`, etc.) we
+  // cast through `any` so the test compiles. The cast is localised to the
+  // single assertion that actually exercises the new field.
+  // =========================================================================
+  describe('R2 iCalendar compliance', () => {
+    // Helper: parse an ICS string and return the first VEVENT.
+    function parseFirstEvent(ics: string): CalendarEvent {
+      const events = parseICALEvent(ics, 'cal-1')
+      if (events.length !== 1) throw new Error(`Expected 1 event, got ${events.length}`)
+      return events[0]
+    }
+
+    // ---------------------------------------------------------------------
+    // R2.1 — RRULE UNTIL form for all-day events
+    // ---------------------------------------------------------------------
+    describe('R2.1 RRULE UNTIL form for all-day events', () => {
+      it('emits UNTIL as VALUE=DATE (YYYYMMDD) for all-day events', () => {
+        // Per RFC 5545 §3.3.10, all-day recurring events must emit UNTIL
+        // as a date value (YYYYMMDD), not a UTC DATE-TIME.
+        const event: CalendarEvent = {
+          id: 'r21-allday-until',
+          title: 'All-day recurring',
+          start: '2025-01-01',
+          end: '2025-01-01',
+          isAllDay: true,
+          calendarId: 'cal-1',
+          recurrence: {
+            frequency: 'daily',
+            interval: 1,
+            endDate: '2025-12-31T00:00:00.000Z',
+          },
+        }
+
+        const ics = eventToICAL(event)
+
+        expect(ics).toContain('RRULE:')
+        // Post-fix: UNTIL is YYYYMMDD for all-day.
+        expect(ics).toMatch(/UNTIL=20251231(?!T)/)
+        expect(ics).not.toMatch(/UNTIL=20251231T000000Z/)
+      })
+
+      it('emits UNTIL as UTC DATE-TIME for non-all-day events', () => {
+        // Inverse: non-all-day events keep the UTC DATETIME form.
+        const event: CalendarEvent = {
+          id: 'r21-datetime-until',
+          title: 'Date-time recurring',
+          start: '2025-01-01T09:00:00.000Z',
+          end: '2025-01-01T10:00:00.000Z',
+          isAllDay: false,
+          calendarId: 'cal-1',
+          recurrence: {
+            frequency: 'daily',
+            interval: 1,
+            endDate: '2025-12-31T00:00:00.000Z',
+          },
+        }
+
+        const ics = eventToICAL(event)
+
+        expect(ics).toContain('UNTIL=20251231T000000Z')
+      })
+    })
+
+    // ---------------------------------------------------------------------
+    // R2.2 — Preserve TZID on VEVENT round-trip
+    // ---------------------------------------------------------------------
+    describe('R2.2 Preserve TZID on VEVENT round-trip', () => {
+      it('preserves TZID through parse and serialize', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'PRODID:-//Test//Test//EN',
+          'BEGIN:VEVENT',
+          'UID:tzid-r22',
+          'DTSTAMP:20250706T100000Z',
+          'DTSTART;TZID=America/New_York:20250706T150000',
+          'DTEND;TZID=America/New_York:20250706T160000',
+          'SUMMARY:TZID Event',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const event = parseFirstEvent(ics)
+        // Post-fix: parsed event must carry the IANA TZID so we can re-emit it.
+        const withTz = event as CalendarEvent & { timezone?: string }
+        expect(withTz.timezone).toBe('America/New_York')
+
+        // Re-serialize and confirm the TZID survived.
+        const out = eventToICAL(event)
+        expect(out).toContain('DTSTART;TZID=America/New_York:20250706T150000')
+        expect(out).toContain('DTEND;TZID=America/New_York:20250706T160000')
+        // And it must not be silently converted to UTC.
+        expect(out).not.toMatch(/DTSTART:20250706T1[5-9]0000Z/)
+      })
+    })
+
+    // ---------------------------------------------------------------------
+    // R2.3 — EXDATE / RECURRENCE-ID: value-form must match DTSTART
+    // ---------------------------------------------------------------------
+    describe('R2.3 EXDATE / RECURRENCE-ID: value-form must match DTSTART', () => {
+      it('preserves EXDATE;VALUE=DATE for all-day events', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:exdate-allday',
+          'DTSTAMP:20250101T100000Z',
+          'DTSTART;VALUE=DATE:20250101',
+          'DTEND;VALUE=DATE:20250102',
+          'SUMMARY:All-day EXDATE',
+          'RRULE:FREQ=DAILY;COUNT=30',
+          'EXDATE;VALUE=DATE:20250115,20250116',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const event = parseFirstEvent(ics)
+        expect(event.excludedDates).toEqual(['2025-01-15', '2025-01-16'])
+
+        const out = eventToICAL(event)
+        expect(out).toContain('EXDATE;VALUE=DATE:20250115')
+        expect(out).toContain('EXDATE;VALUE=DATE:20250116')
+      })
+
+      it('preserves EXDATE;TZID=... when DTSTART has a TZID', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:exdate-tzid',
+          'DTSTAMP:20250706T100000Z',
+          'DTSTART;TZID=America/New_York:20250706T150000',
+          'DTEND;TZID=America/New_York:20250706T160000',
+          'SUMMARY:TZID EXDATE',
+          'RRULE:FREQ=WEEKLY;COUNT=5',
+          'EXDATE;TZID=America/New_York:20250713T150000',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const event = parseFirstEvent(ics)
+        const out = eventToICAL(event)
+        // The EXDATE value-form must match the DTSTART (TZID, not UTC).
+        expect(out).toContain('EXDATE;TZID=America/New_York:20250713T150000')
+        // The current code converts to UTC — this must not appear post-fix.
+        expect(out).not.toMatch(/EXDATE[^:]*:20250713T1[5-9]0000Z/)
+      })
+    })
+
+    // ---------------------------------------------------------------------
+    // R2.4 — RRULE: missing parts preserved on round-trip
+    // ---------------------------------------------------------------------
+    describe('R2.4 RRULE: missing parts preserved on round-trip', () => {
+      it('parses WKST, BYHOUR, BYMINUTE, BYWEEKNO into the recurrence object', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:rrule-complex',
+          'DTSTAMP:20250101T100000Z',
+          'DTSTART:20250101T090000Z',
+          'DTEND:20250101T100000Z',
+          'SUMMARY:Complex RRULE',
+          'RRULE:FREQ=MONTHLY;BYDAY=2MO,-1FR;BYSETPOS=-1;WKST=MO;BYHOUR=9;BYMINUTE=30;COUNT=12;INTERVAL=2;BYWEEKNO=20',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const event = parseFirstEvent(ics)
+        const recurrence = event.recurrence as CalendarEvent['recurrence'] & {
+          wkst?: string
+          byHour?: number[]
+          byMinute?: number[]
+          byWeekNo?: number[]
+        }
+
+        // R2.4: parseRRule must populate these. Today the parser silently
+        // drops WKST, BYHOUR, BYMINUTE, BYWEEKNO.
+        expect(recurrence.wkst).toBe('MO')
+        expect(recurrence.byHour).toEqual([9])
+        expect(recurrence.byMinute).toEqual([30])
+        expect(recurrence.byWeekNo).toEqual([20])
+        // These already work — they're here to guard against regression.
+        expect(recurrence.count).toBe(12)
+        expect(recurrence.interval).toBe(2)
+      })
+
+      it('parses YEARLY+BYWEEKNO+BYDAY (week-number case)', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:rrule-weekno',
+          'DTSTAMP:20250101T100000Z',
+          'DTSTART:20250101T090000Z',
+          'DTEND:20250101T100000Z',
+          'SUMMARY:Week-number RRULE',
+          'RRULE:FREQ=YEARLY;BYWEEKNO=20;BYDAY=MO',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const event = parseFirstEvent(ics)
+        const recurrence = event.recurrence as CalendarEvent['recurrence'] & {
+          byWeekNo?: number[]
+        }
+
+        expect(recurrence.frequency).toBe('yearly')
+        expect(recurrence.byWeekNo).toEqual([20])
+        expect(recurrence.byWeekday).toEqual([1])
+      })
+    })
+
+    // ---------------------------------------------------------------------
+    // R2.5 — VTODO STATUS, percent-complete, COMPLETED timestamp
+    // ---------------------------------------------------------------------
+    describe('R2.5 VTODO STATUS, percent-complete, COMPLETED timestamp', () => {
+      it('parses STATUS:IN-PROCESS with PERCENT-COMPLETE:50', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VTODO',
+          'UID:task-inproc',
+          'SUMMARY:In-progress task',
+          'DUE:20240615T120000Z',
+          'STATUS:IN-PROCESS',
+          'PERCENT-COMPLETE:50',
+          'END:VTODO',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const task = parseICALTask(ics, 'cal-1')[0]
+        expect(task).toBeDefined()
+        const withStatus = task as CalendarEvent & {
+          taskStatus?: 'NEEDS-ACTION' | 'IN-PROCESS' | 'COMPLETED' | 'CANCELLED'
+        }
+        expect(withStatus.taskStatus).toBe('IN-PROCESS')
+        expect(task.percentComplete).toBe(50)
+      })
+
+      it('preserves STATUS:IN-PROCESS on serialize (round-trip)', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VTODO',
+          'UID:task-inproc-rt',
+          'SUMMARY:Round-trip in-progress',
+          'DUE:20240615T120000Z',
+          'STATUS:IN-PROCESS',
+          'PERCENT-COMPLETE:50',
+          'END:VTODO',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const task = parseICALTask(ics, 'cal-1')[0]
+        const out = taskToICAL(task)
+        // Today the serializer only emits STATUS:NEEDS-ACTION or STATUS:COMPLETED.
+        expect(out).toContain('STATUS:IN-PROCESS')
+        expect(out).toContain('PERCENT-COMPLETE:50')
+      })
+
+      it('preserves the original COMPLETED timestamp on parse and serialize', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VTODO',
+          'UID:task-completed-ts',
+          'SUMMARY:Completed task',
+          'DUE:20240615T120000Z',
+          'STATUS:COMPLETED',
+          'PERCENT-COMPLETE:100',
+          'COMPLETED:20240615T143000Z',
+          'END:VTODO',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const task = parseICALTask(ics, 'cal-1')[0]
+        const withCompletedAt = task as CalendarEvent & { completedAt?: string }
+        // Post-fix: the parsed event must carry the original COMPLETED timestamp.
+        expect(withCompletedAt.completedAt).toBe('2024-06-15T14:30:00.000Z')
+
+        const out = taskToICAL(task)
+        // Re-serialize must use the original timestamp, not now().
+        expect(out).toContain('COMPLETED:20240615T143000Z')
+      })
+
+      it('parses STATUS:NEEDS-ACTION without percent-complete', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VTODO',
+          'UID:task-needs',
+          'SUMMARY:Needs action task',
+          'DUE:20240620T120000Z',
+          'STATUS:NEEDS-ACTION',
+          'END:VTODO',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const task = parseICALTask(ics, 'cal-1')[0]
+        const withStatus = task as CalendarEvent & {
+          taskStatus?: 'NEEDS-ACTION' | 'IN-PROCESS' | 'COMPLETED' | 'CANCELLED'
+        }
+        expect(withStatus.taskStatus).toBe('NEEDS-ACTION')
+        expect(task.percentComplete).toBeUndefined()
+      })
+
+      it('parses STATUS:CANCELLED', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VTODO',
+          'UID:task-cancelled',
+          'SUMMARY:Cancelled task',
+          'DUE:20240620T120000Z',
+          'STATUS:CANCELLED',
+          'END:VTODO',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const task = parseICALTask(ics, 'cal-1')[0]
+        const withStatus = task as CalendarEvent & {
+          taskStatus?: 'NEEDS-ACTION' | 'IN-PROCESS' | 'COMPLETED' | 'CANCELLED'
+        }
+        expect(withStatus.taskStatus).toBe('CANCELLED')
+      })
+    })
+
+    // ---------------------------------------------------------------------
+    // R2.6 — VALARM: ACTION and trigger forms
+    // ---------------------------------------------------------------------
+    describe('R2.6 VALARM: ACTION and trigger forms', () => {
+      it('parses ACTION:EMAIL with TRIGGER:-P2D (2 days before)', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:valarm-email',
+          'DTSTAMP:20250101T100000Z',
+          'DTSTART:20250115T150000Z',
+          'DTEND:20250115T160000Z',
+          'SUMMARY:Email reminder',
+          'BEGIN:VALARM',
+          'ACTION:EMAIL',
+          'TRIGGER:-P2D',
+          'END:VALARM',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const event = parseFirstEvent(ics)
+        // Post-fix: ACTION:EMAIL must round-trip into Reminder.method,
+        // and -P2D must be parsed as 2 * 24 * 60 = 2880 minutes before.
+        expect(event.reminders).toBeDefined()
+        expect(event.reminders).toHaveLength(1)
+        const reminder = event.reminders![0] as CalendarEvent['reminders'][number] & {
+          method: string
+        }
+        expect(reminder.method).toBe('email')
+        expect(reminder.minutesBefore).toBe(2880)
+      })
+
+      it('parses TRIGGER:-PT15M (15 minutes before) — documents current behavior', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:valarm-15m',
+          'DTSTAMP:20250101T100000Z',
+          'DTSTART:20250115T150000Z',
+          'DTEND:20250115T160000Z',
+          'SUMMARY:15m reminder',
+          'BEGIN:VALARM',
+          'ACTION:DISPLAY',
+          'TRIGGER:-PT15M',
+          'END:VALARM',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const event = parseFirstEvent(ics)
+        expect(event.reminders).toHaveLength(1)
+        expect(event.reminders![0].minutesBefore).toBe(15)
+      })
+
+      it('parses TRIGGER:+PT15M (post-event reminder)', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:valarm-plus',
+          'DTSTAMP:20250101T100000Z',
+          'DTSTART:20250115T150000Z',
+          'DTEND:20250115T160000Z',
+          'SUMMARY:Post-event reminder',
+          'BEGIN:VALARM',
+          'ACTION:DISPLAY',
+          'TRIGGER:+PT15M',
+          'END:VALARM',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const event = parseFirstEvent(ics)
+        // Today the parser only handles `-PT` and `PT` prefixes — the `+`
+        // form is dropped and no reminder is captured.
+        expect(event.reminders).toHaveLength(1)
+        const reminder = event.reminders![0]
+        expect(Math.abs(reminder.minutesBefore)).toBe(15)
+      })
+
+      it('parses TRIGGER:P1W (1 week before)', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:valarm-p1w',
+          'DTSTAMP:20250101T100000Z',
+          'DTSTART:20250115T150000Z',
+          'DTEND:20250115T160000Z',
+          'SUMMARY:Week-before reminder',
+          'BEGIN:VALARM',
+          'ACTION:DISPLAY',
+          'TRIGGER:P1W',
+          'END:VALARM',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const event = parseFirstEvent(ics)
+        expect(event.reminders).toHaveLength(1)
+        // 1 week = 7 * 24 * 60 = 10080 minutes.
+        expect(event.reminders![0].minutesBefore).toBe(7 * 24 * 60)
+      })
+
+      it('parses TRIGGER:P7D (7 days before)', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:valarm-p7d',
+          'DTSTAMP:20250101T100000Z',
+          'DTSTART:20250115T150000Z',
+          'DTEND:20250115T160000Z',
+          'SUMMARY:7-day reminder',
+          'BEGIN:VALARM',
+          'ACTION:DISPLAY',
+          'TRIGGER:P7D',
+          'END:VALARM',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const event = parseFirstEvent(ics)
+        expect(event.reminders).toHaveLength(1)
+        expect(event.reminders![0].minutesBefore).toBe(7 * 24 * 60)
+      })
+
+      it('parses TRIGGER:-P1DT2H (1 day, 2 hours before)', () => {
+        const ics = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'BEGIN:VEVENT',
+          'UID:valarm-p1dt2h',
+          'DTSTAMP:20250101T100000Z',
+          'DTSTART:20250115T150000Z',
+          'DTEND:20250115T160000Z',
+          'SUMMARY:1d2h reminder',
+          'BEGIN:VALARM',
+          'ACTION:DISPLAY',
+          'TRIGGER:-P1DT2H',
+          'END:VALARM',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n')
+
+        const event = parseFirstEvent(ics)
+        expect(event.reminders).toHaveLength(1)
+        // 1 day + 2 hours = 26 hours = 1560 minutes.
+        expect(event.reminders![0].minutesBefore).toBe(26 * 60)
+      })
+
+      it('preserves both DISPLAY and EMAIL VALARMs on round-trip', () => {
+        // Build the event with two reminders, then serialize and check that
+        // both ACTIONs survive. Currently the serializer ignores `method` and
+        // emits ACTION:DISPLAY for every reminder, so ACTION:EMAIL is lost.
+        const event: CalendarEvent = {
+          id: 'r26-two-alarms',
+          title: 'Two reminders',
+          start: '2025-01-15T15:00:00.000Z',
+          end: '2025-01-15T16:00:00.000Z',
+          isAllDay: false,
+          calendarId: 'cal-1',
+          reminders: [
+            { id: 'r1', method: 'popup' as 'popup', minutesBefore: 15 },
+            { id: 'r2', method: 'email' as 'popup', minutesBefore: 2880 },
+          ],
+        }
+
+        const out = eventToICAL(event)
+        // Both VALARMs must be present, with distinct ACTIONs.
+        expect(out.match(/BEGIN:VALARM/g)).toHaveLength(2)
+        expect(out).toContain('ACTION:DISPLAY')
+        expect(out).toContain('ACTION:EMAIL')
+        expect(out).toContain('TRIGGER:-PT15M')
+        // 2880 minutes = 2 days; the fix should emit the day form, not 2880M.
+        expect(out).toMatch(/TRIGGER:-P2D/)
+      })
+    })
+
+    // ---------------------------------------------------------------------
+    // R2.7 — Settings VEVENT: line folding + CRLF
+    // ---------------------------------------------------------------------
+    describe('R2.7 Settings VEVENT: line folding + CRLF', () => {
+      it('eventToICAL folds long content lines to ≤75 octets with CRLF', () => {
+        // 1000-char description forces line folding.
+        const longDescription = 'A'.repeat(1000)
+        const event: CalendarEvent = {
+          id: 'r27-long-desc',
+          title: 'Long description',
+          description: longDescription,
+          start: '2025-01-15T15:00:00.000Z',
+          end: '2025-01-15T16:00:00.000Z',
+          isAllDay: false,
+          calendarId: 'cal-1',
+        }
+
+        const out = eventToICAL(event)
+
+        // Line endings must be CRLF.
+        expect(out).toContain('\r\n')
+        expect(out).not.toMatch(/[^\r]\n/)
+        // Every physical line must be ≤75 octets (RFC 5545 §3.1).
+        const physicalLines = out.split('\r\n')
+        for (const line of physicalLines) {
+          // octet length = byte length of UTF-8 encoding
+          const octets = new TextEncoder().encode(line).length
+          expect(octets).toBeLessThanOrEqual(75)
+        }
+      })
+    })
+  })
 })

@@ -444,7 +444,9 @@ describe('rrule round-trip for new BY* parts', () => {
     expect(event.recurrence?.byMonth).toEqual([3])
   })
 
-  it('parses BYDAY with positional prefix into byWeekday+bySetPos', () => {
+  it('parses BYDAY with positional prefix into byWeekday+byDayOrdinals (not bySetPos)', () => {
+    // R2.4 — Per-BYDAY ordinals now live in byDayOrdinals, NOT bySetPos.
+    // bySetPos is reserved for the standalone BYSETPOS rule part.
     const iCalStr = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -460,7 +462,8 @@ describe('rrule round-trip for new BY* parts', () => {
 
     const event = icalEventToCalendarEvent(createVevent(iCalStr), 'cal-1')
     expect(event.recurrence?.byWeekday).toEqual([2])
-    expect(event.recurrence?.bySetPos).toEqual([2])
+    expect(event.recurrence?.byDayOrdinals).toEqual([2])
+    expect(event.recurrence?.bySetPos).toBeUndefined()
   })
 
   it('does not emit fake bySetPos=0 for plain BYDAY', () => {

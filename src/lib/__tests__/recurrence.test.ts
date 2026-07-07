@@ -22,18 +22,19 @@ describe('buildRRuleString', () => {
     )
   })
 
-  it('encodes "last Friday of month" as BYDAY=-1FR (nth-weekday via bySetPos)', () => {
-    const s = buildRRuleString(rule({ frequency: 'monthly', byWeekday: [5], bySetPos: [-1] }))
+  it('encodes "last Friday of month" as BYDAY=-1FR (nth-weekday via byDayOrdinals)', () => {
+    // R2.4 — Per-BYDAY ordinals now live in byDayOrdinals, NOT bySetPos.
+    const s = buildRRuleString(rule({ frequency: 'monthly', byWeekday: [5], byDayOrdinals: [-1] }))
     expect(s).toBe('FREQ=MONTHLY;BYDAY=-1FR')
   })
 
   it('encodes "second Tuesday of month" as BYDAY=2TU', () => {
-    const s = buildRRuleString(rule({ frequency: 'monthly', byWeekday: [2], bySetPos: [2] }))
+    const s = buildRRuleString(rule({ frequency: 'monthly', byWeekday: [2], byDayOrdinals: [2] }))
     expect(s).toBe('FREQ=MONTHLY;BYDAY=2TU')
   })
 
   it('does not attach a zero position to a weekday code', () => {
-    const s = buildRRuleString(rule({ frequency: 'weekly', byWeekday: [1], bySetPos: [0] }))
+    const s = buildRRuleString(rule({ frequency: 'weekly', byWeekday: [1], byDayOrdinals: [0] }))
     expect(s).toBe('FREQ=WEEKLY;BYDAY=MO')
   })
 
@@ -41,10 +42,13 @@ describe('buildRRuleString', () => {
     expect(buildRRuleString(rule({ frequency: 'monthly', bySetPos: [-1] }))).toBe(
       'FREQ=MONTHLY;BYSETPOS=-1'
     )
-    // With byWeekday present, position is folded into BYDAY instead
-    expect(buildRRuleString(rule({ frequency: 'monthly', byWeekday: [5], bySetPos: [-1] }))).not.toContain(
-      'BYSETPOS'
-    )
+    // R2.4 — When byWeekday is present, the ordinal is now in byDayOrdinals,
+    // NOT in bySetPos. So setting bySetPos with byWeekday present does
+    // NOT emit a standalone BYSETPOS — byDayOrdinals is what produces
+    // the positional BYDAY.
+    expect(
+      buildRRuleString(rule({ frequency: 'monthly', byWeekday: [5], bySetPos: [-1] }))
+    ).not.toContain('BYSETPOS')
   })
 
   it('includes BYMONTHDAY and BYMONTH', () => {

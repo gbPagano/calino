@@ -37,7 +37,7 @@ export function buildMasterTruncation(
     : [...excluded, occurrenceDateStr]
 
   const recurrence: RecurrenceRule | undefined = master.recurrence
-    ? { ...master.recurrence, endDate: masterEndDate, count: undefined }
+    ? { ...master.recurrence, endDate: masterEndDate, count: undefined, isAllDay: master.isAllDay }
     : undefined
 
   const rruleString = recurrence ? buildRRuleString(recurrence) : undefined

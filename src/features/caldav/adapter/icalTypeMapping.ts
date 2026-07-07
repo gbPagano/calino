@@ -51,9 +51,16 @@ function parseRRule(rruleString: string): RecurrenceRule | undefined {
   let endDate: string | undefined
   let count: number | undefined
   let byWeekday: number[] | undefined
+  let byDayOrdinals: number[] | undefined
   let bySetPos: number[] | undefined
   let byMonthDay: number[] | undefined
   let byMonth: number[] | undefined
+  let wkst: RecurrenceRule['wkst']
+  let byHour: number[] | undefined
+  let byMinute: number[] | undefined
+  let bySecond: number[] | undefined
+  let byWeekNo: number[] | undefined
+  let byYearDay: number[] | undefined
 
   for (const part of parts) {
     const [key, value] = part.split('=')
@@ -96,7 +103,10 @@ function parseRRule(rruleString: string): RecurrenceRule | undefined {
         count = parseInt(value, 10)
         break
       case 'BYDAY': {
-        const bySetPosList: number[] = []
+        // R2.4 — Deconflate per-BYDAY ordinals from standalone BYSETPOS.
+        // Each BYDAY element may carry an ordinal (e.g. 2MO = second Monday).
+        // The ordinal is part of BYDAY, NOT a separate BYSETPOS rule part.
+        const ordinalsList: number[] = []
         byWeekday = value.split(',').map((day) => {
           const dayMap: Record<string, number> = {
             SU: 0,
@@ -107,21 +117,22 @@ function parseRRule(rruleString: string): RecurrenceRule | undefined {
             FR: 5,
             SA: 6,
           }
-          const match = day.match(/^([+-]?\d)?(SU|MO|TU|WE|TH|FR|SA)$/)
+          // RFC 5545: weekdaynum = [plus / minus] ordwk weekday
+          // ordwk range 1..53 (RFC §3.3.10). Allow multi-digit ordinals.
+          const match = day.match(/^([+-]?\d{1,2})?(SU|MO|TU|WE|TH|FR|SA)$/)
           if (match) {
             const posStr = match[1]
-            if (posStr) {
-              bySetPosList.push(parseInt(posStr, 10))
-            } else {
-              bySetPosList.push(0)
-            }
+            // 0 = "no ordinal" (plain BYDAY=MO)
+            ordinalsList.push(posStr ? parseInt(posStr, 10) : 0)
             const dayCode = match[2]
             return dayMap[dayCode] ?? 1
           }
           return dayMap[day] ?? 1
         })
-        if (bySetPosList.some((p) => p !== 0)) {
-          bySetPos = bySetPosList
+        // Only store byDayOrdinals if at least one element had a non-zero
+        // ordinal. Otherwise leave it undefined to keep the output clean.
+        if (ordinalsList.some((p) => p !== 0)) {
+          byDayOrdinals = ordinalsList
         }
         break
       }
@@ -136,8 +147,45 @@ function parseRRule(rruleString: string): RecurrenceRule | undefined {
         break
       }
       case 'BYSETPOS': {
+        // Standalone BYSETPOS is a distinct rule part from per-BYDAY
+        // ordinals. The two do NOT share storage after R2.4.
         const positions = value.split(',').map((p) => parseInt(p.trim(), 10)).filter((n) => !isNaN(n))
         if (positions.length > 0) bySetPos = positions
+        break
+      }
+      // R2.4 — Missing RRULE parts per RFC 5545 §3.3.10.
+      case 'WKST': {
+        if (
+          value === 'MO' || value === 'TU' || value === 'WE' || value === 'TH' ||
+          value === 'FR' || value === 'SA' || value === 'SU'
+        ) {
+          wkst = value
+        }
+        break
+      }
+      case 'BYHOUR': {
+        const hours = value.split(',').map((h) => parseInt(h.trim(), 10)).filter((n) => !isNaN(n))
+        if (hours.length > 0) byHour = hours
+        break
+      }
+      case 'BYMINUTE': {
+        const minutes = value.split(',').map((m) => parseInt(m.trim(), 10)).filter((n) => !isNaN(n))
+        if (minutes.length > 0) byMinute = minutes
+        break
+      }
+      case 'BYSECOND': {
+        const seconds = value.split(',').map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n))
+        if (seconds.length > 0) bySecond = seconds
+        break
+      }
+      case 'BYWEEKNO': {
+        const weeks = value.split(',').map((w) => parseInt(w.trim(), 10)).filter((n) => !isNaN(n))
+        if (weeks.length > 0) byWeekNo = weeks
+        break
+      }
+      case 'BYYEARDAY': {
+        const days = value.split(',').map((d) => parseInt(d.trim(), 10)).filter((n) => !isNaN(n))
+        if (days.length > 0) byYearDay = days
         break
       }
     }
@@ -149,9 +197,16 @@ function parseRRule(rruleString: string): RecurrenceRule | undefined {
     endDate,
     count,
     byWeekday,
+    byDayOrdinals,
     bySetPos,
     byMonthDay,
     byMonth,
+    wkst,
+    byHour,
+    byMinute,
+    bySecond,
+    byWeekNo,
+    byYearDay,
   }
 }
 
@@ -530,7 +585,9 @@ export function calendarEventToIcalComponent(event: CalendarEvent): ICAL.Compone
     const rruleProp = ICAL.Property.fromString(`RRULE:${event.rruleString}`)
     vevent.addProperty(rruleProp)
   } else if (event.recurrence) {
-    const rruleStr = buildRRuleString(event.recurrence)
+    // R2.1 — Propagate the event's isAllDay flag to the recurrence so
+    // buildRRuleString can emit VALUE=DATE for UNTIL on all-day events.
+    const rruleStr = buildRRuleString({ ...event.recurrence, isAllDay: event.isAllDay })
     vevent.updatePropertyWithValue('rrule', ICAL.Recur.fromString(rruleStr))
   }
 

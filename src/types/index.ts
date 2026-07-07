@@ -26,12 +26,27 @@ export interface RecurrenceRule {
   byMonthDay?: number[]
   byMonth?: number[]
   bySetPos?: number[]
+  // R2.1 — RRULE UNTIL form for all-day events. The caller must set this
+  // from the event's isAllDay flag before serializing.
+  isAllDay?: boolean
+  // R2.4 — Per-BYDAY ordinals (parallel to byWeekday). e.g. for
+  // "BYDAY=2MO,-1FR", byWeekday=[1,5] and byDayOrdinals=[2,-1].
+  // Distinct from bySetPos, which is the standalone BYSETPOS rule part.
+  byDayOrdinals?: number[]
+  // R2.4 — Missing RRULE parts per RFC 5545 §3.3.10.
+  wkst?: 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA' | 'SU'
+  byHour?: number[]
+  byMinute?: number[]
+  bySecond?: number[]
+  byWeekNo?: number[]
+  byYearDay?: number[]
 }
 
 export interface Reminder {
   id: string
   minutesBefore: number
-  method: 'popup'
+  // R2.6 — VALARM ACTION values per RFC 5545 §3.8.6.3.
+  method: 'popup' | 'email' | 'audio'
 }
 
 export type EventType = 'event' | 'task' | 'journal'
@@ -87,6 +102,14 @@ export interface CalendarEvent {
   relatedTo?: string[]
   created?: string
   lastModified?: string
+  // R2.2 — IANA TZID (e.g. 'America/New_York') when DTSTART/DTEND were
+  // originally parsed from a TZID form. Required to round-trip the timezone
+  // — without it, on re-serialize the wall-clock is lost to UTC.
+  timezone?: string
+  // R2.5 — VTODO STATUS per RFC 5545 §3.8.2.3.
+  taskStatus?: 'NEEDS-ACTION' | 'IN-PROCESS' | 'COMPLETED' | 'CANCELLED'
+  // R2.5 — VTODO COMPLETED timestamp per RFC 5545 §3.8.2.1 (must be UTC).
+  completedAt?: string
 }
 
 export interface Calendar {

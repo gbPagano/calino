@@ -1321,8 +1321,17 @@ export function EventModal(): JSX.Element | null {
               <button type="button" className={styles.modalCancel} onClick={animateClose}>
                 Cancel
               </button>
-              <button type="submit" className={styles.modalSave} disabled={!title.trim() || isTimeRangeInvalid || isSaving} data-component="modal-save">
-                {isEditing ? 'Save' : 'Create'}
+              <button
+                type="submit"
+                className={styles.modalSave}
+                disabled={!title.trim() || isTimeRangeInvalid || isSaving}
+                aria-busy={isSaving}
+                data-component="modal-save"
+              >
+                {isSaving && (
+                  <span className={styles.modalSaveSpinner} aria-hidden="true" />
+                )}
+                <span>{isSaving ? 'Saving…' : isEditing ? 'Save' : 'Create'}</span>
               </button>
             </div>
           </div>

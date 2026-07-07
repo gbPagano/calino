@@ -206,6 +206,41 @@ describe('EventModal', () => {
     expect(matching).toHaveLength(1)
   })
 
+  it('shows a spinner and Saving label while save is in flight', async () => {
+    // The disabled :opacity 0.5 fade is fine for the "empty title" / "end
+    // before start" states, but while the save is actively in flight the
+    // user needs an explicit "this is working" signal — a spinner and a
+    // "Saving…" label, with aria-busy for screen readers.
+    const store = useCalendarStore.getState()
+    store.openModal()
+
+    render(<EventModal />)
+
+    fireEvent.change(screen.getByPlaceholderText('Event title'), {
+      target: { value: 'Spinner Test' },
+    })
+
+    const createButton = screen.getByRole('button', { name: /create/i })
+    fireEvent.click(createButton)
+
+    // While the in-flight CalDAV mock is pending, the button must:
+    //   - be re-labelled "Saving…"
+    //   - expose aria-busy="true" for assistive tech
+    //   - remain disabled (the click is in flight, not the next click)
+    //   - contain an aria-hidden spinner span
+    const savingButton = await screen.findByRole('button', { name: /saving/i })
+    expect(savingButton).toHaveAttribute('aria-busy', 'true')
+    expect(savingButton).toBeDisabled()
+    const spinner = savingButton.querySelector('span[aria-hidden="true"]')
+    expect(spinner).not.toBeNull()
+
+    // Let the save complete cleanly so the next test starts from a fresh
+    // modal state.
+    await waitFor(() => {
+      expect(useCalendarStore.getState().isModalOpen).toBe(false)
+    })
+  })
+
   describe('hasChanges with recurrence', () => {
     it('shows recurrence controls when toggling Recurring on a non-recurring event', () => {
       const store = useCalendarStore.getState()

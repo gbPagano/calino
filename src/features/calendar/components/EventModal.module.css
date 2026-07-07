@@ -616,6 +616,55 @@
   pointer-events: none;
 }
 
+/* When the button is mid-save, keep it at full opacity so the spinner
+   and "Saving…" label read as "actively working", not "broken". The
+   aria-busy attribute is set on the button while the CalDAV POST is
+   in flight. The :disabled fade still applies for empty-title and
+   end-before-start — those are the "you can't click this yet" states. */
+.modalSave[aria-busy='true'] {
+  opacity: 1;
+  cursor: progress;
+  pointer-events: none;
+}
+
+/* Reserve enough horizontal space for the "Saving…" + spinner label so
+   the button doesn't jitter wider when transitioning from "Save"/"Create". */
+.modalSave {
+  min-width: 110px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.modalSaveContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modalSaveSpinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: modalSaveSpin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes modalSaveSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modalSaveSpinner {
+    animation-duration: 3s;
+  }
+}
+
 .row {
   display: flex;
   gap: var(--space-3);

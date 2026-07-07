@@ -682,6 +682,7 @@ function MonthlyPatternPicker({
             onByMonthDayChange([])
           }
         }}
+        aria-label="Monthly pattern"
         className={styles.select}
         style={{ maxWidth: '220px' }}
       >
@@ -714,6 +715,7 @@ function MonthlyPatternPicker({
             <select
               value={posFromByDayOrdinals}
               onChange={(e) => onByDayOrdinalsChange([parseInt(e.target.value, 10)])}
+              aria-label="Nth weekday of the month"
               className={styles.select}
               style={{ width: '110px' }}
             >
@@ -727,6 +729,7 @@ function MonthlyPatternPicker({
           <select
             value={nthFromByWeekday}
             onChange={(e) => onByWeekdayChange([parseInt(e.target.value, 10)])}
+            aria-label="Weekday"
             className={styles.select}
             style={{ width: '120px' }}
           >

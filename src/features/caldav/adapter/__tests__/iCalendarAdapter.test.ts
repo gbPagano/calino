@@ -12,7 +12,7 @@ import {
   calendarEventToIcalVjournal,
   calendarEventToIcalVtodo,
 } from '../icalTypeMapping'
-import type { CalendarEvent } from '@/types'
+import type { CalendarEvent, Reminder } from '@/types'
 
 describe('iCalendarAdapter', () => {
   describe('eventToICAL', () => {
@@ -1335,9 +1335,7 @@ END:VCALENDAR`
         // and -P2D must be parsed as 2 * 24 * 60 = 2880 minutes before.
         expect(event.reminders).toBeDefined()
         expect(event.reminders).toHaveLength(1)
-        const reminder = event.reminders![0] as CalendarEvent['reminders'][number] & {
-          method: string
-        }
+        const reminder = event.reminders![0] as Reminder & { method: string }
         expect(reminder.method).toBe('email')
         expect(reminder.minutesBefore).toBe(2880)
       })

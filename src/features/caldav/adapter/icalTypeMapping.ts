@@ -274,24 +274,29 @@ function createIcalDateTime(isoString: string, tzid?: string): ICAL.Time {
   // R2.2 — When a TZID is provided, construct from the wall-clock ISO
   // string with the named zone. ical.js v2.2.1's `fromDateTimeString`
   // requires a Property (not a string) to read TZID from, so we use
-  // `fromData` directly with the `timezone` field. The zone won't be
-  // registered (no IANA DB), so we fall back to localTimezone for
-  // arithmetic purposes — the TZID is carried via the property's
-  // TZID parameter (set by the caller), not via the resolved zone.
+  // the constructor directly with the `timezone` field. ical.js's
+  // TypeScript declaration marks the constructor as taking 2 args
+  // (data, zone) even though the runtime accepts 1 — pass
+  // `utcTimezone` as a safe fallback for arithmetic purposes. The
+  // TZID is carried via the property's TZID parameter (set by the
+  // caller), not via the resolved zone.
   if (tzid) {
     const wall = isoString.replace(/Z$/, '').replace(/[+-]\d{2}:?\d{2}$/, '')
     // Parse the wall-clock ISO into components.
     const m = wall.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/)
     if (m) {
-      return new ICAL.Time({
-        year: parseInt(m[1], 10),
-        month: parseInt(m[2], 10),
-        day: parseInt(m[3], 10),
-        hour: parseInt(m[4], 10),
-        minute: parseInt(m[5], 10),
-        second: m[6] ? parseInt(m[6], 10) : 0,
-        timezone: tzid,
-      })
+      return new ICAL.Time(
+        {
+          year: parseInt(m[1], 10),
+          month: parseInt(m[2], 10),
+          day: parseInt(m[3], 10),
+          hour: parseInt(m[4], 10),
+          minute: parseInt(m[5], 10),
+          second: m[6] ? parseInt(m[6], 10) : 0,
+          timezone: tzid,
+        },
+        ICAL.Timezone.utcTimezone,
+      )
     }
   }
   return ICAL.Time.fromJSDate(new Date(isoString), true)

@@ -5,6 +5,8 @@ import { decodeBase64 } from '@/lib/settingsSync'
 import { getInstanceId } from '@/lib/instanceId'
 import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { useSettingsStore } from '@/store/settingsStore'
+import { eventToICAL, foldICalLines } from '@/features/caldav/adapter/iCalendarAdapter'
+import type { CalendarEvent } from '@/types'
 
 const NETWORK_TIMEOUT_MS = 15_000
 
@@ -852,26 +854,34 @@ export class CalDAVClient {
     }
 
     const settingsUid = CalDAVClient.SETTINGS_EVENT_UID
-    const now = this.formatICalDate(new Date())
     const filename = CalDAVClient.SETTINGS_FILENAME
 
-    const icalString = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Calino//Settings Sync//EN',
-      'BEGIN:VEVENT',
-      `UID:${settingsUid}`,
-      `DTSTAMP:${now}`,
-      'DTSTART:19700101T000000Z',
-      'DTEND:19700101T000001Z',
-      'SUMMARY:Calino Settings',
-      'TRANSP:TRANSPARENT',
-      'CLASS:PRIVATE',
-      `X-CALINO-VERSION:1`,
-      `ATTACH;ENCODING=BASE64;FMTTYPE=app/json:${base64Payload}`,
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\r\n')
+    // R2.7 — Build the settings VEVENT through `eventToICAL` so we get
+    // proper RFC 5545 §3.1 line folding + CRLF (and ical.js v2.2.1's
+    // 76-octet foldline quirk is corrected by `foldICalLines` in the
+    // adapter). The base eventToICAL output doesn't know about settings-
+    // specific properties (ATTACH payload, CLASS:PRIVATE, X-CALINO-VERSION
+    // marker), so we inject them via string replacement and re-fold to
+    // ensure the long ATTACH base64 payload obeys the 75-octet limit.
+    const settingsEvent: CalendarEvent = {
+      id: settingsUid,
+      title: 'Calino Settings',
+      description: '',
+      start: '1970-01-01T00:00:00.000Z',
+      end: '1970-01-01T00:00:01.000Z',
+      isAllDay: false,
+      calendarId: 'settings',
+      transparency: 'transparent',
+    }
+    const icalBase = eventToICAL(settingsEvent)
+    const attachLine = `ATTACH;ENCODING=BASE64;FMTTYPE=app/json:${base64Payload}`
+    const extraProps = `CLASS:PRIVATE\r\nX-CALINO-VERSION:1\r\n${attachLine}`
+    const icalString = foldICalLines(
+      icalBase.replace(
+        /(SUMMARY:Calino Settings\r\n)/,
+        `$1${extraProps}\r\n`,
+      ),
+    )
 
     // Skip the fetch if caller already knows the existing event
     let existing: { href: string; etag: string } | null | undefined = existingEvent
@@ -982,13 +992,10 @@ export class CalDAVClient {
   }
 
   /**
-   * Format a Date as an iCalendar UTC date-time string (YYYYMMDDTHHMMSSZ).
+   * R2.7 — `formatICalDate` removed: ical.js's `comp.toString()` now
+   * emits DTSTAMP itself (R2.7 routes the settings VEVENT through
+   * `eventToICAL`), so the hand-rolled helper had no callers.
    */
-  private formatICalDate(date: Date): string {
-    return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-  }
-
-
 
   getServerUrl(): string {
     return this.serverUrl

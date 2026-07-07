@@ -59,6 +59,7 @@ const VIEW_ROUTES: Record<ViewType, string> = {
   month: '/month',
   year: '/year',
   week: '/week',
+  '3day': '/3day',
   day: '/day',
   agenda: '/agenda',
   todo: '/tasks',

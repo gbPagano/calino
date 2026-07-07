@@ -130,6 +130,8 @@ vi.mock('@/store/settingsStore', () => ({
       monthViewEventLimit: 3,
       sidebarWidth: 300,
       sidebarCollapsed: false,
+      agendaSidebarOpen: false,
+      agendaSidebarWidth: 340,
       useCategoryColors: true,
       showEventIcons: true,
       journalEnabled: false,

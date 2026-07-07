@@ -33,8 +33,8 @@ interface EventFormFieldsProps {
   onByMonthDayChange?: (days: number[]) => void
   byMonth?: number[]
   onByMonthChange?: (months: number[]) => void
-  bySetPos?: number[]
-  onBySetPosChange?: (positions: number[]) => void
+  byDayOrdinals?: number[]
+  onByDayOrdinalsChange?: (positions: number[]) => void
   endCondition: 'never' | 'on' | 'after'
   onEndConditionChange: (cond: 'never' | 'on' | 'after') => void
   endOnDate: string
@@ -82,9 +82,9 @@ const MONTH_SHORT = [
 
 type MonthlyPattern = 'dayOfMonth' | 'nthWeekday' | 'lastWeekday'
 
-function detectMonthlyPattern(byWeekday: number[] | undefined, bySetPos: number[] | undefined): MonthlyPattern {
+function detectMonthlyPattern(byWeekday: number[] | undefined, byDayOrdinals: number[] | undefined): MonthlyPattern {
   if (byWeekday && byWeekday.length > 0) {
-    if (bySetPos && bySetPos.length === byWeekday.length && bySetPos.every((p) => p === -1)) {
+    if (byDayOrdinals && byDayOrdinals.length === byWeekday.length && byDayOrdinals.every((p) => p === -1)) {
       return 'lastWeekday'
     }
     return 'nthWeekday'
@@ -92,12 +92,12 @@ function detectMonthlyPattern(byWeekday: number[] | undefined, bySetPos: number[
   return 'dayOfMonth'
 }
 
-function defaultNthWeekday(startDate: string): { byWeekday: number[]; bySetPos: number[] } {
+function defaultNthWeekday(startDate: string): { byWeekday: number[]; byDayOrdinals: number[] } {
   const [yStr, mStr, dStr] = startDate.split('-').map((s) => parseInt(s, 10))
-  if (!yStr || !mStr || !dStr) return { byWeekday: [1], bySetPos: [1] }
+  if (!yStr || !mStr || !dStr) return { byWeekday: [1], byDayOrdinals: [1] }
   const startWeekday = new Date(Date.UTC(yStr, mStr - 1, dStr)).getUTCDay()
   const nth = Math.ceil(dStr / 7)
-  return { byWeekday: [startWeekday], bySetPos: [nth] }
+  return { byWeekday: [startWeekday], byDayOrdinals: [nth] }
 }
 
 const REMINDER_OPTIONS: { value: number; label: string }[] = [
@@ -134,8 +134,8 @@ export function EventFormFields({
   onByMonthDayChange,
   byMonth = [],
   onByMonthChange,
-  bySetPos = [],
-  onBySetPosChange,
+  byDayOrdinals = [],
+  onByDayOrdinalsChange,
   endCondition,
   onEndConditionChange,
   endOnDate,
@@ -405,7 +405,7 @@ export function EventFormFields({
             </div>
           )}
 
-          {recurring && recurrence === 'monthly' && onByMonthDayChange && onByWeekdayChange && onBySetPosChange && (
+          {recurring && recurrence === 'monthly' && onByMonthDayChange && onByWeekdayChange && onByDayOrdinalsChange && (
             <div className={styles.field}>
               <label className={styles.label} style={{ fontWeight: 600 }}>Monthly pattern</label>
               <MonthlyPatternPicker
@@ -414,10 +414,10 @@ export function EventFormFields({
                 firstDayOfWeek={firstDayOfWeek}
                 byMonthDay={byMonthDay}
                 byWeekday={byWeekday}
-                bySetPos={bySetPos}
+                byDayOrdinals={byDayOrdinals}
                 onByMonthDayChange={onByMonthDayChange}
                 onByWeekdayChange={onByWeekdayChange}
-                onBySetPosChange={onBySetPosChange}
+                onByDayOrdinalsChange={onByDayOrdinalsChange}
               />
             </div>
           )}
@@ -630,10 +630,10 @@ interface MonthlyPatternPickerProps {
   firstDayOfWeek: number
   byMonthDay: number[]
   byWeekday: number[]
-  bySetPos: number[]
+  byDayOrdinals: number[]
   onByMonthDayChange: (days: number[]) => void
   onByWeekdayChange: (days: number[]) => void
-  onBySetPosChange: (positions: number[]) => void
+  onByDayOrdinalsChange: (positions: number[]) => void
 }
 
 function MonthlyPatternPicker({
@@ -642,12 +642,12 @@ function MonthlyPatternPicker({
   firstDayOfWeek,
   byMonthDay,
   byWeekday,
-  bySetPos,
+  byDayOrdinals,
   onByMonthDayChange,
   onByWeekdayChange,
-  onBySetPosChange,
+  onByDayOrdinalsChange,
 }: MonthlyPatternPickerProps): JSX.Element {
-  const pattern = detectMonthlyPattern(byWeekday, bySetPos)
+  const pattern = detectMonthlyPattern(byWeekday, byDayOrdinals)
   const startDay = parseInt(startDate.split('-')[2] || '1', 10)
   const startMonth = parseInt(startDate.split('-')[1] || '1', 10)
   const startYear = parseInt(startDate.split('-')[0] || '2025', 10)
@@ -655,7 +655,7 @@ function MonthlyPatternPicker({
   const daysInMonth = new Date(Date.UTC(startYear, startMonth, 0)).getUTCDate()
 
   const nthFromByWeekday = byWeekday[0] !== undefined ? byWeekday[0] : startWeekday
-  const posFromBySetPos = bySetPos[0] !== undefined ? bySetPos[0] : Math.ceil(startDay / 7)
+  const posFromByDayOrdinals = byDayOrdinals[0] !== undefined ? byDayOrdinals[0] : Math.ceil(startDay / 7)
   const dayFromByMonthDay = byMonthDay[0] !== undefined ? byMonthDay[0] : startDay
 
   const days31 = Array.from({ length: 31 }, (_, i) => i + 1)
@@ -669,16 +669,16 @@ function MonthlyPatternPicker({
           if (next === 'dayOfMonth') {
             onByMonthDayChange([dayFromByMonthDay])
             onByWeekdayChange([])
-            onBySetPosChange([])
+            onByDayOrdinalsChange([])
           } else if (next === 'nthWeekday') {
             const inferred = defaultNthWeekday(startDate)
             onByWeekdayChange([inferred.byWeekday[0]!])
-            onBySetPosChange([inferred.bySetPos[0]!])
+            onByDayOrdinalsChange([inferred.byDayOrdinals[0]!])
             onByMonthDayChange([])
           } else {
             const wk = nthFromByWeekday
             onByWeekdayChange([wk])
-            onBySetPosChange([-1])
+            onByDayOrdinalsChange([-1])
             onByMonthDayChange([])
           }
         }}
@@ -712,8 +712,8 @@ function MonthlyPatternPicker({
         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
           {pattern === 'nthWeekday' && (
             <select
-              value={posFromBySetPos}
-              onChange={(e) => onBySetPosChange([parseInt(e.target.value, 10)])}
+              value={posFromByDayOrdinals}
+              onChange={(e) => onByDayOrdinalsChange([parseInt(e.target.value, 10)])}
               className={styles.select}
               style={{ width: '110px' }}
             >

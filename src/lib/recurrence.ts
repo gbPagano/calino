@@ -95,10 +95,18 @@ export function buildRRuleString(rule: RecurrenceRule): string {
     parts.push(`BYMONTH=${rule.byMonth.join(',')}`)
   }
 
-  // R2.4 — Standalone BYSETPOS: only emit when no BYDAY is present, OR
-  // when byDayOrdinals is empty (i.e. this BYSETPOS is genuinely a
-  // standalone rule part, not a per-BYDAY ordinal misread).
-  if (rule.bySetPos && rule.bySetPos.length > 0 && (!rule.byWeekday || rule.byWeekday.length === 0)) {
+  // R2.4 — Standalone BYSETPOS: only emit when neither BYDAY nor per-BYDAY
+  // ordinals are present. If byWeekday is set, bySetPos is treated as
+  // legacy per-BYDAY positional data (deprecated) and folded into the
+  // BYDAY emission above. True standalone BYSETPOS is the rare "last
+  // weekday of month" case (BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1) where
+  // byWeekday is also set — handled by the per-BYDAY ordinals path.
+  if (
+    rule.bySetPos &&
+    rule.bySetPos.length > 0 &&
+    (!rule.byWeekday || rule.byWeekday.length === 0) &&
+    (!rule.byDayOrdinals || rule.byDayOrdinals.length === 0)
+  ) {
     parts.push(`BYSETPOS=${rule.bySetPos.join(',')}`)
   }
 
@@ -127,8 +135,11 @@ export function buildRRuleString(rule: RecurrenceRule): string {
       // R2.1 — VALUE=DATE form for all-day events per RFC 5545 §3.3.10.
       // endDate is stored as a date-only string ('YYYY-MM-DD') on the event;
       // emit it as YYYYMMDD without a time component or Z suffix.
+      // Use UTC getters — the endDate string may be a UTC ISO timestamp
+      // produced by buildMasterTruncation; local-time getters would shift
+      // the date by up to 24 hours in extreme timezones.
       const d = new Date(rule.endDate)
-      const yyyymmdd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
+      const yyyymmdd = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`
       parts.push(`UNTIL=${yyyymmdd}`)
     } else {
       parts.push(`UNTIL=${toICalUTC(new Date(rule.endDate))}`)

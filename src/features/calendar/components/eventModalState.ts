@@ -20,7 +20,10 @@ export interface InitialFormState {
   byWeekday: number[]
   byMonthDay: number[]
   byMonth: number[]
-  bySetPos: number[]
+  // R2.4 — Per-BYDAY ordinals (parallel to byWeekday). e.g. for "second
+  // Tuesday", byWeekday=[2] and byDayOrdinals=[2]. Distinct from
+  // rule.bySetPos, which is reserved for the standalone BYSETPOS rule part.
+  byDayOrdinals: number[]
   endCondition: 'never' | 'on' | 'after'
   endOnDate: string
   endAfterCount: number
@@ -57,7 +60,7 @@ export function makeDefaultState(
     byWeekday: [],
     byMonthDay: [],
     byMonth: [],
-    bySetPos: [],
+    byDayOrdinals: [],
     endCondition: 'never',
     endOnDate: today,
     endAfterCount: 10,
@@ -126,7 +129,16 @@ export function getInitialFormState(
         }
       }
       const rule = existingEvent.recurrence
-      const bySetPosFiltered = rule?.bySetPos?.filter((p) => p !== 0)
+      // R2.4 — Read per-BYDAY ordinals from byDayOrdinals. Fall back to
+      // legacy bySetPos when byDayOrdinals is missing (events persisted
+      // before the R2.4 deconflation stored per-BYDAY ordinals in
+      // bySetPos when byWeekday was present).
+      const ordinals: number[] | undefined =
+        rule?.byDayOrdinals && rule.byDayOrdinals.length > 0
+          ? rule.byDayOrdinals.filter((p) => p !== 0)
+          : rule?.bySetPos && rule.byWeekday && rule.byWeekday.length > 0
+            ? rule.bySetPos.filter((p) => p !== 0)
+            : undefined
       const endOnDate = rule?.endDate
         ? format(parseISO(rule.endDate), 'yyyy-MM-dd')
         : format(parseISO(existingEvent.start), 'yyyy-MM-dd')
@@ -151,7 +163,7 @@ export function getInitialFormState(
         byWeekday: rule?.byWeekday ?? [],
         byMonthDay: rule?.byMonthDay ?? [],
         byMonth: rule?.byMonth ?? [],
-        bySetPos: bySetPosFiltered && bySetPosFiltered.length > 0 ? bySetPosFiltered : [],
+        byDayOrdinals: ordinals && ordinals.length > 0 ? ordinals : [],
         endCondition,
         endOnDate,
         endAfterCount: rule?.count ?? 10,

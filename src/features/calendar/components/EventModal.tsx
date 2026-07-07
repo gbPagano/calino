@@ -87,7 +87,7 @@ export function EventModal(): JSX.Element | null {
   const [byWeekday, setByWeekday] = useState<number[]>(initialState.byWeekday)
   const [byMonthDay, setByMonthDay] = useState<number[]>(initialState.byMonthDay)
   const [byMonth, setByMonth] = useState<number[]>(initialState.byMonth)
-  const [bySetPos, setBySetPos] = useState<number[]>(initialState.bySetPos)
+  const [byDayOrdinals, setByDayOrdinals] = useState<number[]>(initialState.byDayOrdinals)
   const [endCondition, setEndCondition] = useState<'never' | 'on' | 'after'>(initialState.endCondition)
   const [endOnDate, setEndOnDate] = useState<string>(initialState.endOnDate)
   const [endAfterCount, setEndAfterCount] = useState<number>(initialState.endAfterCount)
@@ -358,7 +358,7 @@ export function EventModal(): JSX.Element | null {
       setByWeekday(formDefaults.byWeekday)
       setByMonthDay(formDefaults.byMonthDay)
       setByMonth(formDefaults.byMonth)
-      setBySetPos(formDefaults.bySetPos)
+      setByDayOrdinals(formDefaults.byDayOrdinals)
       setEndCondition(formDefaults.endCondition)
       setEndOnDate(formDefaults.endOnDate)
       setEndAfterCount(formDefaults.endAfterCount)
@@ -460,14 +460,33 @@ export function EventModal(): JSX.Element | null {
       eCount: number,
     ) => recur ? JSON.stringify({
       frequency: freq, interval: inter, byWeekday: weekdays, byMonthDay: monthDays,
-      byMonth: months, bySetPos: setPos,
+      byMonth: months, byDayOrdinals: setPos,
       // Only compare fields relevant to the active end condition
       ...(eCond === 'on' ? { endOnDate: eDate } : eCond === 'after' ? { endAfterCount: eCount } : {}),
     }) : null
 
+    // R2.4 — Existing recurrence's per-BYDAY ordinals: prefer byDayOrdinals
+    // (new), fall back to bySetPos for legacy data (events persisted
+    // before R2.4 stored per-BYDAY ordinals in bySetPos when byWeekday
+    // was present).
+    const existingDayOrdinals = (() => {
+      if (existingRecurrence?.byDayOrdinals && existingRecurrence.byDayOrdinals.length > 0) {
+        return existingRecurrence.byDayOrdinals
+      }
+      if (
+        existingRecurrence?.bySetPos &&
+        existingRecurrence.bySetPos.length > 0 &&
+        existingRecurrence.byWeekday &&
+        existingRecurrence.byWeekday.length > 0
+      ) {
+        return existingRecurrence.bySetPos
+      }
+      return []
+    })()
+
     const existingEndCondition = existingRecurrence?.endDate ? 'on' : existingRecurrence?.count ? 'after' : 'never'
     const currentRecurrenceJSON = buildRecurrenceJSON(
-      recurring, recurrence, interval, byWeekday, byMonthDay, byMonth, bySetPos,
+      recurring, recurrence, interval, byWeekday, byMonthDay, byMonth, byDayOrdinals,
       endCondition, endOnDate, endAfterCount,
     )
     const existingRecurrenceJSON = existingRecurrence ? buildRecurrenceJSON(
@@ -477,7 +496,7 @@ export function EventModal(): JSX.Element | null {
       existingRecurrence.byWeekday ?? [],
       existingRecurrence.byMonthDay ?? [],
       existingRecurrence.byMonth ?? [],
-      existingRecurrence.bySetPos ?? [],
+      existingDayOrdinals,
       existingEndCondition,
       existingRecurrence.endDate ? format(parseISO(existingRecurrence.endDate), 'yyyy-MM-dd') : '',
       existingRecurrence.count ?? 10,
@@ -520,7 +539,7 @@ export function EventModal(): JSX.Element | null {
     byWeekday,
     byMonthDay,
     byMonth,
-    bySetPos,
+    byDayOrdinals,
     endCondition,
     endOnDate,
     endAfterCount,
@@ -580,7 +599,7 @@ export function EventModal(): JSX.Element | null {
             byWeekday: byWeekday.length > 0 ? byWeekday : undefined,
             byMonthDay: byMonthDay.length > 0 ? byMonthDay : undefined,
             byMonth: byMonth.length > 0 ? byMonth : undefined,
-            bySetPos: bySetPos.length > 0 ? bySetPos : undefined,
+            byDayOrdinals: byDayOrdinals.length > 0 ? byDayOrdinals : undefined,
             endDate: endCondition === 'on' && endOnDate ? `${endOnDate}T23:59:59` : undefined,
             count: endCondition === 'after' ? endAfterCount : undefined,
           }
@@ -1097,7 +1116,7 @@ export function EventModal(): JSX.Element | null {
                 if (freq !== 'monthly' && freq !== 'yearly') {
                   setByMonthDay([])
                   setByMonth([])
-                  setBySetPos([])
+                  setByDayOrdinals([])
                 }
               }}
               interval={interval}
@@ -1108,8 +1127,8 @@ export function EventModal(): JSX.Element | null {
               onByMonthDayChange={setByMonthDay}
               byMonth={byMonth}
               onByMonthChange={setByMonth}
-              bySetPos={bySetPos}
-              onBySetPosChange={setBySetPos}
+              byDayOrdinals={byDayOrdinals}
+              onByDayOrdinalsChange={setByDayOrdinals}
               endCondition={endCondition}
               onEndConditionChange={setEndCondition}
               endOnDate={endOnDate}

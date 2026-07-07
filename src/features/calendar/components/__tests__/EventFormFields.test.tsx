@@ -31,8 +31,8 @@ describe('EventFormFields', () => {
     onByMonthDayChange: vi.fn(),
     byMonth: [] as number[],
     onByMonthChange: vi.fn(),
-    bySetPos: [] as number[],
-    onBySetPosChange: vi.fn(),
+    byDayOrdinals: [] as number[],
+    onByDayOrdinalsChange: vi.fn(),
     endCondition: 'never' as 'never' | 'on' | 'after',
     onEndConditionChange: vi.fn(),
     endOnDate: '2024-03-15',
@@ -204,31 +204,31 @@ describe('EventFormFields', () => {
       expect(screen.queryByText('Monthly pattern')).not.toBeInTheDocument()
     })
 
-    it('defaults to dayOfMonth pattern when byWeekday and bySetPos are empty', () => {
+    it('defaults to dayOfMonth pattern when byWeekday and byDayOrdinals are empty', () => {
       renderWithMoreOptions({
         recurrence: 'monthly',
         byWeekday: [],
-        bySetPos: [],
+        byDayOrdinals: [],
       })
       expect(screen.getByDisplayValue('On day of the month')).toBeInTheDocument()
     })
 
-    it('shows nthWeekday selectors when byWeekday and bySetPos are provided', () => {
+    it('shows nthWeekday selectors when byWeekday and byDayOrdinals are provided', () => {
       renderWithMoreOptions({
         recurrence: 'monthly',
         byWeekday: [5],
-        bySetPos: [3],
+        byDayOrdinals: [3],
       })
       expect(screen.getByDisplayValue('On the nth weekday')).toBeInTheDocument()
       expect(screen.getByDisplayValue('Third')).toBeInTheDocument()
       expect(screen.getByDisplayValue('Fri')).toBeInTheDocument()
     })
 
-    it('shows lastWeekday selector when all bySetPos values are -1', () => {
+    it('shows lastWeekday selector when all byDayOrdinals values are -1', () => {
       renderWithMoreOptions({
         recurrence: 'monthly',
         byWeekday: [1],
-        bySetPos: [-1],
+        byDayOrdinals: [-1],
       })
       expect(screen.getByDisplayValue('On the last weekday')).toBeInTheDocument()
       expect(screen.getByDisplayValue('Mon')).toBeInTheDocument()
@@ -237,14 +237,14 @@ describe('EventFormFields', () => {
 
     it('calls correct handlers when changing pattern to nthWeekday', () => {
       const onByWeekdayChange = vi.fn()
-      const onBySetPosChange = vi.fn()
+      const onByDayOrdinalsChange = vi.fn()
       const onByMonthDayChange = vi.fn()
       renderWithMoreOptions({
         recurrence: 'monthly',
         byWeekday: [],
-        bySetPos: [],
+        byDayOrdinals: [],
         onByWeekdayChange,
-        onBySetPosChange,
+        onByDayOrdinalsChange,
         onByMonthDayChange,
       })
 
@@ -254,19 +254,19 @@ describe('EventFormFields', () => {
 
       expect(onByMonthDayChange).toHaveBeenCalledWith([])
       expect(onByWeekdayChange).toHaveBeenCalled()
-      expect(onBySetPosChange).toHaveBeenCalled()
+      expect(onByDayOrdinalsChange).toHaveBeenCalled()
     })
 
     it('calls correct handlers when changing pattern to dayOfMonth', () => {
       const onByWeekdayChange = vi.fn()
-      const onBySetPosChange = vi.fn()
+      const onByDayOrdinalsChange = vi.fn()
       const onByMonthDayChange = vi.fn()
       renderWithMoreOptions({
         recurrence: 'monthly',
         byWeekday: [5],
-        bySetPos: [3],
+        byDayOrdinals: [3],
         onByWeekdayChange,
-        onBySetPosChange,
+        onByDayOrdinalsChange,
         onByMonthDayChange,
       })
 
@@ -275,7 +275,7 @@ describe('EventFormFields', () => {
       })
 
       expect(onByWeekdayChange).toHaveBeenCalledWith([])
-      expect(onBySetPosChange).toHaveBeenCalledWith([])
+      expect(onByDayOrdinalsChange).toHaveBeenCalledWith([])
       expect(onByMonthDayChange).toHaveBeenCalled()
     })
 
@@ -284,7 +284,7 @@ describe('EventFormFields', () => {
       renderWithMoreOptions({
         recurrence: 'monthly',
         byWeekday: [2],
-        bySetPos: [1],
+        byDayOrdinals: [1],
       })
 
       expect(screen.getByDisplayValue('On the nth weekday')).toBeInTheDocument()
@@ -303,7 +303,7 @@ describe('EventFormFields', () => {
       renderWithMoreOptions({
         recurrence: 'monthly',
         byWeekday: [],
-        bySetPos: [],
+        byDayOrdinals: [],
         onByWeekdayChange,
       })
 

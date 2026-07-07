@@ -380,6 +380,50 @@ END:VCALENDAR`,
     })
   })
 
+  describe('settings event UID (per-instance)', () => {
+    const settingsCalendarUrl = 'https://caldav.example.com/calendars/test/calino-settings/'
+    const settingsCalendar = {
+      url: settingsCalendarUrl,
+      displayName: 'Calino Settings',
+      components: ['VEVENT'],
+    }
+
+    // Regression: the SETTINGS_EVENT_UID used to be the hardcoded
+    // `00000000-calino-0000-calino-000000000000`, which caused two Calino
+    // instances syncing to the same CalDAV server to clobber each other's
+    // settings event. The fix derives the UID from a per-instance UUID
+    // stored in localStorage, so each browser profile gets its own.
+    it('writes settings event with a UID prefixed calino-settings-<uuid>', async () => {
+      await client.connect()
+
+      // `putSettingsEvent` calls the tsdav client directly to discover the
+      // settings calendar, so we override the default fetchCalendars mock
+      // to return one entry whose URL matches the SETTINGS_CAL_NAME.
+      mockClientMethods.fetchCalendars.mockResolvedValue([settingsCalendar])
+      mockClientMethods.createCalendarObject.mockResolvedValue({
+        url: `${settingsCalendarUrl}calino-settings.ics`,
+        headers: new Headers({ etag: '"new-etag"' }),
+      })
+
+      // Pass `existingEvent: null` so `putSettingsEvent` skips the REPORT
+      // lookup and falls through to the "create new" branch, which is the
+      // path that bakes `CalDAVClient.SETTINGS_EVENT_UID` into the iCal
+      // payload via `createCalendarObject`.
+      await client.putSettingsEvent(settingsCalendarUrl, 'QkFTRTY0UEFZTExPQUQ=', undefined, null)
+
+      expect(mockClientMethods.createCalendarObject).toHaveBeenCalledTimes(1)
+      const [{ iCalString }] = mockClientMethods.createCalendarObject.mock.calls[0]
+
+      // New behaviour: the UID is `calino-settings-<uuid>` — a per-instance
+      // UUID persisted in localStorage, so each browser profile gets its
+      // own settings event without colliding on a shared CalDAV server.
+      expect(iCalString).toMatch(/^UID:calino-settings-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/m)
+
+      // The old hardcoded value must NOT be used anymore.
+      expect(iCalString).not.toContain('UID:00000000-calino-')
+    })
+  })
+
   describe('updateEvent', () => {
     it('updates a calendar object', async () => {
       await client.connect()

@@ -833,6 +833,37 @@ END:VCALENDAR`
       expect(result).toHaveLength(1)
       expect(result[0]?.type).toBe('task')
     })
+
+    // R1.9 regression: parseICALData used to filter the settings event by
+    // exact UID match against a hardcoded literal. After R1.9 the UID is
+    // per-instance (`calino-settings-<uuid>`), so the filter MUST match by
+    // prefix — otherwise the settings event leaks into the event store
+    // as a "Jan 1, 1970" record.
+    it('filters settings events by prefix regardless of per-instance UID', () => {
+      const settingsUid = 'calino-settings-deadbeef-1234-5678-9abc-def012345678'
+      const iCalData = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:${settingsUid}
+SUMMARY:Calino Settings
+DTSTART:19700101T000000Z
+DTEND:19700101T000001Z
+END:VEVENT
+BEGIN:VEVENT
+UID:real-event
+SUMMARY:Real Event
+DTSTART:20240315T140000Z
+DTEND:20240315T150000Z
+END:VEVENT
+END:VCALENDAR`
+
+      const result = parseICALData(iCalData, 'cal-1')
+
+      // Only the real event survives — the settings event was filtered.
+      expect(result).toHaveLength(1)
+      expect(result[0]?.id).toBe('real-event')
+      expect(result[0]?.title).toBe('Real Event')
+    })
   })
 
   // R1.6 regression net for the DataSettings export path. We can't easily

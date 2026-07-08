@@ -2,7 +2,7 @@ import type { JSX } from 'react'
 import { useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
-import { discoverServerUrl, suggestCalDAVUrl, expandProviderUrl } from '@/features/caldav/client/discovery'
+import { discoverServerUrl, suggestCalDAVUrl, suggestAuthHint, expandProviderUrl } from '@/features/caldav/client/discovery'
 import { useAnimatedClose } from '@/hooks/useAnimatedClose'
 import { useModalDismiss } from '@/hooks/useModalDismiss'
 import styles from './AddCalendarModal.module.css'
@@ -95,7 +95,10 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
       if (!result.ok) {
         setConnectionError(`Server returned status ${result.status}`)
         const hintUrl = originalUrl || serverUrl
-        const hint = suggestCalDAVUrl(hintUrl)
+        // Auth failures (401/403) usually mean an app-specific password is
+        // needed, not a wrong URL — prefer the auth hint in that case.
+        const authFailed = result.status === 401 || result.status === 403
+        const hint = (authFailed && suggestAuthHint(hintUrl)) || suggestCalDAVUrl(hintUrl)
         if (hint) {
           setConnectionHint(hint)
         }
@@ -241,9 +244,9 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
                 />
                 <span className={styles.proxyInfoText}>
                   Using a proxy means your requests go through another server. Your CalDAV server,
-                  requests, and authorization credentials might be visible to the proxy provider,
-                  but not calendar data. It's recommended to either enable CORS headers on your
-                  CalDAV server or run your own proxy.
+                  requests, authorization credentials, and calendar data might be visible to the
+                  proxy provider, since the connection is decrypted there. It's recommended to
+                  either enable CORS headers on your CalDAV server or run your own proxy.
                 </span>
               </>
             )}

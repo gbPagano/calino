@@ -10,10 +10,24 @@ const DISCOVERY_TIMEOUT_MS = 8_000
  *     When the user enters just the base URL, we expand the template using the username.
  *     null means no template (we can only suggest, not auto-construct).
  */
-const KNOWN_CALENDAR_PROVIDERS: Record<string, { baseUrl: string; urlTemplate: string | null }> = {
+const KNOWN_CALENDAR_PROVIDERS: Record<
+  string,
+  {
+    baseUrl: string
+    urlTemplate: string | null
+    /**
+     * Guidance shown when the server rejects the credentials (401/403).
+     * Many providers (Fastmail, iCloud, Google) reject the account login
+     * password and require a provider-generated app-specific password.
+     */
+    authHint: string | null
+  }
+> = {
   'fastmail.com': {
     baseUrl: 'https://caldav.fastmail.com',
     urlTemplate: 'https://caldav.fastmail.com/dav/principals/user/{email}/',
+    authHint:
+      'Fastmail rejected these credentials. Fastmail requires an app-specific password for CalDAV — your normal login password will not work. Create one at Settings → Privacy & Security → Integrations → New App Password (grant it "Calendars (CalDAV)" access), then use your email as the username and that password.',
   },
 }
 
@@ -52,6 +66,23 @@ export function suggestCalDAVUrl(serverUrl: string): string | null {
       if (hostname === domain || hostname.endsWith('.' + domain)) {
         if (!info.urlTemplate) return null
         return `For ${domain}, try entering: ${info.urlTemplate.replace('{email}', 'your-email@' + domain)}`
+      }
+    }
+  } catch { /* invalid URL — ignore */ }
+  return null
+}
+
+/**
+ * When the server rejects the credentials (401/403), suggest provider-specific
+ * guidance — most often that the provider needs an app-specific password rather
+ * than the account login password. Returns null when we have no guidance.
+ */
+export function suggestAuthHint(serverUrl: string): string | null {
+  try {
+    const hostname = new URL(serverUrl).hostname
+    for (const [domain, info] of Object.entries(KNOWN_CALENDAR_PROVIDERS)) {
+      if (hostname === domain || hostname.endsWith('.' + domain)) {
+        return info.authHint
       }
     }
   } catch { /* invalid URL — ignore */ }

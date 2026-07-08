@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { discoverServerUrl, suggestCalDAVUrl, expandProviderUrl } from '../discovery'
+import { discoverServerUrl, suggestCalDAVUrl, suggestAuthHint, expandProviderUrl } from '../discovery'
 
 describe('discovery', () => {
   beforeEach(() => {
@@ -466,6 +466,29 @@ describe('discovery', () => {
     it('returns null for invalid URLs', () => {
       const hint = suggestCalDAVUrl('not-a-url')
       expect(hint).toBeNull()
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // suggestAuthHint helper
+  // -----------------------------------------------------------------------
+  describe('suggestAuthHint', () => {
+    it('returns app-password guidance for Fastmail URLs', () => {
+      const hint = suggestAuthHint('https://caldav.fastmail.com/dav/calendars')
+      expect(hint).toContain('app-specific password')
+    })
+
+    it('matches the caldav. subdomain of Fastmail', () => {
+      const hint = suggestAuthHint('https://caldav.fastmail.com/')
+      expect(hint).toBeTruthy()
+    })
+
+    it('returns null for unknown providers', () => {
+      expect(suggestAuthHint('https://caldav.example.com/')).toBeNull()
+    })
+
+    it('returns null for invalid URLs', () => {
+      expect(suggestAuthHint('not-a-url')).toBeNull()
     })
   })
 

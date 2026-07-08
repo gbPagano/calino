@@ -163,13 +163,15 @@ jobs:
         if: always()
         run: docker rm -f calino-test
 
-      # ── Publish: multi-arch push to GHCR ──────────────────────
-      - name: Build & push multi-arch
+      # ── Publish to GHCR ───────────────────────────────────────
+      # Releases (tags) ship multi-arch; rolling :edge branch builds are
+      # amd64-only so every main push isn't stuck in slow arm64 QEMU emulation.
+      - name: Build & push
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

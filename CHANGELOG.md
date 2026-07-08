@@ -2,6 +2,16 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.20.1] - 2026-07-08
+
+A small patch of theming and dark-mode fixes.
+
+### Fixed
+
+- **Mobile day selection now respects your theme** — the selected day in the sidebar mini-calendar used the default (brown) accent instead of your active theme's color on non-default themes. It now derives its highlight from the current theme, so custom themes look right too. ([#20](https://github.com/Ivan-Malinovski/calino/issues/20))
+- **No more tap-highlight flash on mobile** — tapping buttons and links no longer shows the browser's default gray/blue overlay. The highlight color is now a themeable token if you want it back. ([#21](https://github.com/Ivan-Malinovski/calino/issues/21))
+- **Dark-mode color leaks** — fixed several spots that fell back to light-mode colors in dark mode: the Add Calendar connection-hint box, Year-view hover states, and the contacts tag-filter chip.
+
 ## [0.20.0] - 2026-07-08
 
 A large audit-driven release: security hardening, iCalendar compliance for strict CalDAV servers, a full accessibility pass, major performance work, a new 3-day view, and a round of animation and connection-reliability polish.

@@ -27,9 +27,11 @@
 //   FETCH_TIMEOUT_MS  Per-request upstream fetch timeout in ms (default 30s).
 //
 // SECURITY MODEL:
-// - Authorization is NEVER forwarded to the upstream target. Calino sends
-//   credentials directly to its CalDAV server via this proxy; the proxy
-//   sees only the encrypted-by-TLS body.
+// - Authorization IS forwarded to the upstream target (see FORWARDED_HEADERS
+//   below). Calino authenticates to its CalDAV server with Basic auth through
+//   this proxy; stripping the header would break every request. The threat
+//   model is "your browser → your proxy → YOUR CalDAV server", not an open
+//   relay. Use ALLOWED_TARGETS to restrict which hosts can be reached.
 // - Target URLs must be https:// unless ALLOWED_TARGETS permits http:// for
 //   a specific host.
 // - Loopback, private, link-local, unique-local, and cloud-metadata IPs

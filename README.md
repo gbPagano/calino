@@ -4,15 +4,11 @@
 
 ---
 
-**Calino is a browser-based CalDAV client that connects directly to your calendar server.** No other accounts required, it it runs as a static page and data stays entirely between your browser and your CalDAV server.
+**Calino is a browser-based CalDAV client that connects directly to your calendar server.** No other accounts required — it runs as a static page, and data stays entirely between your browser and your CalDAV server.
 
-If you've been looking for a beautiful, modern browser-based CalDAV calendar that doesn't come part of a bloated suite, Calino have you covered.
+If you've been looking for a beautiful, modern browser-based CalDAV calendar that doesn't come as part of a bloated suite, Calino has you covered.
 
 > **Active project:** Calino is under active development. New features and improvements ship regularly — please report bugs, they're more than welcome!
-
-### What's new in v1.0
-
-Calino 1.0 ships iCalendar compliance fixes for strict CalDAV servers (Radicale, iCloud, Google), a 3-state theme picker, a full accessibility audit, and a 10× faster event positioning algorithm. See [CHANGELOG.md](./CHANGELOG.md) for the full list.
 
 <img width="1613" height="942" alt="image" src="https://github.com/user-attachments/assets/832356b1-0b20-4161-8083-06ff71934a16" />
 (more screenshots at the bottom)
@@ -27,10 +23,10 @@ With that said, I urge you to either selfhost Calino or at least use your own pr
 
 ## Features
 
-I have made it as close as possible, as to what I envision the perfect CalDAV non-enterprise calendar to be, according to my own tastes. I'm simply sharing it with the world. The design philosophy is to have sensible and automatic default settings, that adjust according to your browser and calendar, so that you can use it from any clients, without needing further customization.
+I have made it as close as possible, as to what I envision the perfect CalDAV non-enterprise calendar to be, according to my own tastes. I'm simply sharing it with the world. The design philosophy is to have sensible and automatic default settings, that adjust according to your browser and calendar, so that you can use it from any client, without needing further customization.
 
 ### Views
-- **Month, Week, Day, Agenda**
+- **Month, Week, 3-day, Day, Agenda, Year**
 - Click week numbers to jump straight to that week
 - Click any date to see it in day view
 - Drag events to move them, drag edges to resize
@@ -38,13 +34,17 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 
 ### Smart Input
 - Type naturally: *"coffee with friends on wednesday, at 12-18"* → creates a 4-hour event on that Wednesday
-- Press `Ctrl+K` for the command palette — navigate, create events, sync, search, settings from the same textbox
+- Press `Cmd/Ctrl+K` for the command palette — navigate, create events, sync, search, settings from the same textbox
 - Smart detection: start typing and NLP parses dates, times, and durations
 
 ### Tasks (VTODO) + Journals (VJOURNAL)
 - Full VTODO support with due dates, priorities, and completion status
 - Shows as checkboxes in month view, inline in week/day view
 - **VJOURNAL support**, a rarity among CalDAV clients. Use it for daily logs, or deeper notes related to your events.
+
+### Contacts (CardDAV)
+- Detects address books on your server and surfaces your contacts
+- Auto-enabled when contacts are found — no extra setup
 
 ### Time & Calendar
 - Auto timezone detection with manual override
@@ -114,7 +114,7 @@ The fastest way to self-host. Pre-built multi-arch images (amd64 + arm64) are on
 docker run -d -p 8080:8080 ghcr.io/ivan-malinovski/calino:main
 ```
 
-> **Tip:** After tagging, `:v1.0` will also be available. Use `:main` for the latest development build, or pin to a specific tag for stability.
+> **Tip:** Use `:main` for the latest development build, or pin to a specific version tag (e.g. `:v0.20.0`) for stability.
 
 Or clone and customize:
 
@@ -138,7 +138,7 @@ Calino is a static React app — host it anywhere that serves HTML/JS.
 
 All user data, including CalDAV credentials, lives in the browser's `localStorage`. There is no backend, no telemetry, and no central Calino server.
 
-**Config (in-app):** Click the gear icon or use `Cmd+K` → "Settings" → add your CalDAV server URL, username, and password.
+**Config (in-app):** Click the gear icon or use `Cmd/Ctrl+K` → "Settings" → add your CalDAV server URL, username, and password.
 
 **Site URL (for SEO / Open Graph cards):**
 
@@ -236,7 +236,7 @@ Then set the **Proxy URL** in Calino settings to `http://<your-host>:8081`. It's
 
 ## Tech Stack
 
-React 19 + TypeScript + Vite, Zustand v5, date-fns, chrono-node, @dnd-kit, framer-motion, Fuse.js, ical.js, Vitest
+React 19 + TypeScript + Vite, Zustand v5, tsdav (CalDAV), date-fns, chrono-node, @dnd-kit, framer-motion, Fuse.js, ical.js, Vitest
 
 ---
 
@@ -245,10 +245,3 @@ React 19 + TypeScript + Vite, Zustand v5, date-fns, chrono-node, @dnd-kit, frame
 ## License
 
 MIT
-
-[Docker Pulls]: https://img.shields.io/docker/pulls/ivan-malinovski/calino?style=flat-square
-[Docker Pulls-link]: https://github.com/Ivan-Malinovski/calino/pkgs/container/calino
-[Build Status]: https://img.shields.io/github/actions/workflow/status/Ivan-Malinovski/calino/docker.yml?style=flat-square
-[Build Status-link]: https://github.com/Ivan-Malinovski/calino/actions
-[Last Commit]: https://img.shields.io/github/last-commit/Ivan-Malinovski/calino/main?style=flat-square
-[Last Commit-link]: https://github.com/Ivan-Malinovski/calino/commits/main

@@ -2,59 +2,66 @@
 
 All notable changes to Calino will be documented in this file.
 
-## [1.0.0] - 2026-07-07
+## [0.20.0] - 2026-07-08
 
-First stable release. A four-round audit-driven effort: security hardening, iCalendar compliance for strict CalDAV servers, a full accessibility pass, and major performance improvements.
+A large audit-driven release: security hardening, iCalendar compliance for strict CalDAV servers, a full accessibility pass, major performance work, a new 3-day view, and a round of animation and connection-reliability polish.
 
-### New Features
+---
 
-- **3-state theme picker** — the quick-settings theme toggle now cycles through Auto, Light, and Dark. You can return to "follow system" without digging into the settings page.
-- **Keyboard shortcuts help modal** — press `?` anywhere to open a reference of every keyboard shortcut. Press Escape to close.
-- **Deep-link support** — links with `?date=2026-07-07&event=<id>` now parse correctly, so shared links open the right day and event.
-- **Empty states** — Agenda, Tasks, and the sidebar calendar list now show a helpful message and action button when empty, instead of blank space.
+### 👤 User-facing
 
-### Improvements
-- **Missed reminders catch up on next visit** — if your browser tab was asleep (laptop sleep, backgrounded tab, etc.) and missed a reminder, the next time the app is active it will fire for any reminder in the last 12 hours that was never shown.
-- **Less theme-switch flash** — the theme color meta tag is now updated synchronously via `useLayoutEffect`, reducing the brief flash that used to occur on theme changes.
-- **Faster calendar views** — event positioning now uses an O(n log n) sweep-line algorithm instead of O(n³), making month and week views render noticeably faster on busy calendars.
-- **Smoother window resizing** — the resize hook is now frame-rate throttled, so dragging the browser window no longer causes stuttering.
-- **Faster search index updates** — search index rebuilds now run during browser idle time, so syncing a large calendar won't freeze the UI.
-- **Faster agenda rendering** — event grouping in the Agenda view is now O(N) instead of O(N²).
-- **More reliable CalDAV sync with strict servers** — RRULE, EXDATE, RECURRENCE-ID, and VALARM now use the correct value forms (VALUE=DATE for all-day events, matching TZID for timezone-aware events). Strict servers like Radicale, iCloud, and Google Calendar will accept these changes without complaint.
-- **VTODO round-trip fidelity** — task status (Needs Action, In Process, Completed, Cancelled), percent-complete, and original COMPLETED timestamp now survive a sync round-trip. Other CalDAV clients will show the same status and progress you set in Calino.
-- **Better VALARM support** — reminders with day/week durations (e.g. "2 days before") and positive triggers are now preserved on sync. Previously these were silently dropped.
-- **Settings sync uses proper iCalendar formatting** — the settings event is now serialized with line folding and correct escaping, matching what strict servers expect.
-- **Improved accessibility** — many icon-only buttons now have `aria-label` attributes. The onboarding modal traps focus and responds to Escape. The ErrorBoundary dialog is now themed instead of using hardcoded colors. iOS PWA gets proper safe-area insets.
-- **End-before-start validation** — the event modal now prevents saving events where the end time is before the start time, with a clear toast message.
+Things you'll actually notice using Calino.
 
-### Bug Fixes
+**New**
 
-- **Security: dependency vulnerabilities patched** — updated `react-router-dom` (RCE fix) and `vite` (filesystem access bypass fix) to address high-severity CVEs.
-- **Security: hardened CORS proxy** — the bundled CORS proxy no longer forwards Authorization headers to arbitrary targets, no longer echoes `Access-Control-Allow-Origin: *` when allowed origins are configured, and no longer leaks fetch error details.
-- **Security: service worker path-traversal validation** — the service worker now validates that event IDs are valid UUIDs before using them in navigation URLs.
-- **Settings no longer lost on store migration** — a bug caused all user preferences to be wiped during store migration. Settings, calendar positions, and view state are now preserved.
-- **CalDAV sync no longer drops edits** — created and updated events now capture the server's URL and ETag response, preventing silent edit loss on the next sync.
-- **ICS export is now lossless** — exporting events to `.ics` now preserves recurrence rules, exceptions, reminders, and all-day date forms, instead of stripping them.
-- **Todo composer text preserved** — typing a task title in the inline composer and pressing Enter now carries that text into the event modal, instead of discarding it.
-- **Duplicate settings event prevention** — each Calino instance now generates a unique identifier for its settings event, preventing collisions when multiple browser profiles sync to the same CalDAV server.
-- **Docker body size limit raised** — the Caddy request body limit was increased from 1 KB to 1 MB, fixing CalDAV sync failures on servers with large payloads.
-- **Notification permission UX** — when browser notification permission is denied, Calino now shows a toast explaining why the setting was disabled, instead of silently flipping it off.
-- **Command palette "Go to Today" stays current** — the date is now computed when the action runs, not when the palette was first opened, so it works correctly across midnight.
-- **Calendar storage cleanup** — `safeLocalStorage.clear()` now removes both `calino-` and `calino_` prefixed keys, fixing stale CalDAV records after account removal.
+- **3-day view** — a new zoom level between Day and Week, with a resizable agenda sidebar that now persists across every view.
+- **3-state theme picker** — the quick-settings theme toggle cycles Auto → Light → Dark, so you can return to "follow system" without opening the settings page. It now sits at the top of the quick-settings dropdown with clearer mode icons.
+- **Keyboard shortcuts help modal** — press `?` anywhere to see every shortcut; Escape closes it.
+- **Deep-link support** — links like `?date=2026-07-08&event=<id>` open the right day and event.
+- **Empty states** — Agenda, Tasks, and the sidebar calendar list show a helpful message and action button instead of blank space.
 
-### Internal
+**Improved**
 
-- Zustand store migrations now merge persisted state over defaults instead of discarding unrecognized fields.
-- iCalendar adapter round-trip tests added for VEVENT with TZID, RRULE with WKST/BYSETPOS, and VTODO STATUS preservation.
-- Service worker cache version bumped to `calino-v7` to invalidate old cached service workers on deploy.
-- CORS proxy source hardened: scheme validation (`https://` only), restricted header allowlist, generic error responses.
+- **More reliable connections** — Fastmail and other providers that used to 404 during setup now connect: Calino auto-expands provider URLs, tries the `caldav.` subdomain, and follows cross-domain redirects.
+- **Missed reminders catch up** — if your tab was asleep and missed a reminder, the next active visit fires anything from the last 12 hours that was never shown.
+- **Smoother, faster calendar** — event layout uses an O(n log n) sweep-line (was O(n³)), window resizing is frame-rate throttled, search index rebuilds run during idle time, and Agenda grouping is O(N). Busy calendars render noticeably faster.
+- **Polished animations** — refined enter/exit transitions for events and the view-switcher menus, faster fade-outs, and full reduced-motion support. The event you're actively dragging no longer animates out from under you.
+- **Saving feedback** — the event modal shows a spinner and "Saving…" label while a save is in flight, and rapid clicks can no longer create duplicate events.
+- **Recurring events are safer to touch** — drag-and-drop and resize are disabled for recurring events, preventing accidental one-off edits to a series.
+- **Better sync with strict servers** — RRULE, EXDATE, RECURRENCE-ID, and VALARM now use correct value forms (VALUE=DATE for all-day, matching TZID for timezone-aware events), so Radicale, iCloud, and Google Calendar accept edits cleanly. Task status/percent-complete round-trip faithfully, and day/week-duration reminders are preserved.
+- **Lossless ICS export** — exporting `.ics` keeps recurrence rules, exceptions, reminders, and all-day date forms.
+- **Accessibility pass** — icon-only buttons get `aria-label`s, the onboarding modal traps focus and honors Escape, the error dialog is themed, and iOS PWA gets safe-area insets.
+- **Smaller papercuts** — end-before-start validation in the event modal, a toast when notification permission is denied, "Go to Today" that stays correct across midnight, todo-composer text carried into the modal, and rounder `/tasks` & `/journal` selectors.
+
+**Security fixes you benefit from**
+
+- Patched high-severity CVEs in `react-router-dom` and `vite`.
+- The bundled CORS proxy no longer forwards Authorization headers to arbitrary hosts, no longer echoes a wildcard origin when allowed origins are set, and no longer leaks fetch errors.
+- The service worker validates event IDs before using them in navigation URLs.
+- Settings are no longer wiped during an app data migration.
+
+---
+
+### 🤓 Technical
+
+For the curious — the interesting bits under the hood.
+
+- **Rendering** — `eventPositioning` rewritten as a sweep-line with a tight `totalColumns` scan; range/version counters drive the memoization deps so recomputes only happen on real changes.
+- **Animations** — `AnimatePresence` uses `initial={false}`; a shared `eventAnimations` helper centralizes the reduced-motion pattern and skips exit animation for the actively-dragged element. Conditional wrappers removed to keep keys stable across renders.
+- **CalDAV discovery** — `discovery.ts` gained provider-URL expansion, `caldav.` subdomain fallback, and cross-domain redirect handling, with ~200 lines of new tests.
+- **iCalendar adapter** — correct VALUE=DATE / TZID emission, VTODO STATUS + percent-complete + COMPLETED preservation, VALARM day/week durations, multibyte-safe line folding, and settings-event serialization with proper folding/escaping. Round-trip tests cover TZID, RRULE WKST/BYSETPOS, and VTODO.
+- **ETag handling** — create/update now capture the server URL and ETag (including etag-on-create recovery) so the next sync doesn't drop edits.
+- **State** — Zustand migrations merge persisted state over defaults rather than discarding unknown keys; `partialize()` keys and calendar positions survive version bumps. `safeLocalStorage.clear()` sweeps both `calino-` and `calino_` prefixes.
+- **Proxy** — `https://`-only scheme validation, restricted header allowlist, an SSRF denylist, generic error responses.
+- **Types/routing** — `'3day'` added to `VIEW_ROUTES` and the settings store; per-BYDAY field renamed `bySetPos → byDayOrdinals`.
+- **Infra** — service worker cache bumped to `calino-v7`; Docker Caddy request-body limit raised 1 KB → 1 MB; dev server defaults to `localhost`; e2e (Playwright) infra + specs for drag-disabled recurring events, animation, and month delete; `pnpm lint` at 0 errors; `tsc -b` project-reference type errors fixed.
 
 ### Known Limitations
 
 - **All-day reminders fire N minutes before midnight the day before** — this matches the iCalendar spec (reminders are relative to DTSTART). The 12-hour catch-up pass (see above) covers the common case where the tab was inactive, but reminders older than 12 hours won't fire.
 - **App-level encryption is obfuscation, not security** — credentials in localStorage are encrypted with a key bundled in the app. Anyone with the JavaScript bundle can derive the same key and decrypt stored CalDAV credentials. For stronger protection, use the master-password setup wizard (`/setup`), which derives the encryption key from a user-supplied password that never leaves the device.
 
-### Deferred to v1.1
+### Deferred (roadmap)
 
 - Recurrence preview before saving changes
 - External ICS feed subscription

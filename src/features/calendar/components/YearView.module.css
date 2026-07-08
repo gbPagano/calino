@@ -79,7 +79,7 @@
 .weekdayInitial {
   text-align: center;
   font-size: 10px;
-  color: var(--ink-muted, #9c9384);
+  color: var(--ink-muted, var(--ink-3, #9c9384));
   line-height: 1.5;
 }
 
@@ -108,7 +108,7 @@
   padding: 0;
   font-size: 9.5px;
   font-variant-numeric: tabular-nums;
-  color: var(--ink-muted, #9c9384);
+  color: var(--ink-muted, var(--ink-3, #9c9384));
   background: none;
   border: none;
   border-radius: var(--radius-sm, 4px);
@@ -117,7 +117,7 @@
 }
 
 .weekNum:hover {
-  background: var(--panel-hover, rgba(0, 0, 0, 0.05));
+  background: var(--panel-hover, var(--hover-bg, rgba(0, 0, 0, 0.05)));
   color: var(--accent, #b07d4f);
 }
 
@@ -143,7 +143,7 @@
 }
 
 .day:hover {
-  background: var(--panel-hover, rgba(0, 0, 0, 0.05));
+  background: var(--panel-hover, var(--hover-bg, rgba(0, 0, 0, 0.05)));
   transform: scale(1.12);
 }
 

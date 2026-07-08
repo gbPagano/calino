@@ -301,8 +301,16 @@
   transition: background var(--dur-fast);
 }
 
-.miniDay:hover {
-  background: rgba(var(--ink-raw, 44, 40, 33), 0.06);
+/* Hover only on devices that actually hover — otherwise a tap on mobile
+   leaves the hover state stuck on the selected day. */
+@media (hover: hover) {
+  .miniDay:hover {
+    background: rgba(var(--ink-raw, 44, 40, 33), 0.06);
+  }
+
+  .miniDay.selected:hover {
+    background: var(--accent-hover, color-mix(in srgb, var(--accent) 88%, #000));
+  }
 }
 
 .miniDay.otherMonth {
@@ -314,10 +322,6 @@
   background: var(--accent);
   color: #fff;
   font-weight: 600;
-}
-
-.miniDay.selected:hover {
-  background: var(--accent-hover, #9a6c42);
 }
 
 .miniDay.today:not(.selected) {
@@ -1268,7 +1272,7 @@
 }
 
 .updateViewBtn:hover {
-  background: var(--accent-hover, #8a5c32);
+  background: var(--accent-hover, color-mix(in srgb, var(--accent) 82%, #000));
 }
 
 /* ---- Sticky Bottom ---- */

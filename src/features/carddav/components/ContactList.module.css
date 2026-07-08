@@ -97,7 +97,7 @@
 }
 
 .tagFilterTag {
-  background: var(--accent-bg, rgba(176, 125, 79, 0.1));
+  background: var(--accent-bg, color-mix(in srgb, var(--accent) 10%, transparent));
   color: var(--accent, #b07d4f);
   padding: 2px 8px;
   border-radius: 6px;

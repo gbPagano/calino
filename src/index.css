@@ -1,5 +1,6 @@
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: var(--tap-highlight-color, transparent);
 }
 
 :root {
@@ -26,6 +27,16 @@
   --sidebar-collapsed-width: 18px;
   --header-height: 76px;
   --mobile-breakpoint: 768px;
+
+  /* Hover shade for the accent color. Derived from --accent so any theme
+     (including custom drop-in themes that only set --accent) gets a correct
+     hover without declaring it. Themes may still override this explicitly. */
+  --accent-hover: color-mix(in srgb, var(--accent, #b07d4f) 88%, #000);
+
+  /* Tap highlight shown when tapping interactive elements on mobile.
+     Transparent by default (we have our own :active/press states); set a
+     color here to bring the native flash back. */
+  --tap-highlight-color: transparent;
 
   /* Safe area for notched phones */
   --safe-area-top: env(safe-area-inset-top, 0px);

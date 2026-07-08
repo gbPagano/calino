@@ -8,6 +8,8 @@
 
 If you've been looking for a beautiful, modern browser-based CalDAV calendar that doesn't come as part of a bloated suite, Calino has you covered.
 
+**Try it now at [calino.io](https://calino.io)** — the hosted version, nothing to install. Prefer to run your own? Self-hosting instructions are below.
+
 > **Active project:** Calino is under active development. New features and improvements ship regularly — please report bugs, they're more than welcome!
 
 <img width="1613" height="942" alt="image" src="https://github.com/user-attachments/assets/832356b1-0b20-4161-8083-06ff71934a16" />

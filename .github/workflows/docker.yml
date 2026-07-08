@@ -74,18 +74,19 @@ jobs:
           # always lands in the single canonical GHCR package, regardless of any
           # future repo rename or owner-casing change.
           images: ghcr.io/ivan-malinovski/calino
-          # Tag strategy — keep every tag on ONE manifest per event so a release
-          # doesn't fork the version onto a separate digest from latest/main/sha:
-          #   • branch push (main) → dev digest tagged  main + sha-<commit>
+          # Tag strategy — branch and tag builds emit DISJOINT tag sets so the two
+          # workflow runs a release triggers never race for the same tag (which
+          # would fork it onto two digests):
+          #   • branch push (main) → rolling dev digest tagged  edge
           #   • tag push   (v*)    → release digest tagged  <version> + latest + main + sha-<commit>
-          # `latest` and `main` are (re)applied on the tag build so they converge
-          # onto the same digest as the semver tag at release time.
+          # A release therefore lands every release tag on ONE manifest in a single
+          # build. `main` = latest release, `edge` = bleeding-edge main.
           tags: |
             type=semver,pattern={{version}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=raw,value=main,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=ref,event=branch
-            type=sha,prefix=sha-,format=short
+            type=sha,prefix=sha-,format=short,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
 
       # ── Test: build native platform, load, healthcheck ────────
       - name: Build for testing

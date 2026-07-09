@@ -616,7 +616,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
             {dayTasks.length > 0 && (
               <div className={styles.allDayEventsInHeader}>
                 {dayTasks.map((task) => (
-                  <EventCard key={task.id} event={task} compact monthView enableResize={false} />
+                  <EventCard key={task.id} event={task} compact monthView enableResize={false} hideDueTime />
                 ))}
               </div>
             )}

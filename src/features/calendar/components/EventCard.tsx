@@ -39,6 +39,9 @@ interface EventCardProps {
   transparent?: boolean
   hourHeight?: number
   dotMode?: boolean
+  /** Suppress the task's due-time line. Used by week/day view, where the
+   *  card's position on the timeline already conveys the time. */
+  hideDueTime?: boolean
 }
 
 export const EventCard = React.memo(function EventCard({
@@ -53,6 +56,7 @@ export const EventCard = React.memo(function EventCard({
   transparent = false,
   hourHeight = 60,
   dotMode = false,
+  hideDueTime = false,
 }: EventCardProps): JSX.Element {
   const calendars = useCalendarStore((state) => state.calendars)
   const categories = useCalendarStore((state) => state.categories)
@@ -379,7 +383,7 @@ export const EventCard = React.memo(function EventCard({
             {...attributes}
           >
             <div className={styles.title} title={event.title}>{event.title}</div>
-            {hasDueTime(event) && event.dueDate && (
+            {!hideDueTime && hasDueTime(event) && event.dueDate && (
               <div className={styles.dueDate}>{format(parseISO(event.dueDate), 'h:mm a')}</div>
             )}
           </div>
@@ -583,7 +587,8 @@ function arePropsEqual(prev: EventCardProps, next: EventCardProps): boolean {
     prev.monthView !== next.monthView ||
     prev.transparent !== next.transparent ||
     prev.hourHeight !== next.hourHeight ||
-    prev.dotMode !== next.dotMode
+    prev.dotMode !== next.dotMode ||
+    prev.hideDueTime !== next.hideDueTime
   ) {
     return false
   }

@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import type { JSX } from 'react'
-import { parseISO } from 'date-fns'
+import { addMinutes, format, parseISO } from 'date-fns'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useDndContext } from '@dnd-kit/core'
 import type { CalendarEvent, Calendar } from '@/types'
@@ -8,7 +8,13 @@ import { EventCard } from './EventCard'
 import { getEventColor } from '@/lib/eventColor'
 import { formatTravelDuration } from '@/lib/events'
 import { positionEvents } from '@/lib/eventPositioning'
-import { positionedEventStyle, transparentEventStyle, travelBarStyle, taskPillStyle } from '../lib/eventLayout'
+import {
+  positionedEventStyle,
+  transparentEventStyle,
+  travelBarStyle,
+  taskPillStyle,
+  TASK_PILL_LAYOUT_MINUTES,
+} from '../lib/eventLayout'
 import { eventCardVariants } from '../lib/eventAnimations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import styles from './WeekView.module.css'
@@ -74,9 +80,41 @@ const WeekDayColumn = memo(function WeekDayColumn({
     )
   }
 
-  const positionedEvents = positionEvents(sortedEvents)
+  // Timed tasks share the event column algorithm so overlapping items sit side
+  // by side. They have zero duration, so `positionEvents` (strict overlap test)
+  // would never collide them — give each a nominal interval matching the pill's
+  // visual footprint for layout purposes only, and render the original task.
+  const taskById = new Map(timedTasks.map((task) => [task.id, task]))
+  const taskLayoutItems = timedTasks.map((task) => ({
+    ...task,
+    end: format(
+      addMinutes(parseISO(task.start), TASK_PILL_LAYOUT_MINUTES),
+      "yyyy-MM-dd'T'HH:mm:ss"
+    ),
+  }))
+
+  const positionedEvents = positionEvents([...sortedEvents, ...taskLayoutItems])
 
   for (const { event, column, totalColumns } of positionedEvents) {
+    const task = taskById.get(event.id)
+    if (task) {
+      elements.push(
+        <motion.div
+          key={task.id}
+          variants={eventCardVariants}
+          initial={cardInitial}
+          animate="animate"
+          exit={skipExit(task.id) ? undefined : cardExit}
+          transition={enterTransition}
+          className={`${styles.eventPositioned} ${styles.taskPositioned}`}
+          style={taskPillStyle(task, column, totalColumns)}
+        >
+          <EventCard event={task} compact monthView enableResize={false} hideDueTime />
+        </motion.div>
+      )
+      continue
+    }
+
     const eventColor = getEventColor(event, { categories: [], calendars, useCategoryColors: false })
 
     if (event.travelDuration && event.travelDuration > 0) {
@@ -111,27 +149,6 @@ const WeekDayColumn = memo(function WeekDayColumn({
         style={positionedEventStyle(event, column, totalColumns)}
       >
         <EventCard event={event} enableResize hideTopRadius={!!event.travelDuration} hourHeight={hourHeight} />
-      </motion.div>
-    )
-  }
-
-  // Timed tasks are anchored on the timeline at their due time as compact
-  // pills (the same card used in the month/day task lists), layered above
-  // events so they stay clickable. They carry no duration, so the pill sizes
-  // to the card's own height rather than a duration-based block.
-  for (const task of timedTasks) {
-    elements.push(
-      <motion.div
-        key={task.id}
-        variants={eventCardVariants}
-        initial={cardInitial}
-        animate="animate"
-        exit={skipExit(task.id) ? undefined : cardExit}
-        transition={enterTransition}
-        className={`${styles.eventPositioned} ${styles.taskPositioned}`}
-        style={taskPillStyle(task)}
-      >
-        <EventCard event={task} compact monthView enableResize={false} />
       </motion.div>
     )
   }

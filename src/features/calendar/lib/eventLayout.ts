@@ -71,24 +71,43 @@ export function transparentEventStyle(
 }
 
 /**
+ * Minutes of vertical space a timed-task pill visually occupies. Tasks are a
+ * point in time (`start === end`), so `positionEvents` — which uses a strict
+ * overlap test — would never see them collide and would stack them all in
+ * column 0. Giving each pill this nominal duration for *layout only* lets
+ * tasks share the column algorithm with events, so overlapping tasks (and a
+ * task overlapping an event) land side by side.
+ */
+export const TASK_PILL_LAYOUT_MINUTES = 30
+
+/**
  * CSS properties for a timed task rendered as a compact pill on the timeline.
  *
- * Tasks are a point in time, not a range (`start === end`), so they get no
- * duration-based height — only a `top` anchored at the due time. The pill is
- * left height-less on purpose so the compact card sizes to its own content
- * (avoiding the 0-height clip a duration-based block would produce). Horizontal
- * insets come from the shared `.eventPositioned` class.
+ * Anchored by `top` at the due time and sized horizontally by the same
+ * column/totalColumns split events use. Deliberately carries no `height`: the
+ * compact card sizes to its own content, avoiding the 0-height clip a
+ * duration-based block would produce for a zero-length task.
  */
 export function taskPillStyle(
   task: CalendarEvent,
+  column: number,
+  totalColumns: number,
 ): {
   top: string
+  left: string
+  width: string
 } {
   const due = new Date(task.start)
   const hour = due.getHours()
   const minutes = due.getMinutes()
+
+  const leftPercent = (column / totalColumns) * 100 + GAP / 2
+  const widthPercent = 100 / totalColumns - GAP
+
   return {
     top: `calc(var(--hour-height, 60px) * ${hour + minutes / 60})`,
+    left: `${leftPercent}%`,
+    width: `${widthPercent}%`,
   }
 }
 

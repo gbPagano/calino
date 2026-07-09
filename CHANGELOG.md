@@ -24,6 +24,11 @@ Tasks now appear on the Week and Day timelines, dragging events is precise to th
 - **Task checkboxes are tappable** — the checkbox on a task pill was a 15px target sitting under the card's drag layer, so taps usually hit the event body and opened it instead of ticking the task. The tap area is now roughly 27px and sits above the drag layer, while staying small enough not to catch a stacked neighbour's checkbox. ([#25](https://github.com/Ivan-Malinovski/calino/issues/25))
 - **Multi-day events stay on one line across their span** — a multi-day event's pill could step up or down a row partway through its span, because each day cell sorted its events independently. Spanning events are now assigned a lane once and hold that row in every cell they cover. The `+N more` count is unaffected.
 - **Tasks in Week view render as cards** — timed task cards were being positioned in the time grid as though they were events; they now render like they do in Month view.
+- **Recurring all-day events are clickable in month view** — clicking a recurring all-day card in /month used to do nothing: the card *looked* clickable (pointer cursor, no drag handle) and the click reached the card's handler, but the preview popup never appeared. All-day instance ids are encoded as `master-2024-03-15`, while `extractOriginalEventId` only matched the full-timestamp form used for timed events, so the preview lookup silently resolved to undefined. The lookup now also matches the date-only suffix, and the click opens the preview → modal as expected.
+
+### Technical
+
+- **Build works again** — `CalDAVConnectionError` was using TypeScript's parameter-property syntax (`public readonly hint?: string` in the constructor) which the tsconfig's `erasableSyntaxOnly` flag rejects, so `pnpm build` (and the release script) failed with TS1294 on this file. The field is now declared explicitly and assigned in the constructor. Runtime shape is unchanged; existing tests still pass.
 
 ## [0.20.1] - 2026-07-08
 

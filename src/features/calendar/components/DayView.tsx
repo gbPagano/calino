@@ -14,7 +14,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { format, startOfDay, endOfDay, parseISO, isToday, addDays } from 'date-fns'
+import { format, startOfDay, endOfDay, parseISO, isToday, addDays, addMinutes } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
@@ -26,9 +26,15 @@ import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { useWindowHeight } from '@/hooks/useWindowHeight'
 import { hapticIfEnabled } from '@/lib/haptics'
-import { formatTravelDuration } from '@/lib/events'
+import { formatTravelDuration, hasDueTime } from '@/lib/events'
 import { positionEvents } from '@/lib/eventPositioning'
-import { positionedEventStyle, transparentEventStyle, travelBarStyle } from '../lib/eventLayout'
+import {
+  positionedEventStyle,
+  transparentEventStyle,
+  travelBarStyle,
+  taskPillStyle,
+  TASK_PILL_LAYOUT_MINUTES,
+} from '../lib/eventLayout'
 import { eventCardVariants } from '../lib/eventAnimations'
 import { pad2 } from '@/lib/datetime'
 import { HOURS } from '@/lib/hours'
@@ -245,6 +251,11 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
           : format(parseISO(e.start), 'yyyy-MM-dd') === dateKey)
     )
   }, [date, events, calendars])
+
+  // Tasks with a due time are anchored on the timeline as pills (matching week
+  // view); the rest stay in the header list.
+  const timedTasks = useMemo(() => dayTasks.filter((t) => hasDueTime(t)), [dayTasks])
+  const untimedTasks = useMemo(() => dayTasks.filter((t) => !hasDueTime(t)), [dayTasks])
 
   const [isScrolled, setIsScrolled] = useState(false)
   const lastDateRef = useRef(date.toISOString())
@@ -516,9 +527,42 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
       )
     }
 
-    const positionedEvents = positionEvents(sortedEvents)
+    // Timed tasks share the event column algorithm so overlapping items sit
+    // side by side. They have zero duration, so `positionEvents` (strict
+    // overlap test) would never collide them — give each a nominal interval
+    // matching the pill's visual footprint for layout only, and render the
+    // original task.
+    const taskById = new Map(timedTasks.map((task) => [task.id, task]))
+    const taskLayoutItems = timedTasks.map((task) => ({
+      ...task,
+      end: format(
+        addMinutes(parseISO(task.start), TASK_PILL_LAYOUT_MINUTES),
+        "yyyy-MM-dd'T'HH:mm:ss"
+      ),
+    }))
+
+    const positionedEvents = positionEvents([...sortedEvents, ...taskLayoutItems])
 
     for (const { event, column, totalColumns } of positionedEvents) {
+      const task = taskById.get(event.id)
+      if (task) {
+        elements.push(
+          <motion.div
+            key={task.id}
+            variants={eventCardVariants}
+            initial={cardInitial}
+            animate="animate"
+            exit={skipExit(task.id) ? undefined : cardExit}
+            transition={enterTransition}
+            className={`${styles.eventPositioned} ${styles.taskPositioned}`}
+            style={taskPillStyle(task, column, totalColumns)}
+          >
+            <EventCard event={task} compact monthView enableResize={false} hideDueTime />
+          </motion.div>
+        )
+        continue
+      }
+
       const eventColor = getEventColor(event, { categories: [], calendars, useCategoryColors: false })
       const style = positionedEventStyle(event, column, totalColumns)
 
@@ -613,10 +657,10 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
                 ))}
               </div>
             )}
-            {dayTasks.length > 0 && (
+            {untimedTasks.length > 0 && (
               <div className={styles.allDayEventsInHeader}>
-                {dayTasks.map((task) => (
-                  <EventCard key={task.id} event={task} compact monthView enableResize={false} hideDueTime />
+                {untimedTasks.map((task) => (
+                  <EventCard key={task.id} event={task} compact monthView enableResize={false} />
                 ))}
               </div>
             )}

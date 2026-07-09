@@ -204,6 +204,15 @@
   border-radius: var(--radius-sm);
 }
 
+/* Timed tasks anchored on the timeline. No inline height — the compact card
+   sizes itself. Tasks share the event column layout, so they sit beside rather
+   than over events; the raised z-index only guards the pill's checkbox against
+   a taller neighbour whose block extends past the pill's nominal slot. */
+.taskPositioned {
+  height: auto;
+  z-index: 3;
+}
+
 .selectionOverlay {
   position: absolute;
   left: 2px;

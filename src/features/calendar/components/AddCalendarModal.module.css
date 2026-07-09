@@ -213,11 +213,18 @@
   cursor: pointer;
   transition: all 0.15s ease;
   border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .buttonPrimary {
   background: var(--color-accent);
   color: var(--color-bg, #ffffff);
+  /* Reserve the width of the "Saving…" + spinner label so the button doesn't
+     jitter wider when the submit starts. */
+  min-width: 130px;
 }
 
 .buttonPrimary:hover {
@@ -229,6 +236,36 @@
   cursor: not-allowed;
 }
 
+/* Mid-save the button stays at full opacity — the spinner reads as "working",
+   where the :disabled fade would read as "broken". */
+.button[aria-busy='true'] {
+  opacity: 1;
+  cursor: progress;
+  pointer-events: none;
+}
+
+.buttonSpinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: buttonSpin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes buttonSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buttonSpinner {
+    animation-duration: 3s;
+  }
+}
+
 .buttonSecondary {
   background: var(--color-surface, #ffffff);
   color: var(--color-accent);
@@ -237,6 +274,11 @@
 
 .buttonSecondary:hover {
   background: var(--color-bg-hover, #f1f3f4);
+}
+
+.buttonSecondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .colorGrid {

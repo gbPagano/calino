@@ -5,7 +5,8 @@ import type { CalendarEvent } from '@/types'
 import { showBrokenEventsNotification, showDuplicateUidNotification } from '@/lib/toast'
 import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
 import { createCalDAVClient } from '../client/CalDAVClient'
-import { testConnection, discoverServerUrl, probeConnection, expandProviderUrl, type ProbeResult } from '../client/discovery'
+import { probeConnection, expandProviderUrl, type ProbeResult } from '../client/discovery'
+import { CalDAVConnectionError } from '../client/errors'
 import { saveCredentials, getCredentialById, deleteCredential, updateCredential } from '../client/credentials'
 import { parseICALData } from '../adapter/iCalendarAdapter'
 import { detectUidCollisions, type ParsedWithHref } from '../sync/detectUidCollisions'
@@ -343,32 +344,20 @@ export function useCalDAV(): UseCalDAVReturn {
       useCalDAVSyncStore.getState().setStatus('syncing')
 
       try {
-        console.log('[CalDAV] addAccount: discovering server...', serverUrl)
-        let discoveredUrl = await discoverServerUrl(serverUrl, proxyUrl ?? undefined)
-        console.log('[CalDAV] addAccount: discovered URL:', discoveredUrl)
+        console.log('[CalDAV] addAccount: probing server...', serverUrl)
+        // probeConnection handles discovery, the PROPFIND, and the base-URL
+        // fallback in one pass, and reports *why* a failure happened.
+        const probe = await probeConnection(serverUrl, username, password, proxyUrl)
+        console.log('[CalDAV] addAccount: probe result:', probe.ok, probe.status ?? '')
 
-        let connected = await testConnection(discoveredUrl, { username, password }, proxyUrl)
-        console.log('[CalDAV] addAccount: testConnection result:', connected)
-
-        // Fallback: if the discovered URL fails, try the original base URL.
-        // This handles cases like Radicale where the well-known redirect chain
-        // ends at the web UI (/.web/) instead of the CalDAV endpoint (/).
-        if (!connected && discoveredUrl !== serverUrl) {
-          const normalizedBase = serverUrl.replace(/\/$/, '')
-          if (discoveredUrl !== normalizedBase) {
-            console.log('[CalDAV] addAccount: discovered URL failed, trying base URL:', normalizedBase)
-            connected = await testConnection(normalizedBase, { username, password }, proxyUrl)
-            console.log('[CalDAV] addAccount: base URL testConnection result:', connected)
-            if (connected) {
-              // Use the base URL instead of the discovered URL
-              discoveredUrl = normalizedBase
-            }
-          }
+        if (!probe.ok) {
+          throw new CalDAVConnectionError(
+            probe.error ?? 'Failed to connect to server. Please check your credentials.',
+            probe.hint
+          )
         }
 
-        if (!connected) {
-          throw new Error('Failed to connect to server. Please check your credentials.')
-        }
+        const discoveredUrl = probe.resolvedUrl ?? serverUrl.replace(/\/$/, '')
 
         const credential = await saveCredentials({
           serverUrl: discoveredUrl,

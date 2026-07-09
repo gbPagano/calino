@@ -131,6 +131,12 @@ describe('useCalDAV', () => {
     // Discovery defaults
     mockDiscovery.discoverServerUrl.mockResolvedValue('https://caldav.example.com')
     mockDiscovery.testConnection.mockResolvedValue(true)
+    mockDiscovery.expandProviderUrl.mockReturnValue(null)
+    mockDiscovery.probeConnection.mockResolvedValue({
+      ok: true,
+      status: 207,
+      resolvedUrl: 'https://caldav.example.com',
+    })
     mockCredentials.saveCredentials.mockReturnValue({
       id: 'cred-1',
       serverUrl: '',
@@ -952,6 +958,51 @@ describe('useCalDAV', () => {
   })
 
   // -----------------------------------------------------------------------
+  // addAccount — probes once, and carries the probe's hint on failure
+  // -----------------------------------------------------------------------
+  describe('addAccount', () => {
+    it('saves the credential against the probe-resolved URL', async () => {
+      mockDiscovery.probeConnection.mockResolvedValue({
+        ok: true,
+        status: 207,
+        resolvedUrl: 'https://caldav.example.com/dav.php',
+      })
+      mockAccountStorage.saveAccount.mockReturnValue(mockAccount)
+
+      const { result } = renderHook(() => useCalDAV())
+
+      await act(async () => {
+        await result.current.addAccount('https://caldav.example.com', 'user', 'pw', 'Acct')
+      })
+
+      // Probed exactly once — no separate pre-flight test.
+      expect(mockDiscovery.probeConnection).toHaveBeenCalledTimes(1)
+      expect(mockCredentials.saveCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({ serverUrl: 'https://caldav.example.com/dav.php' })
+      )
+    })
+
+    it('throws a CalDAVConnectionError carrying the probe hint', async () => {
+      mockDiscovery.probeConnection.mockResolvedValue({
+        ok: false,
+        status: 401,
+        error: 'Server returned status 401',
+        hint: 'Needs an app-specific password',
+      })
+
+      const { result } = renderHook(() => useCalDAV())
+
+      await act(async () => {
+        await expect(
+          result.current.addAccount('https://caldav.example.com', 'user', 'bad', 'Acct')
+        ).rejects.toThrow('Server returned status 401')
+      })
+
+      expect(mockCredentials.saveCredentials).not.toHaveBeenCalled()
+    })
+  })
+
+  // -----------------------------------------------------------------------
   // updateAccount / testAccount  (issue #24)
   // -----------------------------------------------------------------------
   describe('updateAccount', () => {
@@ -971,15 +1022,6 @@ describe('useCalDAV', () => {
       await waitFor(() => expect(rendered.result.current.accounts.length).toBe(1))
       return rendered
     }
-
-    beforeEach(() => {
-      mockDiscovery.expandProviderUrl.mockReturnValue(null)
-      mockDiscovery.probeConnection.mockResolvedValue({
-        ok: true,
-        status: 207,
-        resolvedUrl: 'https://caldav.example.com',
-      })
-    })
 
     it('persists nothing when the probe fails', async () => {
       mockDiscovery.probeConnection.mockResolvedValue({

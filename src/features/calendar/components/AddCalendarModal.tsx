@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import { useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
+import { CalDAVConnectionError } from '@/features/caldav/client/errors'
 import { probeConnection, suggestCalDAVUrl, expandProviderUrl } from '@/features/caldav/client/discovery'
 import { getCredentialById } from '@/features/caldav/client/credentials'
 import type { CalDAVAccount } from '@/features/caldav/types'
@@ -34,6 +35,7 @@ export function AddCalendarModal({
   const { addAccount, updateAccount } = useCalDAV()
   const isEdit = mode === 'edit' && account !== undefined
   const formRef = useRef<HTMLFormElement>(null)
+  const isSavingRef = useRef(false)
 
   const doClose = useCallback((): void => {
     setConnectionStatus('idle')
@@ -117,8 +119,26 @@ export function AddCalendarModal({
     await handleTestConnection(expanded || serverUrl, username, effectivePassword, proxyUrl, serverUrl)
   }
 
+  /** Surface a failed add/edit, preferring the probe's hint over a guess. */
+  const showFailure = (error: unknown, serverUrl: string, fallback: string): void => {
+    setConnectionStatus('error')
+    setConnectionError(error instanceof Error ? error.message : fallback)
+    const hint =
+      (error instanceof CalDAVConnectionError ? error.hint : undefined) ??
+      suggestCalDAVUrl(serverUrl) ??
+      undefined
+    if (hint) {
+      setConnectionHint(hint)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
+
+    // Synchronous re-entrancy guard. React state lands a tick too late to stop
+    // a double-tap from firing two submits, which would add the account twice.
+    if (isSavingRef.current) return
+
     const { serverUrl, username, password, accountName, proxyUrl } = readForm(e.currentTarget)
 
     if (isEdit) {
@@ -133,9 +153,16 @@ export function AddCalendarModal({
       ) {
         return
       }
+    }
 
-      setIsSaving(true)
-      try {
+    isSavingRef.current = true
+    setIsSaving(true)
+    setConnectionStatus('idle')
+    setConnectionError('')
+    setConnectionHint('')
+
+    try {
+      if (isEdit) {
         await updateAccount(account.id, {
           name: accountName,
           serverUrl,
@@ -143,41 +170,23 @@ export function AddCalendarModal({
           password: password || undefined,
           proxyUrl: proxyUrl ?? null,
         })
-        requestClose()
-      } catch (error) {
-        setConnectionStatus('error')
-        setConnectionError(
-          error instanceof Error ? error.message : 'Failed to update account. Please try again.'
-        )
-        const hint = suggestCalDAVUrl(serverUrl)
-        if (hint) {
-          setConnectionHint(hint)
-        }
-      } finally {
-        setIsSaving(false)
+      } else {
+        // No pre-flight test: addAccount probes as its first step, so testing
+        // here would just double the round-trips before anything is saved.
+        // Expand known provider URLs (e.g. Fastmail base → principal URL).
+        const expanded = expandProviderUrl(serverUrl, username)
+        await addAccount(expanded || serverUrl, username, password, accountName, proxyUrl)
       }
-      return
-    }
-
-    // Expand known provider URLs (e.g. Fastmail base → principal URL)
-    const expanded = expandProviderUrl(serverUrl, username)
-    const effectiveUrl = expanded || serverUrl
-
-    const success = await handleTestConnection(effectiveUrl, username, password, proxyUrl, serverUrl)
-    if (!success) {
-      return
-    }
-
-    try {
-      await addAccount(effectiveUrl, username, password, accountName, proxyUrl)
       requestClose()
-    } catch {
-      setConnectionStatus('error')
-      setConnectionError('Failed to add account. Please try again.')
-      const hint = suggestCalDAVUrl(serverUrl)
-      if (hint) {
-        setConnectionHint(hint)
-      }
+    } catch (error) {
+      showFailure(
+        error,
+        serverUrl,
+        isEdit ? 'Failed to update account. Please try again.' : 'Failed to add account. Please try again.'
+      )
+    } finally {
+      isSavingRef.current = false
+      setIsSaving(false)
     }
   }
 
@@ -320,6 +329,7 @@ export function AddCalendarModal({
               type="button"
               className={`${styles.button} ${styles.buttonSecondary}`}
               onClick={requestClose}
+              disabled={isSaving}
             >
               Cancel
             </button>
@@ -331,21 +341,24 @@ export function AddCalendarModal({
                 disabled={isTesting || isSaving}
                 data-action="test-connection"
               >
-                {isTesting ? 'Testing...' : 'Test'}
+                {isTesting ? 'Testing…' : 'Test'}
               </button>
             )}
             <button
               type="submit"
               className={`${styles.button} ${styles.buttonPrimary}`}
               disabled={isTesting || isSaving}
+              aria-busy={isSaving}
+              data-component="modal-save"
             >
-              {isEdit
-                ? isSaving
-                  ? 'Saving...'
-                  : 'Save Changes'
-                : isTesting
-                  ? 'Testing...'
-                  : 'Add Calendar'}
+              {isSaving && <span className={styles.buttonSpinner} aria-hidden="true" />}
+              <span>
+                {isSaving
+                  ? 'Saving…'
+                  : isEdit
+                    ? 'Save Changes'
+                    : 'Add Calendar'}
+              </span>
             </button>
           </div>
         </form>

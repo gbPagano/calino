@@ -8,8 +8,13 @@ Tasks now appear on the Week and Day timelines, dragging events is precise to th
 
 ### Added
 
+- **Test connection and edit your CalDAV accounts** — each account in Settings → Sync now has a **Test** button that checks the connection and reports what went wrong (a wrong password, a wrong URL, or a server that won't allow the request), and an **Edit** button to change the account name, server URL, proxy, username, or password without disconnecting and starting over. Leave the password blank to keep the current one. If you change the server URL or username, Calino re-fetches the calendars for the new account, keeping the colors and visibility of any that carry over. ([#24](https://github.com/Ivan-Malinovski/calino/issues/24))
 - **Timed tasks show up on the timeline** — a task with a due time now renders as a pill at that time in Week and Day view, instead of only living in the all-day row. Tasks due at the same time sit side-by-side rather than stacking on top of each other, and the due time is no longer repeated on the card itself now that its position says it.
 - **15-minute drag precision** — dropping an event now snaps to the nearest quarter hour, so an event can finally land on 9:45–10:45. Previously a drop resolved only to the hour of the cell you released it over. While you drag, a preview band marks exactly where the event will land, sized to its real duration. Moving an event that started off-grid cleans up its start time.
+
+### Changed
+
+- **Adding a calendar is faster and can't double-add** — the Add Calendar dialog used to test the connection first and then connect, doing the same round-trip twice before anything was saved. It now just connects, reporting the same errors and hints if it can't. While it works, the button shows a spinner and "Saving…", so a double-tap can no longer add the same calendar twice.
 
 ### Fixed
 

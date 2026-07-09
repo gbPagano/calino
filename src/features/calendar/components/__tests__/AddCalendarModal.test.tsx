@@ -1,13 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AddCalendarModal } from '../AddCalendarModal'
+import { CalDAVConnectionError } from '@/features/caldav/client/errors'
 
 const mockAddAccount = vi.fn().mockResolvedValue(undefined)
+const mockUpdateAccount = vi.fn().mockResolvedValue(undefined)
 
 vi.mock('@/features/caldav/hooks/useCalDAV', () => ({
   useCalDAV: () => ({
     addAccount: mockAddAccount,
+    updateAccount: mockUpdateAccount,
   }),
 }))
 
@@ -174,86 +177,65 @@ describe('AddCalendarModal', () => {
     vi.unstubAllGlobals()
   })
 
-  it('shows error message on connection failure', async () => {
+  it('surfaces the error and hint when addAccount fails to connect', async () => {
     const user = userEvent.setup()
 
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 401,
-      })
+    // The modal no longer probes ahead of the submit — addAccount does the
+    // single probe and throws with the reason and any provider guidance.
+    mockAddAccount.mockRejectedValue(
+      new CalDAVConnectionError('Server returned status 401', 'Needs an app-specific password')
     )
 
     render(<AddCalendarModal isOpen={true} onClose={() => {}} />)
 
-    const serverUrlInput = screen.getByLabelText(/server url/i)
-    await user.type(serverUrlInput, 'https://bad.example.com')
-
-    const usernameInput = screen.getByLabelText(/username/i)
-    await user.type(usernameInput, 'baduser')
-
-    const passwordInput = screen.getByLabelText(/password/i)
-    await user.type(passwordInput, 'wrongpass')
+    await user.type(screen.getByLabelText(/server url/i), 'https://bad.example.com')
+    await user.type(screen.getByLabelText(/username/i), 'baduser')
+    await user.type(screen.getByLabelText(/password/i), 'wrongpass')
 
     await user.click(screen.getByRole('button', { name: /add calendar/i }))
 
     await waitFor(() => {
       expect(screen.getByText(/401/i)).toBeInTheDocument()
     })
+    expect(screen.getByText(/app-specific password/i)).toBeInTheDocument()
 
-    expect(mockAddAccount).not.toHaveBeenCalled()
-
-    vi.unstubAllGlobals()
+    // The modal stays open so the user can correct the credentials.
+    expect(screen.getByText('Add CalDAV Calendar')).toBeInTheDocument()
   })
 
-  it('disables submit button while testing', async () => {
+  it('shows a saving spinner and blocks a double-submit while addAccount is in flight', async () => {
     const user = userEvent.setup()
 
-    const fetchCalls: ((value: Response) => void)[] = []
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            fetchCalls.push(resolve)
-          })
-      )
+    let resolveAdd: () => void = () => {}
+    mockAddAccount.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveAdd = resolve
+        })
     )
 
     render(<AddCalendarModal isOpen={true} onClose={() => {}} />)
 
-    const serverUrlInput = screen.getByLabelText(/server url/i)
-    await user.type(serverUrlInput, 'https://caldav.example.com')
+    await user.type(screen.getByLabelText(/server url/i), 'https://caldav.example.com')
+    await user.type(screen.getByLabelText(/username/i), 'testuser')
+    await user.type(screen.getByLabelText(/password/i), 'password123')
 
-    const usernameInput = screen.getByLabelText(/username/i)
-    await user.type(usernameInput, 'testuser')
+    const form = screen.getByRole('dialog').querySelector('form') as HTMLFormElement
 
-    const passwordInput = screen.getByLabelText(/password/i)
-    await user.type(passwordInput, 'password123')
+    // Two submits in the same tick, before React can re-render the button as
+    // disabled — this is what a double-tap actually looks like. Only the
+    // synchronous ref guard stops the second one.
+    fireEvent.submit(form)
+    fireEvent.submit(form)
 
-    const submitButton = screen.getByRole('button', { name: /add calendar/i })
-    await user.click(submitButton)
+    expect(mockAddAccount).toHaveBeenCalledTimes(1)
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /testing/i })).toBeDisabled()
-    })
+    const savingButton = await screen.findByRole('button', { name: /saving/i })
+    expect(savingButton).toBeDisabled()
+    expect(savingButton).toHaveAttribute('aria-busy', 'true')
 
-    // Resolve discovery probe first, then wait for PROPFIND to be called
-    fetchCalls[0]({ ok: true, status: 200, url: 'https://caldav.example.com/.well-known/caldav', headers: new Headers() } as Response)
-
-    await waitFor(() => {
-      expect(fetchCalls.length).toBe(2)
-    })
-
-    // Now resolve the PROPFIND
-    fetchCalls[1]({ ok: true, status: 207 } as Response)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /add calendar/i })).toBeEnabled()
-    })
-
-    vi.unstubAllGlobals()
+    resolveAdd()
+    await waitFor(() => expect(mockAddAccount).toHaveBeenCalledTimes(1))
   })
 
   it('renders hint text for server URL', () => {

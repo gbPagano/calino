@@ -298,6 +298,105 @@ export async function testConnection(
   }
 }
 
+export interface ProbeResult {
+  ok: boolean
+  /** HTTP status of the last attempt. Absent when the request never completed. */
+  status?: number
+  error?: string
+  /** Provider-specific guidance for the failure, when we have any. */
+  hint?: string
+  /** The URL that actually answered. Only set when `ok`. */
+  resolvedUrl?: string
+}
+
+/**
+ * Probe a CalDAV endpoint with the given credentials and report *why* it failed.
+ *
+ * Unlike `testConnection`, which answers a bare yes/no via tsdav, this issues a
+ * raw PROPFIND so the HTTP status survives, letting callers distinguish a bad
+ * password (401) from a bad URL (404) from a CORS wall (network throw).
+ *
+ * `originalUrl` is the URL the user actually typed, before `expandProviderUrl`
+ * rewrote it; hints are keyed off that so we suggest the provider they meant.
+ */
+export async function probeConnection(
+  serverUrl: string,
+  username: string,
+  password: string,
+  proxyUrl?: string | null,
+  originalUrl?: string
+): Promise<ProbeResult> {
+  const hintUrl = originalUrl || serverUrl
+
+  try {
+    let baseUrl = await discoverServerUrl(serverUrl, proxyUrl ?? undefined)
+
+    const attempt = async (url: string): Promise<{ ok: boolean; status: number }> => {
+      const init: RequestInit = {
+        method: 'PROPFIND',
+        headers: {
+          Authorization: `Basic ${btoa(`${username}:${password}`)}`,
+          'Content-Type': 'application/xml',
+          Depth: '0',
+        },
+        body: `<?xml version="1.0" encoding="UTF-8"?>
+            <d:propfind xmlns:d="DAV:">
+              <d:prop>
+                <d:displayname/>
+              </d:prop>
+            </d:propfind>`,
+      }
+
+      const response = proxyUrl
+        ? await proxyFetch(proxyUrl, url, init)
+        : await fetch(url, init)
+
+      // 207 Multi-Status is the success case for PROPFIND.
+      return { ok: response.ok || response.status === 207, status: response.status }
+    }
+
+    let result = await attempt(baseUrl)
+
+    // Fallback: if the discovered URL fails, try the original base URL.
+    // This handles cases like Radicale where the well-known redirect chain
+    // ends at the web UI (/.web/) instead of the CalDAV endpoint (/).
+    if (!result.ok) {
+      const normalizedBase = serverUrl.replace(/\/$/, '')
+      if (baseUrl !== normalizedBase) {
+        console.log('[CalDAV] Probe: discovered URL failed (' + result.status + '), trying base URL:', normalizedBase)
+        const fallback = await attempt(normalizedBase)
+        if (fallback.ok) {
+          baseUrl = normalizedBase
+          result = fallback
+        }
+      }
+    }
+
+    if (result.ok) {
+      return { ok: true, status: result.status, resolvedUrl: baseUrl }
+    }
+
+    // Auth failures (401/403) usually mean an app-specific password is
+    // needed, not a wrong URL — prefer the auth hint in that case.
+    const authFailed = result.status === 401 || result.status === 403
+    const hint = (authFailed && suggestAuthHint(hintUrl)) || suggestCalDAVUrl(hintUrl)
+
+    return {
+      ok: false,
+      status: result.status,
+      error: `Server returned status ${result.status}`,
+      hint: hint ?? undefined,
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      ok: false,
+      error: `Connection failed: ${errorMsg}. This may be a CORS issue - the server must allow cross-origin requests.`,
+      hint: suggestCalDAVUrl(hintUrl) ?? undefined,
+    }
+  }
+}
+
 function createProxyFetch(proxyUrl: string): typeof fetch {
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     let url: string

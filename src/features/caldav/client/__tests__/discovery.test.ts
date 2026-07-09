@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { discoverServerUrl, suggestCalDAVUrl, suggestAuthHint, expandProviderUrl } from '../discovery'
+import { discoverServerUrl, suggestCalDAVUrl, suggestAuthHint, expandProviderUrl, probeConnection } from '../discovery'
 
 describe('discovery', () => {
   beforeEach(() => {
@@ -532,6 +532,125 @@ describe('discovery', () => {
     it('returns null for invalid URLs', () => {
       const result = expandProviderUrl('not-a-url', 'user@example.com')
       expect(result).toBeNull()
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // probeConnection — reports *why* a connection failed, not just that it did
+  // -----------------------------------------------------------------------
+  describe('probeConnection', () => {
+    /**
+     * Stub fetch so the well-known GET and the PROPFIND can be answered
+     * independently. `propfind` is keyed by the URL being probed.
+     */
+    const stubFetch = (opts: {
+      wellKnownUrl?: string
+      propfind: (url: string) => Partial<Response> | Promise<never>
+    }): void => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init?: RequestInit) => {
+          if (init?.method === 'PROPFIND') {
+            return opts.propfind(url) as Response
+          }
+          // well-known discovery GET
+          return {
+            ok: true,
+            status: 200,
+            url: opts.wellKnownUrl ?? url,
+            headers: new Headers(),
+          } as unknown as Response
+        })
+      )
+    }
+
+    it('treats 207 Multi-Status as success and reports the resolved URL', async () => {
+      stubFetch({
+        wellKnownUrl: 'https://caldav.example.com/dav.php',
+        propfind: () => ({ ok: false, status: 207 }),
+      })
+
+      const result = await probeConnection('https://caldav.example.com', 'user', 'pw')
+
+      expect(result.ok).toBe(true)
+      expect(result.status).toBe(207)
+      expect(result.resolvedUrl).toBe('https://caldav.example.com/dav.php')
+    })
+
+    it('prefers the auth hint over the URL hint on 401', async () => {
+      // Returning the well-known URL itself means "no redirect" → falls back to base.
+      stubFetch({
+        wellKnownUrl: 'https://caldav.fastmail.com/.well-known/caldav',
+        propfind: () => ({ ok: false, status: 401 }),
+      })
+
+      const result = await probeConnection('https://caldav.fastmail.com', 'user', 'pw')
+
+      expect(result.ok).toBe(false)
+      expect(result.status).toBe(401)
+      expect(result.error).toBe('Server returned status 401')
+      expect(result.hint).toContain('app-specific password')
+    })
+
+    it('reports the status with no hint for an unknown provider', async () => {
+      stubFetch({
+        wellKnownUrl: 'https://caldav.example.com/.well-known/caldav',
+        propfind: () => ({ ok: false, status: 404 }),
+      })
+
+      const result = await probeConnection('https://caldav.example.com', 'user', 'pw')
+
+      expect(result.ok).toBe(false)
+      expect(result.status).toBe(404)
+      expect(result.error).toBe('Server returned status 404')
+      expect(result.hint).toBeUndefined()
+    })
+
+    it('falls back to the base URL when the discovered URL fails', async () => {
+      // Radicale case: well-known lands on the web UI, which rejects PROPFIND.
+      stubFetch({
+        wellKnownUrl: 'https://radicale.example.com/.web/',
+        propfind: (url) =>
+          url === 'https://radicale.example.com'
+            ? { ok: false, status: 207 }
+            : { ok: false, status: 404 },
+      })
+
+      const result = await probeConnection('https://radicale.example.com', 'user', 'pw')
+
+      expect(result.ok).toBe(true)
+      expect(result.resolvedUrl).toBe('https://radicale.example.com')
+    })
+
+    it('surfaces a CORS explanation when the request never completes', async () => {
+      stubFetch({
+        wellKnownUrl: 'https://caldav.example.com/.well-known/caldav',
+        propfind: () => Promise.reject(new Error('Failed to fetch')),
+      })
+
+      const result = await probeConnection('https://caldav.example.com', 'user', 'pw')
+
+      expect(result.ok).toBe(false)
+      expect(result.status).toBeUndefined()
+      expect(result.error).toContain('Failed to fetch')
+      expect(result.error).toContain('CORS')
+    })
+
+    it('keys hints off the URL the user typed, not the expanded one', async () => {
+      stubFetch({
+        wellKnownUrl: 'https://caldav.fastmail.com/.well-known/caldav',
+        propfind: () => ({ ok: false, status: 403 }),
+      })
+
+      const result = await probeConnection(
+        'https://caldav.fastmail.com/dav/principals/user/a%40fastmail.com/',
+        'a@fastmail.com',
+        'pw',
+        undefined,
+        'https://fastmail.com'
+      )
+
+      expect(result.hint).toContain('app-specific password')
     })
   })
 })

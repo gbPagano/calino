@@ -28,11 +28,14 @@ import { useCalDAV } from '../useCalDAV'
 type MockDiscovery = typeof discovery & {
   discoverServerUrl: ReturnType<typeof vi.fn>
   testConnection: ReturnType<typeof vi.fn>
+  probeConnection: ReturnType<typeof vi.fn>
+  expandProviderUrl: ReturnType<typeof vi.fn>
 }
 type MockCredentials = typeof credentials & {
   saveCredentials: ReturnType<typeof vi.fn>
   getCredentialById: ReturnType<typeof vi.fn>
   deleteCredential: ReturnType<typeof vi.fn>
+  updateCredential: ReturnType<typeof vi.fn>
 }
 type MockAccountStorage = typeof accountStorage & {
   getAllAccounts: ReturnType<typeof vi.fn>
@@ -40,6 +43,7 @@ type MockAccountStorage = typeof accountStorage & {
   getPendingChanges: ReturnType<typeof vi.fn>
   saveAccount: ReturnType<typeof vi.fn>
   deleteAccount: ReturnType<typeof vi.fn>
+  updateAccount: ReturnType<typeof vi.fn>
   getAccountById: ReturnType<typeof vi.fn>
   getCalendarsByAccountId: ReturnType<typeof vi.fn>
   updateAccountLastSync: ReturnType<typeof vi.fn>
@@ -944,6 +948,195 @@ describe('useCalDAV', () => {
       expect(mockCredentials.deleteCredential).toHaveBeenCalledWith('cred-1')
       expect(mockAccountStorage.deleteCalendarsByAccountId).toHaveBeenCalledWith('acc-1')
       expect(mockAccountStorage.deleteAccount).toHaveBeenCalledWith('acc-1')
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // updateAccount / testAccount  (issue #24)
+  // -----------------------------------------------------------------------
+  describe('updateAccount', () => {
+    /** Mount the hook with one existing account already loaded. */
+    const renderWithAccount = async (): Promise<ReturnType<typeof renderHook<ReturnType<typeof useCalDAV>, unknown>>> => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+      mockAccountStorage.getAccountById.mockReturnValue(mockAccount)
+      mockCredentials.getCredentialById.mockResolvedValue({
+        id: 'cred-1',
+        serverUrl: 'https://caldav.example.com',
+        username: 'user',
+        password: 'stored-pw',
+      })
+
+      const rendered = renderHook(() => useCalDAV())
+      await waitFor(() => expect(rendered.result.current.accounts.length).toBe(1))
+      return rendered
+    }
+
+    beforeEach(() => {
+      mockDiscovery.expandProviderUrl.mockReturnValue(null)
+      mockDiscovery.probeConnection.mockResolvedValue({
+        ok: true,
+        status: 207,
+        resolvedUrl: 'https://caldav.example.com',
+      })
+    })
+
+    it('persists nothing when the probe fails', async () => {
+      mockDiscovery.probeConnection.mockResolvedValue({
+        ok: false,
+        status: 401,
+        error: 'Server returned status 401',
+      })
+      const { result } = await renderWithAccount()
+
+      await act(async () => {
+        await expect(
+          result.current.updateAccount('acc-1', {
+            name: 'Renamed',
+            serverUrl: 'https://caldav.example.com',
+            username: 'user',
+            password: 'wrong-pw',
+          })
+        ).rejects.toThrow('Server returned status 401')
+      })
+
+      expect(mockCredentials.updateCredential).not.toHaveBeenCalled()
+      expect(mockAccountStorage.updateAccount).not.toHaveBeenCalled()
+    })
+
+    it('keeps the stored password when the field is left blank', async () => {
+      const { result } = await renderWithAccount()
+
+      await act(async () => {
+        await result.current.updateAccount('acc-1', {
+          name: 'Renamed',
+          serverUrl: 'https://caldav.example.com',
+          username: 'user',
+        })
+      })
+
+      // The probe still needs a real password — the stored one.
+      expect(mockDiscovery.probeConnection).toHaveBeenCalledWith(
+        'https://caldav.example.com',
+        'user',
+        'stored-pw',
+        null,
+        'https://caldav.example.com'
+      )
+      // ...but nothing is re-encrypted.
+      expect(mockCredentials.updateCredential).toHaveBeenCalledWith(
+        'cred-1',
+        expect.objectContaining({ password: undefined })
+      )
+    })
+
+    it('does not re-fetch calendars for a name-only edit', async () => {
+      const { result } = await renderWithAccount()
+
+      await act(async () => {
+        await result.current.updateAccount('acc-1', {
+          name: 'Renamed',
+          serverUrl: 'https://caldav.example.com',
+          username: 'user',
+        })
+      })
+
+      expect(mockAccountStorage.updateAccount).toHaveBeenCalledWith(
+        'acc-1',
+        expect.objectContaining({ name: 'Renamed' })
+      )
+      // syncAccount creates a client; a name-only edit must not add calendars.
+      expect(mockAccountStorage.saveCalendar).not.toHaveBeenCalled()
+    })
+
+    it('reconciles calendars by url when the username changes', async () => {
+      const survivor = { ...mockCalendar, id: 'cal-1' }
+      const orphan = {
+        ...mockCalendar,
+        id: 'cal-old',
+        url: 'https://caldav.example.com/cal/gone/',
+      }
+      const fresh = {
+        ...mockCalendar,
+        id: 'cal-new',
+        url: 'https://caldav.example.com/cal/new/',
+        name: 'New Calendar',
+      }
+
+      const { result } = await renderWithAccount()
+      mockAccountStorage.getCalendarsByAccountId.mockReturnValue([survivor, orphan])
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([survivor, fresh]),
+        createEvent: vi.fn(),
+        updateEvent: vi.fn(),
+        deleteEvent: vi.fn(),
+      } as unknown as Awaited<ReturnType<typeof CalDAVClientModule.createCalDAVClient>>)
+
+      await act(async () => {
+        await result.current.updateAccount('acc-1', {
+          name: 'Test Account',
+          serverUrl: 'https://caldav.example.com',
+          username: 'different-user',
+          password: 'pw',
+        })
+      })
+
+      // The calendar the new principal no longer has is dropped...
+      expect(mockAccountStorage.deleteCalendar).toHaveBeenCalledWith('cal-old')
+      // ...the new one is added...
+      expect(mockAccountStorage.saveCalendar).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'cal-new', accountId: 'acc-1' })
+      )
+      // ...and the survivor is left alone, so its local color/visibility persist.
+      expect(mockAccountStorage.saveCalendar).not.toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'cal-1' })
+      )
+      expect(mockAccountStorage.deleteCalendar).not.toHaveBeenCalledWith('cal-1')
+    })
+  })
+
+  describe('testAccount', () => {
+    it('probes the stored credentials without persisting anything', async () => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAccountById.mockReturnValue(mockAccount)
+      mockCredentials.getCredentialById.mockResolvedValue({
+        id: 'cred-1',
+        serverUrl: 'https://caldav.example.com',
+        username: 'user',
+        password: 'stored-pw',
+      })
+      mockDiscovery.probeConnection.mockResolvedValue({ ok: true, status: 207 })
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      let probe: Awaited<ReturnType<typeof result.current.testAccount>> | undefined
+      await act(async () => {
+        probe = await result.current.testAccount('acc-1')
+      })
+
+      expect(probe?.ok).toBe(true)
+      expect(mockDiscovery.probeConnection).toHaveBeenCalledWith(
+        'https://caldav.example.com',
+        'user',
+        'stored-pw',
+        null
+      )
+      expect(mockAccountStorage.updateAccount).not.toHaveBeenCalled()
+    })
+
+    it('reports a missing account instead of throwing', async () => {
+      mockAccountStorage.getAccountById.mockReturnValue(undefined)
+
+      const { result } = renderHook(() => useCalDAV())
+
+      let probe: Awaited<ReturnType<typeof result.current.testAccount>> | undefined
+      await act(async () => {
+        probe = await result.current.testAccount('nope')
+      })
+
+      expect(probe).toEqual({ ok: false, error: 'Account not found' })
     })
   })
 

@@ -5,8 +5,8 @@ import type { CalendarEvent } from '@/types'
 import { showBrokenEventsNotification, showDuplicateUidNotification } from '@/lib/toast'
 import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
 import { createCalDAVClient } from '../client/CalDAVClient'
-import { testConnection, discoverServerUrl } from '../client/discovery'
-import { saveCredentials, getCredentialById, deleteCredential } from '../client/credentials'
+import { testConnection, discoverServerUrl, probeConnection, expandProviderUrl, type ProbeResult } from '../client/discovery'
+import { saveCredentials, getCredentialById, deleteCredential, updateCredential } from '../client/credentials'
 import { parseICALData } from '../adapter/iCalendarAdapter'
 import { detectUidCollisions, type ParsedWithHref } from '../sync/detectUidCollisions'
 import { putAttachments } from '@/lib/attachmentStore'
@@ -96,6 +96,18 @@ interface UseCalDAVReturn {
     proxyUrl?: string | null
   ) => Promise<void>
   removeAccount: (accountId: string) => Promise<void>
+  updateAccount: (
+    accountId: string,
+    updates: {
+      name: string
+      serverUrl: string
+      username: string
+      /** Blank/undefined keeps the currently stored password. */
+      password?: string
+      proxyUrl?: string | null
+    }
+  ) => Promise<void>
+  testAccount: (accountId: string) => Promise<ProbeResult>
   syncAccount: (accountId: string) => Promise<void>
   syncAll: () => Promise<void>
   createEvent: (calendarId: string, event: CalendarEvent) => Promise<void>
@@ -906,6 +918,142 @@ export function useCalDAV(): UseCalDAVReturn {
     [conflictResolution]
   )
 
+  /** Probe an existing account's stored credentials. Read-only — persists nothing. */
+  const testAccount = useCallback(async (accountId: string): Promise<ProbeResult> => {
+    const account = storage.getAccountById(accountId)
+    if (!account) {
+      return { ok: false, error: 'Account not found' }
+    }
+    const credential = await getCredentialById(account.credentialId)
+    if (!credential) {
+      return { ok: false, error: 'Credentials not found' }
+    }
+    return probeConnection(
+      account.serverUrl,
+      account.username,
+      credential.password,
+      account.proxyUrl
+    )
+  }, [])
+
+  const updateAccount = useCallback(
+    async (
+      accountId: string,
+      updates: {
+        name: string
+        serverUrl: string
+        username: string
+        password?: string
+        proxyUrl?: string | null
+      }
+    ): Promise<void> => {
+      const account = storage.getAccountById(accountId)
+      if (!account) {
+        return
+      }
+      const credential = await getCredentialById(account.credentialId)
+      if (!credential) {
+        throw new Error('Credentials not found')
+      }
+
+      // A blank password means "keep the current one".
+      const effectivePassword = updates.password || credential.password
+      const proxyUrl = updates.proxyUrl ?? null
+
+      const expanded = expandProviderUrl(updates.serverUrl, updates.username)
+      const effectiveUrl = expanded || updates.serverUrl
+
+      // Probe before touching storage: a failed edit must leave the account
+      // exactly as it was, not half-written with credentials that don't work.
+      const probe = await probeConnection(
+        effectiveUrl,
+        updates.username,
+        effectivePassword,
+        proxyUrl,
+        updates.serverUrl
+      )
+      if (!probe.ok) {
+        throw new Error(probe.error ?? 'Could not connect with these settings')
+      }
+      const resolvedUrl = probe.resolvedUrl ?? effectiveUrl
+
+      // Only a different principal invalidates the calendars stored for this
+      // account — a rename or password rotation leaves their URLs valid.
+      const principalChanged =
+        resolvedUrl !== account.serverUrl || updates.username !== account.username
+
+      await updateCredential(account.credentialId, {
+        serverUrl: resolvedUrl,
+        username: updates.username,
+        // updateCredential re-encrypts only when this is truthy, so a blank
+        // password leaves the stored one untouched.
+        password: updates.password || undefined,
+      })
+      storage.updateAccount(accountId, {
+        name: updates.name,
+        serverUrl: resolvedUrl,
+        username: updates.username,
+        proxyUrl,
+      })
+
+      if (principalChanged) {
+        // syncAccount only walks calendars already stored for the account, so
+        // it can never discover the new principal's calendars. Re-fetch and
+        // reconcile by url here, before handing off to it for the event pull.
+        const freshCredential = {
+          ...credential,
+          serverUrl: resolvedUrl,
+          username: updates.username,
+          password: effectivePassword,
+        }
+        const client = await createCalDAVClient(resolvedUrl, freshCredential, proxyUrl)
+        const serverCalendars = await client.fetchCalendars()
+
+        const storedCalendars = storage.getCalendarsByAccountId(accountId)
+        const serverUrls = new Set(serverCalendars.map((c) => c.url))
+        const storedUrls = new Set(storedCalendars.map((c) => c.url))
+
+        // Drop calendars the new principal doesn't have, so they don't linger
+        // in the sidebar pointing at the old account's URLs.
+        for (const cal of storedCalendars) {
+          if (!serverUrls.has(cal.url)) {
+            storage.deleteCalendar(cal.id)
+            storeDeleteCalendar(cal.id)
+          }
+        }
+
+        // Add only genuinely new calendars. Survivors are left alone so their
+        // local color, visibility, and default flag are preserved.
+        const caldavDebugMode = useSettingsStore.getState().caldavDebugMode
+        for (const cal of serverCalendars) {
+          if (storedUrls.has(cal.url)) {
+            continue
+          }
+          storage.saveCalendar({ ...cal, accountId })
+          const isSettingsCal =
+            cal.name === 'Calino Settings' || cal.url?.includes('calino-settings')
+          if (!isSettingsCal || caldavDebugMode) {
+            storeAddCalendar({
+              id: cal.id,
+              name: cal.name,
+              color: cal.color,
+              isVisible: cal.isVisible,
+              isDefault: cal.isDefault,
+              accountId,
+              showTasksInViews: true,
+            })
+          }
+        }
+      }
+
+      await syncAccount(accountId)
+
+      setAccounts(storage.getAllAccounts())
+      setCalendars(storage.getAllCalendars())
+    },
+    [syncAccount, storeAddCalendar, storeDeleteCalendar]
+  )
+
   const syncAll = useCallback(async (): Promise<void> => {
     for (const account of accounts) {
       await syncAccount(account.id)
@@ -1408,6 +1556,8 @@ export function useCalDAV(): UseCalDAVReturn {
     syncState,
     addAccount,
     removeAccount,
+    updateAccount,
+    testAccount,
     syncAccount,
     syncAll,
     createEvent,

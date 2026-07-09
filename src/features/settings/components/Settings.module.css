@@ -917,7 +917,32 @@
   background: #bf944e;
 }
 
-.disconnect {
+.statusDotTesting {
+  background: var(--ink-3);
+  animation: statusDotPulse 1s ease-in-out infinite;
+}
+
+@keyframes statusDotPulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusDotTesting {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.accountActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.disconnect,
+.rowBtn {
   height: 30px;
   padding: 0 12px;
   border-radius: var(--radius-sm);
@@ -931,8 +956,21 @@
   transition: background 0.12s;
 }
 
-.disconnect:hover {
+.disconnect:hover,
+.rowBtn:hover {
   background: rgba(var(--ink-raw), 0.10);
+}
+
+.rowBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.accountHint {
+  padding: 0 20px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-2);
 }
 
 .connectBtn {

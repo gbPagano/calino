@@ -2,7 +2,9 @@ import type { JSX } from 'react'
 import { useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
-import { discoverServerUrl, suggestCalDAVUrl, suggestAuthHint, expandProviderUrl } from '@/features/caldav/client/discovery'
+import { probeConnection, suggestCalDAVUrl, expandProviderUrl } from '@/features/caldav/client/discovery'
+import { getCredentialById } from '@/features/caldav/client/credentials'
+import type { CalDAVAccount } from '@/features/caldav/types'
 import { useAnimatedClose } from '@/hooks/useAnimatedClose'
 import { useModalDismiss } from '@/hooks/useModalDismiss'
 import styles from './AddCalendarModal.module.css'
@@ -10,16 +12,28 @@ import styles from './AddCalendarModal.module.css'
 interface AddCalendarModalProps {
   isOpen: boolean
   onClose: () => void
+  /** 'edit' prefills the form and keeps the current password when left blank. */
+  mode?: 'add' | 'edit'
+  /** The account being edited. Required when mode is 'edit'. */
+  account?: CalDAVAccount
 }
 
-export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JSX.Element | null {
+export function AddCalendarModal({
+  isOpen,
+  onClose,
+  mode = 'add',
+  account,
+}: AddCalendarModalProps): JSX.Element | null {
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [connectionError, setConnectionError] = useState<string>('')
   const [connectionHint, setConnectionHint] = useState<string>('')
   const [isTesting, setIsTesting] = useState(false)
-  const [showProxyField, setShowProxyField] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [showProxyField, setShowProxyField] = useState(Boolean(account?.proxyUrl))
 
-  const { addAccount } = useCalDAV()
+  const { addAccount, updateAccount } = useCalDAV()
+  const isEdit = mode === 'edit' && account !== undefined
+  const formRef = useRef<HTMLFormElement>(null)
 
   const doClose = useCallback((): void => {
     setConnectionStatus('idle')
@@ -31,6 +45,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
   const dialogRef = useRef<HTMLDivElement>(null)
   useModalDismiss(dialogRef, rendered && !closing, requestClose)
 
+  /** Run the shared probe and map its result onto this modal's status state. */
   const handleTestConnection = async (
     serverUrl: string,
     username: string,
@@ -44,93 +59,105 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
     setConnectionHint('')
 
     try {
-      // Discover the actual CalDAV endpoint via .well-known/caldav
-      let baseUrl = await discoverServerUrl(serverUrl, proxyUrl)
-
-      // Helper to test a URL with PROPFIND
-      const testUrl = async (url: string): Promise<{ ok: boolean; status: number }> => {
-        let fetchUrl = url
-        if (proxyUrl) {
-          const parsed = new URL(url)
-          const encodedOrigin = encodeURIComponent(parsed.origin)
-          const path = parsed.pathname + parsed.search + parsed.hash
-          const proxyBase = proxyUrl.replace(/\/$/, '')
-          fetchUrl = `${proxyBase}/${encodedOrigin}${path}`
-        }
-
-        const response = await fetch(fetchUrl, {
-          method: 'PROPFIND',
-          headers: {
-            Authorization: `Basic ${btoa(`${username}:${password}`)}`,
-            'Content-Type': 'application/xml',
-            Depth: '0',
-          },
-          body: `<?xml version="1.0" encoding="UTF-8"?>
-            <d:propfind xmlns:d="DAV:">
-              <d:prop>
-                <d:displayname/>
-              </d:prop>
-            </d:propfind>`,
-        })
-        return { ok: response.ok || response.status === 207, status: response.status }
-      }
-
-      let result = await testUrl(baseUrl)
-
-      // Fallback: if the discovered URL fails, try the original base URL.
-      // This handles cases like Radicale where the well-known redirect chain
-      // ends at the web UI (/.web/) instead of the CalDAV endpoint (/).
-      if (!result.ok) {
-        const normalizedBase = serverUrl.replace(/\/$/, '')
-        if (baseUrl !== normalizedBase) {
-          console.log('[CalDAV] Test: discovered URL failed (' + result.status + '), trying base URL:', normalizedBase)
-          result = await testUrl(normalizedBase)
-          if (result.ok) {
-            baseUrl = normalizedBase
-          }
-        }
-      }
+      const result = await probeConnection(serverUrl, username, password, proxyUrl, originalUrl)
 
       setConnectionStatus(result.ok ? 'success' : 'error')
       if (!result.ok) {
-        setConnectionError(`Server returned status ${result.status}`)
-        const hintUrl = originalUrl || serverUrl
-        // Auth failures (401/403) usually mean an app-specific password is
-        // needed, not a wrong URL — prefer the auth hint in that case.
-        const authFailed = result.status === 401 || result.status === 403
-        const hint = (authFailed && suggestAuthHint(hintUrl)) || suggestCalDAVUrl(hintUrl)
-        if (hint) {
-          setConnectionHint(hint)
+        setConnectionError(result.error ?? 'Connection failed')
+        if (result.hint) {
+          setConnectionHint(result.hint)
         }
       }
       return result.ok
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      setConnectionError(
-        `Connection failed: ${errorMsg}. This may be a CORS issue - the server must allow cross-origin requests.`
-      )
-      const hintUrl = originalUrl || serverUrl
-      const hint = suggestCalDAVUrl(hintUrl)
-      if (hint) {
-        setConnectionHint(hint)
-      }
-      setConnectionStatus('error')
-      return false
     } finally {
       setIsTesting(false)
     }
   }
 
+  /**
+   * Read the form. In edit mode a blank password means "keep the current one",
+   * so we resolve it to undefined rather than an empty string.
+   */
+  const readForm = (form: HTMLFormElement): {
+    serverUrl: string
+    username: string
+    password: string
+    accountName: string
+    proxyUrl: string | undefined
+  } => {
+    const formData = new FormData(form)
+    const username = formData.get('username') as string
+    return {
+      serverUrl: formData.get('serverUrl') as string,
+      username,
+      password: formData.get('password') as string,
+      accountName: (formData.get('accountName') as string) || username,
+      proxyUrl: (formData.get('proxyUrl') as string) || undefined,
+    }
+  }
+
+  /** Test button (edit mode) — probes the values currently in the form, saves nothing. */
+  const handleTestClick = async (): Promise<void> => {
+    if (!formRef.current) return
+    const { serverUrl, username, password, proxyUrl } = readForm(formRef.current)
+
+    // A blank password means "keep the current one", so test with the stored one.
+    let effectivePassword = password
+    if (!effectivePassword && account) {
+      const credential = await getCredentialById(account.credentialId)
+      effectivePassword = credential?.password ?? ''
+    }
+    if (!effectivePassword) {
+      setConnectionStatus('error')
+      setConnectionError('Enter a password to test the connection.')
+      return
+    }
+
+    const expanded = expandProviderUrl(serverUrl, username)
+    await handleTestConnection(expanded || serverUrl, username, effectivePassword, proxyUrl, serverUrl)
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
-    const form = e.currentTarget
-    const formData = new FormData(form)
+    const { serverUrl, username, password, accountName, proxyUrl } = readForm(e.currentTarget)
 
-    const serverUrl = formData.get('serverUrl') as string
-    const username = formData.get('username') as string
-    const password = formData.get('password') as string
-    const accountName = (formData.get('accountName') as string) || username
-    const proxyUrl = (formData.get('proxyUrl') as string) || undefined
+    if (isEdit) {
+      // Re-pointing the account at a different principal invalidates the
+      // calendars stored under it, so they get re-fetched and reconciled.
+      const principalChanged = serverUrl !== account.serverUrl || username !== account.username
+      if (
+        principalChanged &&
+        !confirm(
+          'Changing the server URL or username will re-sync the calendars for this account. Continue?'
+        )
+      ) {
+        return
+      }
+
+      setIsSaving(true)
+      try {
+        await updateAccount(account.id, {
+          name: accountName,
+          serverUrl,
+          username,
+          password: password || undefined,
+          proxyUrl: proxyUrl ?? null,
+        })
+        requestClose()
+      } catch (error) {
+        setConnectionStatus('error')
+        setConnectionError(
+          error instanceof Error ? error.message : 'Failed to update account. Please try again.'
+        )
+        const hint = suggestCalDAVUrl(serverUrl)
+        if (hint) {
+          setConnectionHint(hint)
+        }
+      } finally {
+        setIsSaving(false)
+      }
+      return
+    }
 
     // Expand known provider URLs (e.g. Fastmail base → principal URL)
     const expanded = expandProviderUrl(serverUrl, username)
@@ -178,13 +205,13 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
       >
         <div className={styles.modalHeader}>
           <h3 className={styles.modalTitle} id="modal-title">
-            Add CalDAV Calendar
+            {isEdit ? 'Edit CalDAV Account' : 'Add CalDAV Calendar'}
           </h3>
           <button className={styles.modalClose} onClick={requestClose} aria-label="Close">
             ✕
           </button>
         </div>
-        <form onSubmit={handleSubmit}>
+        <form ref={formRef} key={account?.id ?? 'add'} onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
             <label htmlFor="accountName" className={styles.formLabel}>
               Account Name (optional)
@@ -194,6 +221,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
               name="accountName"
               className={styles.input}
               placeholder="My Calendar Server"
+              defaultValue={account?.name}
             />
           </div>
           <div className={styles.formGroup}>
@@ -205,6 +233,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
               name="serverUrl"
               className={styles.input}
               placeholder="https://caldav.example.com"
+              defaultValue={account?.serverUrl}
               required
             />
             <span className={styles.formHint}>Enter the full URL of your CalDAV server</span>
@@ -241,6 +270,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
                   name="proxyUrl"
                   className={styles.input}
                   placeholder="https://proxy.calino.io"
+                  defaultValue={account?.proxyUrl ?? undefined}
                 />
                 <span className={styles.proxyInfoText}>
                   Using a proxy means your requests go through another server. Your CalDAV server,
@@ -260,6 +290,7 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
               name="username"
               autoComplete="username"
               className={styles.input}
+              defaultValue={account?.username}
               required
             />
           </div>
@@ -273,8 +304,11 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
               type="password"
               autoComplete="current-password"
               className={styles.input}
-              required
+              required={!isEdit}
             />
+            {isEdit && (
+              <span className={styles.formHint}>Leave blank to keep your current password</span>
+            )}
           </div>
           {connectionStatus === 'success' && (
             <p className={styles.successMessage}>✓ Connection successful!</p>
@@ -289,12 +323,29 @@ export function AddCalendarModal({ isOpen, onClose }: AddCalendarModalProps): JS
             >
               Cancel
             </button>
+            {isEdit && (
+              <button
+                type="button"
+                className={`${styles.button} ${styles.buttonSecondary}`}
+                onClick={handleTestClick}
+                disabled={isTesting || isSaving}
+                data-action="test-connection"
+              >
+                {isTesting ? 'Testing...' : 'Test'}
+              </button>
+            )}
             <button
               type="submit"
               className={`${styles.button} ${styles.buttonPrimary}`}
-              disabled={isTesting}
+              disabled={isTesting || isSaving}
             >
-              {isTesting ? 'Testing...' : 'Add Calendar'}
+              {isEdit
+                ? isSaving
+                  ? 'Saving...'
+                  : 'Save Changes'
+                : isTesting
+                  ? 'Testing...'
+                  : 'Add Calendar'}
             </button>
           </div>
         </form>

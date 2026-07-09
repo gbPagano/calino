@@ -2,6 +2,24 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.21.0] - 2026-07-09
+
+Tasks now appear on the Week and Day timelines, dragging events is precise to the quarter hour, and a round of fixes for issues you reported.
+
+### Added
+
+- **Timed tasks show up on the timeline** — a task with a due time now renders as a pill at that time in Week and Day view, instead of only living in the all-day row. Tasks due at the same time sit side-by-side rather than stacking on top of each other, and the due time is no longer repeated on the card itself now that its position says it.
+- **15-minute drag precision** — dropping an event now snaps to the nearest quarter hour, so an event can finally land on 9:45–10:45. Previously a drop resolved only to the hour of the cell you released it over. While you drag, a preview band marks exactly where the event will land, sized to its real duration. Moving an event that started off-grid cleans up its start time.
+
+### Fixed
+
+- **Calendars with duplicate UIDs no longer scramble** — if your server stores several independent events that share one unique ID (invalid, but produced by some clients and accepted by servers like Baikal), Calino used to collapse them into one: only one of them rendered, events jumped onto another event's date, and the calendar looked different on every refresh. Calino now detects the collision, keeps one event deterministically so rendering is stable, and lists the affected events under Settings → Data Issues with an explanation of how to fix them on your server. Recurring events with exceptions are unaffected. ([#22](https://github.com/Ivan-Malinovski/calino/issues/22))
+- **Categories flyout stays open long enough to use** — the category picker opened on hover and vanished before you could click anything, especially when your pointer crossed the gap between the trigger and the menu. It now has a short close delay and the gap no longer counts as leaving. ([#23](https://github.com/Ivan-Malinovski/calino/issues/23))
+- **Theme toggle is back on mobile** — the Auto → Light → Dark toggle added for desktop was missing on small screens. Quick settings now live behind a sub-button next to Settings on the mobile action button. ([#26](https://github.com/Ivan-Malinovski/calino/issues/26))
+- **Task checkboxes are tappable** — the checkbox on a task pill was a 15px target sitting under the card's drag layer, so taps usually hit the event body and opened it instead of ticking the task. The tap area is now roughly 27px and sits above the drag layer, while staying small enough not to catch a stacked neighbour's checkbox. ([#25](https://github.com/Ivan-Malinovski/calino/issues/25))
+- **Multi-day events stay on one line across their span** — a multi-day event's pill could step up or down a row partway through its span, because each day cell sorted its events independently. Spanning events are now assigned a lane once and hold that row in every cell they cover. The `+N more` count is unaffected.
+- **Tasks in Week view render as cards** — timed task cards were being positioned in the time grid as though they were events; they now render like they do in Month view.
+
 ## [0.20.1] - 2026-07-08
 
 A small patch of theming and dark-mode fixes.

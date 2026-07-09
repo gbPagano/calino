@@ -1,9 +1,28 @@
+/**
+ * Recurring occurrences are encoded as `${masterId}-${occurrence}` so a single
+ * `id` resolves to the master through `findEventById` everywhere. The suffix
+ * shape depends on the event type:
+ *   - timed:  `master-2024-03-15T10:00:00.000Z`  (full ISO timestamp, see
+ *             `calendarStore.ts` recurrence expansion).
+ *   - all-day: `master-2024-03-15`               (date-only, no time component
+ *             because the rrule expansion is computed in whole-day terms to
+ *             stay immune to DST shifts).
+ *
+ * Try the more specific timestamp form first; fall back to the date-only form
+ * so all-day occurrences (e.g. clicking a recurring all-day card in month view)
+ * resolve back to the master too. The fallback to the date form is safe because
+ * `findEventById` only returns the master if the extracted prefix is itself a
+ * known event id — a spurious prefix just yields `undefined`, same as before.
+ */
 export function extractOriginalEventId(eventId: string): string | null {
-  const isoDateMatch = eventId.match(/(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/)
-  if (isoDateMatch) {
-    return isoDateMatch[1]
+  const isoTimestampMatch = eventId.match(
+    /(.+)-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/
+  )
+  if (isoTimestampMatch) {
+    return isoTimestampMatch[1]
   }
-  return null
+  const dateOnlyMatch = eventId.match(/(.+)-(\d{4}-\d{2}-\d{2})$/)
+  return dateOnlyMatch ? dateOnlyMatch[1] : null
 }
 
 /**

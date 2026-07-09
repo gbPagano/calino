@@ -17,6 +17,16 @@ describe('findEventById', () => {
     expect(findEventById(events, instanceId)).toBe(master)
   })
 
+  // All-day recurring instances are encoded as `<masterId>-<YYYY-MM-DD>` (no
+  // time component, see `extractOriginalEventId` comment). Without the
+  // date-only fallback in the extractor, a click on a recurring all-day card
+  // would resolve to `undefined` and silently no-op the preview popup — see
+  // the regression covered by `e2e/recurring-allday-month.spec.ts`.
+  it('falls back to the recurrence master for a date-only all-day instance id', () => {
+    const allDayInstanceId = 'abc-2026-03-10'
+    expect(findEventById(events, allDayInstanceId)).toBe(master)
+  })
+
   it('returns undefined for unknown id and nullish id', () => {
     expect(findEventById(events, 'nope')).toBeUndefined()
     expect(findEventById(events, null)).toBeUndefined()
@@ -27,6 +37,8 @@ describe('findEventById', () => {
     const index = buildEventIndex(events)
     expect(findEventById(index, 'xyz')).toBe(other)
     expect(findEventById(index, instanceId)).toBe(master)
+    // Map path also has to honour the date-only all-day instance suffix.
+    expect(findEventById(index, 'abc-2026-03-10')).toBe(master)
     expect(findEventById(index, 'nope')).toBeUndefined()
   })
 })

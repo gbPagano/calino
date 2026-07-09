@@ -11,6 +11,7 @@ import {
   rectIntersection,
   type CollisionDetection,
   type DragEndEvent,
+  type DragMoveEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
 import {
@@ -43,10 +44,17 @@ import { useWindowHeight } from '@/hooks/useWindowHeight'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { HOURS } from '@/lib/hours'
 import { CurrentTimeIndicator } from './CurrentTimeIndicator'
+import { DropPreviewBand } from './DropPreviewBand'
+import {
+  MINUTE_SNAP_INTERVAL,
+  snapMinuteOfDay,
+  computeDropPreview,
+  isSameDropPreview,
+  type DropPreview,
+} from '../lib/dragSnap'
 import styles from './WeekView.module.css'
 
 const BASE_HOUR_HEIGHT = 60
-const MINUTE_SNAP_INTERVAL = 15
 
 interface DroppableCellProps {
   day: Date
@@ -55,14 +63,16 @@ interface DroppableCellProps {
   onMouseDown: (e: React.MouseEvent) => void
 }
 
+// The cell is only a drop *target* — the highlight showing where the event will
+// land is drawn by DropPreviewBand, which knows the exact quarter hour.
 const DroppableCell = React.memo(function DroppableCell({ day, hour, onClick, onMouseDown }: DroppableCellProps): JSX.Element {
   const droppableId = `${format(day, 'yyyy-MM-dd')}-${format(hour, 'HH:mm')}`
-  const { setNodeRef, isOver } = useDroppable({ id: droppableId })
+  const { setNodeRef } = useDroppable({ id: droppableId })
 
   return (
     <div
       ref={setNodeRef}
-      className={`${styles.cell} ${isOver ? styles.dropTarget : ''}`}
+      className={styles.cell}
       onClick={onClick}
       onMouseDown={onMouseDown}
     />
@@ -120,6 +130,7 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
   const { updateEvent: caldavUpdateEvent } = useCalDAV()
 
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null)
+  const [dropPreview, setDropPreview] = useState<DropPreview | null>(null)
   const [isDraggingToCreate, setIsDraggingToCreate] = useState(false)
   const [contextMenu, setContextMenu] = useState<{
     x: number
@@ -197,6 +208,16 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
     const pointerCollisions = pointerWithin(args)
     return pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args)
   }, [])
+
+  // Live preview of where the dragged event will land, refreshed on drag move.
+  // The card itself follows the pointer freely; only this band snaps.
+  const handleDragMove = (event: DragMoveEvent): void => {
+    const durationMinutes = activeEvent && !activeEvent.isAllDay
+      ? (parseISO(activeEvent.end).getTime() - parseISO(activeEvent.start).getTime()) / 60_000
+      : 60
+    const next = computeDropPreview(event.active, event.over, event.delta.y, hourHeight, durationMinutes)
+    setDropPreview((prev) => (isSameDropPreview(prev, next) ? prev : next))
+  }
 
   useEffect(() => {
     const handleWheelZoom = (e: WheelEvent): void => {
@@ -542,9 +563,10 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
   }
 
   const handleDragEnd = async (event: DragEndEvent): Promise<void> => {
-    const { active, over } = event
+    const { active, over, delta } = event
     // Defer clearing active event to avoid scroll jump
     setTimeout(() => setActiveEvent(null), 0)
+    setDropPreview(null)
 
     if (!over) return
 
@@ -582,8 +604,6 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
 
     if (!dayStr || !hourStr) return
 
-    const newStart = parseISO(`${dayStr}T${hourStr}`)
-
     const originalEvent = events.find((e) => e.id === active.id)
     if (!originalEvent) return
     // Defensive: dnd-kit's useDraggable is disabled on recurring events, but
@@ -595,6 +615,7 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
     // timed event: default it to a 1-hour block. Otherwise preserve duration.
     let updates: { start: string; end: string; isAllDay?: boolean }
     if (originalEvent.isAllDay) {
+      const newStart = parseISO(`${dayStr}T${hourStr}`)
       const newEnd = new Date(newStart.getTime() + 60 * 60 * 1000)
       updates = {
         start: newStart.toISOString(),
@@ -605,6 +626,12 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
       const originalStart = parseISO(originalEvent.start)
       const originalEnd = parseISO(originalEvent.end)
       const durationMs = originalEnd.getTime() - originalStart.getTime()
+      // The droppable cell only tells us which day was dropped on; the time of
+      // day comes from how far the card was dragged vertically, snapped to a
+      // quarter hour. Using the hour cell alone would round to whole hours.
+      const startMinutes = originalStart.getHours() * 60 + originalStart.getMinutes()
+      const newStart = parseISO(`${dayStr}T00:00:00`)
+      newStart.setMinutes(snapMinuteOfDay(startMinutes, delta.y, hourHeight))
       const newEnd = new Date(newStart.getTime() + durationMs)
       updates = {
         start: newStart.toISOString(),
@@ -680,6 +707,9 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
                   ))}
                 </div>
                 <div className={styles.eventsOverlay}>
+                  {dropPreview?.dateKey === format(day, 'yyyy-MM-dd') && (
+                    <DropPreviewBand preview={dropPreview} timeFormat={timeFormat} />
+                  )}
                   <WeekDayColumn {...dayColumnProps[idx]} calendars={calendars} hourHeight={hourHeight} openModal={openModal} />
                   {isToday(day) && <CurrentTimeIndicator hourHeight={hourHeight} timeFormat={timeFormat} showLabel={false} />}
                 </div>
@@ -756,6 +786,9 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
                     ))}
                   </div>
                   <div className={styles.eventsOverlay}>
+                    {dropPreview?.dateKey === format(day, 'yyyy-MM-dd') && (
+                      <DropPreviewBand preview={dropPreview} timeFormat={timeFormat} />
+                    )}
                     <WeekDayColumn {...dayColumnProps[idx]} calendars={calendars} hourHeight={hourHeight} openModal={openModal} />
                     {isToday(day) && <CurrentTimeIndicator hourHeight={hourHeight} timeFormat={timeFormat} showLabel={false} />}
                   </div>
@@ -769,7 +802,14 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={collisionDetection}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setDropPreview(null)}
+    >
       <div
         className={styles.container}
         ref={containerRef}

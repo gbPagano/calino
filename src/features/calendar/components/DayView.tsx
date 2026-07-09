@@ -12,6 +12,7 @@ import {
   rectIntersection,
   type CollisionDetection,
   type DragEndEvent,
+  type DragMoveEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { format, startOfDay, endOfDay, parseISO, isToday, addDays, addMinutes } from 'date-fns'
@@ -41,12 +42,20 @@ import { HOURS } from '@/lib/hours'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { CurrentTimeIndicator } from './CurrentTimeIndicator'
+import { DropPreviewBand } from './DropPreviewBand'
+import {
+  MINUTE_SNAP_INTERVAL,
+  snapMinuteOfDay,
+  computeDropPreview,
+  isSameDropPreview,
+  type DropPreview,
+} from '../lib/dragSnap'
 import type { CalendarEvent } from '@/types'
 import styles from './DayView.module.css'
 
 
 const DRAG_ACTIVATION_CONSTRAINT = 8
-const MINUTE_SNAP_INTERVAL = 15
+const BASE_HOUR_HEIGHT = 60
 
 interface HourCellProps {
   hour: Date
@@ -56,9 +65,11 @@ interface HourCellProps {
   onDragStart: (hour: Date, e: React.MouseEvent) => void
 }
 
+// The cell is only a drop *target* — the highlight showing where the event will
+// land is drawn by DropPreviewBand, which knows the exact quarter hour.
 function HourCell({ hour, dateStr, timeFormat, onCellClick, onDragStart }: HourCellProps): JSX.Element {
   const droppableId = `${dateStr}-${format(hour, 'HH:mm')}`
-  const { setNodeRef, isOver } = useDroppable({ id: droppableId })
+  const { setNodeRef } = useDroppable({ id: droppableId })
 
   return (
     <div className={styles.hourRow}>
@@ -67,7 +78,7 @@ function HourCell({ hour, dateStr, timeFormat, onCellClick, onDragStart }: HourC
       </div>
       <div
         ref={setNodeRef}
-        className={`${styles.cell} ${isOver ? styles.dropTarget : ''}`}
+        className={styles.cell}
         onClick={() => onCellClick(hour)}
         onMouseDown={(e) => onDragStart(hour, e)}
       />
@@ -87,6 +98,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
   const timeFormat = useSettingsStore((state) => state.timeFormat)
 
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null)
+  const [dropPreview, setDropPreview] = useState<DropPreview | null>(null)
   const [isDraggingToCreate, setIsDraggingToCreate] = useState(false)
   const [dragStart, setDragStart] = useState<string | null>(null)
   const [dragEnd, setDragEnd] = useState<string | null>(null)
@@ -116,6 +128,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
   const windowHeight = useWindowHeight()
   const stretchFactor = windowHeight > 1570 ? windowHeight / 1570 : 1
   const effectiveScale = scale * stretchFactor
+  const hourHeight = BASE_HOUR_HEIGHT * effectiveScale
 
   useEffect(() => {
     if (openMenuId !== null && openMenuId !== 'dayview' && contextMenu) {
@@ -168,6 +181,16 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     const pointerCollisions = pointerWithin(args)
     return pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args)
   }, [])
+
+  // Live preview of where the dragged event will land, refreshed on drag move.
+  // The card itself follows the pointer freely; only this band snaps.
+  const handleDragMove = (dragEvent: DragMoveEvent): void => {
+    const durationMinutes = activeEvent && !activeEvent.isAllDay
+      ? (parseISO(activeEvent.end).getTime() - parseISO(activeEvent.start).getTime()) / 60_000
+      : 60
+    const next = computeDropPreview(dragEvent.active, dragEvent.over, dragEvent.delta.y, hourHeight, durationMinutes)
+    setDropPreview((prev) => (isSameDropPreview(prev, next) ? prev : next))
+  }
 
   useEffect(() => {
     const handleWheelZoom = (e: WheelEvent): void => {
@@ -400,8 +423,9 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
   }
 
   const handleDragEnd = async (dragEvent: DragEndEvent): Promise<void> => {
-    const { active, over } = dragEvent
+    const { active, over, delta } = dragEvent
     setActiveEvent(null)
+    setDropPreview(null)
 
     if (!over) return
 
@@ -439,7 +463,6 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
 
     if (!dayStr || !hourStr) return
 
-    const newStart = parseISO(`${dayStr}T${hourStr}`)
     const originalEvent = events.find((e) => e.id === active.id)
     if (!originalEvent) return
     // Defensive: dnd-kit's useDraggable is disabled on recurring events, but
@@ -452,6 +475,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     // Otherwise preserve the event's existing duration.
     let updates: { start: string; end: string; isAllDay?: boolean }
     if (originalEvent.isAllDay) {
+      const newStart = parseISO(`${dayStr}T${hourStr}`)
       const newEnd = new Date(newStart.getTime() + 60 * 60 * 1000)
       updates = {
         start: newStart.toISOString(),
@@ -462,6 +486,12 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
       const originalStart = parseISO(originalEvent.start)
       const originalEnd = parseISO(originalEvent.end)
       const durationMs = originalEnd.getTime() - originalStart.getTime()
+      // The droppable cell only tells us which day was dropped on; the time of
+      // day comes from how far the card was dragged vertically, snapped to a
+      // quarter hour. Using the hour cell alone would round to whole hours.
+      const startMinutes = originalStart.getHours() * 60 + originalStart.getMinutes()
+      const newStart = parseISO(`${dayStr}T00:00:00`)
+      newStart.setMinutes(snapMinuteOfDay(startMinutes, delta.y, hourHeight))
       const newEnd = new Date(newStart.getTime() + durationMs)
       updates = {
         start: newStart.toISOString(),
@@ -617,11 +647,18 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
   const dateStr = format(date, 'yyyy-MM-dd')
 
   return (
-    <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={collisionDetection}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setDropPreview(null)}
+    >
       <div
         className={styles.container}
         ref={containerRef}
-        style={{ '--hour-height': `${60 * effectiveScale}px` } as React.CSSProperties}
+        style={{ '--hour-height': `${hourHeight}px` } as React.CSSProperties}
         onContextMenu={(e) => {
           e.preventDefault()
           openMenu('dayview')
@@ -686,9 +723,10 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
           ))}
           <div ref={eventsOverlayRef} className={styles.eventsOverlay}>
             {selectionOverlay}
+            {dropPreview && <DropPreviewBand preview={dropPreview} timeFormat={timeFormat} />}
             {renderEvents()}
             {isCurrentDay && (
-              <CurrentTimeIndicator hourHeight={60 * effectiveScale} timeFormat={timeFormat} />
+              <CurrentTimeIndicator hourHeight={hourHeight} timeFormat={timeFormat} />
             )}
           </div>
         </div>

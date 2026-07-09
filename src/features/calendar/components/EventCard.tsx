@@ -23,6 +23,7 @@ import { hapticIfEnabled } from '@/lib/haptics'
 import { LocationLink } from './LocationLink'
 import { EventBackground } from '@/components/common/EventBackground'
 import { matchEventBackground } from '@/lib/eventBackground'
+import { MINUTE_SNAP_INTERVAL } from '../lib/dragSnap'
 import styles from './EventCard.module.css'
 
 
@@ -124,6 +125,13 @@ export const EventCard = React.memo(function EventCard({
   // through the modal instead of silently moving the whole series.
   const disableDirectEdit = isRecurring || isRecurringInstance
 
+  const dragStartMinutes = event.isAllDay
+    ? undefined
+    : (() => {
+        const start = parseISO(event.start)
+        return start.getHours() * 60 + start.getMinutes()
+      })()
+
   const {
     attributes,
     listeners,
@@ -139,8 +147,9 @@ export const EventCard = React.memo(function EventCard({
       : event.id,
     // Carry the layout variant so the DragOverlay can render a preview that
     // matches the source card (e.g. keep a compact pill looking like a pill
-    // instead of expanding into a full card).
-    data: { compact, monthView, dotMode, isMobileMonth },
+    // instead of expanding into a full card). `startMinutes` lets the time-grid
+    // views snap the drag to quarter hours; all-day events omit it.
+    data: { compact, monthView, dotMode, isMobileMonth, startMinutes: dragStartMinutes },
     disabled: disableDirectEdit,
   })
 
@@ -223,7 +232,7 @@ export const EventCard = React.memo(function EventCard({
         setDidInteract(true)
       }
       const rawDeltaMinutes = (deltaY / hourHeight) * 60
-      const deltaMinutes = Math.round(rawDeltaMinutes / 15) * 15
+      const deltaMinutes = Math.round(rawDeltaMinutes / MINUTE_SNAP_INTERVAL) * MINUTE_SNAP_INTERVAL
       const newEnd = new Date(resizeStartEnd.current.getTime() + deltaMinutes * 60 * 1000)
 
       if (newEnd > parseISO(event.start)) {

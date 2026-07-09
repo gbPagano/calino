@@ -177,11 +177,6 @@
   transition-duration: 0.05s;
 }
 
-.cell.dropTarget {
-  background: var(--accent-soft, #efe7db);
-  border: 2px dashed var(--accent, #b07d4f);
-}
-
 .eventsOverlay {
   position: absolute;
   top: 0;

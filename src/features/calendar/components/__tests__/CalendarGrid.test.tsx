@@ -175,4 +175,126 @@ describe('CalendarGrid', () => {
     // And the data-component="day-tasks" wrapper is always present too.
     expect(container.querySelector('[data-component="day-tasks"]')).toBeInTheDocument()
   })
+
+  it('keeps overlapping multi-day pills in a stable lane across every day they span', () => {
+    const store = useCalendarStore.getState()
+    const spans = [
+      { id: 'long', title: 'Long', start: '2024-03-05', end: '2024-03-12' },
+      { id: 'later', title: 'Later', start: '2024-03-08', end: '2024-03-15' },
+      { id: 'short', title: 'Short', start: '2024-03-07', end: '2024-03-09' },
+    ]
+    spans.forEach(({ id, title, start, end }) =>
+      store.addEvent({
+        id,
+        calendarId: 'default',
+        title,
+        start: `${start}T09:00:00`,
+        end: `${end}T10:00:00`,
+        isAllDay: false,
+      })
+    )
+
+    const { container } = renderWithRouter(<CalendarGrid />)
+
+    // Row index of a pill inside a day cell = its position among the stacked
+    // children of that cell's events container (spacers included).
+    const laneOf = (date: string, title: string) => {
+      const cell = container.querySelector(`[data-date="${date}"]`)!
+      const rows = Array.from(cell.querySelector('[class*="events"]')!.children)
+      return rows.findIndex((row) => row.textContent?.includes(title))
+    }
+
+    // Longest span wins the top lane; the equal-length span that starts later
+    // sits below it; the short one is pushed to the third lane where it overlaps.
+    const laneByTitle = { Long: 0, Later: 1, Short: 2 }
+    const daysByTitle = {
+      Long: ['05', '06', '07', '08', '09', '10', '11', '12'],
+      Later: ['08', '09', '10', '11', '12', '13', '14', '15'],
+      Short: ['07', '08', '09'],
+    }
+    Object.entries(daysByTitle).forEach(([title, days]) => {
+      days.forEach((day) => {
+        expect(laneOf(`2024-03-${day}`, title)).toBe(laneByTitle[title as keyof typeof laneByTitle])
+      })
+    })
+  })
+
+  it('assigns equal-length overlapping spans by start date, earliest on top', () => {
+    const store = useCalendarStore.getState()
+    store.addEvent({
+      id: 'b-later',
+      calendarId: 'default',
+      title: 'Later',
+      start: '2024-03-06T09:00:00',
+      end: '2024-03-08T10:00:00',
+      isAllDay: false,
+    })
+    store.addEvent({
+      id: 'a-earlier',
+      calendarId: 'default',
+      title: 'Earlier',
+      start: '2024-03-05T09:00:00',
+      end: '2024-03-07T10:00:00',
+      isAllDay: false,
+    })
+
+    const { container } = renderWithRouter(<CalendarGrid />)
+    const rowsOn = (date: string) =>
+      Array.from(container.querySelector(`[data-date="${date}"]`)!.querySelector('[class*="events"]')!.children)
+
+    // On the overlap days the earlier-starting span must stay above.
+    ;['2024-03-06', '2024-03-07'].forEach((date) => {
+      const rows = rowsOn(date)
+      expect(rows[0].textContent).toContain('Earlier')
+      expect(rows[1].textContent).toContain('Later')
+    })
+    // On 03-08 "Earlier" has ended, so lane 0 is held open by a spacer and
+    // "Later" stays in lane 1 rather than jumping up a row.
+    const lastDay = rowsOn('2024-03-08')
+    expect(lastDay[0].textContent).toBe('')
+    expect(lastDay[1].textContent).toContain('Later')
+  })
+
+  it('promotes a single-day event into a lane a fragment leaves empty', () => {
+    const store = useCalendarStore.getState()
+    // A span occupying lane 1 (lane 0 belongs to the longer span on 03-05..03-06).
+    store.addEvent({
+      id: 'top-span',
+      calendarId: 'default',
+      title: 'TopSpan',
+      start: '2024-03-05T09:00:00',
+      end: '2024-03-06T10:00:00',
+      isAllDay: false,
+    })
+    store.addEvent({
+      id: 'low-span',
+      calendarId: 'default',
+      title: 'LowSpan',
+      start: '2024-03-06T09:00:00',
+      end: '2024-03-07T10:00:00',
+      isAllDay: false,
+    })
+    // On 03-07 the top lane is free, so this single-day event should fill it
+    // instead of the blank spacer. Deliberately a plain timed event: an all-day
+    // or recurring one is already forced compact by `compactRecurringEvents`,
+    // so it would not exercise the lane-promotion path.
+    store.addEvent({
+      id: 'filler',
+      calendarId: 'default',
+      title: 'Filler',
+      start: '2024-03-07T14:00:00',
+      end: '2024-03-07T15:00:00',
+      isAllDay: false,
+    })
+
+    const { container } = renderWithRouter(<CalendarGrid />)
+    const rows = Array.from(
+      container.querySelector('[data-date="2024-03-07"]')!.querySelector('[class*="events"]')!.children
+    )
+
+    // Without promotion lane 0 would be a blank spacer and the filler would
+    // render below the span instead.
+    expect(rows[0].textContent).toContain('Filler')
+    expect(rows[1].textContent).toContain('LowSpan')
+  })
 })

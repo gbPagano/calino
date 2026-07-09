@@ -278,6 +278,7 @@ export const useCalendarStore = create<CalendarStore>()(
           isFragment: undefined,
           isFirstFragment: undefined,
           isLastFragment: undefined,
+          laneIndex: undefined,
           originalStart: undefined,
           originalEnd: undefined,
           syncStatus: undefined,

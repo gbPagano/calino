@@ -298,6 +298,28 @@
   flex-shrink: 0;
 }
 
+/* Reserves an empty lane so a spanning pill keeps the same row in every day
+   cell it covers. Mirrors the box of a compact EventCard (`.compact` +
+   `.compact .title` in EventCard.module.css) rather than hardcoding a height:
+   padding + transparent border + one title line must add up to exactly the
+   pill's height, or the spanning pill sits a few px off on spacer days. */
+.eventSpacer {
+  box-sizing: border-box;
+  min-height: 18px;
+  padding: 2px 4px 2px 8px;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.eventSpacer::after {
+  content: '';
+  display: block;
+  font-size: 12px;
+  line-height: 1.3;
+  height: 1.3em;
+}
+
 /* ---- More Events Button ---- */
 .moreEvents {
   font-size: 11.5px;

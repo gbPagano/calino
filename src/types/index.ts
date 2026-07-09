@@ -108,6 +108,8 @@ export interface CalendarEvent {
   isFragment?: boolean
   isFirstFragment?: boolean
   isLastFragment?: boolean
+  /** Month view: shared row across every day a multi-day event spans. */
+  laneIndex?: number
   originalStart?: string
   originalEnd?: string
   syncStatus?: SyncStatus

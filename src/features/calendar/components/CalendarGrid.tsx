@@ -406,45 +406,82 @@ export function CalendarGrid(): JSX.Element {
     )
 
     const map = new Map<string, CalendarEvent[]>()
-    visibleEvents
-      .filter((event) => event.type !== 'task' && event.type !== 'journal')
-      .forEach((event) => {
-        const eventStart = parseISO(event.start)
-        const eventEnd = parseISO(event.end)
-        const startKey = format(eventStart, 'yyyy-MM-dd')
-        const endKey = format(eventEnd, 'yyyy-MM-dd')
+    const gridEvents = visibleEvents.filter((event) => event.type !== 'task' && event.type !== 'journal')
 
-        if (startKey === endKey) {
-          const eventDate = format(eventStart, 'yyyy-MM-dd')
-          const existing = map.get(eventDate) || []
-          map.set(eventDate, [...existing, event])
-        } else {
-          let currentDay = eventStart
-          while (currentDay <= eventEnd) {
-            const dayKey = format(currentDay, 'yyyy-MM-dd')
-            const isFirst = dayKey === startKey
-            const isLast = dayKey === endKey
-            const fragment: CalendarEvent = {
-              ...event,
-              start: isFirst ? event.start : format(startOfDay(currentDay), "yyyy-MM-dd'T'HH:mm:ss"),
-              end: isLast ? event.end : format(endOfDay(currentDay), "yyyy-MM-dd'T'HH:mm:ss"),
-              isFragment: true,
-              isFirstFragment: isFirst,
-              isLastFragment: isLast,
-              originalStart: event.start,
-              originalEnd: event.end,
-            }
-            const dayEvents = map.get(dayKey) || []
-            map.set(dayKey, [...dayEvents, fragment])
-            currentDay = addDays(currentDay, 1)
-          }
-        }
+    // A multi-day event is split into one fragment per day, and each day cell
+    // stacks its own fragments top-to-bottom. Without a row reserved for the
+    // whole span, two overlapping multi-day events can swap order between
+    // adjacent days and the pill visually breaks apart. So assign every span a
+    // lane up front: longest spans on top, earlier start wins a tie.
+    const spans = gridEvents
+      .map((event) => {
+        const startKey = format(parseISO(event.start), 'yyyy-MM-dd')
+        const endKey = format(parseISO(event.end), 'yyyy-MM-dd')
+        return { event, startKey, endKey }
       })
+      .filter(({ startKey, endKey }) => startKey !== endKey)
+      .map((span) => ({
+        ...span,
+        days: eachDayOfInterval({
+          start: startOfDay(parseISO(span.event.start)),
+          end: startOfDay(parseISO(span.event.end)),
+        }).map((d) => format(d, 'yyyy-MM-dd')),
+      }))
+      .sort((a, b) => {
+        if (a.days.length !== b.days.length) return b.days.length - a.days.length
+        if (a.startKey !== b.startKey) return a.startKey < b.startKey ? -1 : 1
+        return a.event.id < b.event.id ? -1 : 1
+      })
+
+    const laneOccupancy: Set<string>[] = []
+    const laneOf = new Map<string, number>()
+    spans.forEach(({ event, days }) => {
+      let lane = 0
+      while (lane < laneOccupancy.length && days.some((d) => laneOccupancy[lane].has(d))) lane++
+      if (lane === laneOccupancy.length) laneOccupancy.push(new Set())
+      days.forEach((d) => laneOccupancy[lane].add(d))
+      laneOf.set(event.id, lane)
+    })
+
+    gridEvents.forEach((event) => {
+      const eventStart = parseISO(event.start)
+      const eventEnd = parseISO(event.end)
+      const startKey = format(eventStart, 'yyyy-MM-dd')
+      const endKey = format(eventEnd, 'yyyy-MM-dd')
+
+      if (startKey === endKey) {
+        const eventDate = format(eventStart, 'yyyy-MM-dd')
+        const existing = map.get(eventDate) || []
+        map.set(eventDate, [...existing, event])
+      } else {
+        let currentDay = eventStart
+        while (currentDay <= eventEnd) {
+          const dayKey = format(currentDay, 'yyyy-MM-dd')
+          const isFirst = dayKey === startKey
+          const isLast = dayKey === endKey
+          const fragment: CalendarEvent = {
+            ...event,
+            start: isFirst ? event.start : format(startOfDay(currentDay), "yyyy-MM-dd'T'HH:mm:ss"),
+            end: isLast ? event.end : format(endOfDay(currentDay), "yyyy-MM-dd'T'HH:mm:ss"),
+            isFragment: true,
+            isFirstFragment: isFirst,
+            isLastFragment: isLast,
+            laneIndex: laneOf.get(event.id),
+            originalStart: event.start,
+            originalEnd: event.end,
+          }
+          const dayEvents = map.get(dayKey) || []
+          map.set(dayKey, [...dayEvents, fragment])
+          currentDay = addDays(currentDay, 1)
+        }
+      }
+    })
 
     map.forEach((events, dateKey) => {
       const sorted = [...events].sort((a, b) => {
         if (a.isFragment && !b.isFragment) return -1
         if (!a.isFragment && b.isFragment) return 1
+        if (a.isFragment && b.isFragment) return (a.laneIndex ?? 0) - (b.laneIndex ?? 0)
         return new Date(a.start).getTime() - new Date(b.start).getTime()
       })
       map.set(dateKey, sorted)
@@ -914,6 +951,36 @@ const DroppableDay = React.memo(function DroppableDay({
   openModal,
 }: DroppableDayProps): JSX.Element {
   const { setNodeRef, isOver } = useDroppable({ id: dateKey })
+  // Multi-day fragments carry a lane shared across every day they span, so a
+  // fragment's vertical position must be identical in every cell for the pill
+  // to read as one continuous band. Any lane a fragment doesn't occupy is
+  // filled with a single-day event where one is available, and only falls back
+  // to an empty spacer otherwise. A promoted single-day event is forced compact
+  // — a full-height card would not fit the lane and would push the band down.
+  // Both spacers and promotions happen after the `monthViewEventLimit` slice,
+  // so neither consumes a visible slot nor skews the "+N more" count.
+  const eventSlots = useMemo(() => {
+    const visible = dayEvents.slice(0, monthViewEventLimit)
+    const fragmentByLane = new Map<number, CalendarEvent>()
+    const singles: CalendarEvent[] = []
+    visible.forEach((event) => {
+      const lane = event.isFragment ? event.laneIndex ?? -1 : -1
+      if (lane >= 0) fragmentByLane.set(lane, event)
+      else singles.push(event)
+    })
+
+    const slots: Array<{ spacerKey: string } | { event: CalendarEvent; forceCompact: boolean }> = []
+    const maxLane = fragmentByLane.size === 0 ? -1 : Math.max(...fragmentByLane.keys())
+    let nextSingle = 0
+    for (let lane = 0; lane <= maxLane; lane++) {
+      const fragment = fragmentByLane.get(lane)
+      if (fragment) slots.push({ event: fragment, forceCompact: true })
+      else if (nextSingle < singles.length) slots.push({ event: singles[nextSingle++], forceCompact: true })
+      else slots.push({ spacerKey: `${dateKey}-spacer-${lane}` })
+    }
+    singles.slice(nextSingle).forEach((event) => slots.push({ event, forceCompact: false }))
+    return slots
+  }, [dayEvents, monthViewEventLimit, dateKey])
   const [showPopup, setShowPopup] = useState(false)
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
@@ -1083,9 +1150,14 @@ const DroppableDay = React.memo(function DroppableDay({
           */}
           <div className={styles.events}>
             <AnimatePresence initial={false}>
-              {dayEvents.slice(0, monthViewEventLimit).map((event) => {
+              {eventSlots.map((slot) => {
+                if ('spacerKey' in slot) {
+                  return <div key={slot.spacerKey} className={styles.eventSpacer} aria-hidden />
+                }
+                const { event } = slot
                 const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
                 const shouldCompact =
+                  slot.forceCompact ||
                   isPastWeek ||
                   (compactRecurringEvents && (!!event.rruleString || !!event.recurrence || event.isAllDay || isMultiDay)) ||
                   event.isFragment

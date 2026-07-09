@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { safeLocalStorage } from '@/lib/storage'
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
 import { RRule } from 'rrule'
-import type { CalendarStore, CalendarEvent, Calendar, ViewType, EventType } from '@/types'
+import type { CalendarStore, CalendarEvent, Calendar, ViewType, EventType, DuplicateUidIssue } from '@/types'
 import type { Category, AutoCategoryRule } from '@/types/categories'
 import { config, DEFAULT_CALENDAR_COLOR } from '@/config'
 import { buildRRuleString } from '@/lib/recurrence'
@@ -77,6 +77,7 @@ export const useCalendarStore = create<CalendarStore>()(
     (set, get) => ({
       events: [],
       brokenEvents: [],
+      duplicateUidIssues: [],
       calendars: [DEFAULT_CALENDAR],
       categories: [],
       autoCategoryRules: [],
@@ -211,6 +212,23 @@ export const useCalendarStore = create<CalendarStore>()(
         set((state) => ({
           brokenEvents: state.brokenEvents.filter((be) => be.event.id !== eventId),
         }))
+      },
+
+      addDuplicateUidIssue: (issue: DuplicateUidIssue): void => {
+        set((state) => ({
+          // Replace any existing issue for the same (uid, calendarId) so a
+          // re-sync refreshes rather than duplicates the record.
+          duplicateUidIssues: [
+            ...state.duplicateUidIssues.filter(
+              (i) => !(i.uid === issue.uid && i.calendarId === issue.calendarId)
+            ),
+            issue,
+          ],
+        }))
+      },
+
+      clearDuplicateUidIssues: (): void => {
+        set({ duplicateUidIssues: [] })
       },
 
       /**
@@ -748,6 +766,7 @@ export const useCalendarStore = create<CalendarStore>()(
           categories: state.categories ?? [],
           autoCategoryRules: state.autoCategoryRules ?? [],
           brokenEvents: state.brokenEvents ?? [],
+          duplicateUidIssues: state.duplicateUidIssues ?? [],
           currentDate: state.currentDate ?? format(new Date(), 'yyyy-MM-dd'),
           currentView: state.currentView ?? 'month',
           selectedCategoryIds: state.selectedCategoryIds ?? [],
@@ -767,6 +786,7 @@ export const useCalendarStore = create<CalendarStore>()(
           }
         }),
         brokenEvents: state.brokenEvents,
+        duplicateUidIssues: state.duplicateUidIssues,
         calendars: state.calendars,
         categories: state.categories,
         autoCategoryRules: state.autoCategoryRules,

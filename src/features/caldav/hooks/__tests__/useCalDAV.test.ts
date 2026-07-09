@@ -1105,6 +1105,103 @@ describe('useCalDAV', () => {
   })
 
   // -----------------------------------------------------------------------
+  // Issue 22: Duplicate UIDs across independent resources corrupt the store
+  //
+  // Radicale enforces UID uniqueness (rejects the second PUT), so this data
+  // can only originate from a lenient server (Baikal/sabre-dav). We replay
+  // exactly what such a server returns: two resources with distinct hrefs
+  // whose events share one UID.
+  // -----------------------------------------------------------------------
+  describe('Issue 22: duplicate UID across independent resources', () => {
+    beforeEach(() => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAccountById.mockReturnValue(mockAccount)
+      mockAccountStorage.getCalendarsByAccountId.mockReturnValue([mockCalendar])
+    })
+
+    const eventA: CalendarEvent = {
+      id: 'collision-test-0001',
+      calendarId: 'cal-1',
+      title: 'Event A',
+      start: '2024-04-02',
+      end: '2024-04-03',
+      isAllDay: true,
+      rruleString: 'FREQ=YEARLY',
+    }
+    const eventB: CalendarEvent = {
+      id: 'collision-test-0001',
+      calendarId: 'cal-1',
+      title: 'Event B',
+      start: '2024-09-15',
+      end: '2024-09-16',
+      isAllDay: true,
+      rruleString: 'FREQ=YEARLY',
+    }
+
+    const wireCollidingServer = async (): Promise<void> => {
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      // parseICALData returns the event matching each resource's raw data.
+      vi.mocked(iCalendarAdapter.parseICALData).mockImplementation((data: string) =>
+        data === 'DATA_A' ? [eventA] : [eventB]
+      )
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([
+          { url: 'https://caldav.example.com/cal/main/event-a.ics', data: 'DATA_A', etag: 'e1' },
+          { url: 'https://caldav.example.com/cal/main/event-b.ics', data: 'DATA_B', etag: 'e2' },
+        ]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+    }
+
+    it('keeps exactly one event and records a data issue instead of overwriting', async () => {
+      await wireCollidingServer()
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      const store = useCalendarStore.getState()
+      // Only one event survives (not collapsed unstably, not duplicated).
+      const collided = store.events.filter((e) => e.id === 'collision-test-0001')
+      expect(collided).toHaveLength(1)
+      // Deterministic keep: event-a.ics sorts before event-b.ics.
+      expect(collided[0].title).toBe('Event A')
+
+      // The collision is surfaced as a data issue listing both resources.
+      expect(store.duplicateUidIssues).toHaveLength(1)
+      const issue = store.duplicateUidIssues[0]
+      expect(issue.uid).toBe('collision-test-0001')
+      expect(issue.resources).toHaveLength(2)
+      expect(issue.resources.find((r) => r.kept)?.title).toBe('Event A')
+      expect(issue.resources.find((r) => !r.kept)?.title).toBe('Event B')
+    })
+
+    it('stays stable across repeated syncs (no flip-flop, no duplicate issues)', async () => {
+      await wireCollidingServer()
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      const store = useCalendarStore.getState()
+      const collided = store.events.filter((e) => e.id === 'collision-test-0001')
+      expect(collided).toHaveLength(1)
+      expect(collided[0].title).toBe('Event A')
+      // Issues are re-derived each sync, so no accumulation.
+      expect(store.duplicateUidIssues).toHaveLength(1)
+    })
+  })
+
+  // -----------------------------------------------------------------------
   // Bug 22: Ask conflict resolution silently overwrites
   // -----------------------------------------------------------------------
   describe('Bug 22: ask conflict resolution should not auto-update', () => {

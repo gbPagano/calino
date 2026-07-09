@@ -66,6 +66,20 @@ export interface BrokenEvent {
   detectedAt: string
 }
 
+export interface DuplicateUidResource {
+  title: string
+  start: string
+  href: string
+  kept: boolean
+}
+
+export interface DuplicateUidIssue {
+  uid: string
+  calendarId: string
+  resources: DuplicateUidResource[]
+  detectedAt: string
+}
+
 export interface CalendarEvent {
   id: string
   calendarId: string
@@ -127,6 +141,7 @@ export type ViewType = 'month' | 'week' | '3day' | 'day' | 'agenda' | 'todo' | '
 export interface CalendarState {
   events: CalendarEvent[]
   brokenEvents: BrokenEvent[]
+  duplicateUidIssues: DuplicateUidIssue[]
   calendars: Calendar[]
   categories: Category[]
   autoCategoryRules: AutoCategoryRule[]
@@ -164,6 +179,8 @@ export interface CalendarActions {
   addBrokenEvent: (event: CalendarEvent, reason: string) => void
   removeBrokenEvent: (eventId: string) => void
   fixBrokenEvent: (eventId: string) => void
+  addDuplicateUidIssue: (issue: DuplicateUidIssue) => void
+  clearDuplicateUidIssues: () => void
   duplicateEvent: (id: string) => string | null
   /**
    * Bump the range-expansion version counter without mutating events.

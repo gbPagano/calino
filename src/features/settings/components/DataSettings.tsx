@@ -33,6 +33,8 @@ export function DataSettings(): JSX.Element {
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
   const brokenEvents = useCalendarStore((state) => state.brokenEvents)
+  const duplicateUidIssues = useCalendarStore((state) => state.duplicateUidIssues)
+  const clearDuplicateUidIssues = useCalendarStore((state) => state.clearDuplicateUidIssues)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
   const caldav = useCalDAV()
   const { handleFix, handleDelete, handleFixAll, handleDeleteAll } =
@@ -253,11 +255,12 @@ export function DataSettings(): JSX.Element {
       {/* Broken Events */}
       <div className={styles.group} data-component="broken-events">
         <div className={styles.groupLabel}>Data Issues</div>
-        {brokenEvents.length === 0 ? (
+        {brokenEvents.length === 0 && duplicateUidIssues.length === 0 && (
           <div className={styles.rowDesc} style={{ padding: '12px 20px 16px' }}>
             Invalid or broken events (e.g. start date after end date) will appear here, allowing you to fix or delete them.
           </div>
-        ) : (
+        )}
+        {brokenEvents.length > 0 && (
           <>
             <p className={styles.rowDesc} style={{ padding: '12px 20px 0' }}>
               These events have a start date after their end date and cannot be displayed.
@@ -311,6 +314,53 @@ export function DataSettings(): JSX.Element {
             </div>
           )}
         </>
+        )}
+
+        {duplicateUidIssues.length > 0 && (
+          <div data-component="duplicate-uid-issues">
+            <p className={styles.rowDesc} style={{ padding: '16px 20px 0' }}>
+              These events share the same unique ID (UID) on your server but are
+              stored as separate items. Calino can only show one of each set — the
+              others are hidden to keep your calendar stable. This usually comes
+              from a bulk copy made in another app. To fix it, give each event a
+              unique UID on your server, then sync again.
+            </p>
+
+            <div className={styles.brokenList}>
+              {duplicateUidIssues.map((issue) => (
+                <div
+                  key={`${issue.calendarId}-${issue.uid}`}
+                  className={styles.brokenItem}
+                  data-component="duplicate-uid-row"
+                  data-uid={issue.uid}
+                >
+                  <div className={styles.brokenInfo}>
+                    <div className={styles.brokenTitle}>Duplicate UID: {issue.uid}</div>
+                    {issue.resources.map((res) => (
+                      <div key={res.href} className={styles.brokenDates}>
+                        <span>{res.title || 'Untitled Event'}</span>
+                        <span className={styles.brokenArrow}>·</span>
+                        <span>{formatDate(res.start, timeFormat)}</span>
+                        <span className={styles.brokenArrow}>·</span>
+                        <span>{res.kept ? 'Kept' : 'Hidden'}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={styles.brokenActions}>
+                    <button
+                      className={styles.actionBtn}
+                      onClick={() => clearDuplicateUidIssues()}
+                      data-component="action-button"
+                      data-action="dismiss-duplicate-uid"
+                      type="button"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 

@@ -46,7 +46,21 @@ export function showBrokenEventsNotification(count: number): void {
     duration: 8000,
     linkText: 'View',
     onLinkClick: () => {
-      window.location.href = '/settings?tab=data-issues'
+      window.location.href = '/settings?tab=data'
+    },
+  })
+}
+
+export function showDuplicateUidNotification(count: number): void {
+  const message = count === 1
+    ? 'Found 1 set of events sharing a duplicate ID on your server.'
+    : `Found ${count} sets of events sharing a duplicate ID on your server.`
+
+  showToast(message, {
+    duration: 8000,
+    linkText: 'View',
+    onLinkClick: () => {
+      window.location.href = '/settings?tab=data'
     },
   })
 }

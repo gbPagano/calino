@@ -103,6 +103,8 @@ export function SettingsPage(): JSX.Element {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const brokenEventsCount = useCalendarStore((state) => state.brokenEvents.length)
+  const duplicateUidCount = useCalendarStore((state) => state.duplicateUidIssues.length)
+  const dataIssuesCount = brokenEventsCount + duplicateUidCount
 
   const initialTab = ((): SettingsTab => {
     const tabParam = searchParams.get('tab')
@@ -165,8 +167,8 @@ export function SettingsPage(): JSX.Element {
               >
                 {item.icon}
                 {item.label}
-                {item.id === 'data' && brokenEventsCount > 0 && (
-                  <span className={styles.navBadge}>{brokenEventsCount}</span>
+                {item.id === 'data' && dataIssuesCount > 0 && (
+                  <span className={styles.navBadge}>{dataIssuesCount}</span>
                 )}
               </button>
             ))}

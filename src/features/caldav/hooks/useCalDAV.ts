@@ -2,12 +2,13 @@ import { useState, useCallback, useEffect } from 'react'
 import { addDays } from 'date-fns'
 import { toast as sonnerToast } from 'sonner'
 import type { CalendarEvent } from '@/types'
-import { showBrokenEventsNotification } from '@/lib/toast'
+import { showBrokenEventsNotification, showDuplicateUidNotification } from '@/lib/toast'
 import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
 import { createCalDAVClient } from '../client/CalDAVClient'
 import { testConnection, discoverServerUrl } from '../client/discovery'
 import { saveCredentials, getCredentialById, deleteCredential } from '../client/credentials'
 import { parseICALData } from '../adapter/iCalendarAdapter'
+import { detectUidCollisions, type ParsedWithHref } from '../sync/detectUidCollisions'
 import { putAttachments } from '@/lib/attachmentStore'
 import * as storage from '../sync/accountStorage'
 import { SyncEngine } from '../sync/syncEngine'
@@ -46,6 +47,41 @@ const MAX_RETRIES = 10
 
 function showToast(message: string): void {
   sonnerToast(message)
+}
+
+/**
+ * Parse every fetched CalDAV resource into events, pairing each with the
+ * resource href it came from, and cache inline attachments in IndexedDB.
+ * The href is what lets us detect UID collisions across independent resources
+ * (issue #22) — the same logic both sync paths need.
+ */
+async function collectParsedWithHref(
+  fetchedEvents: { url: string; data: string; etag?: string }[],
+  calendarId: string,
+): Promise<ParsedWithHref[]> {
+  const result: ParsedWithHref[] = []
+  for (const eventData of fetchedEvents) {
+    if (!eventData.data) continue
+    const parsedEvents = parseICALData(eventData.data, calendarId)
+    for (let parsedEvent of parsedEvents) {
+      // Cache inline attachments in IndexedDB, keep only metadata in the store
+      if (parsedEvent.attachments && parsedEvent.attachments.length > 0) {
+        const hasInline = parsedEvent.attachments.some((att) => att.href.startsWith('data:'))
+        if (hasInline) {
+          await putAttachments(parsedEvent.id, parsedEvent.attachments)
+          parsedEvent = {
+            ...parsedEvent,
+            attachments: parsedEvent.attachments.map((att) => ({
+              ...att,
+              href: att.href.startsWith('data:') ? '' : att.href,
+            })),
+          }
+        }
+      }
+      result.push({ event: parsedEvent, href: eventData.url })
+    }
+  }
+  return result
 }
 
 interface UseCalDAVReturn {
@@ -398,50 +434,45 @@ export function useCalDAV(): UseCalDAVReturn {
         const newCategoryNames: string[] = []
         let eventsAdded = 0
 
+        // Fresh connect — re-derive duplicate-UID issues from scratch (#22).
+        useCalendarStore.getState().clearDuplicateUidIssues()
+
         for (const cal of serverCalendars) {
           console.log('[CalDAV] addAccount: fetching events for', cal.name, cal.url)
           const fetchedEvents = await client.fetchEvents(cal.url, start, end)
           console.log('[CalDAV] addAccount: got', fetchedEvents.length, 'event objects for', cal.name)
 
-          for (const eventData of fetchedEvents) {
-            if (eventData.data) {
-              const parsedEvents = parseICALData(eventData.data, cal.id)
+          const parsedWithHref = await collectParsedWithHref(fetchedEvents, cal.id)
 
-              for (let parsedEvent of parsedEvents) {
-                // Cache inline attachments in IndexedDB, keep only metadata in store
-                if (parsedEvent.attachments && parsedEvent.attachments.length > 0) {
-                  const hasInline = parsedEvent.attachments.some((att) => att.href.startsWith('data:'))
-                  if (hasInline) {
-                    await putAttachments(parsedEvent.id, parsedEvent.attachments)
-                    parsedEvent = {
-                      ...parsedEvent,
-                      attachments: parsedEvent.attachments.map((att) => ({
-                        ...att,
-                        href: att.href.startsWith('data:') ? '' : att.href,
-                      })),
-                    }
-                  }
-                }
+          // Detect independent events illegally sharing a UID across resources.
+          // Keep one deterministically; record the rest as data issues (#22).
+          const { issues, skip } = detectUidCollisions(parsedWithHref)
+          for (const issue of issues) {
+            useCalendarStore.getState().addDuplicateUidIssue(issue)
+          }
 
-                // Bug 31 fix: do not filter categories by UUID pattern.
-                // Let users see all categories from their CalDAV server.
-                if (parsedEvent.categories) {
-                  for (const catName of parsedEvent.categories) {
-                    const existingCat = accountStoreCategories.find((c) => c.name === catName)
-                    if (!existingCat && !newCategoryNames.includes(catName)) {
-                      newCategoryNames.push(catName)
-                    }
-                  }
-                }
+          for (const item of parsedWithHref) {
+            const parsedEvent = item.event
+            // Skip collision "losers" so they don't overwrite the kept event.
+            if (skip.has(item)) continue
 
-                if (accountExistingEventIds.has(parsedEvent.id)) {
-                  storeUpdateEvent(parsedEvent.id, parsedEvent)
-                } else {
-                  storeAddEvent(parsedEvent)
+            // Bug 31 fix: do not filter categories by UUID pattern.
+            // Let users see all categories from their CalDAV server.
+            if (parsedEvent.categories) {
+              for (const catName of parsedEvent.categories) {
+                const existingCat = accountStoreCategories.find((c) => c.name === catName)
+                if (!existingCat && !newCategoryNames.includes(catName)) {
+                  newCategoryNames.push(catName)
                 }
-                eventsAdded++
               }
             }
+
+            if (accountExistingEventIds.has(parsedEvent.id)) {
+              storeUpdateEvent(parsedEvent.id, parsedEvent)
+            } else {
+              storeAddEvent(parsedEvent)
+            }
+            eventsAdded++
           }
         }
 
@@ -503,6 +534,12 @@ export function useCalDAV(): UseCalDAVReturn {
         const brokenEventsAfterAdd = useCalendarStore.getState().brokenEvents
         if (brokenEventsAfterAdd.length > 0) {
           showBrokenEventsNotification(brokenEventsAfterAdd.length)
+        }
+
+        // Surface any duplicate-UID data issues detected during the connect (#22)
+        const duplicateIssuesAfterAdd = useCalendarStore.getState().duplicateUidIssues
+        if (duplicateIssuesAfterAdd.length > 0) {
+          showDuplicateUidNotification(duplicateIssuesAfterAdd.length)
         }
 
         setSyncState((prev) => ({
@@ -657,6 +694,9 @@ export function useCalDAV(): UseCalDAVReturn {
         const currentEvents = state.events
         const currentCategories = state.categories
 
+        // Re-derive duplicate-UID issues from scratch each sync (#22).
+        useCalendarStore.getState().clearDuplicateUidIssues()
+
         for (const cal of accountCalendars) {
           const fetchedEvents = await client.fetchEvents(cal.url, start, end)
 
@@ -680,89 +720,84 @@ export function useCalDAV(): UseCalDAVReturn {
           const serverEventIds = new Set<string>()
           const newCategoryNames: string[] = []
 
-          for (const eventData of fetchedEvents) {
-            if (eventData.data) {
-              const parsedEvents = parseICALData(eventData.data, cal.id)
+          const parsedWithHref = await collectParsedWithHref(fetchedEvents, cal.id)
 
-              for (let parsedEvent of parsedEvents) {
-                // Cache inline attachments in IndexedDB, keep only metadata in store
-                if (parsedEvent.attachments && parsedEvent.attachments.length > 0) {
-                  const hasInline = parsedEvent.attachments.some((att) => att.href.startsWith('data:'))
-                  if (hasInline) {
-                    await putAttachments(parsedEvent.id, parsedEvent.attachments)
-                    parsedEvent = {
-                      ...parsedEvent,
-                      attachments: parsedEvent.attachments.map((att) => ({
-                        ...att,
-                        href: att.href.startsWith('data:') ? '' : att.href,
-                      })),
-                    }
-                  }
-                }
+          // Detect independent events illegally sharing a UID across resources.
+          // Keep one deterministically; record the rest as data issues (#22).
+          const { issues, skip } = detectUidCollisions(parsedWithHref)
+          for (const issue of issues) {
+            useCalendarStore.getState().addDuplicateUidIssue(issue)
+          }
 
-                serverEventIds.add(parsedEvent.id)
+          for (const item of parsedWithHref) {
+            const parsedEvent = item.event
 
-                // Skip events that have a pending delete
-                if (pendingDeleteIds.has(parsedEvent.id)) {
-                  continue
-                }
+            serverEventIds.add(parsedEvent.id)
 
-                // Collect category names for auto-creation
-                // Bug 31 fix: do not filter categories by UUID pattern.
-                // Let users see all categories from their CalDAV server.
-                if (parsedEvent.categories) {
-                  for (const catName of parsedEvent.categories) {
-                    const existingCat = currentCategories.find((c) => c.name === catName)
-                    if (!existingCat && !newCategoryNames.includes(catName)) {
-                      newCategoryNames.push(catName)
-                    }
-                  }
-                }
+            // Skip collision "losers" so they don't overwrite the kept event.
+            if (skip.has(item)) {
+              continue
+            }
 
-                const existingEvent = calendarEventsById.get(parsedEvent.id) ?? null
+            // Skip events that have a pending delete
+            if (pendingDeleteIds.has(parsedEvent.id)) {
+              continue
+            }
 
-                if (existingEvent) {
-                  const serverSeq = parsedEvent.sequence ?? 0
-                  const localSeq = existingEvent.sequence ?? 0
-
-                  let shouldUpdate = false
-                  const isConflict = serverSeq !== localSeq
-
-                  if (serverSeq > localSeq) {
-                    shouldUpdate = conflictResolution === 'server-wins'
-                  } else if (localSeq > serverSeq) {
-                    shouldUpdate = conflictResolution === 'local-wins'
-                  } else {
-                    // Same sequence - no real conflict, safe to sync from server
-                    shouldUpdate = true
-                  }
-
-                  // Bug 22 fix: for 'ask' mode, never auto-update on conflicts.
-                  // Store conflict info for UI display.
-                  if (isConflict && conflictResolution === 'ask') {
-                    const conflict: ConflictInfo = {
-                      eventId: parsedEvent.id,
-                      localVersion: existingEvent,
-                      serverVersion: parsedEvent,
-                      resolution: 'ask',
-                    }
-                    setSyncState((prev) => ({
-                      ...prev,
-                      conflicts: [...prev.conflicts, conflict],
-                    }))
-                    console.log(
-                      `[CalDAV] Conflict detected for event ${parsedEvent.id} (local seq ${localSeq} vs server seq ${serverSeq}). Awaiting user resolution.`
-                    )
-                    continue
-                  }
-
-                  if (shouldUpdate) {
-                    storeUpdateEvent(parsedEvent.id, parsedEvent)
-                  }
-                } else {
-                  storeAddEvent(parsedEvent)
+            // Collect category names for auto-creation
+            // Bug 31 fix: do not filter categories by UUID pattern.
+            // Let users see all categories from their CalDAV server.
+            if (parsedEvent.categories) {
+              for (const catName of parsedEvent.categories) {
+                const existingCat = currentCategories.find((c) => c.name === catName)
+                if (!existingCat && !newCategoryNames.includes(catName)) {
+                  newCategoryNames.push(catName)
                 }
               }
+            }
+
+            const existingEvent = calendarEventsById.get(parsedEvent.id) ?? null
+
+            if (existingEvent) {
+              const serverSeq = parsedEvent.sequence ?? 0
+              const localSeq = existingEvent.sequence ?? 0
+
+              let shouldUpdate = false
+              const isConflict = serverSeq !== localSeq
+
+              if (serverSeq > localSeq) {
+                shouldUpdate = conflictResolution === 'server-wins'
+              } else if (localSeq > serverSeq) {
+                shouldUpdate = conflictResolution === 'local-wins'
+              } else {
+                // Same sequence - no real conflict, safe to sync from server
+                shouldUpdate = true
+              }
+
+              // Bug 22 fix: for 'ask' mode, never auto-update on conflicts.
+              // Store conflict info for UI display.
+              if (isConflict && conflictResolution === 'ask') {
+                const conflict: ConflictInfo = {
+                  eventId: parsedEvent.id,
+                  localVersion: existingEvent,
+                  serverVersion: parsedEvent,
+                  resolution: 'ask',
+                }
+                setSyncState((prev) => ({
+                  ...prev,
+                  conflicts: [...prev.conflicts, conflict],
+                }))
+                console.log(
+                  `[CalDAV] Conflict detected for event ${parsedEvent.id} (local seq ${localSeq} vs server seq ${serverSeq}). Awaiting user resolution.`
+                )
+                continue
+              }
+
+              if (shouldUpdate) {
+                storeUpdateEvent(parsedEvent.id, parsedEvent)
+              }
+            } else {
+              storeAddEvent(parsedEvent)
             }
           }
 
@@ -790,6 +825,12 @@ export function useCalDAV(): UseCalDAVReturn {
         const brokenEventsAfterSync = useCalendarStore.getState().brokenEvents
         if (brokenEventsAfterSync.length > 0) {
           showBrokenEventsNotification(brokenEventsAfterSync.length)
+        }
+
+        // Surface any duplicate-UID data issues detected during the sync (#22)
+        const duplicateIssuesAfterSync = useCalendarStore.getState().duplicateUidIssues
+        if (duplicateIssuesAfterSync.length > 0) {
+          showDuplicateUidNotification(duplicateIssuesAfterSync.length)
         }
 
         // After sync, check if any journal entries exist and enable journaling if so

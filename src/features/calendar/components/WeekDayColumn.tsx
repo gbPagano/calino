@@ -8,7 +8,7 @@ import { EventCard } from './EventCard'
 import { getEventColor } from '@/lib/eventColor'
 import { formatTravelDuration } from '@/lib/events'
 import { positionEvents } from '@/lib/eventPositioning'
-import { positionedEventStyle, transparentEventStyle, travelBarStyle } from '../lib/eventLayout'
+import { positionedEventStyle, transparentEventStyle, travelBarStyle, taskPillStyle } from '../lib/eventLayout'
 import { eventCardVariants } from '../lib/eventAnimations'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import styles from './WeekView.module.css'
@@ -16,6 +16,7 @@ import styles from './WeekView.module.css'
 interface WeekDayColumnProps {
   events: CalendarEvent[]
   fragments: CalendarEvent[]
+  timedTasks: CalendarEvent[]
   calendars: Calendar[]
   hourHeight: number
   openModal: (start?: string, endDate?: string, eventId?: string, mode?: 'event' | 'task') => void
@@ -24,6 +25,7 @@ interface WeekDayColumnProps {
 const WeekDayColumn = memo(function WeekDayColumn({
   events,
   fragments,
+  timedTasks,
   calendars,
   hourHeight,
   openModal,
@@ -109,6 +111,27 @@ const WeekDayColumn = memo(function WeekDayColumn({
         style={positionedEventStyle(event, column, totalColumns)}
       >
         <EventCard event={event} enableResize hideTopRadius={!!event.travelDuration} hourHeight={hourHeight} />
+      </motion.div>
+    )
+  }
+
+  // Timed tasks are anchored on the timeline at their due time as compact
+  // pills (the same card used in the month/day task lists), layered above
+  // events so they stay clickable. They carry no duration, so the pill sizes
+  // to the card's own height rather than a duration-based block.
+  for (const task of timedTasks) {
+    elements.push(
+      <motion.div
+        key={task.id}
+        variants={eventCardVariants}
+        initial={cardInitial}
+        animate="animate"
+        exit={skipExit(task.id) ? undefined : cardExit}
+        transition={enterTransition}
+        className={`${styles.eventPositioned} ${styles.taskPositioned}`}
+        style={taskPillStyle(task)}
+      >
+        <EventCard event={task} compact monthView enableResize={false} />
       </motion.div>
     )
   }

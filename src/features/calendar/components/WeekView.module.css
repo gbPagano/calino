@@ -254,6 +254,14 @@
   border-radius: var(--radius-sm);
 }
 
+/* Timed tasks anchored on the timeline. No inline height — the compact card
+   sizes itself. Sits above regular events so the checkbox stays clickable when
+   a task and an event share the same time slot. */
+.taskPositioned {
+  height: auto;
+  z-index: 3;
+}
+
 .selectionOverlay {
   position: absolute;
   left: 2px;

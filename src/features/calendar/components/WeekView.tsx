@@ -27,6 +27,7 @@ import {
   addDays,
 } from 'date-fns'
 import { pad2 } from '@/lib/datetime'
+import { hasDueTime } from '@/lib/events'
 import type { CalendarEvent } from '@/types'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
@@ -528,9 +529,10 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
         day,
         events: eventsMap.get(dateKey) || [],
         fragments: timedFragmentsMap.get(dateKey) || [],
+        timedTasks: (tasksMap.get(dateKey) || []).filter((t) => hasDueTime(t)),
       }
     })
-  }, [weekDays, eventsMap, timedFragmentsMap])
+  }, [weekDays, eventsMap, timedFragmentsMap, tasksMap])
 
   const handleDragStart = (event: DragStartEvent): void => {
     hapticIfEnabled('light')
@@ -782,7 +784,9 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
           weekDays.forEach((day, idx) => {
             const dayKey = format(day, 'yyyy-MM-dd')
             const dayTasks = tasksMap.get(dayKey) || []
-            dayTasks.forEach((t) => tasksByDay[idx].push(t))
+            // Timed tasks live on the timeline (rendered as pills in the day
+            // column); only all-day / untimed tasks belong in the footer.
+            dayTasks.filter((t) => !hasDueTime(t)).forEach((t) => tasksByDay[idx].push(t))
           })
           const hasTasks = tasksByDay.some((arr) => arr.length > 0)
           if (!hasTasks) return null

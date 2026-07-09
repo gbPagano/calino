@@ -285,7 +285,10 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
 
       if (event.type !== 'task' && event.type !== 'journal' && event.isAllDay) {
         allDay.set(startKey, [...(allDay.get(startKey) || []), event])
-      } else if (event.type !== 'task' ? !event.isAllDay : !event.isAllDay && event.start) {
+      } else if (event.type !== 'task' && !event.isAllDay) {
+        // Tasks (all-day or timed) are never placed in the time grid — they
+        // render as compact cards in the per-day task footer, matching month
+        // view. Only real timed events reach this branch.
         if (startKey === endKey) {
           timed.set(startKey, [...(timed.get(startKey) || []), event])
         } else {
@@ -327,7 +330,7 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
     events
       .filter(
         (event) =>
-          event.type === 'task' && event.isAllDay && visibleCalendarIds.includes(event.calendarId)
+          event.type === 'task' && visibleCalendarIds.includes(event.calendarId)
       )
       .forEach((task) => {
         const taskDate = task.dueDate
@@ -779,7 +782,7 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
           weekDays.forEach((day, idx) => {
             const dayKey = format(day, 'yyyy-MM-dd')
             const dayTasks = tasksMap.get(dayKey) || []
-            dayTasks.filter((t) => t.isAllDay).forEach((t) => tasksByDay[idx].push(t))
+            dayTasks.forEach((t) => tasksByDay[idx].push(t))
           })
           const hasTasks = tasksByDay.some((arr) => arr.length > 0)
           if (!hasTasks) return null
@@ -789,7 +792,7 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
               {tasksByDay.map((tasks, idx) => (
                 <div key={idx} className={styles.tasksFixedFooterCol}>
                   {tasks.map((task) => (
-                    <EventCard key={task.id} event={task} compact />
+                    <EventCard key={task.id} event={task} compact monthView enableResize={false} />
                   ))}
                 </div>
               ))}

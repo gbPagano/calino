@@ -151,7 +151,7 @@ export const EventCard = React.memo(function EventCard({
   // "pill" variants (compact / dot / mobile-month) where there's no room, and
   // only when the user hasn't turned event icons off.
   const showEventIcons = useSettingsStore((state) => state.showEventIcons)
-  const showBackground = showEventIcons && !compact && !dotMode && !isMobileMonth
+  const showBackground = showEventIcons && !compact && !dotMode && !isMobileMonth && !isTask
   const backgroundId = showBackground ? matchEventBackground(event.title || event.location) : null
   const isMultiDay = !isSameDay(parseISO(event.start), parseISO(event.end))
   const isFragmentMiddle = event.isFragment && !event.isFirstFragment && !event.isLastFragment

@@ -202,6 +202,9 @@
   z-index: 99;
   flex-direction: column;
   animation: fabMenuIn 0.15s ease;
+  /* Match the expanded quick-settings width so revealing the panel doesn't
+     resize the menu (issue #26 follow-up). */
+  min-width: 232px;
 }
 
 @keyframes fabMenuIn {
@@ -244,4 +247,67 @@
 
 .mobile-fab-option svg {
   color: var(--ink-3);
+}
+
+/* Settings row: the Settings action plus a quick-settings sub-button on its
+   right that reveals the theme / view toggles inline (issue #26). */
+.mobile-fab-settings-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.mobile-fab-settings-row .mobile-fab-option {
+  flex: 1;
+}
+
+.mobile-fab-subbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  flex: 0 0 auto;
+  border: none;
+  border-left: 1px solid var(--line-2, var(--line));
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.mobile-fab-subbtn:hover,
+.mobile-fab-subbtn-active {
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.04);
+  color: var(--ink);
+}
+
+.mobile-fab-subbtn-active {
+  color: var(--accent);
+}
+
+/* Inline quick-settings panel revealed by the sub-button. Sits within the
+   bottom-anchored menu (which grows upward), so no absolute positioning is
+   needed and the menu's overflow clip is respected. */
+.mobile-fab-quicksettings {
+  border-top: 1px solid var(--line-2, var(--line));
+  padding: 4px 0;
+  min-width: 232px;
+  background: rgba(var(--ink-raw, 44, 40, 33), 0.02);
+  overflow: hidden;
+  transform-origin: bottom center;
+  animation: fabQuickSettingsIn 0.2s ease;
+}
+
+@keyframes fabQuickSettingsIn {
+  from {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 320px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    opacity: 1;
+  }
 }

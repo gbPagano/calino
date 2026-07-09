@@ -484,6 +484,10 @@
   right: auto;
   width: 15px;
   height: 15px;
+  /* Sit above .dragContent (z-index:1), which is a later sibling and would
+     otherwise paint over the checkbox and its expanded ::before hit area,
+     swallowing all but the very edge of the box. */
+  z-index: 2;
   border-radius: var(--radius-sm);
   border: 1.6px solid color-mix(in srgb, var(--event-color, var(--accent)) 60%, var(--ink-3));
   background: transparent;
@@ -493,6 +497,17 @@
   padding: 0;
   cursor: pointer;
   transition: background var(--dur-fast), border-color var(--dur-fast);
+}
+
+/* Expand the tappable area beyond the 15px visual box (a bare 15px target is
+   far too small to hit reliably, especially on touch) without shifting the
+   layout. The transparent overlay forwards clicks to the button. Kept at 6px so
+   the effective ~27px target stays clear of the ~3px gap to a stacked
+   neighbour's checkbox — a bigger inset could toggle the wrong task. */
+.task .taskCheckbox::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
 }
 
 .task .taskCheckbox:hover {

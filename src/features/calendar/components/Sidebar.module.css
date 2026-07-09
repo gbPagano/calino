@@ -863,6 +863,19 @@
   position: relative;
 }
 
+/* Transparent bridge filling the 8px gap between the flyout card and the
+   header, so a cursor travelling between them never lands on dead space and
+   dismisses the flyout. Only relevant while the card is open (it floats above);
+   the JS hover-intent delay is the primary safeguard. */
+.categoriesWrapper::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 8px;
+}
+
 .categoryCard {
   position: absolute;
   bottom: 100%;

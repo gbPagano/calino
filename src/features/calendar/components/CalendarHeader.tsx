@@ -17,7 +17,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
-import { useConfigStore } from '@/store/configStore'
+import { QuickSettingsPanel } from './QuickSettingsPanel'
 import { useGestures } from '@/hooks/useGestures'
 import { useAnimatedClose } from '@/hooks/useAnimatedClose'
 import type { ViewType } from '@/types'
@@ -61,17 +61,12 @@ export function CalendarHeader({
   const setCurrentDate = useCalendarStore((state) => state.setCurrentDate)
   const setCurrentView = useCalendarStore((state) => state.setCurrentView)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
-  const showWeekNumbers = useSettingsStore((state) => state.showWeekNumbers)
-  const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
-  const themeMode = useSettingsStore((state) => state.themeMode)
   const journalEnabled = useSettingsStore((state) => state.journalEnabled)
   const contactsEnabled = useSettingsStore((state) => state.contactsEnabled)
   const sidebarWidth = useSettingsStore((state) => state.sidebarWidth)
   const sidebarCollapsed = useSettingsStore((state) => state.sidebarCollapsed)
   const agendaSidebarOpen = useSettingsStore((state) => state.agendaSidebarOpen)
   const updateSettings = useSettingsStore((state) => state.updateSettings)
-  const hasPreconfiguredAccounts = useConfigStore((state) => state.hasPreconfiguredAccounts)
-  const lock = useConfigStore((state) => state.lock)
 
   // Hover sub-menus attached to individual view tabs (Week → 3-day,
   // Agenda → Sidebar). Only one is open at a time.
@@ -625,73 +620,7 @@ export function CalendarHeader({
           </button>
             {quickSettings.rendered && (
             <div className={`${styles.quickSettingsDropdown} ${quickSettings.closing ? styles.quickSettingsClosing : ''}`}>
-              <div className={styles.quickSettingsItem}>
-                <span className={styles.quickSettingsLabel}>Theme</span>
-                <div
-                  className={styles.themeModeGroup}
-                  role="radiogroup"
-                  aria-label="Theme mode"
-                  data-component="theme-mode-group"
-                >
-                  {(['auto', 'light', 'dark'] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      role="radio"
-                      aria-checked={themeMode === mode}
-                      className={`${styles.themeModeBtn} ${themeMode === mode ? styles.themeModeActive : ''}`}
-                      onClick={() => updateSettings({ themeMode: mode })}
-                      data-component={`theme-mode-${mode}`}
-                      title={mode === 'auto' ? 'Auto' : mode === 'light' ? 'Light' : 'Dark'}
-                      aria-label={mode === 'auto' ? 'Auto' : mode === 'light' ? 'Light' : 'Dark'}
-                    >
-                      {mode === 'auto' ? <ThemeAutoIcon /> : mode === 'light' ? <ThemeLightIcon /> : <ThemeDarkIcon />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className={styles.quickSettingsItem}>
-                <span className={styles.quickSettingsLabel}>Week numbers</span>
-                <button
-                  className={`${styles.toggleSwitch} ${showWeekNumbers ? styles.toggleActive : ''}`}
-                  onClick={() => updateSettings({ showWeekNumbers: !showWeekNumbers })}
-                  aria-label="Toggle week numbers"
-                >
-                  <span className={styles.toggleThumb} />
-                </button>
-              </div>
-              <div className={styles.quickSettingsItem}>
-                <span className={styles.quickSettingsLabel}>Hide completed tasks</span>
-                <button
-                  className={`${styles.toggleSwitch} ${hideCompletedTasksInMonthView ? styles.toggleActive : ''}`}
-                  onClick={() => updateSettings({ hideCompletedTasksInMonthView: !hideCompletedTasksInMonthView })}
-                  aria-label="Toggle hide completed tasks"
-                >
-                  <span className={styles.toggleThumb} />
-                </button>
-              </div>
-              <div className={styles.quickSettingsDivider} />
-              <div className={styles.quickSettingsFooter}>
-                <button
-                  className={styles.quickSettingsLink}
-                  onClick={() => navigate('/settings')}
-                >
-                  All settings →
-                </button>
-                {hasPreconfiguredAccounts && (
-                  <button
-                    className={styles.quickSettingsLock}
-                    onClick={() => lock()}
-                    aria-label="Lock Calino"
-                    title="Lock"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="7" width="10" height="7" rx="2" />
-                      <path d="M5 7V5a3 3 0 016 0v2" />
-                    </svg>
-                  </button>
-                )}
-              </div>
+              <QuickSettingsPanel />
             </div>
           )}
         </div>
@@ -729,32 +658,6 @@ function SearchIcon(): JSX.Element {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21L16.65 16.65" />
-    </svg>
-  )
-}
-
-function ThemeAutoIcon(): JSX.Element {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="4" width="20" height="13" rx="2" />
-      <path d="M8 21h8M12 17v4" />
-    </svg>
-  )
-}
-
-function ThemeLightIcon(): JSX.Element {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-    </svg>
-  )
-}
-
-function ThemeDarkIcon(): JSX.Element {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
   )
 }

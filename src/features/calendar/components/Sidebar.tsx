@@ -59,6 +59,25 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
   const [isTasksExpanded, setIsTasksExpanded] = useState(false)
   const hasInitializedTasksExpandedRef = useRef(false)
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false)
+  // Hover-intent for the categories flyout: delay the close so the cursor can
+  // cross the gap between the header and the flyout card without it vanishing.
+  const categoriesCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const openCategories = (): void => {
+    if (categoriesCloseTimer.current) {
+      clearTimeout(categoriesCloseTimer.current)
+      categoriesCloseTimer.current = null
+    }
+    setIsCategoriesExpanded(true)
+  }
+  const closeCategoriesDeferred = (): void => {
+    if (categoriesCloseTimer.current) clearTimeout(categoriesCloseTimer.current)
+    categoriesCloseTimer.current = setTimeout(() => setIsCategoriesExpanded(false), 300)
+  }
+  useEffect(() => {
+    return () => {
+      if (categoriesCloseTimer.current) clearTimeout(categoriesCloseTimer.current)
+    }
+  }, [])
   const [syncingCalendarId, setSyncingCalendarId] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<Record<string, 'success' | 'error'>>({})
   const [contextMenu, setContextMenu] = useState<{
@@ -595,8 +614,8 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
             <div className={styles.categoriesWrapper}>
               <button
                 className={styles.sectionHeader}
-                onMouseEnter={() => setIsCategoriesExpanded(true)}
-                onMouseLeave={() => setIsCategoriesExpanded(false)}
+                onMouseEnter={openCategories}
+                onMouseLeave={closeCategoriesDeferred}
               >
                 <span className={styles.sectionTitle}>Categories</span>
                 <ChevronDown className={`${styles.chevron} ${isCategoriesExpanded ? styles.chevronExpanded : ''}`} />
@@ -609,8 +628,8 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
                     exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 5 }}
                     transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
                     className={styles.categoryCard}
-                    onMouseEnter={() => setIsCategoriesExpanded(true)}
-                    onMouseLeave={() => setIsCategoriesExpanded(false)}
+                    onMouseEnter={openCategories}
+                    onMouseLeave={closeCategoriesDeferred}
                   >
                     <div className={styles.categoryCardList}>
                       {categories.map((category) => (

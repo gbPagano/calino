@@ -26,9 +26,11 @@ import {
   SidebarIcon,
   SearchIcon,
   SettingsIcon,
+  TuneIcon,
 } from './components/common/icons'
 import { OnboardingModal } from './features/onboarding/OnboardingModal'
 import { ShortcutsHelp } from './features/calendar/components/ShortcutsHelp'
+import { QuickSettingsPanel } from './features/calendar/components/QuickSettingsPanel'
 import { SetupPage } from './features/setup/SetupPage'
 import { MasterPasswordPrompt } from './features/settings/components/MasterPasswordPrompt'
 import { useConfigStore } from './store/configStore'
@@ -460,6 +462,7 @@ function CalendarApp(): JSX.Element {
         onClick={() => setIsFabMenuOpen(!isFabMenuOpen)}
         isOpen={isFabMenuOpen}
         onAction={handleFabAction}
+        onClose={() => setIsFabMenuOpen(false)}
       />
       <ErrorBoundary fallback={null}>
         <EventModal />
@@ -498,9 +501,10 @@ interface MobileFABProps {
   onClick: () => void
   isOpen: boolean
   onAction: (action: 'event' | 'task' | 'commandPalette' | 'settings' | 'sidebar') => void
+  onClose: () => void
 }
 
-function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
+function MobileFAB({ onClick, isOpen, onAction, onClose }: MobileFABProps): JSX.Element {
   return (
     <>
       <button className="mobile-fab" onClick={onClick} aria-label="Quick actions">
@@ -524,10 +528,42 @@ function MobileFAB({ onClick, isOpen, onAction }: MobileFABProps): JSX.Element {
             <SearchIcon />
             Search & Commands
           </button>
-          <button className="mobile-fab-option" onClick={() => onAction('settings')}>
-            <SettingsIcon />
-            Settings
-          </button>
+          {/* Rendered only while the menu is open, so its expanded/collapsed
+              state resets automatically each time the menu is reopened. */}
+          <FabSettingsRow onAction={onAction} onClose={onClose} />
+        </div>
+      )}
+    </>
+  )
+}
+
+function FabSettingsRow({
+  onAction,
+  onClose,
+}: {
+  onAction: MobileFABProps['onAction']
+  onClose: () => void
+}): JSX.Element {
+  const [showQuickSettings, setShowQuickSettings] = useState(false)
+  return (
+    <>
+      <div className="mobile-fab-settings-row">
+        <button className="mobile-fab-option" onClick={() => onAction('settings')}>
+          <SettingsIcon />
+          Settings
+        </button>
+        <button
+          className={`mobile-fab-subbtn ${showQuickSettings ? 'mobile-fab-subbtn-active' : ''}`}
+          onClick={() => setShowQuickSettings((v) => !v)}
+          aria-label="Quick settings"
+          aria-expanded={showQuickSettings}
+        >
+          <TuneIcon />
+        </button>
+      </div>
+      {showQuickSettings && (
+        <div className="mobile-fab-quicksettings" role="menu">
+          <QuickSettingsPanel onNavigate={onClose} />
         </div>
       )}
     </>

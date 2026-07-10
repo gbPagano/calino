@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 import { useRef } from 'react'
-import type { TaskPriority } from '@/types'
+import type { CalendarEvent, TaskPriority } from '@/types'
 import { useScrollInput } from '@/hooks/useScrollInput'
 import styles from './EventModal.module.css'
 
@@ -15,6 +15,12 @@ interface TaskFormFieldsProps {
   onDueAllDayChange: (checked: boolean) => void
   priority: TaskPriority | undefined
   onPriorityChange: (priority: TaskPriority | undefined) => void
+  parentTaskId?: string
+  parentTasks: CalendarEvent[]
+  onParentTaskChange: (parentTaskId: string | undefined) => void
+  subtasks: CalendarEvent[]
+  onOpenSubtask: (taskId: string) => void
+  onAddSubtask?: () => void
 }
 
 const PRIORITY_OPTIONS: { value: TaskPriority | undefined; label: string }[] = [
@@ -35,9 +41,16 @@ export function TaskFormFields({
   onDueAllDayChange,
   priority,
   onPriorityChange,
+  parentTaskId,
+  parentTasks,
+  onParentTaskChange,
+  subtasks,
+  onOpenSubtask,
+  onAddSubtask,
 }: TaskFormFieldsProps): JSX.Element {
   const dueDateRef = useRef<HTMLInputElement>(null)
   const dueTimeRef = useRef<HTMLInputElement>(null)
+  const parentTask = parentTasks.find((task) => task.id === parentTaskId)
   useScrollInput([dueDateRef, dueTimeRef])
 
   return (
@@ -65,6 +78,49 @@ export function TaskFormFields({
           </label>
         </div>
       </div>
+
+      <div className={styles.row} data-component="task-subtasks">
+        <div className={styles.field}>
+          {parentTask && <div className={styles.helperText} data-component="subtask-parent">Subtask of: {parentTask.title}</div>}
+          <label className={styles.label} htmlFor="parent-task-select">
+            Parent task
+          </label>
+          <select
+            id="parent-task-select"
+            value={parentTaskId ?? ''}
+            onChange={(e) => onParentTaskChange(e.target.value || undefined)}
+            className={styles.select}
+          >
+            <option value="">No parent</option>
+            {parentTasks.map((task) => (
+              <option key={task.id} value={task.id}>{task.title}</option>
+            ))}
+          </select>
+        </div>
+        {onAddSubtask && (
+          <div className={styles.field}>
+            <button type="button" className={styles.secondaryButton} onClick={onAddSubtask} data-component="add-subtask">
+              Add subtask
+            </button>
+          </div>
+        )}
+      </div>
+
+      {subtasks.length > 0 && (
+        <div className={styles.subtaskList}>
+          <span className={styles.label}>Subtasks</span>
+          {subtasks.map((task) => (
+            <button
+              key={task.id}
+              type="button"
+              className={styles.subtaskItem}
+              onClick={() => onOpenSubtask(task.id)}
+            >
+              {task.completed ? '✓ ' : ''}{task.title}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className={styles.row}>
         <div className={styles.field}>

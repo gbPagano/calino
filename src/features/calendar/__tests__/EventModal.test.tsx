@@ -64,6 +64,18 @@ describe('EventModal', () => {
     expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument()
   })
 
+  it('lists direct subtasks when editing a parent task', () => {
+    const store = useCalendarStore.getState()
+    store.addEvent({ id: 'parent', calendarId: 'default', title: 'Parent task', start: '2024-03-15T10:00:00', end: '2024-03-15T10:00:00', isAllDay: false, type: 'task' })
+    store.addEvent({ id: 'child', calendarId: 'default', title: 'Child task', parentTaskId: 'parent', start: '2024-03-15T10:00:00', end: '2024-03-15T10:00:00', isAllDay: false, type: 'task' })
+    store.openModal(undefined, undefined, 'parent', 'task')
+
+    render(<EventModal />)
+
+    expect(screen.getByText('Subtasks')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Child task' })).toBeInTheDocument()
+  })
+
   it('does not show delete button when creating', () => {
     const store = useCalendarStore.getState()
     store.openModal()
@@ -103,6 +115,53 @@ describe('EventModal', () => {
 
     render(<EventModal />)
     expect(screen.getByPlaceholderText('Location')).toBeInTheDocument()
+  })
+
+  it('shows only calendars that support events when creating an event', () => {
+    const store = useCalendarStore.getState()
+    store.addCalendar({
+      id: 'tasks-only',
+      name: 'Tasks only',
+      color: '#FF0000',
+      isVisible: true,
+      isDefault: false,
+      showTasksInViews: true,
+      supportedComponents: ['VTODO'],
+    })
+    store.openModal()
+
+    render(<EventModal />)
+
+    const calendarSelect = screen
+      .getByRole('dialog')
+      .querySelector('[data-component="event-calendar-select"]')
+    expect(calendarSelect).not.toBeNull()
+    expect(calendarSelect).toHaveTextContent('Default Calendar')
+    expect(calendarSelect).not.toHaveTextContent('Tasks only')
+  })
+
+  it('shows only calendars that support tasks when creating a task', () => {
+    const store = useCalendarStore.getState()
+    store.updateCalendar('default', { supportedComponents: ['VEVENT'] })
+    store.addCalendar({
+      id: 'tasks-only',
+      name: 'Tasks only',
+      color: '#FF0000',
+      isVisible: true,
+      isDefault: false,
+      showTasksInViews: true,
+      supportedComponents: ['VTODO'],
+    })
+    store.openModal(undefined, undefined, undefined, 'task')
+
+    render(<EventModal />)
+
+    const calendarSelect = screen
+      .getByRole('dialog')
+      .querySelector('[data-component="event-calendar-select"]')
+    expect(calendarSelect).not.toBeNull()
+    expect(calendarSelect).toHaveTextContent('Tasks only')
+    expect(calendarSelect).not.toHaveTextContent('Default Calendar')
   })
 
   it('renders description textarea', () => {

@@ -50,6 +50,7 @@ export interface Reminder {
 }
 
 export type EventType = 'event' | 'task' | 'journal'
+export type CalendarComponent = 'VEVENT' | 'VTODO'
 export type SyncStatus = 'synced' | 'pending' | 'failed'
 export type TaskPriority = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
@@ -98,6 +99,7 @@ export interface CalendarEvent {
   type?: EventType
   dueDate?: string
   completed?: boolean
+  parentTaskId?: string
   priority?: TaskPriority
   percentComplete?: number
   transparency?: 'opaque' | 'transparent'
@@ -136,6 +138,7 @@ export interface Calendar {
   isDefault: boolean
   accountId?: string
   showTasksInViews: boolean
+  supportedComponents?: CalendarComponent[]
 }
 
 export type ViewType = 'month' | 'week' | '3day' | 'day' | 'agenda' | 'todo' | 'journal' | 'contacts' | 'year'
@@ -155,6 +158,8 @@ export interface CalendarState {
   selectedDate: string | null
   selectedEndDate: string | null
   initialTitle: string | null
+  initialCalendarId: string | null
+  subtaskParentId: string | null
   isOverlayOpen: boolean
   selectedEventType: EventType
   showAddCalendar: boolean
@@ -177,6 +182,7 @@ export interface CalendarState {
 export interface CalendarActions {
   addEvent: (event: CalendarEvent) => void
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => void
+  completeTask: (id: string, completed: boolean) => CalendarEvent[]
   deleteEvent: (id: string) => void
   addBrokenEvent: (event: CalendarEvent, reason: string) => void
   removeBrokenEvent: (eventId: string) => void
@@ -212,6 +218,8 @@ export interface CalendarActions {
     eventId?: string,
     mode?: EventType,
     initialTitle?: string,
+    parentTaskId?: string,
+    initialCalendarId?: string,
   ) => void
   closeModal: () => void
   setOverlayOpen: (isOpen: boolean) => void

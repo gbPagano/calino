@@ -289,6 +289,7 @@ export function useCalDAV(): UseCalDAVReturn {
           isDefault: cal.isDefault,
           accountId: cal.accountId,
           showTasksInViews: true,
+          supportedComponents: cal.supportedComponents,
         })
       }
     }
@@ -396,6 +397,7 @@ export function useCalDAV(): UseCalDAVReturn {
               isDefault: cal.isDefault,
               accountId: newAccount.id,
               showTasksInViews: true,
+              supportedComponents: cal.supportedComponents,
             })
           }
         }
@@ -686,6 +688,56 @@ export function useCalDAV(): UseCalDAVReturn {
 
         const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
         const accountCalendars = storage.getCalendarsByAccountId(accountId)
+        let calendarsToSync = accountCalendars
+
+        // Re-discover collections on every sync. This migrates capabilities
+        // saved by older versions and picks up calendars created elsewhere.
+        try {
+          const serverCalendars = await client.fetchCalendars()
+          const storedByUrl = new Map(accountCalendars.map((calendar) => [calendar.url, calendar]))
+          const discoveredCalendars = [...accountCalendars]
+          const caldavDebugMode = useSettingsStore.getState().caldavDebugMode
+
+          for (const serverCalendar of serverCalendars) {
+            const storedCalendar = storedByUrl.get(serverCalendar.url)
+            if (storedCalendar) {
+              if (serverCalendar.supportedComponents) {
+                storage.updateCalendar(storedCalendar.id, {
+                  supportedComponents: serverCalendar.supportedComponents,
+                })
+                storeUpdateCalendar(storedCalendar.id, {
+                  supportedComponents: serverCalendar.supportedComponents,
+                })
+              }
+              continue
+            }
+
+            const newCalendar = { ...serverCalendar, accountId }
+            storage.saveCalendar(newCalendar)
+            discoveredCalendars.push(newCalendar)
+
+            const isSettingsCalendar =
+              serverCalendar.name === 'Calino Settings' ||
+              serverCalendar.url?.includes('calino-settings')
+            if (!isSettingsCalendar || caldavDebugMode) {
+              storeAddCalendar({
+                id: serverCalendar.id,
+                name: serverCalendar.name,
+                color: serverCalendar.color,
+                isVisible: serverCalendar.isVisible,
+                isDefault: serverCalendar.isDefault,
+                accountId,
+                showTasksInViews: true,
+                supportedComponents: serverCalendar.supportedComponents,
+              })
+            }
+          }
+
+          calendarsToSync = discoveredCalendars
+          setCalendars(storage.getAllCalendars())
+        } catch (error) {
+          console.warn('[CalDAV] Could not refresh calendar collections:', error)
+        }
 
         const start = '1970-01-01T00:00:00.000Z'
         const end = addDays(new Date(), 365).toISOString()
@@ -698,7 +750,7 @@ export function useCalDAV(): UseCalDAVReturn {
         // Re-derive duplicate-UID issues from scratch each sync (#22).
         useCalendarStore.getState().clearDuplicateUidIssues()
 
-        for (const cal of accountCalendars) {
+        for (const cal of calendarsToSync) {
           const fetchedEvents = await client.fetchEvents(cal.url, start, end)
 
           // Snapshot pending deletes AFTER the network fetch, as late as possible
@@ -1030,6 +1082,7 @@ export function useCalDAV(): UseCalDAVReturn {
               isDefault: cal.isDefault,
               accountId,
               showTasksInViews: true,
+              supportedComponents: cal.supportedComponents,
             })
           }
         }
@@ -1200,7 +1253,8 @@ export function useCalDAV(): UseCalDAVReturn {
           existingEvent.transparency !== event.transparency ||
           existingEvent.rruleString !== event.rruleString ||
           existingEvent.completed !== event.completed ||
-          existingEvent.priority !== event.priority ||
+           existingEvent.priority !== event.priority ||
+           existingEvent.parentTaskId !== event.parentTaskId ||
           existingEvent.dueDate !== event.dueDate ||
           existingEvent.type !== event.type ||
           JSON.stringify(existingEvent.categories ?? []) !== JSON.stringify(event.categories ?? []) ||
@@ -1471,6 +1525,7 @@ export function useCalDAV(): UseCalDAVReturn {
         isDefault: false,
         accountId,
         showTasksInViews: true,
+        supportedComponents: newCalendar.supportedComponents,
       })
 
       setCalendars(storage.getAllCalendars())

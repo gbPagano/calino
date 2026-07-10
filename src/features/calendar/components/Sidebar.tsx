@@ -33,6 +33,8 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { MiniTasksSection } from './MiniTasksSection'
 import styles from './Sidebar.module.css'
 
+let hasAutoSyncedCalendars = false
+
 interface SidebarProps {
   isOpen?: boolean
   onClose?: () => void
@@ -58,27 +60,11 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
   const showMonthDropdownRef = useRef(showMonthDropdown)
   const [isTasksExpanded, setIsTasksExpanded] = useState(false)
   const hasInitializedTasksExpandedRef = useRef(false)
+  const syncAllRequestRef = useRef<Promise<void> | null>(null)
+  const [isCalendarsExpanded, setIsCalendarsExpanded] = useState(false)
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false)
-  // Hover-intent for the categories flyout: delay the close so the cursor can
-  // cross the gap between the header and the flyout card without it vanishing.
-  const categoriesCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const openCategories = (): void => {
-    if (categoriesCloseTimer.current) {
-      clearTimeout(categoriesCloseTimer.current)
-      categoriesCloseTimer.current = null
-    }
-    setIsCategoriesExpanded(true)
-  }
-  const closeCategoriesDeferred = (): void => {
-    if (categoriesCloseTimer.current) clearTimeout(categoriesCloseTimer.current)
-    categoriesCloseTimer.current = setTimeout(() => setIsCategoriesExpanded(false), 300)
-  }
-  useEffect(() => {
-    return () => {
-      if (categoriesCloseTimer.current) clearTimeout(categoriesCloseTimer.current)
-    }
-  }, [])
   const [syncingCalendarId, setSyncingCalendarId] = useState<string | null>(null)
+  const [isSyncingAll, setIsSyncingAll] = useState(false)
   const [syncStatus, setSyncStatus] = useState<Record<string, 'success' | 'error'>>({})
   const [contextMenu, setContextMenu] = useState<{
     x: number
@@ -109,8 +95,61 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
   const showAddCalendar = useCalendarStore((state) => state.showAddCalendar)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)
   const globalSyncStatus = useCalDAVSyncStore((state) => state.status)
-  const { syncAccount, syncState, updateCalendar: updateCalDAVCalendar, deleteCalendarFromServer } = useCalDAV()
+  const { accounts, syncAccount, syncState, updateCalendar: updateCalDAVCalendar, deleteCalendarFromServer } = useCalDAV()
   const navigate = useNavigate()
+
+  const accountIds = useMemo(
+    () => [
+      ...new Set([
+        ...accounts.map((account) => account.id),
+        ...calendars.flatMap((calendar) => calendar.accountId ?? []),
+      ]),
+    ],
+    [accounts, calendars]
+  )
+
+  const syncAllAccounts = useCallback(async (): Promise<void> => {
+    for (const accountId of accountIds) {
+      await syncAccount(accountId)
+    }
+  }, [accountIds, syncAccount])
+
+  const runSyncAll = useCallback((): Promise<void> => {
+    if (syncAllRequestRef.current) return syncAllRequestRef.current
+    const request = syncAllAccounts().finally(() => {
+      syncAllRequestRef.current = null
+    })
+    syncAllRequestRef.current = request
+    return request
+  }, [syncAllAccounts])
+
+  const handleSyncAll = async (): Promise<void> => {
+    if (accountIds.length === 0 || isSyncingAll) return
+    if (globalSyncStatus === 'syncing') {
+      showToast('Calendars are already syncing.')
+      return
+    }
+    // A manual request made before the mount effect runs becomes the initial
+    // sync, avoiding a duplicate request for the same accounts.
+    hasAutoSyncedCalendars = true
+    setIsSyncingAll(true)
+    try {
+      await runSyncAll()
+      showToast('All calendars synced.')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Failed to sync calendars')
+    } finally {
+      setIsSyncingAll(false)
+    }
+  }
+
+  useEffect(() => {
+    if (hasAutoSyncedCalendars || accountIds.length === 0) return
+    hasAutoSyncedCalendars = true
+    runSyncAll().catch((error) => {
+      console.warn('[CalDAV] Automatic calendar sync failed:', error)
+    })
+  }, [accountIds.length, runSyncAll])
 
   // Initialize miniDate from the store on first render
   useEffect(() => {
@@ -488,8 +527,39 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
 
         <div className={styles.calendars}>
           <div className={styles.sectionTitleRow}>
-            <span className={styles.sectionTitle}>Calendars</span>
-            <div className={styles.addCalendarDropdown}>
+            <button
+              type="button"
+              className={`${styles.sectionHeader} ${styles.calendarSectionToggle}`}
+              onClick={() => setIsCalendarsExpanded(!isCalendarsExpanded)}
+              aria-expanded={isCalendarsExpanded}
+              aria-controls="sidebar-calendars"
+              data-component="calendar-section-toggle"
+            >
+              <span className={styles.sectionTitle}>Calendars</span>
+              {calendars.length > 0 && (
+                <span className={styles.sectionCount}>
+                  {calendars.filter((calendar) => calendar.isVisible).length}/{calendars.length}
+                </span>
+              )}
+              <ChevronDown className={`${styles.chevron} ${isCalendarsExpanded ? styles.chevronExpanded : ''}`} />
+            </button>
+            <div className={styles.calendarHeaderActions}>
+              <button
+                className={`${styles.addCalendarButton} ${isSyncingAll || globalSyncStatus === 'syncing' ? styles.headerSyncing : ''}`}
+                onClick={handleSyncAll}
+                title="Sync all calendars"
+                aria-label="Sync all calendars"
+                data-component="sync-all-calendars"
+                disabled={
+                  accountIds.length === 0 ||
+                  isSyncingAll
+                }
+              >
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M23 4v6h-6M1 20v-6h6" />
+                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                </svg>
+              </button>
               <button
                 className={styles.addCalendarButton}
                 onClick={() => setShowAddCalendar(true)}
@@ -500,108 +570,119 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
               </button>
             </div>
           </div>
-          {/* R3.11 — empty state when no calendars exist. Without this the
-              section header sits alone above nothing, looking broken. */}
-          {calendars.length === 0 && (
-            <EmptyState
-              title="No calendars yet"
-              description="Add a CalDAV account to sync events, or continue offline."
-              action={
-                <button
-                  className={styles.addCalendarButton}
-                  onClick={() => setShowAddCalendar(true)}
-                  aria-label="Add a CalDAV account"
-                  data-component="sidebar-empty-add"
-                >
-                  + Add a CalDAV account
-                </button>
-              }
-            />
-          )}
-          {calendars.map((calendar) => (
-            <label
-              key={calendar.id}
-              className={styles.calendarItem}
-              onContextMenu={(e) => handleContextMenu(e, calendar.id)}
-            >
-              <input
-                type="checkbox"
-                checked={calendar.isVisible}
-                onChange={() => toggleCalendarVisibility(calendar.id)}
-                className={styles.checkbox}
-              />
-              <button
-                className={styles.colorDot}
-                style={{ backgroundColor: calendar.color }}
-                onClick={() => handleColorClick(calendar.id, calendar.color)}
-                title="Click to change color"
-                aria-label={`Change ${calendar.name} color`}
-              />
-              {editingId === calendar.id ? (
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  onBlur={handleFinishRename}
-                  onKeyDown={handleKeyDown}
-                  className={styles.renameInput}
-                />
-              ) : (
-                <span
-                  className={styles.calendarName}
-                  onDoubleClick={() => handleStartRename(calendar.id, calendar.name)}
-                >
-                  {calendar.name}
-                </span>
-              )}
-              {calendar.accountId && (
-                <button
-                  className={`${styles.syncButton} ${syncingCalendarId === calendar.id || syncState.status === 'syncing' || globalSyncStatus === 'syncing' ? styles.syncing : ''} ${syncStatus[calendar.id] === 'success' ? styles.success : ''} ${syncStatus[calendar.id] === 'error' ? styles.error : ''}`}
-                  onClick={() => handleSyncCalendar(calendar.id, calendar.accountId)}
-                  title="Sync calendar"
-                  aria-label={`Sync ${calendar.name}`}
-                  disabled={!!syncingCalendarId}
-                >
-                  {syncStatus[calendar.id] === 'success' ? (
-                    <svg aria-hidden="true"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  ) : syncStatus[calendar.id] === 'error' ? (
-                    <svg aria-hidden="true"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  ) : (
-                    <svg aria-hidden="true"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M23 4v6h-6M1 20v-6h6" />
-                      <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
-                    </svg>
-                  )}
-                </button>
-              )}
-            </label>
-          ))}
+          <AnimatePresence initial={false}>
+            {isCalendarsExpanded && (
+              <motion.div
+                id="sidebar-calendars"
+                initial={prefersReducedMotion ? false : { opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -5 }}
+                transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
+                className={styles.calendarList}
+              >
+                {calendars.length === 0 && (
+                  <EmptyState
+                    title="No calendars yet"
+                    description="Add a CalDAV account to sync events, or continue offline."
+                    action={
+                      <button
+                        className={styles.addCalendarButton}
+                        onClick={() => setShowAddCalendar(true)}
+                        aria-label="Add a CalDAV account"
+                        data-component="sidebar-empty-add"
+                      >
+                        + Add a CalDAV account
+                      </button>
+                    }
+                  />
+                )}
+                {calendars.map((calendar) => (
+                  <label
+                    key={calendar.id}
+                    className={styles.calendarItem}
+                    onContextMenu={(e) => handleContextMenu(e, calendar.id)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={calendar.isVisible}
+                      onChange={() => toggleCalendarVisibility(calendar.id)}
+                      className={styles.checkbox}
+                    />
+                    <button
+                      className={styles.colorDot}
+                      style={{ backgroundColor: calendar.color }}
+                      onClick={() => handleColorClick(calendar.id, calendar.color)}
+                      title="Click to change color"
+                      aria-label={`Change ${calendar.name} color`}
+                    />
+                    {editingId === calendar.id ? (
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onBlur={handleFinishRename}
+                        onKeyDown={handleKeyDown}
+                        className={styles.renameInput}
+                      />
+                    ) : (
+                      <span
+                        className={styles.calendarName}
+                        onDoubleClick={() => handleStartRename(calendar.id, calendar.name)}
+                      >
+                        {calendar.name}
+                      </span>
+                    )}
+                    {calendar.accountId && (
+                      <button
+                        className={`${styles.syncButton} ${syncingCalendarId === calendar.id || syncState.status === 'syncing' || globalSyncStatus === 'syncing' ? styles.syncing : ''} ${syncStatus[calendar.id] === 'success' ? styles.success : ''} ${syncStatus[calendar.id] === 'error' ? styles.error : ''}`}
+                        onClick={() => handleSyncCalendar(calendar.id, calendar.accountId)}
+                        title="Sync calendar"
+                        aria-label={`Sync ${calendar.name}`}
+                        disabled={!!syncingCalendarId}
+                      >
+                        {syncStatus[calendar.id] === 'success' ? (
+                          <svg aria-hidden="true"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M20 6L9 17l-5-5" />
+                          </svg>
+                        ) : syncStatus[calendar.id] === 'error' ? (
+                          <svg aria-hidden="true"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M18 6L6 18M6 6l12 12" />
+                          </svg>
+                        ) : (
+                          <svg aria-hidden="true"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M23 4v6h-6M1 20v-6h6" />
+                            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                  </label>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <MiniTasksSection
@@ -613,9 +694,12 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
           {categories.length > 0 && (
             <div className={styles.categoriesWrapper}>
               <button
+                type="button"
                 className={styles.sectionHeader}
-                onMouseEnter={openCategories}
-                onMouseLeave={closeCategoriesDeferred}
+                onClick={() => setIsCategoriesExpanded(!isCategoriesExpanded)}
+                aria-expanded={isCategoriesExpanded}
+                aria-controls="sidebar-categories"
+                data-component="category-section-toggle"
               >
                 <span className={styles.sectionTitle}>Categories</span>
                 <ChevronDown className={`${styles.chevron} ${isCategoriesExpanded ? styles.chevronExpanded : ''}`} />
@@ -623,13 +707,12 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
               <AnimatePresence>
                 {isCategoriesExpanded && (
                   <motion.div
+                    id="sidebar-categories"
                     initial={prefersReducedMotion ? false : { opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 5 }}
                     transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
                     className={styles.categoryCard}
-                    onMouseEnter={openCategories}
-                    onMouseLeave={closeCategoriesDeferred}
                   >
                     <div className={styles.categoryCardList}>
                       {categories.map((category) => (

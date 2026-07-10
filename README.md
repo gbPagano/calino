@@ -85,7 +85,6 @@ I have made it as close as possible, as to what I envision the perfect CalDAV no
 - Optimized mobile view
 
 ### Security
-- **No backend = no attack surface.** Your CalDAV credentials never touch a Calino server — they stay in your browser's localStorage, encrypted with AES-256-GCM
 - **App-level encryption is obfuscation, not security.** Credentials in localStorage are encrypted with a key bundled with the app. Anyone with the JS bundle can derive the same key. For stronger protection, use the master-password setup wizard (`/setup`) — the key is derived from your password and never leaves the device.
 - **No telemetry, no analytics.** Nothing leaves your browser except CalDAV traffic to your own server
 - **Serverless by design.** There's nothing to breach on Calino's side — the app is just static HTML/JS
@@ -138,7 +137,7 @@ Calino is a static React app — host it anywhere that serves HTML/JS.
 1. Build: `pnpm build`
 2. Serve the `dist/` folder (make sure SPA fallback is configured — see below)
 
-All user data, including CalDAV credentials, lives in the browser's `localStorage`. There is no backend, no telemetry, and no central Calino server.
+All user data, including CalDAV credentials, lives in the browser's `localStorage`. There is no backend or any central Calino server.
 
 **Config (in-app):** Click the gear icon or use `Cmd/Ctrl+K` → "Settings" → add your CalDAV server URL, username, and password.
 

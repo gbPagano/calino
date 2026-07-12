@@ -15,6 +15,7 @@ import { getEventColor } from '@/lib/eventColor'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { useHoveredEventStore } from '@/store/hoveredEventStore'
+import { useDragModifierStore } from '@/store/dragModifierStore'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 
@@ -82,6 +83,7 @@ export const EventCard = React.memo(function EventCard({
     (state) => state.hoveredEventId === event.id
   )
   const setHoveredEventId = useHoveredEventStore((state) => state.setHoveredEventId)
+  const isDuplicateModifierHeld = useDragModifierStore((state) => state.isDuplicateModifierHeld)
   const openMenuId = useContextMenuStore((state) => state.openMenuId)
   const openMenu = useContextMenuStore((state) => state.openMenu)
   const closeMenu = useContextMenuStore((state) => state.closeMenu)
@@ -191,6 +193,12 @@ export const EventCard = React.memo(function EventCard({
     }
     e.stopPropagation()
 
+    // Ctrl/Cmd+click is a shortcut for the context menu's "Duplicate" action.
+    if ((e.ctrlKey || e.metaKey) && !isReadOnlyCalendar) {
+      duplicateEvent(event.id)
+      return
+    }
+
     if (isPreviewing) {
       closePreview()
       openModal(undefined, undefined, event.id)
@@ -275,10 +283,19 @@ export const EventCard = React.memo(function EventCard({
   const style = transform
     ? ({
         '--event-color': eventColor,
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        cursor: 'grabbing',
-        zIndex: 1000,
-        opacity: 0,
+        // Ctrl+drag duplicates rather than moves. dnd-kit translates the
+        // source node by the same delta as the DragOverlay clone, so
+        // leaving `transform` on here would just make the source follow
+        // the cursor too, stacked on the overlay — indistinguishable from
+        // a normal move. Pin it in place instead: no transform, full
+        // opacity, so it visibly "stays behind" while only the overlay
+        // clone (with the duplicate badge) follows the pointer.
+        transform: isDuplicateModifierHeld
+          ? undefined
+          : `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        cursor: isDuplicateModifierHeld ? 'copy' : 'grabbing',
+        zIndex: isDuplicateModifierHeld ? undefined : 1000,
+        opacity: isDuplicateModifierHeld ? 1 : 0,
       } as React.CSSProperties)
     : ({
         '--event-color': eventColor,
@@ -351,6 +368,11 @@ export const EventCard = React.memo(function EventCard({
       >
         {backgroundId && (
           <EventBackground id={backgroundId} className={styles.keywordBackground} />
+        )}
+        {isDragging && isDuplicateModifierHeld && (
+          <div className={styles.duplicateBadge} title="Drop to duplicate">
+            <DuplicateIcon />
+          </div>
         )}
         {event.syncStatus === 'failed' && (
           <div className={styles.syncFailedIcon} title="Sync failed - changes not saved to server">

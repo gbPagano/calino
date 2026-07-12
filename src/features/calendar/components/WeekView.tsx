@@ -41,6 +41,8 @@ import { useGestures } from '@/hooks/useGestures'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { useWindowHeight } from '@/hooks/useWindowHeight'
+import { useDragDuplicateModifier } from '@/hooks/useDragDuplicateModifier'
+import { useDragModifierStore } from '@/store/dragModifierStore'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { HOURS } from '@/lib/hours'
 import { CurrentTimeIndicator } from './CurrentTimeIndicator'
@@ -120,6 +122,7 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
   const rangeExpansionVersion = useCalendarStore((state) => state.rangeExpansionVersion)
   const openModal = useCalendarStore((state) => state.openModal)
   const storeUpdateEvent = useCalendarStore((state) => state.updateEvent)
+  const duplicateEvent = useCalendarStore((state) => state.duplicateEvent)
   const setCurrentDate = useCalendarStore((state) => state.setCurrentDate)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
@@ -553,15 +556,20 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
     })
   }, [weekDays, eventsMap, timedFragmentsMap, tasksMap])
 
+  const { markDragStart, markDragEnd } = useDragDuplicateModifier()
+
   const handleDragStart = (event: DragStartEvent): void => {
     hapticIfEnabled('light')
     const eventId = String(event.active.id)
     const draggedEvent = events.find((e) => e.id === eventId)
     setActiveEvent(draggedEvent || null)
+    markDragStart(event.activatorEvent)
   }
 
   const handleDragEnd = async (event: DragEndEvent): Promise<void> => {
     const { active, over, delta } = event
+    const shouldDuplicate = useDragModifierStore.getState().isDuplicateModifierHeld
+    markDragEnd()
     // Defer clearing active event to avoid scroll jump
     setTimeout(() => setActiveEvent(null), 0)
     setDropPreview(null)
@@ -584,6 +592,12 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
         start: `${dayStr}T00:00:00`,
         end: `${dayStr}T00:00:00`,
         isAllDay: true,
+      }
+      if (shouldDuplicate) {
+        const newId = duplicateEvent(originalEvent.id)
+        if (!newId) return
+        storeUpdateEvent(newId, allDayUpdates)
+        return
       }
       storeUpdateEvent(String(active.id), allDayUpdates)
       await safeCalDAVUpdate(
@@ -635,6 +649,13 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
         start: newStart.toISOString(),
         end: newEnd.toISOString(),
       }
+    }
+
+    if (shouldDuplicate) {
+      const newId = duplicateEvent(originalEvent.id)
+      if (!newId) return
+      storeUpdateEvent(newId, updates)
+      return
     }
 
     storeUpdateEvent(String(active.id), updates)
@@ -842,7 +863,7 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
           )
         })()}
       </div>
-      <DragOverlay>{activeEvent ? <EventCard event={activeEvent} isDragging /> : null}</DragOverlay>
+      <DragOverlay dropAnimation={null}>{activeEvent ? <EventCard event={activeEvent} isDragging /> : null}</DragOverlay>
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}

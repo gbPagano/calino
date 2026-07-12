@@ -26,6 +26,8 @@ import { ContextMenu } from '@/components/common/ContextMenu'
 import { useGestures } from '@/hooks/useGestures'
 import { useContextMenuStore } from '@/store/contextMenuStore'
 import { useWindowHeight } from '@/hooks/useWindowHeight'
+import { useDragDuplicateModifier } from '@/hooks/useDragDuplicateModifier'
+import { useDragModifierStore } from '@/store/dragModifierStore'
 import { hapticIfEnabled } from '@/lib/haptics'
 import { formatTravelDuration, hasDueTime } from '@/lib/events'
 import { positionEvents } from '@/lib/eventPositioning'
@@ -94,6 +96,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
   const getEventsForDateRange = useCalendarStore((state) => state.getEventsForDateRange)
   const openModal = useCalendarStore((state) => state.openModal)
   const storeUpdateEvent = useCalendarStore((state) => state.updateEvent)
+  const duplicateEvent = useCalendarStore((state) => state.duplicateEvent)
   const setCurrentDate = useCalendarStore((state) => state.setCurrentDate)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
 
@@ -414,15 +417,20 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
     )
   }, [isDraggingToCreate, dragStart, dragEnd])
 
+  const { markDragStart, markDragEnd } = useDragDuplicateModifier()
+
   const handleDragStart = (event: DragStartEvent): void => {
     hapticIfEnabled('light')
     const eventId = String(event.active.id)
     const draggedEvent = events.find((e) => e.id === eventId)
     setActiveEvent(draggedEvent || null)
+    markDragStart(event.activatorEvent)
   }
 
   const handleDragEnd = async (dragEvent: DragEndEvent): Promise<void> => {
     const { active, over, delta } = dragEvent
+    const shouldDuplicate = useDragModifierStore.getState().isDuplicateModifierHeld
+    markDragEnd()
     setActiveEvent(null)
     setDropPreview(null)
 
@@ -444,6 +452,12 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
         start: `${dayStr}T00:00:00`,
         end: `${dayStr}T00:00:00`,
         isAllDay: true,
+      }
+      if (shouldDuplicate) {
+        const newId = duplicateEvent(originalEvent.id)
+        if (!newId) return
+        storeUpdateEvent(newId, allDayUpdates)
+        return
       }
       storeUpdateEvent(String(active.id), allDayUpdates)
       await safeCalDAVUpdate(
@@ -496,6 +510,13 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
         start: newStart.toISOString(),
         end: newEnd.toISOString(),
       }
+    }
+
+    if (shouldDuplicate) {
+      const newId = duplicateEvent(originalEvent.id)
+      if (!newId) return
+      storeUpdateEvent(newId, updates)
+      return
     }
 
     storeUpdateEvent(String(active.id), updates)
@@ -730,7 +751,7 @@ export function DayView({ selectedDate: propDate, onBack }: { selectedDate?: str
           </div>
         </div>
       </div>
-      <DragOverlay>{activeEvent ? <EventCard event={activeEvent} isDragging /> : null}</DragOverlay>
+      <DragOverlay dropAnimation={null}>{activeEvent ? <EventCard event={activeEvent} isDragging /> : null}</DragOverlay>
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}

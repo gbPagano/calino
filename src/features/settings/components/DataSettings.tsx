@@ -2,7 +2,7 @@ import type { JSX } from 'react'
 import { useState, useRef } from 'react'
 import ICAL from 'ical.js'
 import { useCalendarStore } from '@/store/calendarStore'
-import { useSettingsStore } from '@/store/settingsStore'
+import { useSettingsStore, EVENT_COLORS } from '@/store/settingsStore'
 import { useContactStore } from '@/store/contactStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { useCardDAV } from '@/features/carddav/hooks/useCardDAV'
@@ -29,6 +29,14 @@ export function DataSettings(): JSX.Element {
     message: string
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const NEW_CALENDAR_OPTION = '__new__'
+  const [pendingIcsText, setPendingIcsText] = useState<string | null>(null)
+  const [pendingIcsEventCount, setPendingIcsEventCount] = useState(0)
+  const [importTargetCalendarId, setImportTargetCalendarId] = useState<string>(NEW_CALENDAR_OPTION)
+  const [newCalendarName, setNewCalendarName] = useState('')
+  const [newCalendarColor, setNewCalendarColor] = useState<string>(EVENT_COLORS[0])
+  const [icsImportError, setIcsImportError] = useState('')
 
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
@@ -91,9 +99,9 @@ export function DataSettings(): JSX.Element {
     if (!file) return
 
     setIsImporting(true)
+    const fileName = file.name.toLowerCase()
     try {
       const text = await file.text()
-      const fileName = file.name.toLowerCase()
 
       if (fileName.endsWith('.json')) {
         const data = JSON.parse(text)
@@ -106,21 +114,67 @@ export function DataSettings(): JSX.Element {
           setImportStatus({ type: 'error', message: 'No events found in JSON file' })
         }
       } else if (fileName.endsWith('.ics')) {
+        // Don't import directly — let the user pick (or create) the target
+        // calendar first, rather than silently dropping events into whatever
+        // calendar happens to be default.
+        const previewCount = parseICALEvent(text, 'preview').length
         const defaultCalendar = calendars.find((c) => c.isDefault) ?? calendars[0]
-        const calendarId = defaultCalendar?.id ?? 'default'
-        const importedEvents = parseICALEvent(text, calendarId)
-        for (const event of importedEvents) {
-          useCalendarStore.getState().addEvent(event)
-        }
-        setImportStatus({ type: 'success', message: `Imported ${importedEvents.length} events` })
+        setPendingIcsText(text)
+        setPendingIcsEventCount(previewCount)
+        setImportTargetCalendarId(defaultCalendar?.id ?? NEW_CALENDAR_OPTION)
+        setNewCalendarName(file.name.replace(/\.ics$/i, ''))
+        setNewCalendarColor(EVENT_COLORS[0])
+        setIcsImportError('')
       }
     } catch {
       setImportStatus({ type: 'error', message: 'Failed to import file. Please check the format.' })
     } finally {
       setIsImporting(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
-      setTimeout(() => setImportStatus(null), 3000)
+      if (!fileName.endsWith('.ics')) {
+        setTimeout(() => setImportStatus(null), 3000)
+      }
     }
+  }
+
+  const handleCancelIcsImport = (): void => {
+    setPendingIcsText(null)
+    setPendingIcsEventCount(0)
+    setIcsImportError('')
+  }
+
+  const handleConfirmIcsImport = (): void => {
+    if (!pendingIcsText) return
+
+    let calendarId: string
+    if (importTargetCalendarId === NEW_CALENDAR_OPTION) {
+      if (!newCalendarName.trim()) {
+        setIcsImportError('Enter a name for the new calendar')
+        return
+      }
+      calendarId = crypto.randomUUID()
+      useCalendarStore.getState().addCalendar({
+        id: calendarId,
+        name: newCalendarName.trim(),
+        color: newCalendarColor,
+        isVisible: true,
+        isDefault: false,
+        showTasksInViews: true,
+        source: 'local',
+      })
+    } else {
+      calendarId = importTargetCalendarId
+    }
+
+    const importedEvents = parseICALEvent(pendingIcsText, calendarId)
+    for (const event of importedEvents) {
+      useCalendarStore.getState().addEvent(event)
+    }
+    setImportStatus({ type: 'success', message: `Imported ${importedEvents.length} events` })
+    setPendingIcsText(null)
+    setPendingIcsEventCount(0)
+    setIcsImportError('')
+    setTimeout(() => setImportStatus(null), 3000)
   }
 
   const handleClearData = async (): Promise<void> => {
@@ -211,6 +265,75 @@ export function DataSettings(): JSX.Element {
         )}
         <input ref={fileInputRef} type="file" accept=".json,.ics" onChange={handleFileChange} style={{ display: 'none' }} data-testid="import-calendar-input" />
       </div>
+
+      {pendingIcsText !== null && (
+        <div className={styles.modalBackdrop} data-component="ics-import-picker">
+          <div className={styles.modalPanel} role="dialog" aria-modal="true" aria-labelledby="ics-import-title">
+            <h3 className={styles.modalTitle} id="ics-import-title">
+              Import {pendingIcsEventCount} event{pendingIcsEventCount === 1 ? '' : 's'}
+            </h3>
+            <p className={styles.modalText}>Choose which calendar these events should be added to.</p>
+
+            <select
+              className={styles.select}
+              style={{ width: '100%', marginBottom: 12 }}
+              value={importTargetCalendarId}
+              onChange={(e) => setImportTargetCalendarId(e.target.value)}
+              data-testid="ics-import-calendar-select"
+            >
+              <option value={NEW_CALENDAR_OPTION}>New calendar…</option>
+              {calendars
+                .filter((c) => !c.readOnly)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+            </select>
+
+            {importTargetCalendarId === NEW_CALENDAR_OPTION && (
+              <>
+                <input
+                  className={styles.formInput}
+                  style={{ width: '100%', marginBottom: 12 }}
+                  placeholder="Calendar name"
+                  value={newCalendarName}
+                  onChange={(e) => setNewCalendarName(e.target.value)}
+                  data-testid="ics-import-new-calendar-name"
+                />
+                <div className={styles.swatches} style={{ marginBottom: 12 }}>
+                  {EVENT_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`${styles.swatch} ${newCalendarColor === c ? styles.swatchActive : ''}`}
+                      style={{ ['--swatch-color' as string]: c }}
+                      onClick={() => setNewCalendarColor(c)}
+                      aria-label={`Select color ${c}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {icsImportError && <p className={styles.importStatusError}>{icsImportError}</p>}
+
+            <div className={styles.modalFooter}>
+              <button className={styles.confirmBtn} onClick={handleCancelIcsImport} type="button">
+                Cancel
+              </button>
+              <button
+                className={styles.confirmBtn}
+                onClick={handleConfirmIcsImport}
+                type="button"
+                data-testid="ics-import-confirm"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Contacts */}
       <div className={styles.group}>

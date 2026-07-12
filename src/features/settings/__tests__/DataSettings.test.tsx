@@ -49,7 +49,7 @@ describe('DataSettings - ICS Import', () => {
     expect(screen.getByTestId('import-contacts-input')).toBeInTheDocument()
   })
 
-  it('imports ICS file and adds events to store', async () => {
+  it('shows a calendar picker before importing, defaulting to the default calendar', async () => {
     const user = userEvent.setup()
     render(<DataSettings />)
 
@@ -57,29 +57,80 @@ describe('DataSettings - ICS Import', () => {
     const input = screen.getByTestId('import-calendar-input') as HTMLInputElement
 
     await user.upload(input, file)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ics-import-calendar-select')).toBeInTheDocument()
+    })
+    expect(useCalendarStore.getState().events).toHaveLength(0)
+    expect(screen.getByTestId('ics-import-calendar-select')).toHaveValue('default')
+    expect(screen.getByText(/import 2 events/i)).toBeInTheDocument()
+  })
+
+  it('imports ICS file into the selected existing calendar', async () => {
+    const user = userEvent.setup()
+    render(<DataSettings />)
+
+    const file = new File([mockICALEvent], 'test.ics', { type: 'text/calendar' })
+    const input = screen.getByTestId('import-calendar-input') as HTMLInputElement
+    await user.upload(input, file)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ics-import-calendar-select')).toBeInTheDocument()
+    })
+    await user.click(screen.getByTestId('ics-import-confirm'))
 
     await waitFor(() => {
       const events = useCalendarStore.getState().events
       expect(events).toHaveLength(2)
       expect(events[0].title).toBe('Test Event')
       expect(events[0].location).toBe('Test Location')
+      expect(events[0].calendarId).toBe('default')
       expect(events[1].title).toBe('All Day Event')
       expect(events[1].isAllDay).toBe(true)
     })
+    expect(screen.getByText(/imported 2 events/i)).toBeInTheDocument()
   })
 
-  it('shows success message after importing ICS', async () => {
+  it('creates a new calendar for the import when requested', async () => {
     const user = userEvent.setup()
     render(<DataSettings />)
 
     const file = new File([mockICALEvent], 'test.ics', { type: 'text/calendar' })
     const input = screen.getByTestId('import-calendar-input') as HTMLInputElement
-
     await user.upload(input, file)
 
     await waitFor(() => {
-      expect(screen.getByText(/imported 2 events/i)).toBeInTheDocument()
+      expect(screen.getByTestId('ics-import-calendar-select')).toBeInTheDocument()
     })
+    await user.selectOptions(screen.getByTestId('ics-import-calendar-select'), '__new__')
+    await user.clear(screen.getByTestId('ics-import-new-calendar-name'))
+    await user.type(screen.getByTestId('ics-import-new-calendar-name'), 'Imported Holidays')
+    await user.click(screen.getByTestId('ics-import-confirm'))
+
+    await waitFor(() => {
+      const { events, calendars: allCalendars } = useCalendarStore.getState()
+      const newCalendar = allCalendars.find((c) => c.name === 'Imported Holidays')
+      expect(newCalendar).toBeDefined()
+      expect(events).toHaveLength(2)
+      expect(events.every((e) => e.calendarId === newCalendar?.id)).toBe(true)
+    })
+  })
+
+  it('cancels the ICS import without adding events', async () => {
+    const user = userEvent.setup()
+    render(<DataSettings />)
+
+    const file = new File([mockICALEvent], 'test.ics', { type: 'text/calendar' })
+    const input = screen.getByTestId('import-calendar-input') as HTMLInputElement
+    await user.upload(input, file)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ics-import-calendar-select')).toBeInTheDocument()
+    })
+    await user.click(screen.getByText('Cancel'))
+
+    expect(screen.queryByTestId('ics-import-calendar-select')).not.toBeInTheDocument()
+    expect(useCalendarStore.getState().events).toHaveLength(0)
   })
 
   it('shows message when ICS file has no events', async () => {
@@ -91,6 +142,10 @@ describe('DataSettings - ICS Import', () => {
 
     await user.upload(input, invalidFile)
 
+    await waitFor(() => {
+      expect(screen.getByText(/import 0 events/i)).toBeInTheDocument()
+    })
+    await user.click(screen.getByTestId('ics-import-confirm'))
     await waitFor(() => {
       expect(screen.getByText(/imported 0 events/i)).toBeInTheDocument()
     })

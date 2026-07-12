@@ -421,7 +421,6 @@
   width: auto;
   /* See .viewTabs — same flex min-content floor applies here. */
   min-width: 0;
-  overflow: hidden;
   transition: opacity 0.2s ease, width 0.2s ease;
 }
 
@@ -429,6 +428,16 @@
   opacity: 0;
   width: 0;
   pointer-events: none;
+}
+
+/* The overflow clip belongs on the trigger only, not on .viewDropdown
+   itself — .viewDropdownMenu is an absolutely-positioned child that pops
+   out below the trigger, and clipping the whole wrapper hid it entirely. */
+.viewDropdownTriggerWrap {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .viewDropdownButton {

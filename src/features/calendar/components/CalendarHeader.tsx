@@ -639,19 +639,31 @@ export function CalendarHeader({
             }, 150)
           }}
         >
-          <button
-            className={styles.viewDropdownButton}
-            onClick={() => setIsViewDropdownOpen((prev) => !prev)}
-            aria-haspopup="menu"
-            aria-expanded={isViewDropdownOpen}
-            aria-controls="view-dropdown-menu"
-            data-component="view-dropdown-trigger"
-          >
-            {VIEWS.find((v) => v.value === currentView)?.label}
-            <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" className={`${styles.viewDropdownArrow} ${isViewDropdownOpen ? styles.viewDropdownArrowOpen : ''}`}>
-              <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+          <div className={styles.viewDropdownTriggerWrap}>
+            <button
+              className={styles.viewDropdownButton}
+              onClick={() => {
+                // On mouse devices, onMouseEnter already opened this on
+                // hover-in, so an unconditional toggle here would immediately
+                // close it again on the same click that opened it. Only touch
+                // devices (no hover events) need the click to toggle.
+                if ('ontouchstart' in window) {
+                  setIsViewDropdownOpen((prev) => !prev)
+                } else {
+                  setIsViewDropdownOpen(true)
+                }
+              }}
+              aria-haspopup="menu"
+              aria-expanded={isViewDropdownOpen}
+              aria-controls="view-dropdown-menu"
+              data-component="view-dropdown-trigger"
+            >
+              {VIEWS.find((v) => v.value === currentView)?.label}
+              <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" className={`${styles.viewDropdownArrow} ${isViewDropdownOpen ? styles.viewDropdownArrowOpen : ''}`}>
+                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
           {viewDropdown.rendered && (
             <div
               className={`${styles.viewDropdownMenu} ${viewDropdown.closing ? styles.viewDropdownClosing : ''}`}

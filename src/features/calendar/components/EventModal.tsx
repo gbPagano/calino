@@ -75,8 +75,9 @@ export function EventModal(): JSX.Element | null {
     () =>
       calendars.filter(
         (calendar) =>
-          !calendar.supportedComponents ||
-          calendar.supportedComponents.includes(requiredCalendarComponent)
+          (!calendar.supportedComponents ||
+            calendar.supportedComponents.includes(requiredCalendarComponent)) &&
+          !calendar.readOnly
       ),
     [calendars, requiredCalendarComponent]
   )
@@ -448,6 +449,10 @@ export function EventModal(): JSX.Element | null {
   }, [isModalOpen, selectedEventId])
 
   const isEditing = selectedEventId !== null
+  // A webcal subscription's calendar — mutation is blocked, matching
+  // isCalendarReadOnly() in calendarStore.ts (store actions themselves stay
+  // unguarded since sync writes to these calendars legitimately).
+  const isCurrentCalendarReadOnly = calendars.find((c) => c.id === calendarId)?.readOnly === true
   const isRecurringEvent = initialState.recurring
   const showSuggestions = !isEditing && titleSuggestions.length > 0
   const originalEventId = initialState.originalEventId
@@ -1316,7 +1321,14 @@ export function EventModal(): JSX.Element | null {
               onChange={(e) => handleCalendarChange(e.target.value)}
               className={styles.modalSelect}
               data-component="event-calendar-select"
+              disabled={isCurrentCalendarReadOnly}
             >
+              {isCurrentCalendarReadOnly &&
+                !compatibleCalendars.some((cal) => cal.id === calendarId) && (
+                  <option value={calendarId}>
+                    {calendars.find((c) => c.id === calendarId)?.name} (read-only)
+                  </option>
+                )}
               {compatibleCalendars.map((cal) => (
                 <option key={cal.id} value={cal.id}>
                   {cal.name}
@@ -1324,6 +1336,13 @@ export function EventModal(): JSX.Element | null {
               ))}
             </select>
           </div>
+
+          {isCurrentCalendarReadOnly && (
+            <p className={styles.readOnlyNotice} data-component="readonly-calendar-notice">
+              This calendar is a read-only subscription — events sync from the source and
+              can&apos;t be edited here.
+            </p>
+          )}
 
           {categories.length > 0 && (
             <div className={styles.modalRow2}>
@@ -1392,7 +1411,7 @@ export function EventModal(): JSX.Element | null {
           )}
 
           <div className={styles.modalFooter} data-component="modal-footer">
-            {isEditing && (
+            {isEditing && !isCurrentCalendarReadOnly && (
               <button type="button" className={`${styles.modalDelete} ${confirmDelete ? styles.modalDeleteConfirm : ''}`} onClick={handleDelete}>
                 {confirmDelete ? 'Click again to confirm' : 'Delete'}
               </button>
@@ -1408,6 +1427,7 @@ export function EventModal(): JSX.Element | null {
                   !title.trim() ||
                   isTimeRangeInvalid ||
                   isSaving ||
+                  isCurrentCalendarReadOnly ||
                   !compatibleCalendars.some((calendar) => calendar.id === calendarId)
                 }
                 aria-busy={isSaving}

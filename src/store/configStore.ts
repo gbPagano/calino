@@ -15,6 +15,13 @@ interface DecryptedCredential {
   password: string
 }
 
+interface DecryptedWebcalSubscription {
+  name: string
+  url: string
+  refreshIntervalMinutes?: number
+  proxyUrl?: string
+}
+
 interface ConfigState {
   // Config file data
   config: CalinoConfig | null
@@ -25,10 +32,12 @@ interface ConfigState {
 
   // Decrypted credentials (memory only — never persisted)
   decryptedCredentials: DecryptedCredential[]
+  decryptedWebcalSubscriptions: DecryptedWebcalSubscription[]
 
   // Derived state
   isUnlocked: boolean
   hasPreconfiguredAccounts: boolean
+  hasPreconfiguredWebcal: boolean
 
   // Actions
   loadConfigFile: () => Promise<void>
@@ -83,8 +92,10 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   configLoaded: false,
   masterPassword: null, // loaded async in loadConfigFile
   decryptedCredentials: [],
+  decryptedWebcalSubscriptions: [],
   isUnlocked: false,
   hasPreconfiguredAccounts: false,
+  hasPreconfiguredWebcal: false,
 
   /**
    * Load the config file. Call once on app mount.
@@ -93,7 +104,12 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     const config = await loadConfig()
 
     if (!config) {
-      set({ config: null, configLoaded: true, hasPreconfiguredAccounts: false })
+      set({
+        config: null,
+        configLoaded: true,
+        hasPreconfiguredAccounts: false,
+        hasPreconfiguredWebcal: false,
+      })
       return
     }
 
@@ -101,6 +117,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       config,
       configLoaded: true,
       hasPreconfiguredAccounts: config.accounts.length > 0,
+      hasPreconfiguredWebcal: config.webcalSubscriptions.length > 0,
     })
 
     // Auto-unlock if master password is stored
@@ -134,11 +151,23 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         decrypted.push({ url, username, password })
       }
 
+      const decryptedWebcal: DecryptedWebcalSubscription[] = []
+      for (const webcal of config.webcalSubscriptions) {
+        const url = await decryptWithMasterPassword(webcal.url, masterPassword)
+        decryptedWebcal.push({
+          name: webcal.name,
+          url,
+          refreshIntervalMinutes: webcal.refreshIntervalMinutes,
+          proxyUrl: webcal.proxyUrl,
+        })
+      }
+
       // All decrypted successfully
       await setMasterPassword(masterPassword)
       set({
         masterPassword,
         decryptedCredentials: decrypted,
+        decryptedWebcalSubscriptions: decryptedWebcal,
         isUnlocked: true,
       })
 
@@ -157,6 +186,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     set({
       masterPassword: null,
       decryptedCredentials: [],
+      decryptedWebcalSubscriptions: [],
       isUnlocked: false,
     })
   },

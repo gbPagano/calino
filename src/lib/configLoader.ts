@@ -10,9 +10,18 @@ export interface PreconfiguredAccount {
   password: MasterEncryptedData
 }
 
+export interface PreconfiguredWebcal {
+  name: string
+  // May embed a secret token in the query string, so encrypted like CalDAV url.
+  url: MasterEncryptedData
+  refreshIntervalMinutes?: number
+  proxyUrl?: string
+}
+
 export interface CalinoConfig {
   version: number
   accounts: PreconfiguredAccount[]
+  webcalSubscriptions: PreconfiguredWebcal[]
 }
 
 // ─── Global constant injected at build time ──────────────────────────────────
@@ -35,9 +44,17 @@ const PreconfiguredAccountSchema = z.object({
   password: MasterEncryptedDataSchema,
 })
 
+const PreconfiguredWebcalSchema = z.object({
+  name: z.string().trim().min(1),
+  url: MasterEncryptedDataSchema,
+  refreshIntervalMinutes: z.number().positive().optional(),
+  proxyUrl: z.string().trim().min(1).optional(),
+})
+
 const CalinoConfigEnvelopeSchema = z.object({
   version: z.literal(1),
   accounts: z.array(z.unknown()),
+  webcalSubscriptions: z.array(z.unknown()).optional(),
 })
 
 /**
@@ -76,12 +93,22 @@ export async function loadConfig(): Promise<CalinoConfig | null> {
     }
   }
 
-  if (accounts.length === 0) {
+  const webcalSubscriptions: PreconfiguredWebcal[] = []
+  for (const raw of envelope.data.webcalSubscriptions ?? []) {
+    const parsed = PreconfiguredWebcalSchema.safeParse(raw)
+    if (parsed.success) {
+      webcalSubscriptions.push(parsed.data)
+    } else {
+      console.warn('[configLoader] Skipping invalid webcal subscription entry', parsed.error.issues)
+    }
+  }
+
+  if (accounts.length === 0 && webcalSubscriptions.length === 0) {
     cachedConfig = null
     return null
   }
 
-  const config: CalinoConfig = { version: 1, accounts }
+  const config: CalinoConfig = { version: 1, accounts, webcalSubscriptions }
   cachedConfig = config
   return config
 }

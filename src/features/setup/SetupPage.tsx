@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { encryptWithMasterPassword } from '@/lib/crypto'
 import { discoverServerUrl } from '@/features/caldav/client/discovery'
-import type { CalinoConfig, PreconfiguredAccount } from '@/lib/configLoader'
+import type { CalinoConfig, PreconfiguredAccount, PreconfiguredWebcal } from '@/lib/configLoader'
 import styles from './SetupPage.module.css'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -13,6 +13,13 @@ interface AccountEntry {
   url: string
   username: string
   password: string
+  proxyUrl?: string
+}
+
+interface WebcalEntry {
+  name: string
+  url: string
+  refreshIntervalMinutes: number
   proxyUrl?: string
 }
 
@@ -150,6 +157,37 @@ export function SetupPage(): JSX.Element {
     setAccounts((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
+  // ── Webcal handlers ───────────────────────────────────────────────────────
+
+  const [webcalSubscriptions, setWebcalSubscriptions] = useState<WebcalEntry[]>([])
+  const [webcalFormName, setWebcalFormName] = useState('')
+  const [webcalFormUrl, setWebcalFormUrl] = useState('')
+  const [webcalFormRefresh, setWebcalFormRefresh] = useState(60)
+  const [webcalFormProxy, setWebcalFormProxy] = useState('')
+  const [showWebcalProxy, setShowWebcalProxy] = useState(false)
+
+  const handleAddWebcal = useCallback(() => {
+    if (!webcalFormUrl || !webcalFormName) return
+    setWebcalSubscriptions((prev) => [
+      ...prev,
+      {
+        name: webcalFormName.trim(),
+        url: webcalFormUrl.trim(),
+        refreshIntervalMinutes: webcalFormRefresh,
+        proxyUrl: webcalFormProxy.trim() || undefined,
+      },
+    ])
+    setWebcalFormName('')
+    setWebcalFormUrl('')
+    setWebcalFormRefresh(60)
+    setWebcalFormProxy('')
+    setShowWebcalProxy(false)
+  }, [webcalFormName, webcalFormUrl, webcalFormRefresh, webcalFormProxy])
+
+  const handleRemoveWebcal = useCallback((index: number) => {
+    setWebcalSubscriptions((prev) => prev.filter((_, i) => i !== index))
+  }, [])
+
   // ── Download ──────────────────────────────────────────────────────────────
 
   const downloadConfig = useCallback((json: string) => {
@@ -193,9 +231,21 @@ export function SetupPage(): JSX.Element {
         })
       }
 
+      const configWebcal: PreconfiguredWebcal[] = []
+      for (const webcal of webcalSubscriptions) {
+        const encryptedUrl = await encryptWithMasterPassword(webcal.url, masterPassword)
+        configWebcal.push({
+          name: webcal.name,
+          url: encryptedUrl,
+          refreshIntervalMinutes: webcal.refreshIntervalMinutes,
+          proxyUrl: webcal.proxyUrl,
+        })
+      }
+
       const config: CalinoConfig = {
         version: 1,
         accounts: configAccounts,
+        webcalSubscriptions: configWebcal,
       }
 
       const json = JSON.stringify(config, null, 2)
@@ -207,7 +257,7 @@ export function SetupPage(): JSX.Element {
     } finally {
       setGenerating(false)
     }
-  }, [accounts, masterPassword, masterConfirm, downloadConfig])
+  }, [accounts, webcalSubscriptions, masterPassword, masterConfirm, downloadConfig])
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -363,7 +413,107 @@ export function SetupPage(): JSX.Element {
               </button>
             </div>
 
-            {accounts.length > 0 && (
+            <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid var(--modal-border, #e0e0e0)' }} />
+            <h3 style={{ marginBottom: 12 }}>Calendar Subscriptions (.ics)</h3>
+
+            {webcalSubscriptions.length > 0 && (
+              <div className={styles.accountList}>
+                {webcalSubscriptions.map((sub, i) => (
+                  <div key={i} className={styles.accountRow}>
+                    <div className={styles.accountIcon}>{sub.name.charAt(0).toUpperCase()}</div>
+                    <div className={styles.accountInfo}>
+                      <div className={styles.accountName}>{sub.name}</div>
+                      <div className={styles.accountUrl}>{sub.url}</div>
+                    </div>
+                    <button
+                      className={styles.removeBtn}
+                      onClick={() => handleRemoveWebcal(i)}
+                      type="button"
+                      aria-label={`Remove ${sub.name}`}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="setup-webcal-name">Name</label>
+              <input
+                id="setup-webcal-name"
+                className={styles.input}
+                value={webcalFormName}
+                onChange={(e) => setWebcalFormName(e.target.value)}
+                placeholder="e.g. Holidays"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="setup-webcal-url">Calendar URL</label>
+              <input
+                id="setup-webcal-url"
+                className={styles.input}
+                value={webcalFormUrl}
+                onChange={(e) => setWebcalFormUrl(e.target.value)}
+                placeholder="webcal://example.com/calendar.ics"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="setup-webcal-refresh">Refresh interval (minutes)</label>
+              <input
+                id="setup-webcal-refresh"
+                type="number"
+                min={5}
+                className={styles.input}
+                value={webcalFormRefresh}
+                onChange={(e) => setWebcalFormRefresh(Number(e.target.value) || 60)}
+              />
+            </div>
+
+            <button
+              type="button"
+              className={styles.proxyToggle}
+              onClick={() => setShowWebcalProxy(!showWebcalProxy)}
+            >
+              <svg
+                style={{ transform: showWebcalProxy ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+                width="16" height="16" viewBox="0 0 16 16" fill="none"
+              >
+                <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Proxy URL (optional)
+            </button>
+
+            {showWebcalProxy && (
+              <div className={styles.field}>
+                <input
+                  className={styles.input}
+                  value={webcalFormProxy}
+                  onChange={(e) => setWebcalFormProxy(e.target.value)}
+                  placeholder="https://proxy.example.com"
+                />
+                <div className={styles.hint}>
+                  Only needed if the calendar host doesn&apos;t allow cross-origin requests.
+                </div>
+              </div>
+            )}
+
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={handleAddWebcal}
+                disabled={!webcalFormUrl || !webcalFormName}
+              >
+                Add Subscription
+              </button>
+            </div>
+
+            {(accounts.length > 0 || webcalSubscriptions.length > 0) && (
               <div className={styles.actions} style={{ marginTop: 8 }}>
                 <button
                   type="button"

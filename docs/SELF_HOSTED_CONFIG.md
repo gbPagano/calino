@@ -1,10 +1,10 @@
-# Self-Hosted CalDAV Account Configuration
+# Self-Hosted CalDAV & Webcal Configuration
 
 ## User Guide
 
 ### What is this?
 
-If you self-host Calino, you can preconfigure CalDAV accounts so users don't need to manually enter server URLs, usernames, and passwords. Instead, you encrypt the passwords with a master password, and users just enter that master password once to unlock everything.
+If you self-host Calino, you can preconfigure CalDAV accounts and webcal (`.ics` URL) subscriptions so users don't need to manually enter server URLs, usernames, and passwords. Instead, you encrypt the sensitive values with a master password, and users just enter that master password once to unlock everything — both CalDAV accounts and webcal subscriptions live in the same `calino.config.json` and unlock together.
 
 ### Quick Start (Recommended)
 
@@ -19,9 +19,9 @@ https://calino.io/setup        # Hosted instance
 
 The setup wizard runs entirely in your browser — credentials never leave your device.
 
-**2. Add your CalDAV accounts:**
+**2. Add your CalDAV accounts and/or webcal subscriptions:**
 
-Enter the server URL, username, and password for each account. You can test the connection before adding.
+Enter the server URL, username, and password for each CalDAV account (test the connection before adding), and/or a name + `.ics`/`webcal://` URL for each calendar subscription. Neither is required — you can ship a config with just accounts, just subscriptions, or both.
 
 **3. Set a master password:**
 
@@ -51,13 +51,17 @@ When they open Calino, they'll see an unlock prompt. After entering the master p
 
 If you prefer the command line or need to automate config generation:
 
-**1. Encrypt your CalDAV password:**
+**1. Encrypt your CalDAV password (or a webcal URL):**
 
 ```bash
+# CalDAV account
 node scripts/encrypt-password.mjs --master "choose-a-master-password" --url "https://caldav.example.com/dav.php" --username "your-username" --password "your-caldav-password"
+
+# Webcal subscription
+node scripts/encrypt-password.mjs --master "choose-a-master-password" --webcal-url "https://example.com/calendar.ics" --name "Holidays" --refresh-minutes 1440
 ```
 
-This outputs a JSON blob. Keep the master password safe — you'll share it with users.
+Each command outputs a JSON blob. Keep the master password safe — you'll share it with users.
 
 **2. Create `calino.config.json` in the project root:**
 
@@ -71,9 +75,18 @@ This outputs a JSON blob. Keep the master password safe — you'll share it with
       "username": { "ciphertext": "...", "iv": "...", "salt": "..." },
       "password": { "ciphertext": "...", "iv": "...", "salt": "..." }
     }
+  ],
+  "webcalSubscriptions": [
+    {
+      "name": "Holidays",
+      "url": { "ciphertext": "...", "iv": "...", "salt": "..." },
+      "refreshIntervalMinutes": 1440
+    }
   ]
 }
 ```
+
+Both `accounts` and `webcalSubscriptions` are optional — omit either array (or leave it empty) if you don't need it.
 
 **3. Build:**
 
@@ -84,9 +97,9 @@ docker compose up -d --build
 ### User Experience
 
 1. Open Calino → master password prompt appears (blurred background)
-2. Enter master password → accounts connect, calendars load
+2. Enter master password → CalDAV accounts connect and webcal subscriptions fetch, calendars load
 3. Done. The master password is remembered in the browser (encrypted in localStorage).
-4. On refresh → no prompt, accounts are still connected.
+4. On refresh → no prompt, accounts and subscriptions are still connected.
 5. Clear browser data → prompt appears again.
 6. Lock icon in settings dropdown → clears master password, prompt appears on next load.
 
@@ -197,14 +210,15 @@ calino.config.json          localStorage              Zustand store
 |------|------|
 | `vite.config.ts` | Reads `calino.config.json` at build time, injects as `__CALINO_CONFIG__` via `define` |
 | `src/lib/crypto.ts` | `encryptWithMasterPassword()`, `decryptWithMasterPassword()`, `encryptPassword()`, `decryptPassword()` — PBKDF2 + AES-256-GCM |
-| `src/lib/configLoader.ts` | Reads `__CALINO_CONFIG__` global, validates schema, caches result |
-| `src/store/configStore.ts` | Zustand store: master password (encrypted at rest), decrypted credentials, unlock/lock actions |
+| `src/lib/configLoader.ts` | Reads `__CALINO_CONFIG__` global, validates schema (`accounts` + `webcalSubscriptions`), caches result |
+| `src/store/configStore.ts` | Zustand store: master password (encrypted at rest), decrypted CalDAV credentials + webcal URLs, unlock/lock actions |
 | `src/features/settings/components/MasterPasswordPrompt.tsx` | Modal UI for master password entry (with brute-force protection) |
-| `src/features/caldav/hooks/useCalDAV.ts` | Auto-connect logic (lines ~443–490) |
+| `src/features/caldav/hooks/useCalDAV.ts` | CalDAV auto-connect logic (lines ~604–655) |
+| `src/features/webcal/hooks/useWebcalSubscriptions.ts` | Webcal auto-subscribe logic (mirrors the CalDAV auto-connect effect) |
 | `src/features/onboarding/OnboardingModal.tsx` | Hidden when preconfigured accounts exist |
-| `src/features/setup/SetupPage.tsx` | Browser-based config generator (`/setup` route) |
+| `src/features/setup/SetupPage.tsx` | Browser-based config generator (`/setup` route) — CalDAV accounts and webcal subscriptions |
 | `src/features/setup/SetupPage.module.css` | Setup wizard styles |
-| `scripts/encrypt-password.mjs` | CLI tool to encrypt passwords (alternative to `/setup`) |
+| `scripts/encrypt-password.mjs` | CLI tool to encrypt CalDAV passwords or webcal URLs (alternative to `/setup`) |
 | `calino.config.example.json` | Template config file |
 
 ### Encryption Details
@@ -278,24 +292,26 @@ Both the master password and CalDAV credentials are encrypted with the same app-
 ### Testing Locally
 
 ```bash
-# 1. Encrypt password
+# 1. Encrypt password / webcal URL
 node scripts/encrypt-password.mjs --master "test123" --url "https://caldav.example.com/dav.php" --username "user" --password "your-password"
+node scripts/encrypt-password.mjs --master "test123" --webcal-url "https://example.com/calendar.ics" --name "Holidays"
 
-# 2. Create calino.config.json in project root with the encrypted blob
+# 2. Create calino.config.json in project root with the encrypted blob(s)
 
 # 3. Build and run
 docker compose up -d --build
 
 # 4. Open http://localhost:8080
 # 5. Enter "test123" in the master password prompt
-# 6. Accounts should auto-connect
+# 6. Accounts should auto-connect and webcal subscriptions should auto-fetch
 ```
 
 To test without config: delete `calino.config.json` from project root before building. The prompt won't appear.
 
 ### Known Limitations
 
-- No support for changing master password without re-encrypting all passwords
+- No support for changing master password without re-encrypting all passwords/URLs
 - Config requires a rebuild to update (it's baked into the JS bundle)
-- Preconfigured accounts are read-only in the settings UI (can't delete or edit them)
+- Preconfigured accounts and webcal subscriptions are read-only in the settings UI (can't delete or edit them)
 - Lock does not disconnect active CalDAV sessions in the current tab
+- Webcal subscriptions are always read-only in Calino regardless of config, same as manually-added ones

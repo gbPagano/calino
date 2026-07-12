@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import type { CalDAVAccount } from '@/features/caldav/types'
 import { AddCalendarModal } from '@/features/calendar/components/AddCalendarModal'
+import { SubscribeCalendarModal } from '@/features/calendar/components/SubscribeCalendarModal'
+import { useWebcalSubscriptions } from '@/features/webcal/hooks/useWebcalSubscriptions'
 import styles from './Settings.module.css'
 
 interface TestState {
@@ -16,8 +18,27 @@ export function CalDAVSettings(): JSX.Element {
   const [editingAccount, setEditingAccount] = useState<CalDAVAccount | null>(null)
   // Keyed by account id so testing one account never shows a spinner on another.
   const [testStates, setTestStates] = useState<Record<string, TestState>>({})
+  const [isSubscribing, setIsSubscribing] = useState(false)
+  const [syncingSubscriptionId, setSyncingSubscriptionId] = useState<string | null>(null)
 
   const { accounts, removeAccount, testAccount } = useCalDAV()
+  const { subscriptions, removeSubscription, syncSubscription } = useWebcalSubscriptions()
+
+  const handleSyncSubscription = async (id: string): Promise<void> => {
+    setSyncingSubscriptionId(id)
+    try {
+      await syncSubscription(id)
+    } finally {
+      setSyncingSubscriptionId(null)
+    }
+  }
+
+  const handleRemoveSubscription = (id: string): void => {
+    if (!confirm('Remove this calendar subscription? Its events will be deleted locally.')) {
+      return
+    }
+    removeSubscription(id)
+  }
 
   const clearTestState = (id: string): void => {
     setTestStates((prev) => {
@@ -173,6 +194,81 @@ export function CalDAVSettings(): JSX.Element {
         </button>
       </div>
 
+      <div className={styles.group} data-component="webcal-subscriptions">
+        <div className={styles.groupLabel}>Calendar Subscriptions</div>
+        {subscriptions.map((subscription) => (
+          <div key={subscription.id} data-component="subscription-row-wrapper">
+            <div
+              className={styles.accountRow}
+              data-component="subscription-row"
+              data-subscription-id={subscription.id}
+              data-subscription-name={subscription.name}
+            >
+              <div
+                className={styles.accountIcon}
+                style={{ background: 'color-mix(in srgb, var(--accent) 10%, var(--canvas))' }}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <rect width="20" height="20" rx="5" fill="var(--accent)" opacity="0.8" />
+                  <text x="10" y="14" textAnchor="middle" fontSize="11" fill="white" fontFamily="sans-serif">
+                    {subscription.name.charAt(0)}
+                  </text>
+                </svg>
+              </div>
+              <div className={styles.accountInfo}>
+                <div className={styles.accountName}>{subscription.name}</div>
+                <div className={styles.accountStatus}>
+                  <div
+                    className={`${styles.statusDot} ${subscription.lastError ? styles.statusDotWarn : styles.statusDotOk}`}
+                  />
+                  {subscription.lastError
+                    ? `Failed — ${subscription.lastError}`
+                    : subscription.lastFetchedAt
+                      ? `Synced · ${new Date(subscription.lastFetchedAt).toLocaleDateString()}`
+                      : 'Not yet synced'}
+                </div>
+              </div>
+              <div className={styles.accountActions}>
+                <button
+                  className={styles.rowBtn}
+                  onClick={() => handleSyncSubscription(subscription.id)}
+                  disabled={syncingSubscriptionId === subscription.id}
+                  aria-label={`Sync ${subscription.name} now`}
+                  data-component="action-button"
+                  data-action="sync-subscription"
+                  type="button"
+                >
+                  {syncingSubscriptionId === subscription.id ? 'Syncing…' : 'Sync now'}
+                </button>
+                {!subscription.isPreconfigured && (
+                  <button
+                    className={styles.disconnect}
+                    onClick={() => handleRemoveSubscription(subscription.id)}
+                    aria-label={`Remove ${subscription.name}`}
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        <button
+          className={styles.connectBtn}
+          onClick={() => setIsSubscribing(true)}
+          data-component="action-button"
+          data-action="subscribe-calendar"
+          type="button"
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+            <path d="M8 2v12M2 8h12" />
+          </svg>
+          Subscribe to calendar (.ics)
+        </button>
+      </div>
+
       <AddCalendarModal isOpen={isAddingAccount} onClose={() => setIsAddingAccount(false)} />
       {editingAccount && (
         <AddCalendarModal
@@ -182,6 +278,7 @@ export function CalDAVSettings(): JSX.Element {
           onClose={() => setEditingAccount(null)}
         />
       )}
+      <SubscribeCalendarModal isOpen={isSubscribing} onClose={() => setIsSubscribing(false)} />
     </section>
   )
 }

@@ -120,11 +120,14 @@ export const EventCard = React.memo(function EventCard({
 
   const isRecurring = !!event.recurrence || !!event.rruleString
   const isRecurringInstance = !!originalEventId
+  const isReadOnlyCalendar = calendars.find((c) => c.id === event.calendarId)?.readOnly === true
   // Drag-and-drop is disabled for any recurring event (master or generated
   // instance) and for exceptions. The "which occurrence?" question has to
   // be answered via the RecurrenceDialog in the modal, so we force the user
-  // through the modal instead of silently moving the whole series.
-  const disableDirectEdit = isRecurring || isRecurringInstance
+  // through the modal instead of silently moving the whole series. Webcal
+  // subscriptions are read-only for the same reason EventModal blocks
+  // save/delete on them (see isCalendarReadOnly() in calendarStore.ts).
+  const disableDirectEdit = isRecurring || isRecurringInstance || isReadOnlyCalendar
 
   const dragStartMinutes = event.isAllDay
     ? undefined
@@ -291,6 +294,7 @@ export const EventCard = React.memo(function EventCard({
 
   const handleCheckboxClick = async (e: React.MouseEvent): Promise<void> => {
     e.stopPropagation()
+    if (isReadOnlyCalendar) return
     const newCompleted = !event.completed
     const updatedTasks = completeTask(event.id, newCompleted)
     if (!event.calendarId) return
@@ -321,7 +325,14 @@ export const EventCard = React.memo(function EventCard({
         {...(isFragmentFirst ? { 'data-fragment-first': '' } : {})}
         {...(isFragmentMiddle ? { 'data-fragment-middle': '' } : {})}
         {...(isFragmentLast ? { 'data-fragment-last': '' } : {})}
-        {...(disableDirectEdit ? { 'data-no-drag': '', title: 'Click to edit (recurring event)' } : {})}
+        {...(disableDirectEdit
+          ? {
+              'data-no-drag': '',
+              title: isReadOnlyCalendar
+                ? 'Click to view (read-only subscription)'
+                : 'Click to edit (recurring event)',
+            }
+          : {})}
         className={`${styles.card} ${compact ? styles.compact : ''} ${isCurrentDragging || isDragging ? styles.dragging : ''} ${isResizing ? styles.resizing : ''} ${hideTopRadius ? styles.noTopRadius : ''} ${isTask ? styles.task : ''} ${event.completed ? styles.completed : ''} ${event.completed ? styles.isDone : ''} ${isMobileMonth ? styles.mobileMonth : ''} ${monthView ? styles.monthView : ''} ${transparent ? styles.transparent : ''} ${isMultiDay ? styles.multiDay : ''} ${isFragmentMiddle ? styles.fragmentMiddle : ''} ${isFragmentFirst ? styles.fragmentFirst : ''} ${isFragmentLast ? styles.fragmentLast : ''} ${dotMode ? styles.dot : ''} ${event.isFragment && isSharedHovered ? styles.hovered : ''} ${disableDirectEdit ? styles.noDrag : ''}`}
         onContextMenu={handleContextMenu}
         onClick={handleClick}
@@ -481,44 +492,54 @@ export const EventCard = React.memo(function EventCard({
                 },
                 icon: <EditIcon />,
               },
-              {
-                label: isTask ? 'Convert to event' : 'Convert to task',
-                onClick: async () => {
-                  const newType = isTask ? 'event' : 'task'
-                  updateEvent(event.id, { type: newType })
-                  await safeCalDAVUpdate(
-                    updateCalDAVEvent,
-                    event.calendarId,
-                    { ...event, type: newType },
-                    { type: newType }
-                  )
-                },
-                icon: <EditIcon />,
-              },
-              {
-                label: 'Duplicate',
-                onClick: () => duplicateEvent(event.id),
-                icon: <DuplicateIcon />,
-              },
-              {
-                label: 'Delete',
-                onClick: () => {
-                  const isRecurring = !!event.recurrence || !!event.rruleString || !!originalEventId
-                  if (isRecurring) {
-                    setShowDeleteDialog(true)
-                  } else {
-                    deleteEventWithUndo({
-                      event,
-                      deleteEvent,
-                      addEvent,
-                      createCalDAVEvent,
-                      deleteCalDAVEvent,
-                    })
-                  }
-                },
-                icon: <DeleteIcon />,
-                danger: true,
-              },
+              // Convert/Duplicate/Delete all write into event.calendarId — for a
+              // read-only webcal subscription that would either be silently
+              // wiped on the next refresh (diff-by-id sees an id the feed
+              // doesn't have) or mutate synced data, so they're hidden rather
+              // than allowed and then undone. "Edit" still works — it opens
+              // the modal, which shows the same read-only notice.
+              ...(isReadOnlyCalendar
+                ? []
+                : [
+                    {
+                      label: isTask ? 'Convert to event' : 'Convert to task',
+                      onClick: async () => {
+                        const newType = isTask ? 'event' : 'task'
+                        updateEvent(event.id, { type: newType })
+                        await safeCalDAVUpdate(
+                          updateCalDAVEvent,
+                          event.calendarId,
+                          { ...event, type: newType },
+                          { type: newType }
+                        )
+                      },
+                      icon: <EditIcon />,
+                    },
+                    {
+                      label: 'Duplicate',
+                      onClick: () => duplicateEvent(event.id),
+                      icon: <DuplicateIcon />,
+                    },
+                    {
+                      label: 'Delete',
+                      onClick: () => {
+                        const isRecurring = !!event.recurrence || !!event.rruleString || !!originalEventId
+                        if (isRecurring) {
+                          setShowDeleteDialog(true)
+                        } else {
+                          deleteEventWithUndo({
+                            event,
+                            deleteEvent,
+                            addEvent,
+                            createCalDAVEvent,
+                            deleteCalDAVEvent,
+                          })
+                        }
+                      },
+                      icon: <DeleteIcon />,
+                      danger: true,
+                    },
+                  ]),
             ]}
           />,
           document.body

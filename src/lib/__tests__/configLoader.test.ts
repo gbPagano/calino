@@ -15,6 +15,13 @@ const validConfig: CalinoConfig = {
       },
     },
   ],
+  webcalSubscriptions: [],
+}
+
+const validWebcal = {
+  name: 'Holidays',
+  url: { ciphertext: 'webcal-url-encrypted', iv: 'webcal-url-iv', salt: 'webcal-url-salt' },
+  refreshIntervalMinutes: 60,
 }
 
 // Save original global
@@ -106,5 +113,64 @@ describe('configLoader', () => {
     const config = await loadConfig()
 
     expect(config).toEqual(validConfig) // re-validated
+  })
+
+  describe('webcalSubscriptions', () => {
+    it('loads valid webcal subscriptions alongside accounts', async () => {
+      originalGlobal.__CALINO_CONFIG__ = {
+        version: 1,
+        accounts: validConfig.accounts,
+        webcalSubscriptions: [validWebcal],
+      }
+
+      const config = await loadConfig()
+      expect(config).not.toBeNull()
+      expect(config!.webcalSubscriptions).toHaveLength(1)
+      expect(config!.webcalSubscriptions[0].name).toBe('Holidays')
+    })
+
+    it('succeeds with only webcal subscriptions and no accounts', async () => {
+      originalGlobal.__CALINO_CONFIG__ = {
+        version: 1,
+        accounts: [],
+        webcalSubscriptions: [validWebcal],
+      }
+
+      const config = await loadConfig()
+      expect(config).not.toBeNull()
+      expect(config!.accounts).toHaveLength(0)
+      expect(config!.webcalSubscriptions).toHaveLength(1)
+    })
+
+    it('skips invalid webcal entries and keeps valid ones', async () => {
+      originalGlobal.__CALINO_CONFIG__ = {
+        version: 1,
+        accounts: [],
+        webcalSubscriptions: [
+          { name: '', url: {} }, // invalid
+          validWebcal, // valid
+        ],
+      }
+
+      const config = await loadConfig()
+      expect(config).not.toBeNull()
+      expect(config!.webcalSubscriptions).toHaveLength(1)
+      expect(config!.webcalSubscriptions[0].name).toBe('Holidays')
+    })
+
+    it('returns null when both accounts and webcalSubscriptions are empty', async () => {
+      originalGlobal.__CALINO_CONFIG__ = { version: 1, accounts: [], webcalSubscriptions: [] }
+
+      const config = await loadConfig()
+      expect(config).toBeNull()
+    })
+
+    it('defaults to an empty array when webcalSubscriptions is omitted', async () => {
+      originalGlobal.__CALINO_CONFIG__ = { version: 1, accounts: validConfig.accounts }
+
+      const config = await loadConfig()
+      expect(config).not.toBeNull()
+      expect(config!.webcalSubscriptions).toEqual([])
+    })
   })
 })

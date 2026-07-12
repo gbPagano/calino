@@ -130,6 +130,8 @@ export interface CalendarEvent {
   completedAt?: string
 }
 
+export type CalendarSource = 'local' | 'caldav' | 'webcal'
+
 export interface Calendar {
   id: string
   name: string
@@ -139,6 +141,11 @@ export interface Calendar {
   accountId?: string
   showTasksInViews: boolean
   supportedComponents?: CalendarComponent[]
+  // Undefined ≈ local/caldav (existing behavior, unchanged for old data).
+  source?: CalendarSource
+  // True for webcal subscriptions — event mutation is blocked at the store
+  // boundary via isCalendarReadOnly().
+  readOnly?: boolean
 }
 
 export type ViewType = 'month' | 'week' | '3day' | 'day' | 'agenda' | 'todo' | 'journal' | 'contacts' | 'year'

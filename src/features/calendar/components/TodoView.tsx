@@ -21,7 +21,7 @@ import {
   startOfDay,
 } from 'date-fns'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { useCalendarStore } from '@/store/calendarStore'
+import { useCalendarStore, isCalendarReadOnly } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import type { CalendarEvent } from '@/types'
 import styles from './TodoView.module.css'
@@ -313,6 +313,7 @@ export function TodoView(): JSX.Element {
   }, [filteredTasks, filter, recentlyCompleted])
 
   const handleToggleComplete = async (task: TaskWithColor): Promise<void> => {
+    if (isCalendarReadOnly(task.calendarId)) return
     const newCompleted = !task.completed
     // If uncompleting, trigger unstrike animation
     if (task.completed && !newCompleted) {

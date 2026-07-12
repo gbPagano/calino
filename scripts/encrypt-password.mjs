@@ -24,6 +24,10 @@ function parseArgs() {
   let url = null
   let username = null
   let password = null
+  let webcalUrl = null
+  let webcalName = null
+  let refreshIntervalMinutes = null
+  let proxyUrl = null
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--master' && args[i + 1]) {
@@ -34,21 +38,54 @@ function parseArgs() {
       username = args[++i]
     } else if (args[i] === '--password' && args[i + 1]) {
       password = args[++i]
+    } else if (args[i] === '--webcal-url' && args[i + 1]) {
+      webcalUrl = args[++i]
+    } else if (args[i] === '--name' && args[i + 1]) {
+      webcalName = args[++i]
+    } else if (args[i] === '--refresh-minutes' && args[i + 1]) {
+      refreshIntervalMinutes = Number(args[++i])
+    } else if (args[i] === '--proxy-url' && args[i + 1]) {
+      proxyUrl = args[++i]
     } else if (args[i] === '--help' || args[i] === '-h') {
       console.log(`
-Usage: encrypt-password --master <master> --url <url> --username <user> --password <pass>
+Usage (CalDAV account):
+  encrypt-password --master <master> --url <url> --username <user> --password <pass>
+
+Usage (webcal subscription):
+  encrypt-password --master <master> --webcal-url <url> --name <name> [--refresh-minutes <n>] [--proxy-url <url>]
 
 Options:
-  --master <password>     Master password to encrypt with
-  --url <url>             CalDAV server URL
-  --username <username>   CalDAV username
-  --password <password>   CalDAV password
-  --help, -h              Show this help
+  --master <password>          Master password to encrypt with
+  --url <url>                  CalDAV server URL
+  --username <username>        CalDAV username
+  --password <password>        CalDAV password
+  --webcal-url <url>           Webcal/.ics subscription URL (mutually exclusive with --url/--username/--password)
+  --name <name>                Display name for the webcal subscription
+  --refresh-minutes <n>        Refresh interval in minutes (default 60, not encrypted)
+  --proxy-url <url>            Optional CORS proxy URL (not encrypted)
+  --help, -h                   Show this help
 
-Example:
+Examples:
   node scripts/encrypt-password.mjs --master "my-master" --url "https://caldav.example.com/dav.php" --username "user" --password "caldav-pass"
+  node scripts/encrypt-password.mjs --master "my-master" --webcal-url "https://example.com/calendar.ics" --name "Holidays"
 `)
       process.exit(0)
+    }
+  }
+
+  if (webcalUrl) {
+    if (!master || !webcalName) {
+      console.error('Error: --master and --name are required with --webcal-url')
+      console.error('Run with --help for usage')
+      process.exit(1)
+    }
+    return {
+      mode: 'webcal',
+      master,
+      webcalUrl,
+      webcalName,
+      refreshIntervalMinutes,
+      proxyUrl,
     }
   }
 
@@ -58,7 +95,7 @@ Example:
     process.exit(1)
   }
 
-  return { master, url, username, password }
+  return { mode: 'caldav', master, url, username, password }
 }
 
 function toBase64(buffer) {
@@ -109,7 +146,32 @@ async function encrypt(plaintext, masterPassword) {
 }
 
 async function main() {
-  const { master, url, username, password } = parseArgs()
+  const parsed = parseArgs()
+
+  if (parsed.mode === 'webcal') {
+    const { master, webcalUrl, webcalName, refreshIntervalMinutes, proxyUrl } = parsed
+
+    console.log('\nEncrypting webcal subscription...')
+    console.log(`Master password: ${'*'.repeat(master.length)}`)
+    console.log('')
+
+    const encryptedUrl = await encrypt(webcalUrl, master)
+
+    const entry = {
+      name: webcalName,
+      url: encryptedUrl,
+      ...(refreshIntervalMinutes ? { refreshIntervalMinutes } : {}),
+      ...(proxyUrl ? { proxyUrl } : {}),
+    }
+
+    console.log('webcalSubscriptions entry (paste into calino.config.json):')
+    console.log('─'.repeat(50))
+    console.log(JSON.stringify(entry, null, 2))
+    console.log('─'.repeat(50))
+    return
+  }
+
+  const { master, url, username, password } = parsed
 
   console.log('\nEncrypting CalDAV credentials...')
   console.log(`Master password: ${'*'.repeat(master.length)}`)

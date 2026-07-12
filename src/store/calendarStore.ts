@@ -63,6 +63,17 @@ export const selectSetCurrentView = (state: CalendarStore) => state.setCurrentVi
 export const selectSetCurrentDate = (state: CalendarStore) => state.setCurrentDate
 export const selectRangeExpansionVersion = (state: CalendarStore) => state.rangeExpansionVersion
 
+/**
+ * True for calendars backed by a webcal subscription — user-initiated
+ * mutation UI (save/delete/drag/quick-add/complete-toggle) should check this
+ * and disable itself. Store actions themselves stay unguarded because sync
+ * code (webcal refresh, CalDAV pull) legitimately writes to these calendars.
+ */
+export function isCalendarReadOnly(calendarId: string): boolean {
+  const calendar = useCalendarStore.getState().calendars.find((c) => c.id === calendarId)
+  return calendar?.readOnly === true
+}
+
 const DEFAULT_CALENDAR: Calendar = {
   id: 'default',
   name: 'Offline calendar',

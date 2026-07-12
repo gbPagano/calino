@@ -27,6 +27,7 @@ import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import { useUpdateCheck } from '@/hooks/useUpdateCheck'
 import { showToast } from '@/lib/toast'
 import { AddCalendarModal } from './AddCalendarModal'
+import { SubscribeCalendarModal } from './SubscribeCalendarModal'
 import { CreateCalendarModal } from './CreateCalendarModal'
 import { DeleteCalendarDialog } from './DeleteCalendarDialog'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -71,6 +72,8 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
     y: number
     calendarId: string
   } | null>(null)
+  const [showSubscribeCalendar, setShowSubscribeCalendar] = useState(false)
+  const [addCalendarMenu, setAddCalendarMenu] = useState<{ x: number; y: number } | null>(null)
   const [showCreateCalendar, setShowCreateCalendar] = useState(false)
   const [createCalendarAccountId, setCreateCalendarAccountId] = useState<string | null>(null)
   const [showDeleteCalendar, setShowDeleteCalendar] = useState(false)
@@ -562,9 +565,12 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
               </button>
               <button
                 className={styles.addCalendarButton}
-                onClick={() => setShowAddCalendar(true)}
-                title="Add CalDAV account"
-                aria-label="Add CalDAV account"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  setAddCalendarMenu({ x: rect.left, y: rect.bottom + 4 })
+                }}
+                title="Add calendar"
+                aria-label="Add calendar"
               >
                 <PlusIcon />
               </button>
@@ -760,6 +766,30 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
         </div>
 
         <AddCalendarModal isOpen={showAddCalendar} onClose={() => setShowAddCalendar(false)} />
+        <SubscribeCalendarModal
+          isOpen={showSubscribeCalendar}
+          onClose={() => setShowSubscribeCalendar(false)}
+        />
+        {addCalendarMenu &&
+          createPortal(
+            <ContextMenu
+              x={addCalendarMenu.x}
+              y={addCalendarMenu.y}
+              items={[
+                {
+                  label: 'Add CalDAV Account',
+                  onClick: () => setShowAddCalendar(true),
+                },
+                {
+                  label: 'Subscribe to Calendar (.ics)',
+                  onClick: () => setShowSubscribeCalendar(true),
+                },
+              ]}
+              onClose={() => setAddCalendarMenu(null)}
+              menuId="add-calendar"
+            />,
+            document.body
+          )}
         <CreateCalendarModal
           isOpen={showCreateCalendar}
           onClose={() => {

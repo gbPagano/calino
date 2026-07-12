@@ -344,7 +344,8 @@
 
 .compact .time,
 .compact .location,
-.compact .travelTime {
+.compact .travelTime,
+.compact .meta {
   display: none;
 }
 

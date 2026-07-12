@@ -1,7 +1,18 @@
 .container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
   max-width: 640px;
   margin: 0 auto;
   padding: var(--space-6);
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-top: calc(var(--space-6) + var(--safe-area-top));
+    padding-bottom: calc(var(--space-6) + var(--safe-area-bottom));
+  }
 }
 
 .header {
@@ -9,6 +20,7 @@
   align-items: center;
   gap: var(--space-4);
   margin-bottom: 32px;
+  flex-shrink: 0;
 }
 
 .backButton {
@@ -39,6 +51,10 @@
   border: 1px solid #e5e7eb;
   border-radius: var(--radius-md);
   padding: var(--space-6);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .lastUpdated {

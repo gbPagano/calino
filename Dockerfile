@@ -1,7 +1,7 @@
 # ── Stage 1: Build ───────────────────────────────────────────────
-FROM node:22-alpine3.21 AS build
+FROM node:25-alpine3.21 AS build
 
-RUN corepack enable && corepack prepare pnpm@10 --activate
+RUN npm install -g corepack@latest --force && corepack enable && corepack prepare pnpm@10 --activate
 
 # Build-time env vars (overridable via --build-arg)
 ARG VITE_SITE_URL=https://calino.io

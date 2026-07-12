@@ -5,9 +5,9 @@
  *   - Dragging a task onto another task makes the dragged task a child of
  *     the target (parentTaskId = target.id). The new depth is reflected by
  *     the data-task-depth attribute the test exercises on render.
- *   - Dragging a task onto the empty surface at the bottom of the list
- *     (data-component="todo-root-drop") clears parentTaskId so a subtask
- *     becomes a root-level task again.
+ *   - Dragging a task and releasing it anywhere that isn't directly over
+ *     another task row clears parentTaskId, so a subtask becomes a
+ *     root-level task again. There's no dedicated drop zone to aim for.
  *   - Drops onto self or any descendant are rejected — they would create
  *     a cycle in the parent/child graph.
  *
@@ -138,7 +138,7 @@ test.describe('/tasks — drag a task onto another to nest it', () => {
     )
   })
 
-  test('drag a subtask onto the empty drop zone promotes it back to root', async ({
+  test('drag a subtask onto blank space promotes it back to root', async ({
     page,
   }) => {
     await seedTasks(page, [
@@ -155,15 +155,15 @@ test.describe('/tasks — drag a task onto another to nest it', () => {
       '1'
     )
 
-    // The root drop zone is only mounted while a drag is active. Start the
-    // drag, wait for the zone to appear, then complete the gesture onto it.
+    // There's no dedicated root drop zone — releasing over any point that
+    // isn't another task row (here, the empty space below the last row)
+    // is enough to promote the dragged task back to root.
     const src = await rowCenter(page, 'pack')
     await performDrag(page, src, async (p) => {
-      const zone = p.locator('[data-component="todo-root-drop"]')
-      await expect(zone).toBeVisible()
-      const box = await zone.boundingBox()
-      if (!box) throw new Error('no drop-zone box')
-      return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+      const list = p.locator('[data-component="todo-task-list"]')
+      const box = await list.boundingBox()
+      if (!box) throw new Error('no task-list box')
+      return { x: box.x + box.width / 2, y: box.y + box.height - 5 }
     })
 
     // After drag: pack is depth 0 again.
@@ -173,17 +173,50 @@ test.describe('/tasks — drag a task onto another to nest it', () => {
     )
   })
 
-  test('root drop zone is not rendered at rest', async ({ page }) => {
-    // The drop zone is gated on `activeTaskId !== null`. Outside a drag the
-    // user should never see an empty dashed rectangle dangling at the bottom
-    // of the list — only the rows themselves, no extra layout noise.
+  test('root-drop hint appears over blank space and clears over a task row', async ({
+    page,
+  }) => {
     await seedTasks(page, [
-      { id: 'only', title: 'Lone task' },
+      { id: 'plan-trip', title: 'Plan trip' },
+      { id: 'pack', title: 'Pack bags', parentTaskId: 'plan-trip' },
     ])
     await page.goto('/tasks')
-    await waitForTask(page, 'only')
+    await waitForTask(page, 'plan-trip')
+    await waitForTask(page, 'pack')
 
-    await expect(page.locator('[data-component="todo-root-drop"]')).toHaveCount(0)
+    const list = page.locator('[data-component="todo-task-list"]')
+    const src = await rowCenter(page, 'pack')
+    const overTarget = await rowCenter(page, 'plan-trip')
+    const listBox = await list.boundingBox()
+    if (!listBox) throw new Error('no task-list box')
+    const blankSpace = { x: listBox.x + listBox.width / 2, y: listBox.y + listBox.height - 5 }
+
+    // No hint before a drag starts.
+    await expect(list).not.toHaveAttribute('data-root-drop-hint', '')
+
+    await page.mouse.move(src.x, src.y)
+    await page.waitForTimeout(20)
+    await page.mouse.down()
+    for (let i = 1; i <= 5; i++) {
+      await page.mouse.move(src.x + i * 3, src.y, { steps: 1 })
+      await page.waitForTimeout(15)
+    }
+
+    // Hovering another task row — no root-drop hint (it would nest instead).
+    await page.mouse.move(overTarget.x, overTarget.y, { steps: 10 })
+    await page.waitForTimeout(50)
+    await expect(list).not.toHaveAttribute('data-root-drop-hint', '')
+
+    // Hovering blank space with no row underneath — hint appears since
+    // "pack" has a parent and a drop here would promote it to root.
+    await page.mouse.move(blankSpace.x, blankSpace.y, { steps: 10 })
+    await page.waitForTimeout(50)
+    await expect(list).toHaveAttribute('data-root-drop-hint', '')
+
+    await page.mouse.up()
+
+    // Hint clears once the drag ends.
+    await expect(list).not.toHaveAttribute('data-root-drop-hint', '')
   })
 
   test('drag a task onto its own descendant is a no-op (cycle guard)', async ({

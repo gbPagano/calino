@@ -12,6 +12,7 @@ import {
   pointerWithin,
   type CollisionDetection,
   type DragEndEvent,
+  type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
 import {
@@ -44,11 +45,12 @@ const PRIORITY_LABELS: Record<number, string> = {
   3: 'Low',
 }
 
-// Synthetic droppable id for the empty surface below the task list.
-// Dropping a task on it clears parentTaskId and turns the task back into a
-// top-level (root) task. Kept as a constant so the drop handler and the
-// droppable registration agree on the same id.
-export const ROOT_DROPPABLE_ID = '__todoRoot__'
+// Sentinel used internally by handleTaskDragEnd for "not dropped onto a
+// task row" — either released over blank space (no droppable underneath)
+// or, in principle, a dedicated root zone if one is ever reintroduced.
+// Dropping a task under this condition clears parentTaskId, turning it
+// back into a top-level (root) task.
+const ROOT_DROPPABLE_ID = '__todoRoot__'
 
 function getPriorityClass(priority?: number): string {
   if (priority === 1) return styles.priorityHigh
@@ -125,6 +127,10 @@ export function TodoView(): JSX.Element {
   // being dragged, so the keyboard/mouse focus ring on its row doesn't fight
   // the DragOverlay visual.
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
+  // Tracks whether the pointer is currently over blank space (no task row
+  // underneath) during a drag. Drives the ambient "drop here to promote to
+  // root" hint on the list container, since there's no dedicated drop zone.
+  const [isOverBlankSpace, setIsOverBlankSpace] = useState(false)
   const composerRef = useRef<HTMLInputElement>(null)
   const segmentedRef = useRef<HTMLDivElement>(null)
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
@@ -226,6 +232,15 @@ export function TodoView(): JSX.Element {
   const activeCount = useMemo(() => filteredTasks.filter((task) => !task.completed).length, [filteredTasks])
   const completedCount = useMemo(() => filteredTasks.filter((task) => task.completed).length, [filteredTasks])
   const selectedProject = taskCalendars.find((calendar) => calendar.id === projectFilter)
+
+  // Only worth hinting "drop here to promote to root" when the dragged task
+  // actually has a parent — dropping an already-root task on blank space is
+  // a no-op, so showing the hint there would be misleading.
+  const draggedTaskHasParent = useMemo(
+    () => !!activeTaskId && !!tasks.find((task) => task.id === activeTaskId)?.parentTaskId,
+    [activeTaskId, tasks]
+  )
+  const showRootDropHint = draggedTaskHasParent && isOverBlankSpace
 
   const groupedTasks = useMemo((): TaskGroup[] => {
     const active = filteredTasks.filter((t) => !t.completed || recentlyCompleted.has(t.id))
@@ -403,18 +418,24 @@ export function TodoView(): JSX.Element {
 
   const handleTaskDragStart = (event: DragStartEvent): void => {
     setActiveTaskId(String(event.active.id))
+    setIsOverBlankSpace(false)
+  }
+
+  const handleTaskDragOver = (event: DragOverEvent): void => {
+    setIsOverBlankSpace(!event.over)
   }
 
   const handleTaskDragEnd = async (event: DragEndEvent): Promise<void> => {
     const { active, over } = event
     setActiveTaskId(null)
-    if (!over) return
+    setIsOverBlankSpace(false)
 
     const draggedId = String(active.id)
-    const targetId = String(over.id)
+    // Any drop that isn't over another task row — blank space, with no
+    // droppable underneath the release point — promotes the task to top
+    // level, so there's no dedicated root drop zone to aim for.
+    const targetId = over ? String(over.id) : ROOT_DROPPABLE_ID
 
-    // ROOT_DROPPABLE_ID is the synthetic drop zone at the bottom of the
-    // list — "drop on empty space to become a top-level task".
     if (targetId !== ROOT_DROPPABLE_ID) {
       const draggedTask = tasks.find((task) => task.id === draggedId)
       if (!draggedTask || draggedTask.type !== 'task') return
@@ -673,9 +694,15 @@ export function TodoView(): JSX.Element {
           sensors={sensors}
           collisionDetection={collisionDetection}
           onDragStart={handleTaskDragStart}
+          onDragOver={handleTaskDragOver}
           onDragEnd={handleTaskDragEnd}
         >
-        <div className={styles.taskList} ref={scrollContainerRef}>
+        <div
+          className={`${styles.taskList} ${showRootDropHint ? styles.taskListRootHint : ''}`}
+          ref={scrollContainerRef}
+          data-component="todo-task-list"
+          data-root-drop-hint={showRootDropHint ? '' : undefined}
+        >
           {/* Inline Composer */}
           {composing && (
             <div className={styles.inlineComposer}>
@@ -748,14 +775,6 @@ export function TodoView(): JSX.Element {
             </>
           )}
 
-          {/* Empty drop surface — dropping any task on it clears parentTaskId
-              (turns the task into a root-level task). Rendered only while a
-              drag is active so it doesn't crowd the layout at rest, and
-              placed directly after the task rows so it sits a few pixels
-              below the last row (where the cursor naturally ends up when
-              dragging) rather than at the bottom of the page. Lives inside
-              the scroll container so it scrolls together with the rows. */}
-          {activeTaskId && flatItems.length > 0 && <DroppableRootZone />}
         </div>
 
           {/* DragOverlay mirrors the active row so the user can see what
@@ -852,15 +871,3 @@ function DraggableTaskRow({ taskId, isActive, children }: DraggableTaskRowProps)
   )
 }
 
-function DroppableRootZone(): JSX.Element {
-  const { setNodeRef, isOver } = useDroppable({ id: ROOT_DROPPABLE_ID })
-  return (
-    <div
-      ref={setNodeRef}
-      data-component="todo-root-drop"
-      data-drop-active={isOver ? '' : undefined}
-      className={`${styles.rootDropZone} ${isOver ? styles.rootDropZoneActive : ''}`}
-      aria-hidden="true"
-    />
-  )
-}

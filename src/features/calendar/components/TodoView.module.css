@@ -25,6 +25,17 @@
   flex: 1 1 auto;
   overflow-y: auto;
   min-height: 0;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Ambient cue shown while dragging a subtask over blank space (anywhere
+   that isn't another task row). There's no dedicated drop zone to aim for —
+   this inset ring is what tells the user "release here to promote to root"
+   without reserving any layout space when at rest. */
+.taskListRootHint {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent, #b07d4f) 35%, transparent);
+  background: color-mix(in srgb, var(--accent, #b07d4f) 4%, transparent);
+  border-radius: var(--radius-md);
 }
 
 /* ---- Top Bar ---- */
@@ -300,8 +311,8 @@
 
 /* ---- Completion Checkbox ---- */
 /* Row uses `align-items: start` so multi-line rows (title + .taskNote) keep
-   the checkbox anchored to the first line. The title gets a small negative
-   translateY (see `.taskTitle`) — that's what closes the optical gap to the
+   the checkbox anchored to the first line. The title gets a small `top`
+   offset (see `.taskTitle`) — that's what closes the optical gap to the
    circle, since Western fonts place most of the visible glyph above the
    line-box center (ascender space + descender space below). Shifting the
    title rather than the checkbox lets the title's `::after` strikethrough
@@ -367,8 +378,8 @@
   color: var(--ink, #2c2823);
   line-height: 1.35;
   position: relative;
+  top: -3px;
   display: inline;
-  margin-top: -2px;
 }
 
 .taskNote {
@@ -564,25 +575,6 @@
   outline: 2px solid color-mix(in srgb, var(--event-color, var(--accent)) 35%, transparent);
   outline-offset: -2px;
   background: color-mix(in srgb, var(--event-color, var(--accent)) 8%, var(--surface-bg));
-}
-
-/* The empty droppable surface — drops here turn a subtask back into a
-   root-level task. Only mounts while a drag is in progress, so its hit
-   target can sit a few pixels below the rows without dominating the at-rest
-   layout. Slim border + small vertical padding so it reads as an insertion
-   line ("drop here to root") rather than a separate card. */
-.rootDropZone {
-  min-height: 36px;
-  margin: 6px 14px 16px;
-  border: 1.5px dashed color-mix(in srgb, var(--ink-3, #a39d93) 45%, transparent);
-  border-radius: var(--radius-md);
-  background: transparent;
-  transition: background 0.16s, border-color 0.16s;
-}
-
-.rootDropZoneActive {
-  border-color: var(--accent, #b07d4f);
-  background: color-mix(in srgb, var(--accent, #b07d4f) 8%, transparent);
 }
 
 /* The composer checkmark is now a button — reset native button chrome so

@@ -227,6 +227,7 @@ function CalendarApp(): JSX.Element {
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false)
   const isMobile = useIsMobile()
   const mainRef = useRef<HTMLElement>(null)
+  const reducedMotion = useReducedMotion()
 
   // Initialize CardDAV sync
   useCardDAV()
@@ -430,34 +431,42 @@ function CalendarApp(): JSX.Element {
           <Sidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} isCollapsed={sidebarCollapsed} onCollapsedChange={(v) => updateSettings({ sidebarCollapsed: v })} />
         </ErrorBoundary>
         <main className="main" ref={mainRef}>{renderView()}</main>
-        {agendaSidebarOpen && (
-          <aside className="agendaSidebar" style={{ width: agendaSidebarWidth }}>
-            <div
-              className="agendaSidebarResizer"
-              onMouseDown={handleAgendaResizeStart}
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="Resize agenda panel"
-            />
-            <div className="agendaSidebarHeader">
-              <span>Agenda</span>
-              <button
-                className="agendaSidebarClose"
-                onClick={() => updateSettings({ agendaSidebarOpen: false })}
-                aria-label="Close agenda panel"
-              >
-                ×
-              </button>
-            </div>
-            <div className="agendaSidebarBody">
-              <ErrorBoundary fallback={null}>
-                <Suspense fallback={null}>
-                  <AgendaView embedded />
-                </Suspense>
-              </ErrorBoundary>
-            </div>
-          </aside>
-        )}
+        <AnimatePresence>
+          {agendaSidebarOpen && (
+            <motion.aside
+              className="agendaSidebar"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: agendaSidebarWidth, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: reducedMotion ? 0 : 0.2, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <div
+                className="agendaSidebarResizer"
+                onMouseDown={handleAgendaResizeStart}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize agenda panel"
+              />
+              <div className="agendaSidebarHeader">
+                <span>Agenda</span>
+                <button
+                  className="agendaSidebarClose"
+                  onClick={() => updateSettings({ agendaSidebarOpen: false })}
+                  aria-label="Close agenda panel"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="agendaSidebarBody">
+                <ErrorBoundary fallback={null}>
+                  <Suspense fallback={null}>
+                    <AgendaView embedded />
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
       </div>
       <MobileFAB
         onClick={() => setIsFabMenuOpen(!isFabMenuOpen)}

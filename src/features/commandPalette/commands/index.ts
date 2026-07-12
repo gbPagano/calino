@@ -8,7 +8,7 @@ import { useHistoryStore } from '@/store/historyStore'
 
 interface CommandFactoryDeps {
   navigate: (path: string) => void
-  setCurrentView: (view: 'month' | 'week' | 'day' | 'agenda' | 'journal') => void
+  setCurrentView: (view: 'month' | 'week' | 'day' | 'agenda' | 'journal' | 'todo') => void
   setCurrentDate: (date: string) => void
   openModal: (date?: string, endDate?: string, eventId?: string, mode?: 'event' | 'task' | 'journal') => void
   openJournalModal: (date: string, startInCompose?: boolean) => void
@@ -20,6 +20,7 @@ interface CommandFactoryDeps {
   sidebarOpen?: boolean
   useCategoryColors?: boolean
   journalEnabled?: boolean
+  contactsEnabled?: boolean
   updateSettings?: (
     settings: Partial<{
       themeMode: ThemeMode
@@ -29,6 +30,7 @@ interface CommandFactoryDeps {
       timeFormat: '12h' | '24h'
       useCategoryColors: boolean
       journalEnabled: boolean
+      contactsEnabled: boolean
     }>
   ) => void
 }
@@ -199,6 +201,18 @@ const createNavigationCommands = (deps: CommandFactoryDeps): Command[] => {
         return 'Switched to agenda view'
       },
     },
+    {
+      id: 'view-tasks',
+      label: 'Tasks View',
+      category: 'navigation',
+      keywords: ['tasks view', 'tasks', 'todo', 'task list'],
+      icon: ICONS.calendar,
+      action: () => {
+        deps.setCurrentView('todo')
+        deps.navigate('/tasks')
+        return 'Switched to tasks view'
+      },
+    },
   ]
 }
 
@@ -362,6 +376,19 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
       const newValue = !deps.journalEnabled
       deps.updateSettings?.({ journalEnabled: newValue })
       return newValue ? 'Journal enabled' : 'Journal disabled'
+    },
+  },
+  {
+    id: 'toggle-contacts',
+    label: deps.contactsEnabled ? 'Disable Contacts' : 'Enable Contacts',
+    description: 'Show and manage contacts in your calendar',
+    category: 'settings',
+    keywords: ['contacts', 'people', 'address book', 'toggle', 'enable', 'disable'],
+    icon: ICONS.calendar,
+    action: () => {
+      const newValue = !deps.contactsEnabled
+      deps.updateSettings?.({ contactsEnabled: newValue })
+      return newValue ? 'Contacts enabled' : 'Contacts disabled'
     },
   },
   {

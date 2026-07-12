@@ -2,6 +2,16 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.22.1] - 2026-07-12
+
+### Added
+
+- **Delete individual duplicate-UID events from Data Issues** — when a duplicate-UID collision is detected (bulk-copied CalDAV resources that illegally share a UID), each conflicting resource now has its own Delete button, so you can remove a specific one instead of only dismissing the whole report.
+
+### Fixed
+
+- **A recurring event mirrored into more than one CalDAV collection no longer shows up twice** — the same UID appearing in a second collection on the server (e.g. a scheduling/aggregate calendar alongside the real one) was being added as a duplicate entry instead of being recognized as the same event.
+
 ## [0.22.0] - 2026-07-12
 
 Subscribe to any `.ics`/`webcal://` feed as a read-only calendar, plus task-hierarchy and CalDAV compatibility improvements from our first outside contributor, a smoother agenda sidebar, and a round of journal, command palette, and sidebar fixes.

@@ -768,21 +768,18 @@ export function useCalDAV(): UseCalDAVReturn {
         useCalendarStore.getState().clearDuplicateUidIssues()
 
         for (const cal of calendarsToSync) {
-          const fetchedEvents = await client.fetchEvents(cal.url, start, end)
+          const fetchedEvents = await client.fetchEvents(cal.url, start, end, true)
 
-          // Snapshot pending deletes AFTER the network fetch, as late as possible
-          // before reconciliation: a delete queued while the fetch was in flight
-          // must be observed, otherwise sync would re-freshen an event the user
-          // just deleted. Read once per calendar (O(N)), not per event.
-          const pendingDeleteIds = new Set(
+          // Snapshot pending local changes after the network fetch, as late as
+          // possible before reconciliation. They must win over remote state.
+          const pendingLocalChangeIds = new Set(
             storage.getPendingChanges()
-              .filter((p) => p.type === 'delete')
               .map((p) => p.eventId)
           )
           // Also skip events whose server DELETE is in flight right now: on the
           // happy path no pending-change tombstone is written, so without this a
           // sync racing the delete would re-add the event.
-          for (const id of inFlightDeletes) pendingDeleteIds.add(id)
+          for (const id of inFlightDeletes) pendingLocalChangeIds.add(id)
 
           // Get events that belong to this calendar, indexed by id for O(1) lookup
           const calendarEvents = currentEvents.filter((e) => e.calendarId === cal.id)
@@ -802,17 +799,25 @@ export function useCalDAV(): UseCalDAVReturn {
           for (const item of parsedWithHref) {
             const parsedEvent = item.event
 
-            serverEventIds.add(parsedEvent.id)
-
             // Skip collision "losers" so they don't overwrite the kept event.
             if (skip.has(item)) {
               continue
             }
 
-            // Skip events that have a pending delete
-            if (pendingDeleteIds.has(parsedEvent.id)) {
+            // Do not overwrite a local change waiting to be pushed.
+            if (pendingLocalChangeIds.has(parsedEvent.id)) {
+              serverEventIds.add(parsedEvent.id)
               continue
             }
+
+            // Some CalDAV task clients retain deleted VTODO resources with
+            // STATUS:CANCELLED instead of issuing DELETE. Treat that as a
+            // remote deletion so the task does not remain in Calino.
+            if (parsedEvent.type === 'task' && parsedEvent.taskStatus === 'CANCELLED') {
+              continue
+            }
+
+            serverEventIds.add(parsedEvent.id)
 
             // Collect category names for auto-creation
             // Bug 31 fix: do not filter categories by UUID pattern.
@@ -880,12 +885,13 @@ export function useCalDAV(): UseCalDAVReturn {
             })
           }
 
-          // Bug 19 fix: Do NOT delete local events during sync based on
-          // their absence from the server response. CalDAV REPORT queries
-          // may not return all events due to pagination, server-side limits,
-          // or network issues. Deleting events that were simply not returned
-          // would cause data loss. Events should only be deleted through
-          // explicit user actions.
+          // The complete collection listing makes absence an authoritative
+          // remote deletion. Never remove a local change waiting to be pushed.
+          for (const localEvent of calendarEvents) {
+            if (!serverEventIds.has(localEvent.id) && !pendingLocalChangeIds.has(localEvent.id)) {
+              storeDeleteEvent(localEvent.id)
+            }
+          }
         }
 
         storage.updateAccountLastSync(accountId)

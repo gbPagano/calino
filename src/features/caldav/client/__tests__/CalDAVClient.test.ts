@@ -240,6 +240,27 @@ END:VCALENDAR`,
       })
     })
 
+    it('fetches all VEVENTs when an authoritative sync listing is requested', async () => {
+      await client.connect()
+
+      mockClientMethods.fetchCalendarObjects
+        .mockResolvedValueOnce([mockEventObject])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+
+      await client.fetchEvents(mockCalendar.url, '2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z', true)
+
+      expect(mockClientMethods.fetchCalendarObjects).toHaveBeenNthCalledWith(1, {
+        calendar: mockCalendar,
+        filters: {
+          'comp-filter': {
+            _attributes: { name: 'VCALENDAR' },
+            'comp-filter': { _attributes: { name: 'VEVENT' } },
+          },
+        },
+      })
+    })
+
     it('uses VTODO filter for tasks', async () => {
       await client.connect()
 

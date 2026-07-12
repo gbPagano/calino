@@ -1254,7 +1254,8 @@ describe('useCalDAV', () => {
       expect(fetchEvents).toHaveBeenCalledWith(
         'https://caldav.example.com/cal/new/',
         expect.any(String),
-        expect.any(String)
+        expect.any(String),
+        true
       )
     })
 
@@ -1329,16 +1330,16 @@ describe('useCalDAV', () => {
   })
 
   // -----------------------------------------------------------------------
-  // Bug 19: Sync can delete events server didn't return
+  // Remote deletions
   // -----------------------------------------------------------------------
-  describe('Bug 19: sync must not delete local events based on absence from server', () => {
+  describe('remote deletions', () => {
     beforeEach(() => {
       mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
       mockAccountStorage.getAccountById.mockReturnValue(mockAccount)
       mockAccountStorage.getCalendarsByAccountId.mockReturnValue([mockCalendar])
     })
 
-    it('does not delete local events that server did not return', async () => {
+    it('deletes events and tasks that are absent from the authoritative server listing', async () => {
       // Add local events to the store
       const localEvent1: CalendarEvent = {
         id: 'local-evt-1',
@@ -1351,17 +1352,18 @@ describe('useCalDAV', () => {
       const localEvent2: CalendarEvent = {
         id: 'local-evt-2',
         calendarId: 'cal-1',
-        title: 'Local Event 2',
+        title: 'Local Task 2',
         start: '2025-06-02T10:00:00',
         end: '2025-06-02T11:00:00',
         isAllDay: false,
+        type: 'task',
       }
       act(() => {
         useCalendarStore.getState().addEvent(localEvent1)
         useCalendarStore.getState().addEvent(localEvent2)
       })
 
-      // Server returns only one event (the other was not returned, e.g. due to pagination)
+      // The server collection no longer contains either local item.
       const serverEvent: CalendarEvent = {
         id: 'server-evt-1',
         calendarId: 'cal-1',
@@ -1389,13 +1391,72 @@ describe('useCalDAV', () => {
         await result.current.syncAccount('acc-1')
       })
 
-      // Both local events should still exist — sync must NOT delete them
+      // Both local items must disappear, while the remote event is imported.
       const store = useCalendarStore.getState()
-      expect(store.events.find((e) => e.id === 'local-evt-1')).toBeDefined()
-      expect(store.events.find((e) => e.id === 'local-evt-2')).toBeDefined()
+      expect(store.events.find((e) => e.id === 'local-evt-1')).toBeUndefined()
+      expect(store.events.find((e) => e.id === 'local-evt-2')).toBeUndefined()
 
       // The server event should have been added
       expect(store.events.find((e) => e.id === 'server-evt-1')).toBeDefined()
+    })
+
+    it('keeps local changes that are still waiting to be pushed', async () => {
+      act(() => {
+        useCalendarStore.getState().addEvent(mockEvent)
+      })
+      mockAccountStorage.getPendingChanges.mockReturnValue([
+        {
+          id: 'pending-create',
+          type: 'create',
+          eventId: mockEvent.id,
+          calendarId: mockCalendar.id,
+          timestamp: '2025-01-01T00:00:00Z',
+          retryCount: 0,
+        },
+      ])
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      expect(useCalendarStore.getState().events.find((e) => e.id === mockEvent.id)).toBeDefined()
+    })
+
+    it('removes a task marked cancelled by another CalDAV client', async () => {
+      const localTask: CalendarEvent = {
+        id: 'cancelled-task',
+        calendarId: 'cal-1',
+        title: 'Cancelled elsewhere',
+        start: '2025-06-02T10:00:00',
+        end: '2025-06-02T11:00:00',
+        isAllDay: false,
+        type: 'task',
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(localTask)
+      })
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([
+        { ...localTask, completed: true, taskStatus: 'CANCELLED' },
+      ])
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data' }]),
+        fetchCalendars: vi.fn().mockResolvedValue([]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+      await act(async () => {
+        await result.current.syncAccount('acc-1')
+      })
+
+      expect(useCalendarStore.getState().events.find((e) => e.id === localTask.id)).toBeUndefined()
     })
 
     it('still adds events returned by the server', async () => {

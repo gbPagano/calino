@@ -361,12 +361,25 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                     )}
                     <div
                       className={`${styles.entry} ${focusedEntryIndex === index ? styles.entryFocused : ''}`}
-                      onDoubleClick={() => handleStartEdit(entry)}
                       tabIndex={0}
                       role="button"
                     >
                       {entry.title && (
-                        <div className={styles.summary}>{entry.title}</div>
+                        <div className={styles.entryHeader}>
+                          <span className={styles.summary}>{entry.title}</span>
+                          <button
+                            className={styles.entryEditBtn}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleStartEdit(entry)
+                            }}
+                            aria-label="Edit entry"
+                          >
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                              <path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z" />
+                            </svg>
+                          </button>
+                        </div>
                       )}
                       <MarkdownView className={styles.body} text={entry.description || ''} />
                       {entry.categories && entry.categories.length > 0 && (

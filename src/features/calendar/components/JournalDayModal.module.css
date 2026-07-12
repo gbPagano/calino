@@ -155,6 +155,39 @@
   background: rgba(196, 168, 154, 0.08);
 }
 
+.entryHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.entryEditBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.entry:hover .entryEditBtn,
+.entryFocused .entryEditBtn {
+  opacity: 1;
+}
+
+.entryEditBtn:hover {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+
 .entrySep {
   display: flex;
   align-items: center;

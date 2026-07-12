@@ -16,7 +16,7 @@ export function PrivacyPolicy(): JSX.Element {
       </div>
 
       <div className={styles.content}>
-        <p className={styles.lastUpdated}>Last updated: March 2026</p>
+        <p className={styles.lastUpdated}>Last updated: July 2026</p>
 
         <section>
           <h2>1. Your Data Stays on Your Device</h2>
@@ -54,9 +54,12 @@ export function PrivacyPolicy(): JSX.Element {
             at <code>proxy.calino.io</code>. If you use this option:
           </p>
           <ul>
-            <li>We can see your IP address, country, and the URL of your CalDAV server</li>
             <li>
-              We <strong>cannot</strong> see your username, password, or calendar event data
+              We can see your IP address, country, and the full URL of each request (which can
+              sometimes include parts of your account path, depending on your CalDAV server)
+            </li>
+            <li>
+              We <strong>cannot</strong> see your password or calendar event data
             </li>
             <li>Credentials are sent in the Authorization header (not logged)</li>
             <li>Request/response bodies containing calendar data are not logged</li>
@@ -76,7 +79,12 @@ export function PrivacyPolicy(): JSX.Element {
           <p>Calino uses localStorage to store:</p>
           <ul>
             <li>Your preferences and settings</li>
-            <li>CalDAV account credentials (encrypted only in your browser)</li>
+            <li>
+              CalDAV account credentials, obfuscated with a key stored in the app itself. This
+              protects against casual inspection of localStorage (e.g. another site or extension
+              accessing it by mistake), but is not strong encryption against someone with access
+              to both the app source and your browser storage.
+            </li>
           </ul>
           <p>
             We do not use tracking cookies, analytics, or third-party services that collect personal

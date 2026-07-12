@@ -83,7 +83,15 @@ async function enableSyncForAccount(page: Page, accountName: string): Promise<vo
 }
 
 test.describe('CalDAV settings sync', () => {
-  test.beforeEach(async ({ page }) => {
+  // The mock CalDAV server's event store is a singleton for the whole
+  // dev-server process (see vite-caldav-mock.ts) — it isn't reset between
+  // tests, and both tests below write to the same fixed settings-event
+  // path (the UID is a literal `calino-settings` by design, R1.22). Run
+  // serially so one test's reset + PUTs can't race another's.
+  test.describe.configure({ mode: 'serial' })
+
+  test.beforeEach(async ({ page, baseURL }) => {
+    await page.request.post(`${baseURL!}/mock-caldav/__test__/reset`)
     await clearState(page)
   })
 

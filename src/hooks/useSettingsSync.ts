@@ -248,7 +248,8 @@ export function useSettingsSync(): UseSettingsSyncReturn {
       if (calendars.length === 0) throw new Error('No calendars found')
       const calendarHomeUrl = deriveCalendarHomeUrl(account.serverUrl, calendars[0].url)
 
-      let settingsCal = await client.discoverSettingsCalendar(calendarHomeUrl)
+      const discovered = await client.discoverSettingsCalendar(calendarHomeUrl)
+      let settingsCal = discovered
       let hasExistingSettings = false
 
       if (!settingsCal) {
@@ -271,7 +272,16 @@ export function useSettingsSync(): UseSettingsSyncReturn {
         touchLastModified()
       }
 
-      showToast('Settings sync enabled.')
+      // Mirrors the R1.22 fix in `discoverSettings`: only claim "settings
+      // found" when a remote payload actually existed and was applied.
+      // A pre-existing but empty settings calendar gets the softer wording;
+      // a brand-new calendar (nothing discovered) keeps the generic message.
+      const toastMessage = !discovered
+        ? 'Settings sync enabled.'
+        : hasExistingSettings
+          ? 'Calino Settings found — sync enabled.'
+          : 'Calino Settings calendar found — sync enabled.'
+      showToast(toastMessage)
       if (isMountedRef.current) forceRender((n) => n + 1)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to enable sync'

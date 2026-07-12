@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   settings: 'calino-settings',
   credentials: 'calino_caldav_credentials',
   accounts: 'calino_caldav_accounts',
+  caldavCalendars: 'calino_caldav_calendars',
   calendar: 'calino-storage',
   cookieConsent: 'calino_cookie_notice',
 } as const
@@ -141,10 +142,13 @@ export async function clearState(page: Page): Promise<void> {
 
 /**
  * Seed a CalDAV account in localStorage so the test can skip the add-account
- * flow and start from "calendar already connected". Writes both the account
- * metadata (`calino_caldav_accounts`) and the credential record
- * (`calino_caldav_credentials`) so the Sync page and the CalDAV client both
- * see the account.
+ * flow and start from "calendar already connected". Writes the account
+ * metadata (`calino_caldav_accounts`), the credential record
+ * (`calino_caldav_credentials`), and a matching calendar record
+ * (`calino_caldav_calendars`) so the Sync page and the CalDAV client both
+ * see the account, and `useSettingsSync`'s `getCalendarsByAccountId` lookup
+ * (used to derive the calendar-home URL for settings-calendar discovery)
+ * doesn't come back empty.
  *
  * Uses a one-shot flag so the seed survives reloads within the same test
  * (otherwise addInitScript runs again and clearState would wipe it).
@@ -161,6 +165,7 @@ export async function seedAccount(
 ): Promise<string> {
   const accountId = account.id ?? cryptoRandomId()
   const credentialId = cryptoRandomId()
+  const calendarId = cryptoRandomId()
   const createdAt = new Date().toISOString()
 
   await page.addInitScript(
@@ -168,20 +173,25 @@ export async function seedAccount(
       flagKey,
       accountKey,
       credKey,
+      calendarKey,
       accountsJson,
       credsJson,
+      calendarsJson,
     }: {
       flagKey: string
       accountKey: string
       credKey: string
+      calendarKey: string
       accountsJson: string
       credsJson: string
+      calendarsJson: string
     }) => {
       try {
         if (sessionStorage.getItem(flagKey)) return
         sessionStorage.setItem(flagKey, '1')
         localStorage.setItem(accountKey, accountsJson)
         localStorage.setItem(credKey, credsJson)
+        localStorage.setItem(calendarKey, calendarsJson)
       } catch {
         /* noop */
       }
@@ -190,6 +200,7 @@ export async function seedAccount(
       flagKey: `__calino_test_seeded_${accountId}`,
       accountKey: STORAGE_KEYS.accounts,
       credKey: STORAGE_KEYS.credentials,
+      calendarKey: STORAGE_KEYS.caldavCalendars,
       accountsJson: JSON.stringify([
         {
           id: accountId,
@@ -208,6 +219,20 @@ export async function seedAccount(
           serverUrl: account.serverUrl,
           username: account.username,
           password: account.password,
+        },
+      ]),
+      calendarsJson: JSON.stringify([
+        {
+          id: calendarId,
+          accountId,
+          url: `${account.serverUrl}calendars/user/personal/`,
+          name: 'Personal',
+          color: '#4285F4',
+          ctag: null,
+          syncToken: null,
+          isVisible: true,
+          isDefault: true,
+          supportedComponents: ['VEVENT'],
         },
       ]),
     }

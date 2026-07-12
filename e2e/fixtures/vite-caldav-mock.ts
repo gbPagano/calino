@@ -13,6 +13,13 @@ import type { AddressInfo } from 'node:net'
  *
  * Implements just enough of RFC 4791 to drive Calino's connection test
  * and sync flow:
+ *   - POST /mock-caldav/__test__/reset        → 204, clears all stored
+ *                                              events. The mock is a
+ *                                              singleton for the whole
+ *                                              dev-server process, so
+ *                                              tests MUST call this to
+ *                                              avoid leaking state between
+ *                                              each other.
  *   - GET  /.well-known/caldav                → 301 redirect to /mock-caldav/dav/
  *   - PROPFIND /mock-caldav/dav/              → 207 with current-user-principal
  *   - PROPFIND /dav/principals/...            → 207 with calendar-home-set
@@ -66,15 +73,20 @@ export function caldavMockPlugin(): Plugin {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&apos;')
 
+        // Namespace prefixes are lowercase (`d:`, `c:`, `a:`, `cr:`) to match
+        // what real CalDAV servers (and Calino's own regex-based
+        // `discoverSettingsCalendar` parser, which hardcodes lowercase
+        // prefixes) expect — XML namespace prefixes are technically
+        // arbitrary, but Calino's client-side parsing is not prefix-agnostic.
         const responseTag = (
           href: string,
           props: Array<{ name: string; href?: string; value?: string; raw?: boolean }>
         ): string => {
           const qualifiedName = (name: string): string => {
-            if (name.startsWith('DAV:')) return `D:${name.slice(4)}`
-            if (name.startsWith('CAL:')) return `C:${name.slice(4)}`
+            if (name.startsWith('DAV:')) return `d:${name.slice(4)}`
+            if (name.startsWith('CAL:')) return `c:${name.slice(4)}`
             if (name.startsWith('http://apple.com/ns/ical/')) {
-              return `A:${name.slice('http://apple.com/ns/ical/'.length)}`
+              return `a:${name.slice('http://apple.com/ns/ical/'.length)}`
             }
             return name
           }
@@ -82,7 +94,7 @@ export function caldavMockPlugin(): Plugin {
             .map((p) => {
               const tag = qualifiedName(p.name)
               if (p.href !== undefined) {
-                return `<${tag}><D:href>${esc(p.href)}</D:href></${tag}>`
+                return `<${tag}><d:href>${esc(p.href)}</d:href></${tag}>`
               }
               if (p.value === undefined || p.value === '') {
                 return `<${tag}/>`
@@ -90,13 +102,26 @@ export function caldavMockPlugin(): Plugin {
               return `<${tag}>${p.raw ? p.value : esc(p.value)}</${tag}>`
             })
             .join('')
-          return `<D:response><D:href>${esc(href)}</D:href><D:propstat><D:prop>${propTags}</D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>`
+          return `<d:response><d:href>${esc(href)}</d:href><d:propstat><d:prop>${propTags}</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`
         }
 
         const write207 = (responses: string[]) => {
-          const body = `<?xml version="1.0" encoding="utf-8"?>\n<D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:A="http://apple.com/ns/ical/" xmlns:CR="http://calino.app/ns/">\n  ${responses.join('\n  ')}\n</D:multistatus>`
+          const body = `<?xml version="1.0" encoding="utf-8"?>\n<d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:a="http://apple.com/ns/ical/" xmlns:cr="http://calino.app/ns/">\n  ${responses.join('\n  ')}\n</d:multistatus>`
           res.writeHead(207, { 'Content-Type': 'application/xml; charset=utf-8' })
           res.end(body)
+        }
+
+        // 0) Test isolation: the mock's eventStore is a single Map shared
+        // by the whole dev-server process for the entire Playwright run —
+        // it does NOT reset between tests. Since the settings-sync UID is
+        // a fixed literal (`calino-settings`, by design — see R1.22), any
+        // two tests that exercise settings sync write to the exact same
+        // stored path. Tests must call this before seeding state.
+        if (path === '/__test__/reset' && method === 'POST') {
+          eventStore.clear()
+          res.writeHead(204)
+          res.end()
+          return
         }
 
         // 1) Discovery: well-known redirect.
@@ -140,33 +165,33 @@ export function caldavMockPlugin(): Plugin {
             responseTag(calendarUrl, [
               {
                 name: 'DAV:resourcetype',
-                value: '<D:collection/><C:calendar/>',
+                value: '<d:collection/><c:calendar/>',
                 raw: true,
               },
               { name: 'DAV:displayname', value: 'Personal' },
               { name: 'http://apple.com/ns/ical/calendar-color', value: '#3B82F6' },
               {
                 name: 'CAL:supported-calendar-component-set',
-                value: '<C:comp name="VEVENT"/><C:comp name="VTODO"/><C:comp name="VJOURNAL"/>',
+                value: '<c:comp name="VEVENT"/><c:comp name="VTODO"/><c:comp name="VJOURNAL"/>',
                 raw: true,
               },
             ]),
             responseTag(settingsCalendarUrl, [
               {
                 name: 'DAV:resourcetype',
-                value: '<D:collection/><C:calendar/>',
+                value: '<d:collection/><c:calendar/>',
                 raw: true,
               },
               { name: 'DAV:displayname', value: 'Calino Settings' },
               {
                 name: 'CAL:supported-calendar-component-set',
-                value: '<C:comp name="VEVENT"/>',
+                value: '<c:comp name="VEVENT"/>',
                 raw: true,
               },
               // Dead-property marker so Calino's `discoverSettingsCalendar`
               // recognises the collection even when the request includes
               // the `X-CALINO-SETTINGS-CALENDAR` PROPFIND.
-              { name: 'CR:X-CALINO-SETTINGS-CALENDAR', value: '1' },
+              { name: 'cr:X-CALINO-SETTINGS-CALENDAR', value: '1' },
             ]),
           ])
         }
@@ -179,7 +204,7 @@ export function caldavMockPlugin(): Plugin {
               { name: 'http://apple.com/ns/ical/calendar-color', value: '#3B82F6' },
               {
                 name: 'CAL:supported-calendar-component-set',
-                value: '<C:comp name="VEVENT"/><C:comp name="VTODO"/><C:comp name="VJOURNAL"/>',
+                value: '<c:comp name="VEVENT"/><c:comp name="VTODO"/><c:comp name="VJOURNAL"/>',
                 raw: true,
               },
             ]),
@@ -194,10 +219,10 @@ export function caldavMockPlugin(): Plugin {
               { name: 'DAV:displayname', value: 'Calino Settings' },
               {
                 name: 'CAL:supported-calendar-component-set',
-                value: '<C:comp name="VEVENT"/>',
+                value: '<c:comp name="VEVENT"/>',
                 raw: true,
               },
-              { name: 'CR:X-CALINO-SETTINGS-CALENDAR', value: '1' },
+              { name: 'cr:X-CALINO-SETTINGS-CALENDAR', value: '1' },
             ]),
           ])
         }

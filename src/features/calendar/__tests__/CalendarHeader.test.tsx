@@ -1,11 +1,29 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { CalendarHeader } from '../components/CalendarHeader'
 import { useCalendarStore } from '@/store/calendarStore'
 
+// The switcher's tabs-vs-dropdown choice is measured (header.scrollWidth vs
+// clientWidth), which jsdom always reports as 0 for both — so without this,
+// every test would fall back to the default (compact) dropdown mode
+// regardless of the "desktop width" intent. Stub the header box to a size
+// that clearly fits, then nudge the component to re-measure via the same
+// resize listener it already uses.
+const mockDesktopSwitcherLayout = (): void => {
+  const header = document.querySelector('[data-component="header"]')
+  if (!header) return
+  Object.defineProperty(header, 'clientWidth', { configurable: true, value: 1440 })
+  Object.defineProperty(header, 'scrollWidth', { configurable: true, value: 1000 })
+  act(() => {
+    window.dispatchEvent(new Event('resize'))
+  })
+}
+
 const renderWithRouter = (component: React.ReactElement) => {
-  return render(<BrowserRouter>{component}</BrowserRouter>)
+  const result = render(<BrowserRouter>{component}</BrowserRouter>)
+  mockDesktopSwitcherLayout()
+  return result
 }
 
 describe('CalendarHeader', () => {

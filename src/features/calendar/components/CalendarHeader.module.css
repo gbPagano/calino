@@ -4,10 +4,17 @@
    Breakpoints: ≤1220 (tablet), ≤950 (compact/sidebar), ≤768 (mobile), ≤500 (compact mobile)
    ============================================================================ */
 
-/* ---- Grid Layout ---- */
+/* ---- Grid Layout ----
+   Navigator and title columns are pinned to their content size (rather than
+   plain `auto`, which CSS Grid can compress toward min-content once the row
+   runs out of slack). Without the pin, a transient overflow — e.g. mid
+   window-resize, before the view-switcher JS has re-measured and collapsed
+   the tab strip — visibly squeezes the "< Today >" navigator. Pinning them
+   means any such overflow is absorbed by the switcher/rightCluster instead,
+   which is the part that's about to collapse anyway. */
 .header {
   display: grid;
-  grid-template-columns: var(--header-brand-col, 277px) auto auto 1fr auto;
+  grid-template-columns: var(--header-brand-col, 277px) minmax(max-content, max-content) minmax(max-content, max-content) 1fr auto;
   align-items: center;
   padding: 18px 16px 18px 0;
   background: var(--canvas);
@@ -18,7 +25,7 @@
 
 /* When sidebar collapsed: brand col shrinks, hamburger + navigator need extra column */
 [data-sidebar-collapsed] .header {
-  grid-template-columns: var(--header-brand-col, 277px) auto auto auto 1fr auto;
+  grid-template-columns: var(--header-brand-col, 277px) auto minmax(max-content, max-content) minmax(max-content, max-content) 1fr auto;
 }
 
 /* ---- Brand Mark ---- */
@@ -70,6 +77,11 @@
   height: 38px;
   opacity: 1;
   max-width: 200px;
+  /* Below ≤768px .header becomes a flex row (not grid) — flex-shrink
+     defaults to 1, so without this the navigator would compress before the
+     view-switcher's own JS-driven collapse kicks in, same issue as the grid
+     columns above. */
+  flex-shrink: 0;
   border-width: 1px;
   transition: opacity 0.2s ease, max-width 0.25s ease 0s, border-width 0s linear 0.2s;
 }
@@ -138,6 +150,8 @@
   padding-top: 6px;
   padding-left: 22px;
   align-self: center;
+  /* See .navigator — same flex-shrink protection for the ≤768px flex layout. */
+  flex-shrink: 0;
 }
 
 .monthTitle {
@@ -256,7 +270,12 @@
 /* Quick-settings inner rows (theme control, toggles, footer) now live in
    QuickSettingsPanel.module.css so they can be shared with the mobile FAB. */
 
-/* ---- View Tabs (Segmented Control) — desktop only >1220px ---- */
+/* ---- View Tabs (Segmented Control) ----
+   Shown when there's enough room for the full tab strip; otherwise the view
+   dropdown below takes over. That decision is made in JS (CalendarHeader.tsx)
+   by measuring actual available space, since the view list itself varies
+   with which features are enabled (journal, contacts) — there's no fixed
+   viewport width where the switch should happen. */
 .viewTabs {
   display: flex;
   align-items: center;
@@ -264,10 +283,29 @@
   background: var(--view-switcher-bg, rgba(var(--ink-raw, 44, 40, 33), 0.045));
   padding: var(--space-1);
   border-radius: var(--view-switcher-radius, 12px);
-  transition: opacity 0.25s ease, max-width 0.25s ease, padding 0.25s ease;
   position: relative;
   max-width: 600px;
+  /* Flex items don't shrink below their content's min-content size by
+     default — without this, .viewTabsCollapsed's max-width: 0 can't
+     actually reach 0 in the rightCluster flex row. */
+  min-width: 0;
   overflow: hidden;
+  transition: opacity 0.25s ease, max-width 0.25s ease, padding 0.25s ease;
+}
+
+.viewTabsCollapsed {
+  opacity: 0;
+  max-width: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
+/* Suspends the collapse/expand transition during the scratch measurement in
+   evaluateSwitcherMode (CalendarHeader.tsx) — otherwise reading layout right
+   after toggling the collapsed class would catch the very first frame of the
+   animation (≈ the old value) instead of the settled target width. */
+.switcherNoAnimate {
+  transition: none !important;
 }
 
 .viewTab {
@@ -372,15 +410,25 @@
   color: var(--ink);
 }
 
-/* ---- View Dropdown — ≤1220px ---- */
+/* ---- View Dropdown ----
+   The compact fallback for the view switcher. JS toggles which of this and
+   .viewTabs is the in-flow, visible one (see CalendarHeader.tsx). */
 .viewDropdown {
   position: relative;
   display: flex;
   align-items: center;
+  opacity: 1;
+  width: auto;
+  /* See .viewTabs — same flex min-content floor applies here. */
+  min-width: 0;
+  overflow: hidden;
+  transition: opacity 0.2s ease, width 0.2s ease;
+}
+
+.viewDropdownCollapsed {
   opacity: 0;
   width: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease, width 0.2s ease;
 }
 
 .viewDropdownButton {
@@ -542,26 +590,10 @@
    BREAKPOINTS
    ============================================================================ */
 
-/* ≤1220px (tablet): view tabs → dropdown */
-@media (max-width: 1220px) {
-  .viewTabs {
-    opacity: 0;
-    max-width: 0;
-    padding: 0;
-    pointer-events: none;
-  }
-
-  .viewDropdown {
-    opacity: 1;
-    width: auto;
-    pointer-events: auto;
-  }
-}
-
 /* ≤950px (compact): sidebar goes overlay */
 @media (max-width: 950px) {
   .header {
-    grid-template-columns: auto auto auto 1fr auto;
+    grid-template-columns: auto minmax(max-content, max-content) minmax(max-content, max-content) 1fr auto;
   }
 
   .brand {
@@ -588,10 +620,6 @@
     align-items: center;
     padding: 12px 0;
     gap: var(--space-2);
-  }
-
-  .viewTabs {
-    display: none;
   }
 
   .monthTitle,

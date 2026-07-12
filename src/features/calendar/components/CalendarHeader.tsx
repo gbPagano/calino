@@ -178,6 +178,113 @@ export function CalendarHeader({
     }
   }, [measureIndicator])
 
+  // Dynamic tabs↔dropdown switch: whether the full view-tab strip fits in
+  // the available header space, measured directly rather than assumed from a
+  // fixed viewport breakpoint (the tab list itself varies with which
+  // features are enabled, so a hardcoded width would be wrong as soon as a
+  // feature toggle changes how many tabs there are). Defaults to the
+  // dropdown (safest/most compact) until the first measurement lands.
+  const headerRef = useRef<HTMLElement>(null)
+  const [useDropdownSwitcher, setUseDropdownSwitcher] = useState(true)
+  const lastSwitcherMode = useRef(true)
+
+  const evaluateSwitcherMode = useCallback(() => {
+    const header = headerRef.current
+    const tabsEl = viewTabsRef.current
+    const dropdownEl = viewDropdownRef.current
+    if (!header || !tabsEl || !dropdownEl) return
+
+    // CSS Grid's `auto` tracks (navigator, title, rightCluster) don't hold a
+    // fixed "natural" width under pressure — they can compress non-linearly
+    // as space tightens, so there's no reliable algebraic way to derive
+    // "how much room the tab strip would need" from the current layout.
+    // Instead, ask the browser directly: force the tab strip into its
+    // expanded state and the dropdown into its collapsed state, synchronously,
+    // and check whether the header overflows. That's the exact question we
+    // care about, answered by the real grid algorithm — then immediately
+    // restore, before this ever paints, so there's no visible flash.
+    //
+    // The collapse/expand transition has to be suspended for this: reading
+    // layout right after toggling the classes would otherwise catch the
+    // animation's very first frame (≈ the old value) rather than the
+    // settled target.
+    const tabsWasCollapsed = tabsEl.classList.contains(styles.viewTabsCollapsed)
+    const dropdownWasCollapsed = dropdownEl.classList.contains(styles.viewDropdownCollapsed)
+
+    tabsEl.classList.add(styles.switcherNoAnimate)
+    dropdownEl.classList.add(styles.switcherNoAnimate)
+
+    tabsEl.classList.remove(styles.viewTabsCollapsed)
+    dropdownEl.classList.add(styles.viewDropdownCollapsed)
+    // Tiny tolerance for sub-pixel rounding — not a safety margin against
+    // real overflow (an exact tie, scrollWidth === clientWidth, is a fit).
+    // The navigator/title grid columns are pinned to their content size (see
+    // .header), so any transient overflow during the reactive measure→decide
+    // gap lands on the switcher itself rather than squeezing them.
+    const fits = header.scrollWidth <= header.clientWidth + 2
+
+    if (tabsWasCollapsed) tabsEl.classList.add(styles.viewTabsCollapsed)
+    else tabsEl.classList.remove(styles.viewTabsCollapsed)
+    if (dropdownWasCollapsed) dropdownEl.classList.add(styles.viewDropdownCollapsed)
+    else dropdownEl.classList.remove(styles.viewDropdownCollapsed)
+
+    // Flush the restored, still-untransitioned layout before re-enabling
+    // transitions, so the *next* real toggle (driven by React state) animates
+    // instead of jumping straight to its target.
+    void header.offsetWidth
+    tabsEl.classList.remove(styles.switcherNoAnimate)
+    dropdownEl.classList.remove(styles.switcherNoAnimate)
+
+    const desiredDropdown = !fits
+    if (desiredDropdown !== lastSwitcherMode.current) {
+      lastSwitcherMode.current = desiredDropdown
+      setUseDropdownSwitcher(desiredDropdown)
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    evaluateSwitcherMode()
+
+    const header = headerRef.current
+    if (!header) return
+
+    const rafs: number[] = []
+    const timers: ReturnType<typeof setTimeout>[] = []
+    const remeasureNextFrame = (): void => {
+      rafs.push(requestAnimationFrame(() => rafs.push(requestAnimationFrame(evaluateSwitcherMode))))
+    }
+    remeasureNextFrame()
+    for (const delay of [80, 200, 400, 800]) {
+      timers.push(setTimeout(evaluateSwitcherMode, delay))
+    }
+
+    const observer = new ResizeObserver(() => evaluateSwitcherMode())
+    observer.observe(header)
+
+    let cancelled = false
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        if (!cancelled) remeasureNextFrame()
+      })
+    }
+    window.addEventListener('resize', evaluateSwitcherMode)
+
+    return () => {
+      cancelled = true
+      rafs.forEach(cancelAnimationFrame)
+      timers.forEach(clearTimeout)
+      observer.disconnect()
+      window.removeEventListener('resize', evaluateSwitcherMode)
+    }
+  }, [evaluateSwitcherMode])
+
+  // Re-measure whenever something that changes the required width happens
+  // outside of a header resize: the view list (journal/contacts toggles), the
+  // active view (dropdown label / title length), or sidebar geometry.
+  useLayoutEffect(() => {
+    evaluateSwitcherMode()
+  }, [evaluateSwitcherMode, journalEnabled, contactsEnabled, currentView, currentDate, sidebarWidth, sidebarCollapsed])
+
   const [showQuickSettings, setShowQuickSettings] = useState(false)
   const quickSettingsTimeoutRef = useState(() => ({ current: undefined as ReturnType<typeof setTimeout> | undefined }))[0]
 
@@ -239,6 +346,10 @@ export function CalendarHeader({
   }
 
   const title = getTitle()
+
+  const visibleViews = VIEWS.filter(
+    (v) => (journalEnabled || v.value !== 'journal') && (contactsEnabled || v.value !== 'contacts')
+  )
 
   const handleNavigate = (direction: 'prev' | 'next'): void => {
     let newDate: Date
@@ -355,6 +466,7 @@ export function CalendarHeader({
 
   return (
     <header
+      ref={headerRef}
       className={styles.header}
       style={{ '--header-brand-col': brandColumnWidth } as React.CSSProperties}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
@@ -438,14 +550,18 @@ export function CalendarHeader({
           <SearchIcon />
         </button>
 
-        {/* View Tabs - CSS handles visibility at breakpoints */}
-        <div className={styles.viewTabs} ref={viewTabsRef} data-component="view-switcher">
+        {/* View Tabs - shown when they fit (see useDropdownSwitcher) */}
+        <div
+          className={`${styles.viewTabs} ${useDropdownSwitcher ? styles.viewTabsCollapsed : ''}`}
+          ref={viewTabsRef}
+          data-component="view-switcher"
+        >
           <div
             className={styles.viewTabIndicator}
             style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
             data-component="view-switcher-indicator"
           />
-          {VIEWS.filter(v => (journalEnabled || v.value !== 'journal') && (contactsEnabled || v.value !== 'contacts')).map((view, index) => {
+          {visibleViews.map((view, index) => {
             const isActive =
               currentView === view.value || (view.value === 'week' && currentView === '3day')
             const menu = tabMenus[view.value]
@@ -502,9 +618,9 @@ export function CalendarHeader({
             )
           })}
         </div>
-        {/* View Dropdown - CSS handles visibility at tablet breakpoint */}
+        {/* View Dropdown - shown when the tab strip doesn't fit (see useDropdownSwitcher) */}
         <div
-          className={styles.viewDropdown}
+          className={`${styles.viewDropdown} ${useDropdownSwitcher ? '' : styles.viewDropdownCollapsed}`}
           ref={viewDropdownRef}
           onMouseEnter={() => {
             // Skip on touch devices — click handles toggle
@@ -580,7 +696,7 @@ export function CalendarHeader({
                 items[nextIndex]?.focus()
               }}
             >
-              {VIEWS.filter(v => (journalEnabled || v.value !== 'journal') && (contactsEnabled || v.value !== 'contacts')).map((view, index) => (
+              {visibleViews.map((view, index) => (
                 <React.Fragment key={view.value}>
                   {index === 4 && <div className={styles.viewDropdownDivider} role="separator" />}
                   <button

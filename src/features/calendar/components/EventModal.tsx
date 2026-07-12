@@ -667,13 +667,17 @@ export function EventModal(): JSX.Element | null {
   //   Each of those three sites used to inline-compute this; consolidating
   // here keeps them in lockstep.
   const isTimeRangeInvalid = useMemo(() => {
+    // Tasks don't have a real start/end range — start and end are saved as
+    // the same timestamp (mirroring the due date/time), which would always
+    // trip the endMs <= startMs check below and permanently disable Save.
+    if (isTaskMode) return false
     if (!isAllDay) {
       const startMs = new Date(`${startDate}T${startTime}:00`).getTime()
       const endMs = new Date(`${endDate}T${endTime}:00`).getTime()
       return endMs <= startMs
     }
     return endDate < startDate
-  }, [isAllDay, startDate, startTime, endDate, endTime])
+  }, [isTaskMode, isAllDay, startDate, startTime, endDate, endTime])
 
   const saveEvent = async (mode: RecurrenceEditMode): Promise<void> => {
     // Defensive guard: also called from `handleRecurrenceDialogConfirm`, which
@@ -697,16 +701,13 @@ export function EventModal(): JSX.Element | null {
       // from handleRecurrenceDialogConfirm (when editing a recurring event
       // opens the "edit one / edit following / edit all" dialog) — that path
       // bypasses handleSubmit's check, so a recurring event edit with
-      // end<start would slip through.
-      if (!isAllDay) {
-        const startMs = new Date(`${startDate}T${startTime}:00`).getTime()
-        const endMs = new Date(`${endDate}T${endTime}:00`).getTime()
-        if (endMs <= startMs) {
-          showToast('End time must be after start time')
-          return
-        }
-      } else if (endDate < startDate) {
-        showToast('End date must be on or after start date')
+      // end<start would slip through. Reuses the isTaskMode-aware
+      // isTimeRangeInvalid memo instead of recomputing (was drifting out of
+      // sync with it — the previous inline copy didn't skip tasks).
+      if (isTimeRangeInvalid) {
+        showToast(
+          isAllDay ? 'End date must be on or after start date' : 'End time must be after start time'
+        )
         return
       }
 

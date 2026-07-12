@@ -215,9 +215,8 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
     }).catch(() => {
       setAttachments(entry.attachments || [])
     })
-    // Open add panel if entry has any extra content
-    const hasExtra = (entry.categories?.length ?? 0) > 0 || (entry.url?.length ?? 0) > 0 || (entry.attachments?.length ?? 0) > 0 || (entry.relatedTo?.length ?? 0) > 0
-    setShowAddPanel(hasExtra)
+    // Always start with add panel collapsed
+    setShowAddPanel(false)
   }, [])
 
   const handleStartCompose = useCallback((): void => {

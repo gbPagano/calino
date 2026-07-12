@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { format, parseISO, isToday, isBefore, startOfDay, addDays, isWithinInterval } from 'date-fns'
+import { format, parseISO, isToday, isBefore, startOfDay } from 'date-fns'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useCalDAV } from '@/features/caldav/hooks/useCalDAV'
 import type { CalendarEvent } from '@/types'
@@ -39,7 +39,6 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
   // current without the user having to interact with the app.
   const upcomingTasks = useMemo(() => {
     const today = startOfDay(new Date())
-    const weekFromNow = addDays(today, 7)
     const visibleCalendarIds = new Set(calendars.filter((calendar) => calendar.isVisible).map((calendar) => calendar.id))
 
     const tasks = events
@@ -47,7 +46,7 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
       .filter((task) => {
         if (!task.dueDate) return true // Show tasks without due date
         const dueDate = startOfDay(parseISO(task.dueDate))
-        return !isBefore(dueDate, today) && isWithinInterval(dueDate, { start: today, end: weekFromNow })
+        return !isBefore(dueDate, today) // Show all future tasks
       })
       .sort((a, b) => {
         if (!a.dueDate && !b.dueDate) return 0

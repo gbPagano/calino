@@ -363,6 +363,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
                       className={`${styles.entry} ${focusedEntryIndex === index ? styles.entryFocused : ''}`}
                       tabIndex={0}
                       role="button"
+                      onClick={() => handleStartEdit(entry)}
                     >
                       {entry.title && (
                         <div className={styles.entryHeader}>

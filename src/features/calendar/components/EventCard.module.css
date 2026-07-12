@@ -566,6 +566,22 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Task pills in the month-view day cell are always .compact for layout
+   (hides location/travel time, drops the resize handle), which also shrinks
+   the title and leaves the due-date font smaller than a non-compact event's
+   .time — making tasks read visibly smaller than the events sharing the same
+   cell. Match the default (non-compact) event sizes here only; scoped to the
+   month-grid day cell via [data-component="day-tasks"] so the Week/Day
+   all-day header (where tasks and events are already both .compact) is
+   unaffected. */
+[data-component="day-tasks"] .task.compact .title {
+  font-size: 13px;
+}
+
+[data-component="day-tasks"] .task.compact .dueDate {
+  font-size: 11.5px;
+}
+
 /* ---- Mobile Month ---- */
 .mobileMonth {
   padding-left: 8px;

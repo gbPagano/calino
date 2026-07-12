@@ -18,6 +18,7 @@ import { useHoveredEventStore } from '@/store/hoveredEventStore'
 import { useDragModifierStore } from '@/store/dragModifierStore'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
+import { showToast } from '@/lib/toast'
 
 import { extractOriginalEventId, hasDueTime, formatTravelDuration } from '@/lib/events'
 import { hapticIfEnabled } from '@/lib/haptics'
@@ -427,7 +428,7 @@ export const EventCard = React.memo(function EventCard({
           >
             <div className={styles.title} title={event.title}>{event.title}</div>
             {!hideDueTime && hasDueTime(event) && event.dueDate && (
-              <div className={styles.dueDate}>{format(parseISO(event.dueDate), 'h:mm a')}</div>
+              <div className={styles.dueDate}>{formatTime(event.dueDate, timeFormat)}</div>
             )}
           </div>
         ) : (
@@ -527,12 +528,44 @@ export const EventCard = React.memo(function EventCard({
                       label: isTask ? 'Convert to event' : 'Convert to task',
                       onClick: async () => {
                         const newType = isTask ? 'event' : 'task'
-                        updateEvent(event.id, { type: newType })
+                        // The event modal's calendar picker only offers
+                        // calendars that support the required component
+                        // (VEVENT/VTODO), so switching type there can't land
+                        // on an incompatible calendar. This shortcut bypasses
+                        // that picker, so check directly: without this, an
+                        // event on an events-only calendar becomes a task
+                        // whose calendar doesn't support VTODO, and the modal's
+                        // Save button — which requires calendarId to be in
+                        // compatibleCalendars — is permanently disabled.
+                        const requiredComponent = newType === 'task' ? 'VTODO' : 'VEVENT'
+                        const calendar = calendars.find((c) => c.id === event.calendarId)
+                        if (
+                          calendar?.supportedComponents &&
+                          !calendar.supportedComponents.includes(requiredComponent)
+                        ) {
+                          showToast(
+                            newType === 'task'
+                              ? `"${calendar.name}" doesn't support tasks`
+                              : `"${calendar.name}" doesn't support events`
+                          )
+                          return
+                        }
+                        // Converting to a task needs a due date, or it silently
+                        // drops out of every date-based view (AgendaView, the
+                        // Week/Day timeline) since those key off dueDate, not
+                        // start/end. Carry the event's start over as the due
+                        // date; converting back to an event clears it since
+                        // start/end already hold the real time.
+                        const updates: Partial<CalendarEvent> = {
+                          type: newType,
+                          dueDate: newType === 'task' ? event.start : undefined,
+                        }
+                        updateEvent(event.id, updates)
                         await safeCalDAVUpdate(
                           updateCalDAVEvent,
                           event.calendarId,
-                          { ...event, type: newType },
-                          { type: newType }
+                          { ...event, ...updates },
+                          updates
                         )
                       },
                       icon: <EditIcon />,

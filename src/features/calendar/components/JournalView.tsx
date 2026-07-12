@@ -645,8 +645,11 @@ export function JournalView(): JSX.Element {
     }, 200)
   }, [])
 
-  // Renders a single journal entry card (or inline compose form when editing)
-  const renderEntryCard = (entry: CalendarEvent): JSX.Element => {
+  // Renders a single journal entry card (or inline compose form when editing).
+  // `isLast` suppresses the bottom divider — computed explicitly rather than
+  // via CSS :last-child since 'all' mode wraps each entry in its own
+  // virtualized container, which would make :last-child match every entry.
+  const renderEntryCard = (entry: CalendarEvent, isLast = false): JSX.Element => {
     const { day, weekday } = formatEntryDate(entry.start)
 
     if (editingId === entry.id) {
@@ -680,7 +683,7 @@ export function JournalView(): JSX.Element {
     return (
       <article
         key={entry.id}
-        className={styles.entry}
+        className={`${styles.entry} ${isLast ? styles.entryNoBorder : ''}`}
         data-date={entry.start}
         onDoubleClick={() => handleStartEdit(entry)}
       >
@@ -815,8 +818,10 @@ export function JournalView(): JSX.Element {
           /* Month mode — bounded, no virtualization needed */
           groupedEntries.map(({ monthKey, entries }) => (
             <section key={monthKey} className={styles.monthGroup}>
-              {entries.map((entry) => (
-                <React.Fragment key={entry.id}>{renderEntryCard(entry)}</React.Fragment>
+              {entries.map((entry, index) => (
+                <React.Fragment key={entry.id}>
+                  {renderEntryCard(entry, index === entries.length - 1)}
+                </React.Fragment>
               ))}
             </section>
           ))
@@ -828,6 +833,8 @@ export function JournalView(): JSX.Element {
               return (
                 <div
                   key={entry.id}
+                  ref={virtualizer.measureElement}
+                  data-index={virtualRow.index}
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -836,7 +843,7 @@ export function JournalView(): JSX.Element {
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  {renderEntryCard(entry)}
+                  {renderEntryCard(entry, virtualRow.index === allEntries.length - 1)}
                 </div>
               )
             })}

@@ -214,7 +214,7 @@
   background: var(--surface-bg);
 }
 
-.entry:last-child {
+.entryNoBorder {
   border-bottom: none;
 }
 

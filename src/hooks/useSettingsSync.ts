@@ -50,7 +50,7 @@ interface UseSettingsSyncReturn {
   enable: (accountId: string) => Promise<void>
   disable: (deleteRemote?: boolean) => Promise<void>
   push: () => Promise<void>
-  pull: () => Promise<void>
+  pull: () => Promise<boolean>
   discoverSettings: (accountId: string) => Promise<void>
 }
 
@@ -107,41 +107,45 @@ export function useSettingsSync(): UseSettingsSyncReturn {
 
   // ── Core operations ─────────────────────────────────────────────────────────
 
-  // pull is defined before push so push can reference it in its dependency array
-  const pull = useCallback(async (): Promise<void> => {
-    if (inFlightRef.current) return
+  // pull is defined before push so push can reference it in its dependency array.
+  // Returns `true` when a remote settings payload was applied locally,
+  // `false` when there was nothing to pull (empty server / parse error /
+  // conflict lost). Callers use this to decide whether to surface
+  // a "settings applied" message vs. a softer "calendar found" message.
+  const pull = useCallback(async (): Promise<boolean> => {
+    if (inFlightRef.current) return false
     const accountId = getPrimaryAccountId()
-    if (!accountId) { setError('Sync not properly configured'); return }
+    if (!accountId) { setError('Sync not properly configured'); return false }
 
     inFlightRef.current = true
     setSyncing(true); setError(null)
     try {
       const calUrl = await resolveSettingsCalendarUrl(accountId)
-      if (!calUrl) { setError('Settings calendar not found'); return }
+      if (!calUrl) { setError('Settings calendar not found'); return false }
 
       const account = accountStorage.getAccountById(accountId)
-      if (!account) { setError('Account not found'); return }
+      if (!account) { setError('Account not found'); return false }
       const credential = await getCredentialById(account.credentialId)
-      if (!credential) { setError('Credentials not found'); return }
+      if (!credential) { setError('Credentials not found'); return false }
 
       const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
       const remote = await client.fetchSettingsEvent(calUrl)
 
       if (!remote) {
         if (useSettingsStore.getState().caldavDebugMode) console.warn('[SettingsSync] No remote settings event found — nothing to pull')
-        return
+        return false
       }
 
       const json = client.extractSettingsFromVEVENT(remote.data)
       if (!json) {
         if (useSettingsStore.getState().caldavDebugMode) console.warn('[SettingsSync] Could not extract settings from remote VEVENT')
-        return
+        return false
       }
 
       const parsed = deserializeSettings(json)
       if (!parsed) {
         if (useSettingsStore.getState().caldavDebugMode) console.warn('[SettingsSync] Remote settings payload invalid or unsupported version')
-        return
+        return false
       }
 
       const dtstampIso = dtstampToISO(remote.dtstamp)
@@ -152,10 +156,12 @@ export function useSettingsSync(): UseSettingsSyncReturn {
       // Store the actual DTSTAMP from the server — shows when settings were truly last written
       setLastSyncedAt(dtstampIso || new Date().toISOString())
       if (isMountedRef.current) forceRender((n) => n + 1)
+      return true
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Pull failed'
       console.error('[SettingsSync] Pull failed:', err)
       if (isMountedRef.current) setError(msg)
+      return false
     } finally {
       inFlightRef.current = false
       setSyncing(false)
@@ -321,15 +327,14 @@ export function useSettingsSync(): UseSettingsSyncReturn {
       if (!discovered) return
 
       setPrimaryAccountId(accountId)
-      await pull()
-
-      const remote = await client.fetchSettingsEvent(discovered.url)
-      if (remote) {
-        setEtag(remote.etag)
-      }
+      // pull() returns `true` only when it actually applied a remote
+      // payload. The collection may exist on the server while being
+      // empty — that's a fresh-install case, and the user hasn't
+      // actually had anything synced yet.
+      const applied = await pull()
       if (isMountedRef.current) forceRender((n) => n + 1)
 
-      showToast('Calino Settings found — sync enabled automatically.')
+      showToast(applied ? 'Calino Settings found — sync enabled automatically.' : 'Calino Settings calendar found — sync enabled.')
     } catch (err) {
       console.warn('[SettingsSync] Auto-discovery failed:', err)
     }

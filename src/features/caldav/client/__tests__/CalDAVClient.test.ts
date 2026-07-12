@@ -464,12 +464,14 @@ END:VCALENDAR`,
       components: ['VEVENT'],
     }
 
-    // Regression: the SETTINGS_EVENT_UID used to be the hardcoded
-    // `00000000-calino-0000-calino-000000000000`, which caused two Calino
-    // instances syncing to the same CalDAV server to clobber each other's
-    // settings event. The fix derives the UID from a per-instance UUID
-    // stored in localStorage, so each browser profile gets its own.
-    it('writes settings event with a UID prefixed calino-settings-<uuid>', async () => {
+    // Regression: the SETTINGS_EVENT_UID is the literal `calino-settings`.
+    // Earlier R1.9 derived a per-instance UID (`calino-settings-<uuid>`),
+    // which broke cross-device sync — a fresh device could not find the
+    // settings VEVENT uploaded by the original device. The current
+    // design stores the single settings event in a dedicated calendar
+    // collection, so a shared literal UID is safe and any device on the
+    // same CalDAV account can read/update it.
+    it('writes settings event with the literal UID `calino-settings`', async () => {
       await client.connect()
 
       // `putSettingsEvent` calls the tsdav client directly to discover the
@@ -490,13 +492,15 @@ END:VCALENDAR`,
       expect(mockClientMethods.createCalendarObject).toHaveBeenCalledTimes(1)
       const [{ iCalString }] = mockClientMethods.createCalendarObject.mock.calls[0]
 
-      // New behaviour: the UID is `calino-settings-<uuid>` — a per-instance
-      // UUID persisted in localStorage, so each browser profile gets its
-      // own settings event without colliding on a shared CalDAV server.
-      expect(iCalString).toMatch(/^UID:calino-settings-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/m)
+      // Exact literal UID — stable across devices, lets cross-device
+      // sync work because the dedicated settings calendar only ever
+      // contains this one event.
+      expect(iCalString).toMatch(/^UID:calino-settings\r\n/m)
 
-      // The old hardcoded value must NOT be used anymore.
+      // The old hardcoded value and the abandoned per-instance form
+      // must NOT be used anymore.
       expect(iCalString).not.toContain('UID:00000000-calino-')
+      expect(iCalString).not.toMatch(/UID:calino-settings-[0-9a-f]{8}-/)
     })
 
     // R2.7 review follow-up (Gap 1): the full VEVENT assembly is the

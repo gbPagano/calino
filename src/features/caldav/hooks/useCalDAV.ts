@@ -570,6 +570,7 @@ export function useCalDAV(): UseCalDAVReturn {
             if (discovered) {
               setPrimaryAccountId(newAccount.id)
               const remote = await settingsClient.fetchSettingsEvent(discovered.url)
+              let appliedRemote = false
               if (remote) {
                 const json = settingsClient.extractSettingsFromVEVENT(remote.data)
                 if (json) {
@@ -582,12 +583,21 @@ export function useCalDAV(): UseCalDAVReturn {
                       ? mergeSettings(localSettings, parsed.settings)
                       : localSettings
                     useSettingsStore.getState().updateSettings(merged)
+                    appliedRemote = true
                   }
                 }
                 setEtag(remote.etag)
               }
               setLastSyncedAt(new Date().toISOString())
-              showToast('Calino Settings found — sync enabled automatically.')
+              // Only claim "settings applied" when we actually pulled and
+              // applied a remote payload. The collection may exist on the
+              // server while being empty — that's a fresh-install case,
+              // and the user hasn't actually had anything synced yet.
+              if (appliedRemote) {
+                showToast('Calino Settings found — sync enabled automatically.')
+              } else {
+                showToast('Calino Settings calendar found — sync enabled.')
+              }
             }
           }
         } catch (err) {

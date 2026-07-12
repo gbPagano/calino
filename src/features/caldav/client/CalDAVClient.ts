@@ -2,7 +2,7 @@ import { createDAVClient } from 'tsdav'
 import type { CalDAVCredentials, CalDAVCalendar, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 import { decodeBase64 } from '@/lib/settingsSync'
-import { getInstanceId } from '@/lib/instanceId'
+
 import { DEFAULT_CALENDAR_COLOR } from '@/config'
 import { useSettingsStore } from '@/store/settingsStore'
 import { eventToICAL, foldICalLines } from '@/features/caldav/adapter/iCalendarAdapter'
@@ -643,13 +643,12 @@ export class CalDAVClient {
 
   // ── Settings sync helpers ───────────────────────────────────────────────
 
-  // Per-instance settings UID. Two Calino instances syncing to the same
-  // CalDAV server would otherwise collide on a hardcoded UID and
-  // overwrite each other's settings event. We derive from the per-
-  // browser-instance UUID persisted in localStorage at first launch
-  // (see lib/instanceId.ts) so the UID is stable for one Calino user
-  // but unique across users sharing a server.
-  private static readonly SETTINGS_EVENT_UID = `calino-settings-${getInstanceId()}`
+  // Stable UID for the single settings VEVENT stored in the dedicated
+  // "Calino Settings" calendar. Literal on purpose — the dedicated
+  // collection only ever contains this one event, and a single shared
+  // UID is what makes cross-device sync work (any device that opens the
+  // same CalDAV account can find and update this event).
+  private static readonly SETTINGS_EVENT_UID = 'calino-settings'
   private static readonly SETTINGS_CAL_NAME = 'calino-settings'
   private static readonly SETTINGS_CAL_DISPLAY = 'Calino Settings'
   private static readonly SETTINGS_DEAD_PROP = 'X-CALINO-SETTINGS-CALENDAR'

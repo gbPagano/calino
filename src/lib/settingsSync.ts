@@ -157,12 +157,12 @@ export function resolveConflict(
 // ─── CalDAV constants ─────────────────────────────────────────────────────────
 
 /**
- * UID prefix for the settings VEVENT. Each Calino instance derives its own
- * full UID by appending a per-browser UUID (see `lib/instanceId.ts`). All
- * UIDs starting with this prefix are Calino internal sync records and must
- * be filtered out of any parsed event list before they reach the UI.
+ * UID prefix used to identify Calino internal sync records so they can be
+ * filtered out of any parsed event list before they reach the UI. The
+ * current settings VEVENT uses the literal UID `calino-settings`; this
+ * prefix matches that and any future per-instance variant.
  */
-export const SETTINGS_EVENT_UID_PREFIX = 'calino-settings-'
+export const SETTINGS_EVENT_UID_PREFIX = 'calino-settings'
 
 /** Internal name of the dedicated settings calendar collection. */
 export const SETTINGS_CALENDAR_NAME = 'calino-settings'

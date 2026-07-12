@@ -895,18 +895,27 @@ END:VCALENDAR`
       expect(result[0]?.type).toBe('task')
     })
 
-    // R1.9 regression: parseICALData used to filter the settings event by
-    // exact UID match against a hardcoded literal. After R1.9 the UID is
-    // per-instance (`calino-settings-<uuid>`), so the filter MUST match by
-    // prefix — otherwise the settings event leaks into the event store
-    // as a "Jan 1, 1970" record.
-    it('filters settings events by prefix regardless of per-instance UID', () => {
-      const settingsUid = 'calino-settings-deadbeef-1234-5678-9abc-def012345678'
+    // R1.22 regression: parseICALData filters the settings VEVENT out of
+    // the user-visible event list. The settings event lives in its own
+    // dedicated calendar, but defensive filtering keeps it out of the
+    // UI even if a server puts it in the same collection as real events.
+    // The UID prefix is `calino-settings` (no trailing dash) — it must
+    // match the literal UID AND any legacy per-instance variant
+    // (`calino-settings-<uuid>` from R1.9).
+    it('filters settings events whose UID starts with the calino-settings prefix', () => {
+      const literalUid = 'calino-settings'
+      const legacyPerInstanceUid = 'calino-settings-deadbeef-1234-5678-9abc-def012345678'
       const iCalData = `BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
-UID:${settingsUid}
+UID:${literalUid}
 SUMMARY:Calino Settings
+DTSTART:19700101T000000Z
+DTEND:19700101T000001Z
+END:VEVENT
+BEGIN:VEVENT
+UID:${legacyPerInstanceUid}
+SUMMARY:Calino Settings (legacy)
 DTSTART:19700101T000000Z
 DTEND:19700101T000001Z
 END:VEVENT
@@ -920,7 +929,8 @@ END:VCALENDAR`
 
       const result = parseICALData(iCalData, 'cal-1')
 
-      // Only the real event survives — the settings event was filtered.
+      // Both Calino settings records (literal + legacy) are filtered out;
+      // only the real event survives.
       expect(result).toHaveLength(1)
       expect(result[0]?.id).toBe('real-event')
       expect(result[0]?.title).toBe('Real Event')

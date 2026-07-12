@@ -2,6 +2,12 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.22.2] - 2026-07-12
+
+### Fixed
+
+- **Settings sync now actually applies on a fresh device** — settings were being written under a per-instance UID (`calino-settings-<uuid>`), so a second device signing into the same CalDAV account could never find them. The auto-discovery branch silently fired a misleading "Settings sync enabled" toast while no settings were applied. The UID is now the literal `calino-settings` (safe because the event lives in its own dedicated calendar collection), and the success toast is gated on whether we actually pulled and applied a remote payload vs. just discovered an empty collection.
+
 ## [0.22.1] - 2026-07-12
 
 ### Added

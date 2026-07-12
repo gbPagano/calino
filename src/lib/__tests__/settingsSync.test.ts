@@ -188,7 +188,7 @@ describe('settingsSync', () => {
 
   describe('constants', () => {
     it('should have the settings UID prefix', () => {
-      expect(SETTINGS_EVENT_UID_PREFIX).toBe('calino-settings-')
+      expect(SETTINGS_EVENT_UID_PREFIX).toBe('calino-settings')
     })
     it('should have the calendar internal name', () => {
       expect(SETTINGS_CALENDAR_NAME).toBe('calino-settings')

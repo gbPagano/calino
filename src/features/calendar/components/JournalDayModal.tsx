@@ -308,20 +308,7 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, mode, onClose, entries, focusedEntryIndex, handleStartEdit])
 
-  // Click outside to close
-  useEffect(() => {
-    if (!isOpen) return
-    const handleClickOutside = (e: MouseEvent): void => {
-      const target = e.target as Node
-      const insidePanel = panelRef.current?.contains(target) ?? false
-      if (!insidePanel) {
-        onClose()
-      }
-    }
-    document.addEventListener('click', handleClickOutside, true)
-    return () => document.removeEventListener('click', handleClickOutside, true)
-  }, [isOpen, onClose])
-
+  // Close on Escape only (no click-outside — same as EventModal)
   useFocusTrap(panelRef, isOpen)
 
   if (!isOpen) return null

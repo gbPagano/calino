@@ -43,6 +43,8 @@ export function DataSettings(): JSX.Element {
   const brokenEvents = useCalendarStore((state) => state.brokenEvents)
   const duplicateUidIssues = useCalendarStore((state) => state.duplicateUidIssues)
   const clearDuplicateUidIssues = useCalendarStore((state) => state.clearDuplicateUidIssues)
+  const removeDuplicateUidResource = useCalendarStore((state) => state.removeDuplicateUidResource)
+  const [deletingHref, setDeletingHref] = useState<string | null>(null)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
   const caldav = useCalDAV()
   const { handleFix, handleDelete, handleFixAll, handleDeleteAll } =
@@ -175,6 +177,22 @@ export function DataSettings(): JSX.Element {
     setPendingIcsEventCount(0)
     setIcsImportError('')
     setTimeout(() => setImportStatus(null), 3000)
+  }
+
+  const handleDeleteDuplicateResource = async (
+    issue: { uid: string; calendarId: string },
+    href: string
+  ): Promise<void> => {
+    setDeletingHref(href)
+    try {
+      await caldav.deleteEventByHref(issue.calendarId, href)
+      removeDuplicateUidResource(issue.uid, issue.calendarId, href)
+      showToast('Duplicate event deleted')
+    } catch {
+      showToast('Failed to delete event. Please try again.')
+    } finally {
+      setDeletingHref(null)
+    }
   }
 
   const handleClearData = async (): Promise<void> => {
@@ -460,12 +478,27 @@ export function DataSettings(): JSX.Element {
                   <div className={styles.brokenInfo}>
                     <div className={styles.brokenTitle}>Duplicate UID: {issue.uid}</div>
                     {issue.resources.map((res) => (
-                      <div key={res.href} className={styles.brokenDates}>
+                      <div
+                        key={res.href}
+                        className={styles.brokenDates}
+                        data-component="duplicate-uid-resource"
+                        data-href={res.href}
+                      >
                         <span>{res.title || 'Untitled Event'}</span>
                         <span className={styles.brokenArrow}>·</span>
                         <span>{formatDate(res.start, timeFormat)}</span>
                         <span className={styles.brokenArrow}>·</span>
                         <span>{res.kept ? 'Kept' : 'Hidden'}</span>
+                        <button
+                          className={styles.duplicateResourceDeleteBtn}
+                          onClick={() => void handleDeleteDuplicateResource(issue, res.href)}
+                          disabled={deletingHref === res.href}
+                          data-component="action-button"
+                          data-action="delete-duplicate-uid-resource"
+                          type="button"
+                        >
+                          {deletingHref === res.href ? 'Deleting…' : 'Delete'}
+                        </button>
                       </div>
                     ))}
                   </div>

@@ -196,6 +196,7 @@ export interface CalendarActions {
   fixBrokenEvent: (eventId: string) => void
   addDuplicateUidIssue: (issue: DuplicateUidIssue) => void
   clearDuplicateUidIssues: () => void
+  removeDuplicateUidResource: (uid: string, calendarId: string, href: string) => void
   duplicateEvent: (id: string) => string | null
   /**
    * Bump the range-expansion version counter without mutating events.

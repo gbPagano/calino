@@ -48,4 +48,44 @@ describe('Duplicate UID issues store', () => {
     clearDuplicateUidIssues()
     expect(useCalendarStore.getState().duplicateUidIssues).toEqual([])
   })
+
+  it('removes a single resource, leaving the rest of the issue intact', () => {
+    const { addDuplicateUidIssue, removeDuplicateUidResource } = useCalendarStore.getState()
+    addDuplicateUidIssue(
+      makeIssue({
+        resources: [
+          { title: 'Event A', start: '2024-04-02T00:00:00Z', href: '/cal/a.ics', kept: true },
+          { title: 'Event B', start: '2024-09-15T00:00:00Z', href: '/cal/b.ics', kept: false },
+          { title: 'Event C', start: '2024-11-01T00:00:00Z', href: '/cal/c.ics', kept: false },
+        ],
+      })
+    )
+
+    removeDuplicateUidResource('shared', 'cal-1', '/cal/c.ics')
+
+    const issues = useCalendarStore.getState().duplicateUidIssues
+    expect(issues).toHaveLength(1)
+    expect(issues[0].resources.map((r) => r.href)).toEqual(['/cal/a.ics', '/cal/b.ics'])
+  })
+
+  it('drops the whole issue once fewer than two resources remain', () => {
+    const { addDuplicateUidIssue, removeDuplicateUidResource } = useCalendarStore.getState()
+    addDuplicateUidIssue(makeIssue())
+
+    removeDuplicateUidResource('shared', 'cal-1', '/cal/b.ics')
+
+    expect(useCalendarStore.getState().duplicateUidIssues).toEqual([])
+  })
+
+  it('leaves other calendars/uids untouched', () => {
+    const { addDuplicateUidIssue, removeDuplicateUidResource } = useCalendarStore.getState()
+    addDuplicateUidIssue(makeIssue({ calendarId: 'cal-1' }))
+    addDuplicateUidIssue(makeIssue({ calendarId: 'cal-2' }))
+
+    removeDuplicateUidResource('shared', 'cal-1', '/cal/b.ics')
+
+    const issues = useCalendarStore.getState().duplicateUidIssues
+    expect(issues).toHaveLength(1)
+    expect(issues[0].calendarId).toBe('cal-2')
+  })
 })

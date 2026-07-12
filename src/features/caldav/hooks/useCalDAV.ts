@@ -114,6 +114,7 @@ interface UseCalDAVReturn {
   createEvent: (calendarId: string, event: CalendarEvent) => Promise<void>
   updateEvent: (calendarId: string, event: CalendarEvent) => Promise<void>
   deleteEvent: (calendarId: string, eventId: string) => Promise<void>
+  deleteEventByHref: (calendarId: string, href: string) => Promise<void>
   retryAllFailedSyncs: () => Promise<{ succeeded: number; failed: number }>
   createCalendar: (accountId: string, options: CreateCalendarOptions) => Promise<CalDAVCalendar>
   updateCalendar: (calendarId: string, options: UpdateCalendarOptions) => Promise<void>
@@ -1409,6 +1410,34 @@ export function useCalDAV(): UseCalDAVReturn {
     [caldavDebugMode, storeDeleteEvent, storeAddEvent]
   )
 
+  // Delete a specific CalDAV resource by its raw href rather than by local
+  // event id. Needed for duplicate-UID "loser" resources (#22 follow-up):
+  // those never get a local CalendarEvent (they're skipped to avoid
+  // clobbering the kept event), so the usual eventId-based lookup/URL
+  // reconstruction in deleteEventFn doesn't apply — the href is all we have.
+  const deleteEventByHref = useCallback(
+    async (calendarId: string, href: string): Promise<void> => {
+      const allCalendars = storage.getAllCalendars()
+      const allAccounts = storage.getAllAccounts()
+      const calendar = allCalendars.find((c) => c.id === calendarId)
+      const account = allAccounts.find((a) => a.id === calendar?.accountId)
+
+      if (!calendar || !account) {
+        throw new Error('No CalDAV account found for this calendar')
+      }
+
+      const credential = await getCredentialById(account.credentialId)
+      if (!credential) {
+        throw new Error('Credentials not found')
+      }
+
+      const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
+      const engine = new SyncEngine(client, calendarId)
+      await engine.deleteEvent(href, '')
+    },
+    []
+  )
+
   // Retry all events in the store that have syncStatus='failed'
   const retryAllFailedSyncs = useCallback(async (): Promise<{ succeeded: number; failed: number }> => {
     if (caldavDebugMode) {
@@ -1608,6 +1637,7 @@ export function useCalDAV(): UseCalDAVReturn {
     createEvent,
     updateEvent: updateEventFn,
     deleteEvent: deleteEventFn,
+    deleteEventByHref,
     retryAllFailedSyncs,
     createCalendar: createCalDAVCalendar,
     updateCalendar: updateCalDAVCalendar,

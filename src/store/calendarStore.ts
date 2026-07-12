@@ -289,6 +289,18 @@ export const useCalendarStore = create<CalendarStore>()(
         set({ duplicateUidIssues: [] })
       },
 
+      removeDuplicateUidResource: (uid: string, calendarId: string, href: string): void => {
+        set((state) => ({
+          duplicateUidIssues: state.duplicateUidIssues.flatMap((issue) => {
+            if (issue.uid !== uid || issue.calendarId !== calendarId) return [issue]
+            const resources = issue.resources.filter((r) => r.href !== href)
+            // Fewer than two resources left means the collision is resolved.
+            if (resources.length < 2) return []
+            return [{ ...issue, resources }]
+          }),
+        }))
+      },
+
       /**
        * Bump the range-expansion version counter without mutating events.
        *

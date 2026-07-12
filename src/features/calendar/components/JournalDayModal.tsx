@@ -312,12 +312,14 @@ export function JournalDayModal({ isOpen, date, startInCompose = false, onClose 
   useEffect(() => {
     if (!isOpen) return
     const handleClickOutside = (e: MouseEvent): void => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      const insidePanel = panelRef.current?.contains(target) ?? false
+      if (!insidePanel) {
         onClose()
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('click', handleClickOutside, true)
+    return () => document.removeEventListener('click', handleClickOutside, true)
   }, [isOpen, onClose])
 
   useFocusTrap(panelRef, isOpen)

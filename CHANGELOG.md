@@ -4,9 +4,16 @@ All notable changes to Calino will be documented in this file.
 
 ## [0.22.2] - 2026-07-12
 
+### Added
+
+- **Ctrl/Cmd+drag to duplicate an event** — hold Ctrl (or Cmd on Mac) while dragging an event and it copies instead of moves: the original stays put, the card you're dragging shows a duplicate badge, and dropping it creates the copy at the new time/day. Works in Week, Day, and Month view, including all-day and multi-day events.
+- **Ctrl/Cmd+click to duplicate an event** — a one-click shortcut for the existing right-click → Duplicate action.
+
 ### Fixed
 
 - **Settings sync now actually applies on a fresh device** — settings were being written under a per-instance UID (`calino-settings-<uuid>`), so a second device signing into the same CalDAV account could never find them. The auto-discovery branch silently fired a misleading "Settings sync enabled" toast while no settings were applied. The UID is now the literal `calino-settings` (safe because the event lives in its own dedicated calendar collection), and the success toast is gated on whether we actually pulled and applied a remote payload vs. just discovered an empty collection.
+- **Privacy Policy page is scrollable on mobile** — the page had no internal scroll container, so on narrow/short viewports the lower sections were clipped with no way to reach them.
+- **Privacy policy accuracy corrections** — the CalDAV credential storage bullet now describes it accurately as obfuscation (a key shipped in the app) rather than encryption, and the CORS proxy section now discloses that the full request URL is visible to the proxy — not just the server hostname — since some CalDAV servers embed your username in the path.
 
 ## [0.22.1] - 2026-07-12
 

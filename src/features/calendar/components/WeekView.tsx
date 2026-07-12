@@ -594,7 +594,7 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
         isAllDay: true,
       }
       if (shouldDuplicate) {
-        const newId = duplicateEvent(originalEvent.id)
+        const newId = duplicateEvent(originalEvent.id, false)
         if (!newId) return
         storeUpdateEvent(newId, allDayUpdates)
         return
@@ -652,7 +652,7 @@ export function WeekView({ dayCount = 7 }: { dayCount?: number } = {}): JSX.Elem
     }
 
     if (shouldDuplicate) {
-      const newId = duplicateEvent(originalEvent.id)
+      const newId = duplicateEvent(originalEvent.id, false)
       if (!newId) return
       storeUpdateEvent(newId, updates)
       return

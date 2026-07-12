@@ -344,7 +344,7 @@ export const useCalendarStore = create<CalendarStore>()(
         get().addEvent(fixedEvent)
       },
 
-      duplicateEvent: (id: string): string | null => {
+      duplicateEvent: (id: string, addCopySuffix = true): string | null => {
         const state = get()
         const eventToDuplicate = state.events.find((e) => e.id === id)
         if (!eventToDuplicate) return null
@@ -352,7 +352,7 @@ export const useCalendarStore = create<CalendarStore>()(
         const newEvent: CalendarEvent = {
           ...eventToDuplicate,
           id: crypto.randomUUID(),
-          title: `${eventToDuplicate.title} (copy)`,
+          title: addCopySuffix ? `${eventToDuplicate.title} (copy)` : eventToDuplicate.title,
           recurrenceId: undefined,
           isFragment: undefined,
           isFirstFragment: undefined,

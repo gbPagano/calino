@@ -197,7 +197,7 @@ export interface CalendarActions {
   addDuplicateUidIssue: (issue: DuplicateUidIssue) => void
   clearDuplicateUidIssues: () => void
   removeDuplicateUidResource: (uid: string, calendarId: string, href: string) => void
-  duplicateEvent: (id: string) => string | null
+  duplicateEvent: (id: string, addCopySuffix?: boolean) => string | null
   /**
    * Bump the range-expansion version counter without mutating events.
    * Required after any `setState` call that mutates events/calendars/

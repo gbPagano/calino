@@ -370,7 +370,7 @@ export function CalendarGrid(): JSX.Element {
     }
 
     if (shouldDuplicate) {
-      const newId = duplicateEvent(originalEvent.id)
+      const newId = duplicateEvent(originalEvent.id, false)
       if (!newId) return
       storeUpdateEvent(newId, updates)
       return

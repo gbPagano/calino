@@ -329,8 +329,17 @@ export function useCommandPalette({ toggleSidebar, sidebarOpen }: UseCommandPale
     }
 
     // Search/command: union of all commands + matched events + matched calendars.
-    // cmdk does the fuzzy filtering.
-    const commandItems = commands.map(commandToItem)
+    // We do our own filtering since cmdk's fuzzy filter is too aggressive.
+    const lowerQuery = query.toLowerCase()
+    const commandItems = commands
+      .filter((cmd) => {
+        const labelMatch = cmd.label.toLowerCase().includes(lowerQuery)
+        const keywordMatch = cmd.keywords.some((kw) => kw.toLowerCase().includes(lowerQuery))
+        const descText = typeof cmd.description === 'function' ? cmd.description() : cmd.description
+        const descMatch = descText?.toLowerCase().includes(lowerQuery)
+        return labelMatch || keywordMatch || descMatch
+      })
+      .map(commandToItem)
     const eventItems = searchEvents(query).map((event) => eventToItem(event, openModal))
     const calendarItems = searchCalendars(query).map((cal) => calendarToItem(cal, navigate))
 

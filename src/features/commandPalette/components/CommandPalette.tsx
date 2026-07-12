@@ -270,7 +270,7 @@ export function CommandPalette({
       }}
     >
       <div className={styles.modal} onKeyDown={handleKeyDown}>
-        <Command label="Command palette" shouldFilter loop className={styles.command}>
+        <Command label="Command palette" shouldFilter={false} loop className={styles.command}>
           <div className={styles.inputWrapper}>
             <svg
               className={styles.inputIcon}

@@ -370,7 +370,7 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
     label: deps.journalEnabled ? 'Disable Journal' : 'Enable Journal',
     description: 'Attach freeform notes to days in your calendar',
     category: 'settings',
-    keywords: ['journal', 'notes', 'diary', 'toggle', 'enable', 'disable'],
+    keywords: ['journal', 'notes', 'diary', 'enable', 'disable'],
     icon: ICONS.calendar,
     action: () => {
       const newValue = !deps.journalEnabled
@@ -383,7 +383,7 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
     label: deps.contactsEnabled ? 'Disable Contacts' : 'Enable Contacts',
     description: 'Show and manage contacts in your calendar',
     category: 'settings',
-    keywords: ['contacts', 'people', 'address book', 'toggle', 'enable', 'disable'],
+    keywords: ['contacts', 'people', 'address book', 'enable', 'disable'],
     icon: ICONS.calendar,
     action: () => {
       const newValue = !deps.contactsEnabled

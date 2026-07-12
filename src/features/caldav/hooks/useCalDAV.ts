@@ -709,12 +709,22 @@ export function useCalDAV(): UseCalDAVReturn {
         // Re-discover collections on every sync. This migrates capabilities
         // saved by older versions and picks up calendars created elsewhere.
         try {
-          const serverCalendars = await client.fetchCalendars()
-          const storedByUrl = new Map(accountCalendars.map((calendar) => [calendar.url, calendar]))
-          const discoveredCalendars = [...accountCalendars]
-          const caldavDebugMode = useSettingsStore.getState().caldavDebugMode
+           const serverCalendars = await client.fetchCalendars()
+           const storedByUrl = new Map(accountCalendars.map((calendar) => [calendar.url, calendar]))
+           const serverUrls = new Set(serverCalendars.map((calendar) => calendar.url))
+           const discoveredCalendars = accountCalendars.filter((calendar) => serverUrls.has(calendar.url))
+           const caldavDebugMode = useSettingsStore.getState().caldavDebugMode
 
-          for (const serverCalendar of serverCalendars) {
+           // A collection deleted by another CalDAV client must not remain in
+           // the sidebar or be fetched during this sync.
+           for (const storedCalendar of accountCalendars) {
+             if (!serverUrls.has(storedCalendar.url)) {
+               storage.deleteCalendar(storedCalendar.id)
+               storeDeleteCalendar(storedCalendar.id)
+             }
+           }
+
+           for (const serverCalendar of serverCalendars) {
             const storedCalendar = storedByUrl.get(serverCalendar.url)
             if (storedCalendar) {
               // Collection metadata is server-authoritative. Keep UI-owned

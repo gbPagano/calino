@@ -1329,6 +1329,60 @@ describe('useCalDAV', () => {
     })
   })
 
+  describe('remote calendar deletions', () => {
+    it('removes a calendar deleted by another CalDAV client before fetching events', async () => {
+      const deletedCalendar = {
+        ...mockCalendar,
+        id: 'cal-deleted',
+        url: 'https://caldav.example.com/cal/deleted/',
+        name: 'Deleted elsewhere',
+      }
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAccountById.mockReturnValue(mockAccount)
+      mockAccountStorage.getCalendarsByAccountId.mockReturnValue([mockCalendar, deletedCalendar])
+      const fetchEvents = vi.fn().mockResolvedValue([])
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
+        fetchEvents,
+      } as any)
+      act(() => {
+        useCalendarStore.getState().addCalendar({
+          id: deletedCalendar.id,
+          name: deletedCalendar.name,
+          color: deletedCalendar.color,
+          isVisible: true,
+          isDefault: false,
+          showTasksInViews: true,
+        })
+        useCalendarStore.getState().addEvent({
+          id: 'event-in-deleted-calendar',
+          calendarId: deletedCalendar.id,
+          title: 'Removed with calendar',
+          start: '2025-06-01T10:00:00',
+          end: '2025-06-01T11:00:00',
+          isAllDay: false,
+        })
+      })
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts).toHaveLength(1))
+      await act(async () => {
+        await result.current.syncAccount(mockAccount.id)
+      })
+
+      expect(mockAccountStorage.deleteCalendar).toHaveBeenCalledWith(deletedCalendar.id)
+      expect(fetchEvents).toHaveBeenCalledWith(mockCalendar.url, expect.any(String), expect.any(String), true)
+      expect(fetchEvents).not.toHaveBeenCalledWith(
+        deletedCalendar.url,
+        expect.any(String),
+        expect.any(String),
+        true
+      )
+      expect(useCalendarStore.getState().calendars.find((c) => c.id === deletedCalendar.id)).toBeUndefined()
+      expect(useCalendarStore.getState().events.find((e) => e.calendarId === deletedCalendar.id)).toBeUndefined()
+    })
+  })
+
   // -----------------------------------------------------------------------
   // Remote deletions
   // -----------------------------------------------------------------------
@@ -1381,7 +1435,7 @@ describe('useCalDAV', () => {
       // Configure fetchEvents to return event data so parseICALData gets called
       mockCalDAVClient.createCalDAVClient.mockResolvedValue({
         fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
 
       const { result } = renderHook(() => useCalDAV())
@@ -1416,7 +1470,7 @@ describe('useCalDAV', () => {
       ])
       mockCalDAVClient.createCalDAVClient.mockResolvedValue({
         fetchEvents: vi.fn().mockResolvedValue([]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
 
       const { result } = renderHook(() => useCalDAV())
@@ -1447,7 +1501,7 @@ describe('useCalDAV', () => {
       ])
       mockCalDAVClient.createCalDAVClient.mockResolvedValue({
         fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data' }]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
 
       const { result } = renderHook(() => useCalDAV())
@@ -1475,7 +1529,7 @@ describe('useCalDAV', () => {
 
       mockCalDAVClient.createCalDAVClient.mockResolvedValue({
         fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
 
       const { result } = renderHook(() => useCalDAV())
@@ -1535,7 +1589,7 @@ describe('useCalDAV', () => {
           { url: 'https://caldav.example.com/cal/main/event-a.ics', data: 'DATA_A', etag: 'e1' },
           { url: 'https://caldav.example.com/cal/main/event-b.ics', data: 'DATA_B', etag: 'e2' },
         ]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
     }
 
@@ -1633,7 +1687,7 @@ describe('useCalDAV', () => {
 
       mockCalDAVClient.createCalDAVClient.mockResolvedValue({
         fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
 
       const { result } = renderHook(() => useCalDAV())
@@ -1679,7 +1733,7 @@ describe('useCalDAV', () => {
 
       mockCalDAVClient.createCalDAVClient.mockResolvedValue({
         fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
 
       const { result } = renderHook(() => useCalDAV())
@@ -1724,7 +1778,7 @@ describe('useCalDAV', () => {
 
       mockCalDAVClient.createCalDAVClient.mockResolvedValue({
         fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
 
       const { result } = renderHook(() => useCalDAV())
@@ -1758,7 +1812,7 @@ describe('useCalDAV', () => {
 
       mockCalDAVClient.createCalDAVClient.mockResolvedValue({
         fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
 
       const { result } = renderHook(() => useCalDAV())
@@ -1801,7 +1855,7 @@ describe('useCalDAV', () => {
 
       mockCalDAVClient.createCalDAVClient.mockResolvedValue({
         fetchEvents: vi.fn().mockResolvedValue([{ url: 'https://...', data: 'ical-data', etag: 'etag1' }]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
 
       const { result } = renderHook(() => useCalDAV())
@@ -2094,7 +2148,7 @@ describe('useCalDAV', () => {
         fetchEvents: vi.fn().mockResolvedValue([
           { url: 'https://...', data: 'ical-data', etag: 'etag1' },
         ]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
 
       const { result } = renderHook(() => useCalDAV())
@@ -2208,7 +2262,7 @@ describe('useCalDAV', () => {
         fetchEvents: vi.fn().mockResolvedValue([
           { url: 'https://...', data: 'ical-data', etag: 'etag1' },
         ]),
-        fetchCalendars: vi.fn().mockResolvedValue([]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
       } as any)
 
       const { result } = renderHook(() => useCalDAV())

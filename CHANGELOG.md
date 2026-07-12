@@ -2,6 +2,35 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.22.0] - 2026-07-12
+
+Subscribe to any `.ics`/`webcal://` feed as a read-only calendar, plus task-hierarchy and CalDAV compatibility improvements from our first outside contributor, a smoother agenda sidebar, and a round of journal, command palette, and sidebar fixes.
+
+### Added
+
+- **Webcal / .ics calendar subscriptions** — add a read-only calendar from any `webcal://` or `https://…ics` URL (holiday calendars, sports schedules, a shared Google/Outlook feed's public link). Calino fetches and parses it on a schedule you choose (15 min to 24 hr) and keeps it in sync; events from a subscription can't be edited, moved, or deleted in Calino since they belong to the source feed. Subscribe from the sidebar's **+** menu or from Settings → Sync, where existing subscriptions can be renamed, resynced on demand, or removed. Closes an item that's been on the roadmap since 0.20.0.
+- **Self-hosted webcal subscriptions in `calino.config.json`** — self-hosters can now preconfigure `.ics` subscriptions the same way as CalDAV accounts: encrypt the URL with a master password (via the `/setup` wizard or `scripts/encrypt-password.mjs --webcal-url`) and it auto-subscribes for every user who unlocks with that password. See `docs/SELF_HOSTED_CONFIG.md`.
+- **Tasks without a due date can be created from the UI** — Calino already rendered undated tasks in their own "No due date" section, but the task composer always required a date, so there was no way to create one. ([#32](https://github.com/Ivan-Malinovski/calino/pull/32), thanks [@gbPagano](https://github.com/gbPagano)!)
+- **Drag a task onto another to nest it as a subtask** — dropping a task anywhere that isn't over another task row promotes it back to the top level, with a subtle inset-ring hint while dragging. Parent rows with hidden children show a subtask-count badge, and completing a parent completes its descendants too.
+
+### Changed
+
+- **CalDAV calendars only show where they're usable** — the calendar picker in the event modal now only lists calendars that support events when creating an event, and only ones that support tasks when creating a task; the Tasks view hides tasks from calendars that don't have tasks enabled. Calino also rediscovers calendars (and their capabilities) on every sync and after a reload, so a calendar added on the server shows up without reconnecting the account. ([#30](https://github.com/Ivan-Malinovski/calino/pull/30), thanks [@gbPagano](https://github.com/gbPagano)!)
+- **Journal entries are easier to edit** — a pencil icon now appears on hover/focus to enter edit mode (previously required a double-click or keyboard shortcut), and clicking anywhere on the entry row works too.
+- **Command palette** — added a "Toggle Contacts" command and direct navigation to the Tasks view; search now uses plain substring matching on label/keywords/description instead of `cmdk`'s fuzzy filter, which was matching unrelated commands.
+- **Sidebar task count includes all future tasks**, not just the next 7 days.
+
+### Fixed
+
+- **Time format preference applies in event and task forms**, undated tasks no longer show up in date-based schedule views, and a `PRIORITY:0` from a CalDAV server is now correctly treated as "no priority" rather than "highest priority". ([#33](https://github.com/Ivan-Malinovski/calino/pull/33), thanks [@gbPagano](https://github.com/gbPagano)!)
+- **Journal's click-outside-to-close** no longer fights with React's render timing (removed in favor of Escape/Close, matching the event modal's behavior).
+- **Compact all-day event pills with a location** no longer show a stray "·" separator where the (hidden) time and location used to be.
+- Native selects, dropdowns, dates, and times now follow the dark theme consistently, and the category filter no longer requires a hover to open (it's click-to-expand, keyboard- and touch-friendly).
+
+### Contributors
+
+Thanks to [@gbPagano](https://github.com/gbPagano) (Guilherme Pagano) for their first contributions to Calino — three PRs covering CalDAV calendar/task capability handling, subtask support, due-date-optional task creation, and several sync-compatibility fixes. 🎉
+
 ## [0.21.0] - 2026-07-09
 
 Tasks now appear on the Week and Day timelines, dragging events is precise to the quarter hour, and a round of fixes for issues you reported.
@@ -102,7 +131,6 @@ For the curious — the interesting bits under the hood.
 ### Deferred (roadmap)
 
 - Recurrence preview before saving changes
-- External ICS feed subscription
 - Periodic remote pull / background sync
 - Install-prompt UX (beforeinstallprompt)
 - Conflict-resolution UI for "ask" sync mode

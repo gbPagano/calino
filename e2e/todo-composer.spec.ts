@@ -83,6 +83,50 @@ test.describe('TodoView composer forwards title into modal', () => {
     await expect(page.locator('[data-component="modal-card"]')).not.toBeVisible()
   })
 
+  test('clicking the composer checkmark submits the text into the modal', async ({
+    page,
+  }) => {
+    // The composer now has two ways to submit: Enter (existing) and a click on
+    // the round checkmark to the right of the input. Both paths must land on
+    // the same modal-with-pre-filled-title behavior.
+    await page.goto('/tasks')
+
+    await page.locator('[data-component="add-task-button"]').click()
+    const composer = page.getByPlaceholder('What needs doing?')
+    await expect(composer).toBeVisible()
+    await composer.fill('Walk the dog')
+
+    // Round submit button next to the input. data-component is stable; role
+    // defaults to "button" and aria-label is "Add task".
+    const submitBtn = page.locator('[data-component="composer-submit"]')
+    await expect(submitBtn).toBeVisible()
+    await submitBtn.click()
+
+    const modal = page.locator('[data-component="modal-card"]')
+    await expect(modal).toBeVisible()
+    await expect(page.locator('[data-component="event-title-input"]')).toHaveValue(
+      'Walk the dog'
+    )
+  })
+
+  test('clicking the composer checkmark with empty input does not open the modal', async ({
+    page,
+  }) => {
+    // Symmetric to the existing "Enter with empty input" test — the button
+    // submits only when there's text, matching the Enter behavior.
+    await page.goto('/tasks')
+    await page.locator('[data-component="add-task-button"]').click()
+
+    const composer = page.getByPlaceholder('What needs doing?')
+    await expect(composer).toBeVisible()
+    // Don't fill anything — just click submit.
+    await page.locator('[data-component="composer-submit"]').click()
+
+    await expect(page.locator('[data-component="modal-card"]')).not.toBeVisible()
+    // The composer stays open so the user can keep typing.
+    await expect(composer).toBeVisible()
+  })
+
   test('hides tasks when their calendar is disabled', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem(

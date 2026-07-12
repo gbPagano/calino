@@ -172,4 +172,39 @@ describe('TodoView', () => {
     expect(screen.getByText('Child task').closest('[data-component="task-row"]')).toHaveAttribute('data-task-depth', '1')
     expect(screen.getByText('Grandchild task').closest('[data-component="task-row"]')).toHaveAttribute('data-task-depth', '2')
   })
+
+  it('renders the checkbox as the row\'s first interactive cell', () => {
+    // Regression test for the row structure: the completion checkbox must
+    // be the first child of every task row, before the title, so layout
+    // regressions (e.g. accidentally swapping column order) are caught
+    // before they ship. jsdom doesn't fully realize the CSS-modules grid,
+    // so this stays at the structure level — pixel alignment is asserted
+    // by the Playwright spec in e2e/todo-row-alignment.spec.ts.
+    const store = useCalendarStore.getState()
+    store.addEvent({
+      id: 'grid',
+      calendarId: 'default',
+      title: 'Grid check',
+      start: '2024-03-15T10:00:00.000Z',
+      end: '2024-03-15T11:00:00.000Z',
+      isAllDay: false,
+      type: 'task',
+    })
+
+    renderWithRouter(<TodoView />)
+
+    const row = document.querySelector('[data-component="task-row"]')!
+    // The checkbox is the *only* direct button-like descendant of the row
+    // that triggers task completion, so it's the first action element. Both
+    // the title and the date chip sit in their own cells and the layout is
+    // grid: [22px (checkbox) | 1fr (title) | auto (meta)].
+    const checkbox = row.querySelector('button[aria-label="Mark as complete"]')!
+    const title = row.querySelector('[class*="taskTitle"]')!
+    expect(checkbox).not.toBeNull()
+    expect(title).not.toBeNull()
+    // Both elements live in the same row — they're definitely siblings in
+    // the grid. Document order: checkbox first.
+    const positions = checkbox.compareDocumentPosition(title)
+    expect(positions & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
 })

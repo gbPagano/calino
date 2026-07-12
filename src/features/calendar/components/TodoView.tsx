@@ -2,6 +2,19 @@ import type { JSX } from 'react'
 import { useMemo, useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  pointerWithin,
+  type CollisionDetection,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
+import {
   format,
   parseISO,
   startOfDay,
@@ -30,6 +43,12 @@ const PRIORITY_LABELS: Record<number, string> = {
   2: 'Medium',
   3: 'Low',
 }
+
+// Synthetic droppable id for the empty surface below the task list.
+// Dropping a task on it clears parentTaskId and turns the task back into a
+// top-level (root) task. Kept as a constant so the drop handler and the
+// droppable registration agree on the same id.
+export const ROOT_DROPPABLE_ID = '__todoRoot__'
 
 function getPriorityClass(priority?: number): string {
   if (priority === 1) return styles.priorityHigh
@@ -90,6 +109,7 @@ export function TodoView(): JSX.Element {
   const calendars = useCalendarStore((state) => state.calendars)
   const completeTask = useCalendarStore((state) => state.completeTask)
   const openModal = useCalendarStore((state) => state.openModal)
+  const updateEvent = useCalendarStore((state) => state.updateEvent)
   const { updateEvent: updateCalDAVEvent } = useCalDAV()
   const isMobile = useIsMobile()
 
@@ -100,6 +120,11 @@ export function TodoView(): JSX.Element {
   const [unstriking, setUnstriking] = useState<Set<string>>(new Set())
   const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set())
   const [fadingOut, setFadingOut] = useState<Set<string>>(new Set())
+  // Set of task ids that a reparent should be skipped for. The drag handlers
+  // flip this on briefly (one tick) for the source task itself when it's
+  // being dragged, so the keyboard/mouse focus ring on its row doesn't fight
+  // the DragOverlay visual.
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
   const composerRef = useRef<HTMLInputElement>(null)
   const segmentedRef = useRef<HTMLDivElement>(null)
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
@@ -107,6 +132,24 @@ export function TodoView(): JSX.Element {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const projectMenuRef = useRef<HTMLDivElement>(null)
   const [scrollReady, setScrollReady] = useState(false)
+
+  // Pointer sensor with the same 8px activation distance as CalendarGrid /
+  // DayView so a stray click never starts a drag accidentally. We rely on the
+  // body's pointer events (not a Keyboard sensor) because all our callers
+  // operate via mouse / touch.
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    })
+  )
+
+  // Prefer the pointer location over the rect intersection for our row
+  // geometry — two task rows stacked vertically share a full width, and the
+  // pointer is closer to the intended drop target than the rect centroid.
+  const collisionDetection: CollisionDetection = useCallback(
+    (args) => pointerWithin(args),
+    []
+  )
 
   useEffect(() => {
     if (composing && composerRef.current) {
@@ -305,15 +348,119 @@ export function TodoView(): JSX.Element {
     if (filter === 'completed') setFilter('active')
   }
 
+  // Shared by the Enter keydown handler and the new checkmark submit button.
+  // Only opens the task modal when there's typed text — same gating as before.
+  const submitComposer = (): void => {
+    const value = composerRef.current?.value.trim()
+    if (!value) return
+    openModal(format(new Date(), 'yyyy-MM-dd'), undefined, undefined, 'task', value, undefined, projectFilter || undefined)
+    if (composerRef.current) composerRef.current.value = ''
+    setComposing(false)
+  }
+
   const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key === 'Enter' && composerRef.current?.value.trim()) {
-      // Forward the composer's text into the modal so the user doesn't have
-      // to retype the title they just typed.
-      openModal(format(new Date(), 'yyyy-MM-dd'), undefined, undefined, 'task', composerRef.current.value.trim(), undefined, projectFilter || undefined)
-      composerRef.current.value = ''
-      setComposing(false)
+    if (e.key === 'Enter') {
+      submitComposer()
     } else if (e.key === 'Escape') {
       setComposing(false)
+    }
+  }
+
+  const handleComposerSubmitClick = (e: React.MouseEvent<HTMLButtonElement>): void => {
+    // Keep focus on the input — clicking the checkmark must not steal focus
+    // (otherwise the composer's `onBlur` handler would tear the row down
+    // before the modal opens).
+    e.preventDefault()
+    submitComposer()
+  }
+
+  // ─── Drag-and-drop ──────────────────────────────────────────────────────
+  // Drag a task onto another task to make it a child. Drop on the empty
+  // "root" surface at the bottom of the list to clear parentTaskId (turns
+  // a subtask back into a top-level task). Drops onto self or any descendant
+  // are silently rejected to prevent cycles in the task tree.
+
+  // Precomputed set of every descendant id for `rootId`. Walks the children
+  // map once and returns true if `descendantId` appears anywhere below
+  // `rootId` — used to forbid dropping a parent onto one of its own
+  // grandchildren.
+  const buildDescendantSet = useCallback(
+    (rootId: string, childMap: Map<string, TaskWithColor[]>): Set<string> => {
+      const result = new Set<string>()
+      const stack = [rootId]
+      while (stack.length > 0) {
+        const id = stack.pop()!
+        for (const child of childMap.get(id) ?? []) {
+          if (result.has(child.id)) continue
+          result.add(child.id)
+          stack.push(child.id)
+        }
+      }
+      return result
+    },
+    []
+  )
+
+  const handleTaskDragStart = (event: DragStartEvent): void => {
+    setActiveTaskId(String(event.active.id))
+  }
+
+  const handleTaskDragEnd = async (event: DragEndEvent): Promise<void> => {
+    const { active, over } = event
+    setActiveTaskId(null)
+    if (!over) return
+
+    const draggedId = String(active.id)
+    const targetId = String(over.id)
+
+    // ROOT_DROPPABLE_ID is the synthetic drop zone at the bottom of the
+    // list — "drop on empty space to become a top-level task".
+    if (targetId !== ROOT_DROPPABLE_ID) {
+      const draggedTask = tasks.find((task) => task.id === draggedId)
+      if (!draggedTask || draggedTask.type !== 'task') return
+
+      // No-op drops (self / no-change) — cheap to short-circuit before any
+      // history / CalDAV traffic.
+      if (draggedId === targetId) return
+      if (draggedTask.parentTaskId === targetId) return
+
+      // Build the children map for the *currently filtered* subtree. This
+      // matches the listing, but we have to walk the broader event list to
+      // find children whose immediate parent was filtered out (the tree can
+      // span across filters via the project dropdown). For correctness we
+      // use the global tasks array — cycle detection must see the full
+      // graph, not just what's on screen.
+      const globalChildMap = new Map<string, TaskWithColor[]>()
+      for (const task of tasks) {
+        if (!task.parentTaskId) continue
+        const siblings = globalChildMap.get(task.parentTaskId) ?? []
+        siblings.push(task)
+        globalChildMap.set(task.parentTaskId, siblings)
+      }
+      const descendants = buildDescendantSet(draggedId, globalChildMap)
+      if (descendants.has(targetId)) return
+
+      updateEvent(draggedId, { parentTaskId: targetId })
+      const updated = { ...draggedTask, parentTaskId: targetId }
+      try {
+        await updateCalDAVEvent(updated.calendarId, updated)
+      } catch {
+        // Surface through toast if CalDAV surface ever gets one; for now,
+        // the store update already applied locally and will reconcile on
+        // the next sync.
+      }
+      return
+    }
+
+    // Dropped onto empty space — promote to root by clearing parentTaskId.
+    const draggedTask = tasks.find((task) => task.id === draggedId)
+    if (!draggedTask || !draggedTask.parentTaskId) return
+    updateEvent(draggedId, { parentTaskId: undefined })
+    const updated = { ...draggedTask, parentTaskId: undefined }
+    try {
+      await updateCalDAVEvent(updated.calendarId, updated)
+    } catch {
+      // See note above.
     }
   }
 
@@ -382,6 +529,7 @@ export function TodoView(): JSX.Element {
     (item: Extract<VirtualItem, { type: 'task' }>, transform?: string) => {
       const task = item.task
       const dueInfo = getDueLabel(task)
+      const isActive = activeTaskId === task.id
       return (
         <div
           key={item.key}
@@ -394,45 +542,73 @@ export function TodoView(): JSX.Element {
             transform,
           }}
         >
-          <div
-            className={`${styles.taskRow} ${item.depth > 0 ? styles.taskSubtask : ''} ${task.completed ? styles.taskDone : ''} ${unstriking.has(task.id) ? styles.unstriking : ''} ${fadingOut.has(task.id) ? styles.fadingOut : ''}`}
-            style={{ '--event-color': task.calendarColor, marginLeft: item.depth * 28 } as React.CSSProperties}
-            data-component="task-row"
-            data-task-depth={item.depth}
-          >
-            <button
-              className={styles.taskCheck}
-              onClick={(e) => {
-                e.stopPropagation()
-                handleToggleComplete(task)
-              }}
-              aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
-            >
-              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 7.5l2.5 2.5L11 4" />
-              </svg>
-            </button>
-            <div className={styles.taskBody} onClick={() => handleTaskClick(task)}>
-              <div className={styles.taskTitle}>{task.title}</div>
-              {task.description && (
-                <div className={styles.taskNote}>{task.description}</div>
-              )}
-            </div>
-            <div className={styles.taskMeta}>
-              {task.priority && task.priority <= 3 && (
-                <span className={`${styles.priority} ${getPriorityClass(task.priority)}`}>
-                  {PRIORITY_LABELS[task.priority]}
-                </span>
-              )}
-              <span className={`${styles.dueLabel} ${dueInfo.className}`}>
-                {dueInfo.text}
-              </span>
-            </div>
-          </div>
+          <DraggableTaskRow taskId={task.id} isActive={isActive}>
+            {({ dragAttributes, dragListeners, dragStyle, setDropRef, isOver }) => {
+              const rowClass = [
+                styles.taskRow,
+                item.depth > 0 ? styles.taskSubtask : '',
+                task.completed ? styles.taskDone : '',
+                unstriking.has(task.id) ? styles.unstriking : '',
+                fadingOut.has(task.id) ? styles.fadingOut : '',
+                isOver ? styles.taskRowDropTarget : '',
+              ]
+                .filter(Boolean)
+                .join(' ')
+              return (
+                <div
+                  ref={setDropRef}
+                  className={rowClass}
+                  style={{
+                    ...dragStyle,
+                    '--event-color': task.calendarColor,
+                    marginLeft: item.depth * 28,
+                  } as React.CSSProperties}
+                  data-component="task-row"
+                  data-task-depth={item.depth}
+                  data-task-id={task.id}
+                  {...dragAttributes}
+                  {...(dragListeners ?? {})}
+                >
+                  <button
+                    className={styles.taskCheck}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleToggleComplete(task)
+                    }}
+                    // Stop the drag listeners on the parent from receiving
+                    // this click — without `stopPropagation` the click would
+                    // double-fire as a drag start.
+                    onPointerDown={(e) => e.stopPropagation()}
+                    aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
+                  >
+                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 7.5l2.5 2.5L11 4" />
+                    </svg>
+                  </button>
+                  <div className={styles.taskBody} onClick={() => handleTaskClick(task)}>
+                    <div className={styles.taskTitle}>{task.title}</div>
+                    {task.description && (
+                      <div className={styles.taskNote}>{task.description}</div>
+                    )}
+                  </div>
+                  <div className={styles.taskMeta}>
+                    {task.priority && task.priority <= 3 && (
+                      <span className={`${styles.priority} ${getPriorityClass(task.priority)}`}>
+                        {PRIORITY_LABELS[task.priority]}
+                      </span>
+                    )}
+                    <span className={`${styles.dueLabel} ${dueInfo.className}`}>
+                      {dueInfo.text}
+                    </span>
+                  </div>
+                </div>
+              )
+            }}
+          </DraggableTaskRow>
         </div>
       )
     },
-    [unstriking, fadingOut, handleToggleComplete, handleTaskClick],
+    [activeTaskId, unstriking, fadingOut, handleToggleComplete, handleTaskClick],
   )
 
   return (
@@ -493,11 +669,24 @@ export function TodoView(): JSX.Element {
         </div>
 
         {/* Task List */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={collisionDetection}
+          onDragStart={handleTaskDragStart}
+          onDragEnd={handleTaskDragEnd}
+        >
         <div className={styles.taskList} ref={scrollContainerRef}>
           {/* Inline Composer */}
           {composing && (
             <div className={styles.inlineComposer}>
-              <span className={styles.composerCheck} />
+              <button
+                type="button"
+                className={styles.composerCheck}
+                onClick={handleComposerSubmitClick}
+                onMouseDown={(e) => e.preventDefault()}
+                aria-label="Add task"
+                data-component="composer-submit"
+              />
               <input
                 ref={composerRef}
                 type="text"
@@ -558,8 +747,120 @@ export function TodoView(): JSX.Element {
               })}
             </>
           )}
+
+          {/* Empty drop surface — dropping any task on it clears parentTaskId
+              (turns the task into a root-level task). Rendered only while a
+              drag is active so it doesn't crowd the layout at rest, and
+              placed directly after the task rows so it sits a few pixels
+              below the last row (where the cursor naturally ends up when
+              dragging) rather than at the bottom of the page. Lives inside
+              the scroll container so it scrolls together with the rows. */}
+          {activeTaskId && flatItems.length > 0 && <DroppableRootZone />}
         </div>
+
+          {/* DragOverlay mirrors the active row so the user can see what
+              they're dragging even when the source scrolled under the
+              virtualizer's overscan window. */}
+          <DragOverlay dropAnimation={null}>
+            {activeTaskId
+              ? (() => {
+                  const activeTask = tasks.find((task) => task.id === activeTaskId)
+                  if (!activeTask) return null
+                  const activeItem = flatItems.find(
+                    (item) => item.type === 'task' && item.task.id === activeTaskId
+                  )
+                  const activeDepth = activeItem && activeItem.type === 'task' ? activeItem.depth : 0
+                  return (
+                    <div
+                      className={styles.taskRow}
+                      style={{
+                        '--event-color': activeTask.calendarColor,
+                        marginLeft: activeDepth * 28,
+                        cursor: 'grabbing',
+                        boxShadow: '0 6px 16px rgba(0,0,0,0.18)',
+                      } as React.CSSProperties}
+                      data-component="task-row-active-overlay"
+                    >
+                      <div className={styles.taskCheck} aria-hidden="true">
+                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 7.5l2.5 2.5L11 4" />
+                        </svg>
+                      </div>
+                      <div className={styles.taskBody}>
+                        <div className={styles.taskTitle}>{activeTask.title}</div>
+                      </div>
+                      <div className={styles.taskMeta} />
+                    </div>
+                  )
+                })()
+              : null}
+          </DragOverlay>
+        </DndContext>
       </div>
     </div>
+  )
+}
+
+// ─── Inner drag wrappers ────────────────────────────────────────────────────
+// Defined outside the main component so they don't re-instantiate per render
+// and so the hooks (`useDraggable`, `useDroppable`) sit at the top of the
+// component tree, satisfying the rules-of-hooks rule.
+
+interface DraggableTaskRowProps {
+  taskId: string
+  /** The active drag id from DndContext; when it matches this row's id, we
+      drop the row's opacity so the DragOverlay owns the visual. */
+  isActive: boolean
+  children: (opts: {
+    dragAttributes: Record<string, unknown>
+    dragListeners: Record<string, unknown> | undefined
+    dragStyle: React.CSSProperties
+    setDropRef: (el: HTMLElement | null) => void
+    isOver: boolean
+  }) => JSX.Element
+}
+
+function DraggableTaskRow({ taskId, isActive, children }: DraggableTaskRowProps): JSX.Element {
+  const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({ id: taskId })
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: taskId })
+  // Combine refs (drag and drop) onto the same row — the row is both the
+  // handle that initiates the drag and the target that accepts a drop.
+  const setRef = useCallback(
+    (el: HTMLElement | null) => {
+      setDragRef(el)
+      setDropRef(el)
+    },
+    [setDragRef, setDropRef]
+  )
+  const dragStyle: React.CSSProperties = {
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    // While dragged, hide the source row so the DragOverlay is the only
+    // visual. Without this we'd see two cards stacked.
+    opacity: isDragging ? 0 : 1,
+    cursor: 'grab',
+  }
+  return (
+    <>
+      {children({
+        dragAttributes: attributes as unknown as Record<string, unknown>,
+        dragListeners: listeners as unknown as Record<string, unknown> | undefined,
+        dragStyle,
+        setDropRef: setRef,
+        isOver: isOver && !isActive,
+      })}
+    </>
+  )
+}
+
+function DroppableRootZone(): JSX.Element {
+  const { setNodeRef, isOver } = useDroppable({ id: ROOT_DROPPABLE_ID })
+  return (
+    <div
+      ref={setNodeRef}
+      data-component="todo-root-drop"
+      data-drop-active={isOver ? '' : undefined}
+      className={`${styles.rootDropZone} ${isOver ? styles.rootDropZoneActive : ''}`}
+      aria-hidden="true"
+    />
   )
 }

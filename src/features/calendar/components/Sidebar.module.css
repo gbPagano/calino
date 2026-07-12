@@ -863,6 +863,24 @@
   text-overflow: ellipsis;
 }
 
+/* Subtask badge — surfaces the (intentionally hidden) count of incomplete
+   children + grandchildren under this row. Tinted to signal "this row
+   carries more work than it shows". Subtle on purpose so it doesn't
+   compete with the title. */
+.taskSubtaskBadge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .taskDue {
   flex-shrink: 0;
   font-size: 12.5px;

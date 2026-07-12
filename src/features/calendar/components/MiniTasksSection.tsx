@@ -77,6 +77,40 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
     e.type === 'task' && !e.parentTaskId && !e.completed && calendars.some((calendar) => calendar.id === e.calendarId && calendar.isVisible)
   ).length
 
+  // Count of incomplete descendants (children, grandchildren, ...) for each
+  // task id. Subtasks are intentionally hidden from the sidebar (parents
+  // represent their subtree), but a parent that has hidden children is hard
+  // to discover — a small "· N" badge on the parent keeps the indirection
+  // visible. Recurse via the same parentTaskId graph that TodoView uses.
+  const subtaskCountsByParent = useMemo(() => {
+    const childrenByParent = new Map<string, CalendarEvent[]>()
+    for (const e of events) {
+      if (e.type !== 'task' || !e.parentTaskId || e.completed) continue
+      const bucket = childrenByParent.get(e.parentTaskId) ?? []
+      bucket.push(e)
+      childrenByParent.set(e.parentTaskId, bucket)
+    }
+    const counts = new Map<string, number>()
+    const walk = (id: string): number => {
+      const cached = counts.get(id)
+      if (cached !== undefined) return cached
+      // Each call recurses once; cache result to keep this O(n).
+      let total = 0
+      for (const child of childrenByParent.get(id) ?? []) {
+        // Includes both direct children and their own descendants — the
+        // number is the total open work under this parent.
+        total += 1 + walk(child.id)
+      }
+      counts.set(id, total)
+      return total
+    }
+    for (const e of events) {
+      if (e.type !== 'task') continue
+      walk(e.id)
+    }
+    return counts
+  }, [events])
+
   const handleToggleComplete = async (task: CalendarEvent): Promise<void> => {
     setCompletingTaskId(task.id)
 
@@ -176,6 +210,23 @@ export function MiniTasksSection({ isExpanded, onToggle }: MiniTasksSectionProps
                       onClick={() => handleTaskClick(task)}
                     >
                       <span className={styles.taskTitle}>{task.title}</span>
+                      {(() => {
+                        const subtaskCount = subtaskCountsByParent.get(task.id) ?? 0
+                        if (subtaskCount === 0) return null
+                        return (
+                          <span
+                            className={styles.taskSubtaskBadge}
+                            data-component="task-subtask-count"
+                            data-subtask-count={subtaskCount}
+                            // Tooltip-style aria — surfaces the "this row has
+                            // hidden subtasks" affordance to screen readers
+                            // without taking focus from the row.
+                            aria-label={`${subtaskCount} open subtask${subtaskCount === 1 ? '' : 's'}`}
+                          >
+                            ↳ {subtaskCount}
+                          </span>
+                        )
+                      })()}
                       {task.dueDate ? (
                         <span
                           className={`${styles.taskDue} ${

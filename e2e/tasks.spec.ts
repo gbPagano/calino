@@ -53,6 +53,71 @@ test('shows only parent tasks in the sidebar', async ({ page }) => {
   await expect(sidebarTasks.getByText('Book hotel')).not.toBeVisible()
 })
 
+test('parents with hidden subtasks show a subtask-count badge in the sidebar', async ({
+  page,
+}) => {
+  // Subtasks are intentionally hidden from the sidebar (the parent represents
+  // the whole subtree). But without a counter, users think their child task
+  // has vanished. The badge "↳ 1" on the parent row makes the indirection
+  // discoverable.
+  await clearState(page)
+  await page.addInitScript(() => {
+    localStorage.setItem('calino-storage', JSON.stringify({
+      state: {
+        calendars: [{ id: 'default', name: 'Offline calendar', color: '#4285F4', isVisible: true, isDefault: true, showTasksInViews: true }],
+        events: [
+          { id: 'parent', calendarId: 'default', title: 'Plan trip', type: 'task', start: '2026-07-10T09:00:00.000Z', end: '2026-07-10T09:00:00.000Z', isAllDay: false, completed: false },
+          { id: 'child', calendarId: 'default', title: 'Book hotel', parentTaskId: 'parent', type: 'task', start: '2026-07-10T09:00:00.000Z', end: '2026-07-10T09:00:00.000Z', isAllDay: false, completed: false },
+        ],
+      }, version: 1,
+    }))
+  })
+
+  await page.goto('/month')
+  const tasksHeader = page.locator('[data-component="tasks-header"]')
+  if (await tasksHeader.getAttribute('aria-expanded') === 'false') await tasksHeader.click()
+
+  const parentRow = page.locator('[data-component="tasks-section"]').getByText('Plan trip').locator('..').locator('..')
+  await expect(parentRow.locator('[data-component="task-subtask-count"]')).toBeVisible()
+  await expect(parentRow.locator('[data-component="task-subtask-count"]')).toHaveAttribute('data-subtask-count', '1')
+})
+
+test('subtask count badge includes grandchildren and drops completed work', async ({
+  page,
+}) => {
+  // The badge should count the whole open subtree, not just direct children.
+  // A completed grandchild must NOT inflate the badge — the badge tells the
+  // user about *open* work under the row.
+  await clearState(page)
+  await page.addInitScript(() => {
+    localStorage.setItem('calino-storage', JSON.stringify({
+      state: {
+        calendars: [{ id: 'default', name: 'Offline calendar', color: '#4285F4', isVisible: true, isDefault: true, showTasksInViews: true }],
+        events: [
+          { id: 'parent', calendarId: 'default', title: 'Plan trip', type: 'task', start: '2026-07-10T09:00:00.000Z', end: '2026-07-10T09:00:00.000Z', isAllDay: false, completed: false },
+          // Open child → counted.
+          { id: 'child-open', calendarId: 'default', title: 'Book hotel', parentTaskId: 'parent', type: 'task', start: '2026-07-10T09:00:00.000Z', end: '2026-07-10T09:00:00.000Z', isAllDay: false, completed: false },
+          // Completed child → not counted.
+          { id: 'child-done', calendarId: 'default', title: 'Renew passport', parentTaskId: 'parent', type: 'task', start: '2026-07-10T09:00:00.000Z', end: '2026-07-10T09:00:00.000Z', isAllDay: false, completed: true },
+          // Open grandchild → counted under the parent (total open = 2).
+          { id: 'grand-open', calendarId: 'default', title: 'Pack charger', parentTaskId: 'child-open', type: 'task', start: '2026-07-10T09:00:00.000Z', end: '2026-07-10T09:00:00.000Z', isAllDay: false, completed: false },
+        ],
+      }, version: 1,
+    }))
+  })
+
+  await page.goto('/month')
+  const tasksHeader = page.locator('[data-component="tasks-header"]')
+  if (await tasksHeader.getAttribute('aria-expanded') === 'false') await tasksHeader.click()
+
+  const parentRow = page.locator('[data-component="tasks-section"]').getByText('Plan trip').locator('..').locator('..')
+  await expect(parentRow.locator('[data-component="task-subtask-count"]')).toHaveAttribute(
+    'data-subtask-count',
+    '2'
+  )
+})
+
+
 test('hides tasks from disabled calendars in the sidebar', async ({ page }) => {
   await clearState(page)
   await page.addInitScript(() => {

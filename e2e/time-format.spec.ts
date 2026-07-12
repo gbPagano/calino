@@ -31,7 +31,7 @@ test.describe('time format in event form', () => {
     await page.locator('[data-component="add-task-button"]').click()
     await page.getByPlaceholder('What needs doing?').fill('Call the dentist')
     await page.getByPlaceholder('What needs doing?').press('Enter')
-    await page.getByRole('checkbox', { name: 'Only due date' }).uncheck()
+    await page.locator('[data-component="due-mode-datetime"]').click()
 
     await expect(page.locator('[data-component="task-due-time"]')).toHaveValue('9:00 AM')
   })

@@ -1,5 +1,5 @@
 import type { JSX } from 'react'
-import { useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import type { CalendarEvent, TaskPriority } from '@/types'
 import { useScrollInput } from '@/hooks/useScrollInput'
@@ -33,6 +33,14 @@ const PRIORITY_OPTIONS: { value: TaskPriority | undefined; label: string }[] = [
   { value: 3, label: 'Low' },
 ]
 
+type DueMode = 'datetime' | 'dateOnly' | 'none'
+
+const DUE_MODE_OPTIONS: { value: DueMode; label: string; testId: string }[] = [
+  { value: 'datetime', label: 'Due date and time', testId: 'due-mode-datetime' },
+  { value: 'dateOnly', label: 'Date only', testId: 'due-mode-date-only' },
+  { value: 'none', label: 'No due date', testId: 'due-mode-none' },
+]
+
 export function TaskFormFields({
   completed,
   onCompletedChange,
@@ -57,9 +65,41 @@ export function TaskFormFields({
   const hasDueDate = dueDate.trim().length > 0
   useScrollInput([dueDateRef])
 
+  const dueMode: DueMode = !hasDueDate ? 'none' : dueAllDay ? 'dateOnly' : 'datetime'
+  const dueModeControlRef = useRef<HTMLDivElement>(null)
+  const dueModeTabRefs = useRef<Map<DueMode, HTMLButtonElement>>(new Map())
+  const [dueModeIndicator, setDueModeIndicator] = useState<{ left: number; width: number }>({
+    left: 0,
+    width: 0,
+  })
+
+  useLayoutEffect(() => {
+    const activeTab = dueModeTabRefs.current.get(dueMode)
+    // Use offsetLeft/offsetWidth rather than getBoundingClientRect: the
+    // modal mounts with a scale() transition, and getBoundingClientRect
+    // reflects the in-progress transformed size, producing a pill that's
+    // measured too small until something else forces a recalculation.
+    // offset* values reflect the untransformed layout box.
+    if (activeTab) {
+      setDueModeIndicator({
+        left: activeTab.offsetLeft,
+        width: activeTab.offsetWidth,
+      })
+    }
+  }, [dueMode])
+
+  const handleDueModeChange = (mode: DueMode): void => {
+    if (mode === 'none') {
+      onDueDateChange('')
+      return
+    }
+    if (!hasDueDate) onDueDateChange(format(new Date(), 'yyyy-MM-dd'))
+    onDueAllDayChange(mode === 'dateOnly')
+  }
+
   return (
     <>
-      <div className={styles.row}>
+      <div className={`${styles.row} ${styles.taskMetaRow}`}>
         <div className={styles.field}>
           <label className={styles.checkbox}>
             <input
@@ -71,32 +111,26 @@ export function TaskFormFields({
           </label>
         </div>
 
-        <div className={styles.field}>
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              checked={!hasDueDate}
-              onChange={(e) =>
-                onDueDateChange(e.target.checked ? '' : format(new Date(), 'yyyy-MM-dd'))
-              }
-              data-component="task-no-due-date"
-            />
-            <span>No due date</span>
-          </label>
+        <div className={styles.dueModeControl} ref={dueModeControlRef} data-component="task-due-mode">
+          <div
+            className={styles.dueModeIndicator}
+            style={{ left: dueModeIndicator.left, width: dueModeIndicator.width }}
+          />
+          {DUE_MODE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              ref={(el) => {
+                if (el) dueModeTabRefs.current.set(option.value, el)
+              }}
+              className={`${styles.dueModeTab} ${dueMode === option.value ? styles.dueModeTabActive : ''}`}
+              onClick={() => handleDueModeChange(option.value)}
+              data-component={option.testId}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
-
-        {hasDueDate && (
-          <div className={styles.field}>
-            <label className={styles.checkbox}>
-              <input
-                type="checkbox"
-                checked={dueAllDay}
-                onChange={(e) => onDueAllDayChange(e.target.checked)}
-              />
-              <span>Only due date</span>
-            </label>
-          </div>
-        )}
       </div>
 
       <div className={styles.row} data-component="task-subtasks">

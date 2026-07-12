@@ -691,6 +691,10 @@
   margin-left: auto;
 }
 
+.row.taskMetaRow {
+  align-items: center;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -761,6 +765,53 @@
   height: 16px;
   cursor: pointer;
   accent-color: var(--color-accent);
+}
+
+.dueModeControl {
+  position: relative;
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+  margin-left: auto;
+  align-self: center;
+  padding: var(--space-1);
+  background: rgba(var(--ink-raw), 0.045);
+  border-radius: var(--view-switcher-radius, 12px);
+}
+
+.dueModeTab {
+  position: relative;
+  z-index: 1;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2, #6f6a62);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.14s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.dueModeTab:hover {
+  color: var(--ink, #2c2823);
+}
+
+.dueModeTabActive {
+  color: var(--ink, #2c2823);
+}
+
+.dueModeIndicator {
+  position: absolute;
+  top: 4px;
+  height: calc(100% - 8px);
+  background: var(--panel, #ffffff);
+  box-shadow: 0 1px 2px rgba(var(--ink-raw), 0.08), 0 0 0 1px var(--line, rgba(var(--ink-raw), 0.09));
+  border-radius: var(--view-switcher-indicator-radius, 9px);
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
 }
 
 .chevronButton {

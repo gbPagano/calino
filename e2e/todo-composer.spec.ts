@@ -47,7 +47,7 @@ test.describe('TodoView composer forwards title into modal', () => {
 
     const modal = page.locator('[data-component="modal-card"]')
     await expect(modal).toBeVisible()
-    await modal.locator('[data-component="task-no-due-date"]').check()
+    await modal.locator('[data-component="due-mode-none"]').click()
     await modal.locator('[data-component="modal-save"]').click()
 
     await expect(modal).not.toBeVisible()

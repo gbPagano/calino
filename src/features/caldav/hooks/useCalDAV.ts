@@ -471,10 +471,15 @@ export function useCalDAV(): UseCalDAVReturn {
               }
             }
 
+            // Same UID can appear in more than one calendar on the server
+            // (e.g. mirrored into a scheduling/aggregate collection) — treat
+            // any id already seen this sync pass as an update, not a fresh
+            // add, so it doesn't end up duplicated in the store.
             if (accountExistingEventIds.has(parsedEvent.id)) {
               storeUpdateEvent(parsedEvent.id, parsedEvent)
             } else {
               storeAddEvent(parsedEvent)
+              accountExistingEventIds.add(parsedEvent.id)
             }
             eventsAdded++
           }

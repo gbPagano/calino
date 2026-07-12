@@ -143,9 +143,18 @@ export const useCalendarStore = create<CalendarStore>()(
           ...event,
           categories: [...new Set([...existingCategories, ...autoCategoryNames])],
         }
-        set((state) => ({
-          events: [...state.events, finalEvent],
-        }))
+        set((state) => {
+          // Same id can arrive twice in one sync pass (e.g. the same UID
+          // mirrored into two CalDAV collections on the server). Replace
+          // rather than append, so the event never renders twice.
+          const existingIndex = state.events.findIndex((e) => e.id === finalEvent.id)
+          if (existingIndex !== -1) {
+            const events = [...state.events]
+            events[existingIndex] = finalEvent
+            return { events }
+          }
+          return { events: [...state.events, finalEvent] }
+        })
         bumpRangeExpansionVersion()
       },
 

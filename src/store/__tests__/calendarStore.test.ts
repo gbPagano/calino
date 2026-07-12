@@ -33,6 +33,33 @@ describe('calendarStore', () => {
       expect(useCalendarStore.getState().events.length).toBe(initialCount + 1)
       expect(useCalendarStore.getState().events[0].title).toBe('Test Event')
     })
+
+    it('replaces rather than duplicates when the same id is added twice', () => {
+      const store = useCalendarStore.getState()
+      const initialCount = store.events.length
+
+      store.addEvent({
+        id: 'test-dup',
+        calendarId: 'work',
+        title: 'Work Event',
+        start: '2024-03-15T10:00:00',
+        end: '2024-03-15T11:00:00',
+        isAllDay: false,
+      })
+      store.addEvent({
+        id: 'test-dup',
+        calendarId: 'work-mirror',
+        title: 'Work Event',
+        start: '2024-03-15T10:00:00',
+        end: '2024-03-15T11:00:00',
+        isAllDay: false,
+      })
+
+      const events = useCalendarStore.getState().events
+      expect(events.length).toBe(initialCount + 1)
+      expect(events.filter((e) => e.id === 'test-dup')).toHaveLength(1)
+      expect(events.find((e) => e.id === 'test-dup')?.calendarId).toBe('work-mirror')
+    })
   })
 
   describe('updateEvent', () => {

@@ -1,8 +1,23 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
+const { mockUpdateCalDAVCalendar } = vi.hoisted(() => ({
+  mockUpdateCalDAVCalendar: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('@/features/caldav/hooks/useCalDAV', () => ({
+  useCalDAV: () => ({
+    accounts: [],
+    syncAccount: vi.fn(),
+    syncState: { status: 'idle' },
+    updateCalendar: mockUpdateCalDAVCalendar,
+    deleteCalendarFromServer: vi.fn(),
+  }),
+}))
+
 import { Sidebar } from '../components/Sidebar'
+import styles from '../components/Sidebar.module.css'
 import { useCalendarStore } from '@/store/calendarStore'
 
 function renderWithRouter(component: React.ReactElement) {
@@ -11,6 +26,7 @@ function renderWithRouter(component: React.ReactElement) {
 
 describe('Sidebar', () => {
   beforeEach(() => {
+    mockUpdateCalDAVCalendar.mockClear()
     const store = useCalendarStore.getState()
     store.events.forEach((e) => store.deleteEvent(e.id))
     store.calendars.forEach((c) => store.deleteCalendar(c.id))
@@ -85,6 +101,32 @@ describe('Sidebar', () => {
     await user.click(screen.getByRole('button', { name: /^calendars/i }))
     const colorDots = document.querySelectorAll('button[class*="colorDot"]')
     expect(colorDots.length).toBeGreaterThan(0)
+  })
+
+  it('updates a CalDAV calendar when its color changes', async () => {
+    const user = userEvent.setup()
+    useCalendarStore.getState().updateCalendar('default', { accountId: 'account-1' })
+    renderWithRouter(<Sidebar />)
+
+    await user.click(screen.getByRole('button', { name: /^calendars/i }))
+    await user.click(screen.getByRole('button', { name: 'Change Default Calendar color' }))
+    await user.click(screen.getByRole('button', { name: 'Use #EA4335 for Default Calendar' }))
+
+    expect(mockUpdateCalDAVCalendar).toHaveBeenCalledWith('default', { color: '#EA4335' })
+  })
+
+  it('does not select the custom color swatch when a lowercase color matches a preset', async () => {
+    const user = userEvent.setup()
+    useCalendarStore.getState().updateCalendar('default', { color: '#ea4335' })
+    renderWithRouter(<Sidebar />)
+
+    await user.click(screen.getByRole('button', { name: /^calendars/i }))
+    await user.click(screen.getByRole('button', { name: 'Change Default Calendar color' }))
+
+    expect(screen.getByRole('button', { name: 'Use #EA4335 for Default Calendar' }))
+      .toHaveClass(styles.colorPresetSelected)
+    expect(screen.getByLabelText('Custom color for Default Calendar').parentElement)
+      .not.toHaveClass(styles.customColorPickerSelected)
   })
 
   it('renders weekday headers in mini calendar', () => {

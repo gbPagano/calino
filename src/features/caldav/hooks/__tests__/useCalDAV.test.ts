@@ -12,7 +12,14 @@ vi.mock('../../client/credentials')
 vi.mock('../../sync/accountStorage')
 vi.mock('../../adapter/iCalendarAdapter')
 vi.mock('../../client/CalDAVClient')
-vi.mock('../../sync/syncEngine')
+vi.mock('../../sync/syncEngine', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../sync/syncEngine')>()
+  return {
+    ...actual,
+    SyncEngine: vi.fn(),
+    createSyncEngine: vi.fn(),
+  }
+})
 vi.mock('@/lib/uuid')
 
 // ---------------------------------------------------------------------------

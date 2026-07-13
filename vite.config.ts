@@ -53,6 +53,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     // e2e/ is for Playwright tests, not vitest — keep them out of `pnpm test`.
-    exclude: [...configDefaults.exclude, 'e2e/**'],
+    // .claude/ may contain nested git worktrees with their own copy of this
+    // repo; without excluding it, vitest resolves duplicate React/component
+    // modules from those worktrees and tests fail with "Invalid hook call".
+    exclude: [...configDefaults.exclude, 'e2e/**', '.claude/**'],
   },
 })

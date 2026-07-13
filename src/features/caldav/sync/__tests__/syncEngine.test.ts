@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { SyncEngine, createSyncEngine } from '../syncEngine'
+import { SyncEngine, createSyncEngine, eventResourceFilename } from '../syncEngine'
 import type { CalendarEvent } from '@/types'
 import type { CalDAVClient } from '../../client/CalDAVClient'
 import * as storage from '../accountStorage'
@@ -65,11 +65,7 @@ describe('SyncEngine', () => {
         },
       ])
 
-      const result = await engine.fullSync(
-        '2024-01-01T00:00:00Z',
-        '2024-12-31T23:59:59Z',
-        [local]
-      )
+      const result = await engine.fullSync('2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z', [local])
 
       // Server event has same sequence as local — should NOT be marked as updated
       expect(result.result.updated).not.toContain('event-1')
@@ -86,11 +82,7 @@ describe('SyncEngine', () => {
         },
       ])
 
-      const result = await engine.fullSync(
-        '2024-01-01T00:00:00Z',
-        '2024-12-31T23:59:59Z',
-        [local]
-      )
+      const result = await engine.fullSync('2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z', [local])
 
       expect(result.result.updated).toContain('event-1')
     })
@@ -106,11 +98,7 @@ describe('SyncEngine', () => {
         },
       ])
 
-      const result = await engine.fullSync(
-        '2024-01-01T00:00:00Z',
-        '2024-12-31T23:59:59Z',
-        [local]
-      )
+      const result = await engine.fullSync('2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z', [local])
 
       // Local has higher sequence, so server event should NOT be marked as updated
       expect(result.result.updated).not.toContain('event-1')
@@ -127,11 +115,7 @@ describe('SyncEngine', () => {
         },
       ])
 
-      const result = await engine.fullSync(
-        '2024-01-01T00:00:00Z',
-        '2024-12-31T23:59:59Z',
-        [local]
-      )
+      const result = await engine.fullSync('2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z', [local])
 
       // Same sequence (both undefined = 0) — should NOT be updated
       expect(result.result.updated).not.toContain('event-1')
@@ -148,13 +132,30 @@ describe('SyncEngine', () => {
         },
       ])
 
-      const result = await engine.fullSync(
-        '2024-01-01T00:00:00Z',
-        '2024-12-31T23:59:59Z',
-        [local]
-      )
+      const result = await engine.fullSync('2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z', [local])
 
       expect(result.result.updated).not.toContain('event-1')
     })
+  })
+
+  it('uses a WebDAV-safe filename for recurrence instance IDs', async () => {
+    const event = makeEvent({ id: 'event-1-2026-07-15T15:20:00.000Z' })
+
+    await engine.pushEvent(event)
+    await engine.updateEvent(event, '"etag"')
+
+    const expectedFilename = 'event-1-2026-07-15T15~3A20~3A00.000Z.ics'
+    expect(eventResourceFilename(event.id)).toBe(expectedFilename)
+    expect(mockClient.createEvent).toHaveBeenCalledWith(
+      'https://caldav.example.com/calendars/test/default/',
+      expect.any(String),
+      expectedFilename
+    )
+    expect(mockClient.updateEvent).toHaveBeenCalledWith(
+      'https://caldav.example.com/calendars/test/default/',
+      `https://caldav.example.com/calendars/test/default/${expectedFilename}`,
+      expect.any(String),
+      '"etag"'
+    )
   })
 })

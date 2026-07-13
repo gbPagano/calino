@@ -3,16 +3,28 @@ import { addDays } from 'date-fns'
 import { toast as sonnerToast } from 'sonner'
 import type { CalendarEvent } from '@/types'
 import { showBrokenEventsNotification, showDuplicateUidNotification } from '@/lib/toast'
-import type { CalDAVAccount, CalDAVCalendar, SyncState, ConflictInfo, CreateCalendarOptions, UpdateCalendarOptions } from '../types'
+import type {
+  CalDAVAccount,
+  CalDAVCalendar,
+  SyncState,
+  ConflictInfo,
+  CreateCalendarOptions,
+  UpdateCalendarOptions,
+} from '../types'
 import { createCalDAVClient } from '../client/CalDAVClient'
 import { probeConnection, expandProviderUrl, type ProbeResult } from '../client/discovery'
 import { CalDAVConnectionError } from '../client/errors'
-import { saveCredentials, getCredentialById, deleteCredential, updateCredential } from '../client/credentials'
+import {
+  saveCredentials,
+  getCredentialById,
+  deleteCredential,
+  updateCredential,
+} from '../client/credentials'
 import { parseICALData } from '../adapter/iCalendarAdapter'
 import { detectUidCollisions, type ParsedWithHref } from '../sync/detectUidCollisions'
 import { putAttachments } from '@/lib/attachmentStore'
 import * as storage from '../sync/accountStorage'
-import { SyncEngine } from '../sync/syncEngine'
+import { SyncEngine, eventResourceFilename } from '../sync/syncEngine'
 import { useCalendarStore } from '@/store/calendarStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useCalDAVSyncStore } from '@/store/caldavSyncStore'
@@ -168,109 +180,111 @@ export function useCalDAV(): UseCalDAVReturn {
     isProcessingRef.current = true
 
     try {
-    const changes = storage.getPendingChanges()
-    if (changes.length === 0) return
+      const changes = storage.getPendingChanges()
+      if (changes.length === 0) return
 
-    if (caldavDebugMode) {
-      console.log(`[CalDAV] Processing ${changes.length} pending changes...`)
-    }
-
-    const allCalendars = storage.getAllCalendars()
-    const allAccounts = storage.getAllAccounts()
-
-    let succeeded = 0
-    let failed = 0
-
-    for (const change of changes) {
-      // Bug 18 fix: enforce retry limit
-      if (change.retryCount >= MAX_RETRIES) {
-        console.warn(
-          `[CalDAV] Dropping pending change ${change.id} after ${MAX_RETRIES} retries (type=${change.type}, eventId=${change.eventId})`
-        )
-        storage.removePendingChange(change.id)
-        failed++
-        continue
+      if (caldavDebugMode) {
+        console.log(`[CalDAV] Processing ${changes.length} pending changes...`)
       }
 
-      try {
-        const calendar = allCalendars.find((c) => c.id === change.calendarId)
-        const account = allAccounts.find((a) => a.id === calendar?.accountId)
+      const allCalendars = storage.getAllCalendars()
+      const allAccounts = storage.getAllAccounts()
 
-        if (!calendar || !account) {
+      let succeeded = 0
+      let failed = 0
+
+      for (const change of changes) {
+        // Bug 18 fix: enforce retry limit
+        if (change.retryCount >= MAX_RETRIES) {
+          console.warn(
+            `[CalDAV] Dropping pending change ${change.id} after ${MAX_RETRIES} retries (type=${change.type}, eventId=${change.eventId})`
+          )
+          storage.removePendingChange(change.id)
           failed++
-          storage.updatePendingChangeRetry(change.id)
           continue
         }
 
-        const credential = await getCredentialById(account.credentialId)
-        if (!credential) {
-          failed++
+        try {
+          const calendar = allCalendars.find((c) => c.id === change.calendarId)
+          const account = allAccounts.find((a) => a.id === calendar?.accountId)
+
+          if (!calendar || !account) {
+            failed++
+            storage.updatePendingChangeRetry(change.id)
+            continue
+          }
+
+          const credential = await getCredentialById(account.credentialId)
+          if (!credential) {
+            failed++
+            storage.updatePendingChangeRetry(change.id)
+            continue
+          }
+
+          const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
+          const engine = new SyncEngine(client, change.calendarId)
+
+          switch (change.type) {
+            case 'create': {
+              const event = JSON.parse(change.data || '{}') as CalendarEvent
+              await engine.pushEvent({ ...event, sequence: 0 })
+              // Mark as synced in the store
+              storeUpdateEvent(change.eventId, { syncStatus: 'synced' })
+              break
+            }
+            case 'update': {
+              const event = JSON.parse(change.data || '{}') as CalendarEvent
+              await engine.updateEvent(event, event.etag || '')
+              // Mark as synced in the store
+              storeUpdateEvent(change.eventId, { syncStatus: 'synced' })
+              break
+            }
+            case 'delete': {
+              const eventUrl = `${calendar.url}${eventResourceFilename(change.eventId)}`
+              // Try to get etag from pending change data first (for broken events),
+              // then from the live store
+              let etag = ''
+              if (change.data) {
+                try {
+                  const eventData = JSON.parse(change.data) as CalendarEvent
+                  etag = eventData.etag || ''
+                } catch {
+                  /* ignore parse errors */
+                }
+              }
+              if (!etag) {
+                const eventInStore = useCalendarStore
+                  .getState()
+                  .events.find((e) => e.id === change.eventId)
+                etag = eventInStore?.etag || ''
+              }
+              if (caldavDebugMode) {
+                console.log('[CalDAV] Deleting event from server:', eventUrl, 'etag:', etag)
+              }
+              await engine.deleteEvent(eventUrl, etag)
+              // Remove from the store: a failed delete re-adds the event with
+              // syncStatus='failed' (see deleteEventFn catch), so on a successful
+              // retry we must clear it or it lingers as a ghost (gone on server,
+              // still local).
+              storeDeleteEvent(change.eventId)
+              break
+            }
+          }
+
+          storage.removePendingChange(change.id)
+          succeeded++
+        } catch {
           storage.updatePendingChangeRetry(change.id)
-          continue
+          failed++
         }
-
-        const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
-        const engine = new SyncEngine(client, change.calendarId)
-
-        switch (change.type) {
-          case 'create': {
-            const event = JSON.parse(change.data || '{}') as CalendarEvent
-            await engine.pushEvent({ ...event, sequence: 0 })
-            // Mark as synced in the store
-            storeUpdateEvent(change.eventId, { syncStatus: 'synced' })
-            break
-          }
-          case 'update': {
-            const event = JSON.parse(change.data || '{}') as CalendarEvent
-            await engine.updateEvent(event, event.etag || '')
-            // Mark as synced in the store
-            storeUpdateEvent(change.eventId, { syncStatus: 'synced' })
-            break
-          }
-          case 'delete': {
-            const eventUrl = `${calendar.url}${change.eventId}.ics`
-            // Try to get etag from pending change data first (for broken events),
-            // then from the live store
-            let etag = ''
-            if (change.data) {
-              try {
-                const eventData = JSON.parse(change.data) as CalendarEvent
-                etag = eventData.etag || ''
-              } catch { /* ignore parse errors */ }
-            }
-            if (!etag) {
-              const eventInStore = useCalendarStore.getState().events.find(
-                (e) => e.id === change.eventId
-              )
-              etag = eventInStore?.etag || ''
-            }
-            if (caldavDebugMode) {
-              console.log('[CalDAV] Deleting event from server:', eventUrl, 'etag:', etag)
-            }
-            await engine.deleteEvent(eventUrl, etag)
-            // Remove from the store: a failed delete re-adds the event with
-            // syncStatus='failed' (see deleteEventFn catch), so on a successful
-            // retry we must clear it or it lingers as a ghost (gone on server,
-            // still local).
-            storeDeleteEvent(change.eventId)
-            break
-          }
-        }
-
-        storage.removePendingChange(change.id)
-        succeeded++
-      } catch {
-        storage.updatePendingChangeRetry(change.id)
-        failed++
       }
-    }
 
-    const remaining = storage.getPendingChanges()
-    setSyncState((prev) => ({ ...prev, pendingChanges: remaining.length }))
+      const remaining = storage.getPendingChanges()
+      setSyncState((prev) => ({ ...prev, pendingChanges: remaining.length }))
 
-    console.log(
-      `[CalDAV] Pending changes processed: ${succeeded} succeeded, ${failed} failed, ${remaining.length} remaining`
-    )
+      console.log(
+        `[CalDAV] Pending changes processed: ${succeeded} succeeded, ${failed} failed, ${remaining.length} remaining`
+      )
     } finally {
       isProcessingRef.current = false
     }
@@ -323,7 +337,11 @@ export function useCalDAV(): UseCalDAVReturn {
           const credential = await getCredentialById(account.credentialId)
           if (!credential) continue
           const { createCardDAVClient } = await import('@/features/carddav/client/CardDAVClient')
-          const carddavClient = await createCardDAVClient(account.serverUrl, credential, account.proxyUrl)
+          const carddavClient = await createCardDAVClient(
+            account.serverUrl,
+            credential,
+            account.proxyUrl
+          )
           const addressBooks = await carddavClient.fetchAddressBooks()
           if (addressBooks.length > 0) {
             let hasContacts = false
@@ -405,7 +423,8 @@ export function useCalDAV(): UseCalDAVReturn {
             accountId: newAccount.id,
           })
           // Hide the Calino Settings calendar from the sidebar (unless debug mode)
-          const isSettingsCal = cal.name === 'Calino Settings' || cal.url?.includes('calino-settings')
+          const isSettingsCal =
+            cal.name === 'Calino Settings' || cal.url?.includes('calino-settings')
           const caldavDebugMode = useSettingsStore.getState().caldavDebugMode
           if (!isSettingsCal || caldavDebugMode) {
             storeAddCalendar({
@@ -462,7 +481,12 @@ export function useCalDAV(): UseCalDAVReturn {
         for (const cal of serverCalendars) {
           console.log('[CalDAV] addAccount: fetching events for', cal.name, cal.url)
           const fetchedEvents = await client.fetchEvents(cal.url, start, end)
-          console.log('[CalDAV] addAccount: got', fetchedEvents.length, 'event objects for', cal.name)
+          console.log(
+            '[CalDAV] addAccount: got',
+            fetchedEvents.length,
+            'event objects for',
+            cal.name
+          )
 
           const { items: parsedWithHref } = await collectParsedWithHref(fetchedEvents, cal.id)
 
@@ -578,11 +602,25 @@ export function useCalDAV(): UseCalDAVReturn {
 
         // Auto-discover settings calendar (per spec: check on every account add)
         try {
-          const { getPrimaryAccountId, setPrimaryAccountId, setEtag, deriveCalendarHomeUrl, dtstampToISO, deserializeSettings, mergeSettings, resolveConflict, setLastSyncedAt } = await import('@/lib/settingsSync')
+          const {
+            getPrimaryAccountId,
+            setPrimaryAccountId,
+            setEtag,
+            deriveCalendarHomeUrl,
+            dtstampToISO,
+            deserializeSettings,
+            mergeSettings,
+            resolveConflict,
+            setLastSyncedAt,
+          } = await import('@/lib/settingsSync')
           const existingPrimary = getPrimaryAccountId()
           if (!existingPrimary) {
             const { createCalDAVClient: createClient } = await import('../client/CalDAVClient')
-            const settingsClient = await createClient(newAccount.serverUrl, credential, newAccount.proxyUrl)
+            const settingsClient = await createClient(
+              newAccount.serverUrl,
+              credential,
+              newAccount.proxyUrl
+            )
             const calHomeUrl = deriveCalendarHomeUrl(newAccount.serverUrl, serverCalendars[0].url)
             const discovered = await settingsClient.discoverSettingsCalendar(calHomeUrl)
             if (discovered) {
@@ -597,9 +635,10 @@ export function useCalDAV(): UseCalDAVReturn {
                     const localSettings = useSettingsStore.getState()
                     const dtstampIso = dtstampToISO(remote.dtstamp)
                     const winner = resolveConflict(new Date(0).toISOString(), dtstampIso)
-                    const merged = winner === 'remote'
-                      ? mergeSettings(localSettings, parsed.settings)
-                      : localSettings
+                    const merged =
+                      winner === 'remote'
+                        ? mergeSettings(localSettings, parsed.settings)
+                        : localSettings
                     useSettingsStore.getState().updateSettings(merged)
                     appliedRemote = true
                   }
@@ -685,7 +724,7 @@ export function useCalDAV(): UseCalDAVReturn {
       }
     }
     connectAccounts()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked, hasPreconfiguredAccounts])
 
   const removeAccount = useCallback(async (accountId: string): Promise<void> => {
@@ -988,13 +1027,27 @@ export function useCalDAV(): UseCalDAVReturn {
 
         // Pull CalDAV settings after calendar sync completes
         try {
-          const { getPrimaryAccountId, deriveCalendarHomeUrl, dtstampToISO, deserializeSettings, mergeSettings, resolveConflict, setEtag, setLastSyncedAt, getLastSyncedAt } = await import('@/lib/settingsSync')
+          const {
+            getPrimaryAccountId,
+            deriveCalendarHomeUrl,
+            dtstampToISO,
+            deserializeSettings,
+            mergeSettings,
+            resolveConflict,
+            setEtag,
+            setLastSyncedAt,
+            getLastSyncedAt,
+          } = await import('@/lib/settingsSync')
           if (getPrimaryAccountId() === accountId) {
             const { createCalDAVClient: createClient } = await import('../client/CalDAVClient')
             const cal = accountCalendars[0]
             if (cal) {
               const calHomeUrl = deriveCalendarHomeUrl(account.serverUrl, cal.url)
-              const settingsClient = await createClient(account.serverUrl, credential, account.proxyUrl)
+              const settingsClient = await createClient(
+                account.serverUrl,
+                credential,
+                account.proxyUrl
+              )
               const discovered = await settingsClient.discoverSettingsCalendar(calHomeUrl)
               if (discovered) {
                 const remote = await settingsClient.fetchSettingsEvent(discovered.url)
@@ -1006,7 +1059,10 @@ export function useCalDAV(): UseCalDAVReturn {
                       const localSettings = useSettingsStore.getState()
                       const dtstampIso = dtstampToISO(remote.dtstamp)
                       const localSyncedAt = getLastSyncedAt()
-                      const winner = resolveConflict(localSyncedAt || '1970-01-01T00:00:00Z', dtstampIso)
+                      const winner = resolveConflict(
+                        localSyncedAt || '1970-01-01T00:00:00Z',
+                        dtstampIso
+                      )
                       if (winner === 'remote') {
                         const merged = mergeSettings(localSettings, parsed.settings)
                         useSettingsStore.getState().updateSettings(merged)
@@ -1316,10 +1372,9 @@ export function useCalDAV(): UseCalDAVReturn {
 
         // Bug 29 fix: only increment sequence if event data actually changed.
         // Unconditional increment causes false conflict detection.
-        const existingEvent = useCalendarStore.getState().events.find(
-          (e) => e.id === event.id
-        )
-        const hasChanged = !existingEvent || (
+        const existingEvent = useCalendarStore.getState().events.find((e) => e.id === event.id)
+        const hasChanged =
+          !existingEvent ||
           existingEvent.title !== event.title ||
           existingEvent.description !== event.description ||
           existingEvent.location !== event.location ||
@@ -1329,16 +1384,17 @@ export function useCalDAV(): UseCalDAVReturn {
           existingEvent.transparency !== event.transparency ||
           existingEvent.rruleString !== event.rruleString ||
           existingEvent.completed !== event.completed ||
-           existingEvent.priority !== event.priority ||
-           existingEvent.parentTaskId !== event.parentTaskId ||
+          existingEvent.priority !== event.priority ||
+          existingEvent.parentTaskId !== event.parentTaskId ||
           existingEvent.dueDate !== event.dueDate ||
           existingEvent.type !== event.type ||
-          JSON.stringify(existingEvent.categories ?? []) !== JSON.stringify(event.categories ?? []) ||
+          JSON.stringify(existingEvent.categories ?? []) !==
+            JSON.stringify(event.categories ?? []) ||
           JSON.stringify(existingEvent.recurrence) !== JSON.stringify(event.recurrence) ||
           JSON.stringify(existingEvent.reminders) !== JSON.stringify(event.reminders) ||
           JSON.stringify(existingEvent.excludedDates) !== JSON.stringify(event.excludedDates) ||
-          JSON.stringify(existingEvent.attachments ?? []) !== JSON.stringify(event.attachments ?? [])
-        )
+          JSON.stringify(existingEvent.attachments ?? []) !==
+            JSON.stringify(event.attachments ?? [])
 
         const currentSequence = event.sequence ?? 0
         const eventWithSequence: CalendarEvent = {
@@ -1396,7 +1452,9 @@ export function useCalDAV(): UseCalDAVReturn {
       // by the caller's optimistic delete
       const eventData = useCalendarStore.getState().events.find((e) => e.id === eventId)
       // Also check brokenEvents — broken events aren't in events[]
-      const brokenData = eventData ? null : useCalendarStore.getState().brokenEvents.find((be) => be.event.id === eventId)
+      const brokenData = eventData
+        ? null
+        : useCalendarStore.getState().brokenEvents.find((be) => be.event.id === eventId)
       const effectiveData = eventData ?? brokenData?.event
 
       const allCalendars = storage.getAllCalendars()
@@ -1438,7 +1496,7 @@ export function useCalDAV(): UseCalDAVReturn {
           console.log('[CalDAV] Deleting event from server...')
         }
 
-        const eventUrl = `${calendar.url}${eventId}.ics`
+        const eventUrl = `${calendar.url}${eventResourceFilename(eventId)}`
         // Bug 17 fix: use the event's etag from the store instead of empty string
         await engine.deleteEvent(eventUrl, effectiveData?.etag || '')
 
@@ -1489,38 +1547,36 @@ export function useCalDAV(): UseCalDAVReturn {
   // those never get a local CalendarEvent (they're skipped to avoid
   // clobbering the kept event), so the usual eventId-based lookup/URL
   // reconstruction in deleteEventFn doesn't apply — the href is all we have.
-  const deleteEventByHref = useCallback(
-    async (calendarId: string, href: string): Promise<void> => {
-      const allCalendars = storage.getAllCalendars()
-      const allAccounts = storage.getAllAccounts()
-      const calendar = allCalendars.find((c) => c.id === calendarId)
-      const account = allAccounts.find((a) => a.id === calendar?.accountId)
+  const deleteEventByHref = useCallback(async (calendarId: string, href: string): Promise<void> => {
+    const allCalendars = storage.getAllCalendars()
+    const allAccounts = storage.getAllAccounts()
+    const calendar = allCalendars.find((c) => c.id === calendarId)
+    const account = allAccounts.find((a) => a.id === calendar?.accountId)
 
-      if (!calendar || !account) {
-        throw new Error('No CalDAV account found for this calendar')
-      }
+    if (!calendar || !account) {
+      throw new Error('No CalDAV account found for this calendar')
+    }
 
-      const credential = await getCredentialById(account.credentialId)
-      if (!credential) {
-        throw new Error('Credentials not found')
-      }
+    const credential = await getCredentialById(account.credentialId)
+    if (!credential) {
+      throw new Error('Credentials not found')
+    }
 
-      const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
-      const engine = new SyncEngine(client, calendarId)
-      await engine.deleteEvent(href, '')
-    },
-    []
-  )
+    const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
+    const engine = new SyncEngine(client, calendarId)
+    await engine.deleteEvent(href, '')
+  }, [])
 
   // Retry all events in the store that have syncStatus='failed'
-  const retryAllFailedSyncs = useCallback(async (): Promise<{ succeeded: number; failed: number }> => {
+  const retryAllFailedSyncs = useCallback(async (): Promise<{
+    succeeded: number
+    failed: number
+  }> => {
     if (caldavDebugMode) {
       console.log('[CalDAV] Retrying all failed syncs...')
     }
 
-    const failedEvents = useCalendarStore.getState().events.filter(
-      (e) => e.syncStatus === 'failed'
-    )
+    const failedEvents = useCalendarStore.getState().events.filter((e) => e.syncStatus === 'failed')
 
     if (failedEvents.length === 0) {
       console.log('[CalDAV] No failed events to retry')

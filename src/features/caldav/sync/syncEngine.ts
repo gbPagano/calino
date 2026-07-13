@@ -6,6 +6,17 @@ import { isUUID } from '@/lib/uuid'
 import * as storage from './accountStorage'
 import { getAttachments, putAttachments } from '@/lib/attachmentStore'
 
+/**
+ * Map a local UID to a resource filename accepted by strict WebDAV servers.
+ * Recurrence instance IDs include ISO timestamps (`:`), which Radicale rejects
+ * in request paths before it can answer a CORS preflight.
+ */
+export function eventResourceFilename(eventId: string): string {
+  return `${encodeURIComponent(eventId)
+    .replace(/[!'()*~]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replaceAll('%', '~')}.ics`
+}
+
 /** Enrich an event with attachment data from IndexedDB before serializing. */
 async function withInlineAttachments(event: CalendarEvent): Promise<CalendarEvent> {
   if (!event.attachments || event.attachments.length === 0) return event
@@ -141,7 +152,7 @@ export class SyncEngine {
     } else {
       iCalString = eventToICAL(enriched)
     }
-    const filename = `${event.id}.ics`
+    const filename = eventResourceFilename(event.id)
 
     return this.client.createEvent(calendar.url, iCalString, filename)
   }
@@ -162,7 +173,7 @@ export class SyncEngine {
     } else {
       iCalString = eventToICAL(enriched)
     }
-    const eventUrl = `${calendar.url}${event.id}.ics`
+    const eventUrl = `${calendar.url}${eventResourceFilename(event.id)}`
 
     return this.client.updateEvent(calendar.url, eventUrl, iCalString, etag)
   }

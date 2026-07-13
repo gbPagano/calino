@@ -81,6 +81,20 @@ const MONTH_SHORT = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ]
 
+/** Number of whole days between two `yyyy-MM-dd` date strings (UTC-based, DST-safe). */
+function daysBetween(fromDate: string, toDate: string): number {
+  const from = new Date(`${fromDate}T00:00:00Z`).getTime()
+  const to = new Date(`${toDate}T00:00:00Z`).getTime()
+  return Math.round((to - from) / 86400000)
+}
+
+/** Add `days` (may be negative) to a `yyyy-MM-dd` date string (UTC-based, DST-safe). */
+function addDays(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().split('T')[0]!
+}
+
 type MonthlyPattern = 'dayOfMonth' | 'nthWeekday' | 'lastWeekday'
 
 function detectMonthlyPattern(byWeekday: number[] | undefined, byDayOrdinals: number[] | undefined): MonthlyPattern {
@@ -218,10 +232,17 @@ export function EventFormFields({
               value={startDate}
               onChange={(e) => {
                 const newDate = e.target.value
+                if (!newDate) return
+                // Shift the end date by the same number of days the start date
+                // moved, so the event's span (and therefore start<=end) is
+                // preserved. A plain "clamp end to start if start>end" (the old
+                // behavior) only fixed same-day overlaps: for a multi-day event
+                // (e.g. start 07-13 23:00 → end 07-14 01:00), moving the start
+                // date forward by a day left the end date unchanged, producing
+                // start(07-14 23:00) > end(07-14 01:00) — an invalid range.
+                const dayDelta = daysBetween(startDate, newDate)
                 onStartDateChange(newDate)
-                if (newDate > endDate) {
-                  onEndDateChange(newDate)
-                }
+                onEndDateChange(addDays(endDate, dayDelta))
               }}
               className={styles.input}
               data-component="event-start-date"

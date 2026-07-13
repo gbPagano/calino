@@ -521,4 +521,39 @@ describe('EventModal', () => {
       })
     })
   })
+
+  describe('date field changes preserve start<=end (issue #44)', () => {
+    it('shifts the end date along with the start date for an overnight event, keeping the range valid', () => {
+      const store = useCalendarStore.getState()
+      // Overnight event: starts 23:00 on the 13th, ends 01:00 on the 14th.
+      store.addEvent({
+        id: 'overnight-event',
+        calendarId: 'default',
+        title: 'Overnight Event',
+        start: '2024-03-13T23:00:00',
+        end: '2024-03-14T01:00:00',
+        isAllDay: false,
+      })
+      store.openModal(undefined, undefined, 'overnight-event')
+      render(<EventModal />)
+
+      // Move the start date forward by one day (14th). The naive "clamp end
+      // to start only if start>end" logic left the end date at the 14th,
+      // producing start(14th 23:00) > end(14th 01:00) — an invalid range
+      // that used to be silently possible. The fix must shift the end date
+      // to the 15th too, preserving the original overnight span.
+      const startDateInput = document.querySelector(
+        '[data-component="event-start-date"]'
+      ) as HTMLInputElement
+      fireEvent.change(startDateInput, { target: { value: '2024-03-14' } })
+
+      const endDateInput = document.querySelector(
+        '[data-component="event-end-date"]'
+      ) as HTMLInputElement
+      expect(endDateInput.value).toBe('2024-03-15')
+
+      const saveButton = screen.getByRole('button', { name: /save/i })
+      expect(saveButton).not.toBeDisabled()
+    })
+  })
 })

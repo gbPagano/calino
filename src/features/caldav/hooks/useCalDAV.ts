@@ -56,14 +56,32 @@ function showToast(message: string): void {
  * The href is what lets us detect UID collisions across independent resources
  * (issue #22) — the same logic both sync paths need.
  */
+interface CollectParsedResult {
+  items: ParsedWithHref[]
+  /**
+   * True when at least one fetched resource had a body but yielded zero
+   * parsed components — i.e. ICAL.parse (or a VEVENT/VTODO/VJOURNAL mapper)
+   * threw and the failure was swallowed by parseICALData. Such a resource
+   * still exists on the server; it just couldn't be read. Callers must NOT
+   * treat this calendar's listing as authoritative for deletions this cycle,
+   * or the corresponding local event would be deleted even though it is
+   * still present remotely (data loss).
+   */
+  hadParseFailures: boolean
+}
+
 async function collectParsedWithHref(
   fetchedEvents: { url: string; data: string; etag?: string }[],
   calendarId: string,
-): Promise<ParsedWithHref[]> {
+): Promise<CollectParsedResult> {
   const result: ParsedWithHref[] = []
+  let hadParseFailures = false
   for (const eventData of fetchedEvents) {
     if (!eventData.data) continue
     const parsedEvents = parseICALData(eventData.data, calendarId)
+    if (parsedEvents.length === 0 && eventData.data.trim()) {
+      hadParseFailures = true
+    }
     for (let parsedEvent of parsedEvents) {
       // Cache inline attachments in IndexedDB, keep only metadata in the store
       if (parsedEvent.attachments && parsedEvent.attachments.length > 0) {
@@ -82,7 +100,7 @@ async function collectParsedWithHref(
       result.push({ event: parsedEvent, href: eventData.url })
     }
   }
-  return result
+  return { items: result, hadParseFailures }
 }
 
 interface UseCalDAVReturn {
@@ -446,7 +464,7 @@ export function useCalDAV(): UseCalDAVReturn {
           const fetchedEvents = await client.fetchEvents(cal.url, start, end)
           console.log('[CalDAV] addAccount: got', fetchedEvents.length, 'event objects for', cal.name)
 
-          const parsedWithHref = await collectParsedWithHref(fetchedEvents, cal.id)
+          const { items: parsedWithHref } = await collectParsedWithHref(fetchedEvents, cal.id)
 
           // Detect independent events illegally sharing a UID across resources.
           // Keep one deterministically; record the rest as data issues (#22).
@@ -709,22 +727,35 @@ export function useCalDAV(): UseCalDAVReturn {
         // Re-discover collections on every sync. This migrates capabilities
         // saved by older versions and picks up calendars created elsewhere.
         try {
-           const serverCalendars = await client.fetchCalendars()
-           const storedByUrl = new Map(accountCalendars.map((calendar) => [calendar.url, calendar]))
-           const serverUrls = new Set(serverCalendars.map((calendar) => calendar.url))
-           const discoveredCalendars = accountCalendars.filter((calendar) => serverUrls.has(calendar.url))
-           const caldavDebugMode = useSettingsStore.getState().caldavDebugMode
+          const serverCalendars = await client.fetchCalendars()
 
-           // A collection deleted by another CalDAV client must not remain in
-           // the sidebar or be fetched during this sync.
-           for (const storedCalendar of accountCalendars) {
-             if (!serverUrls.has(storedCalendar.url)) {
-               storage.deleteCalendar(storedCalendar.id)
-               storeDeleteCalendar(storedCalendar.id)
-             }
-           }
+          // A PROPFIND that comes back empty almost always means a transient
+          // failure, an auth/scope hiccup, or a misbehaving server response —
+          // not "the user deleted every calendar." Treating it as authoritative
+          // would wipe out every local calendar and all of their events in one
+          // sync. Bail out of reconciliation for this cycle instead; it will be
+          // retried on the next sync.
+          if (serverCalendars.length === 0 && accountCalendars.length > 0) {
+            throw new Error(
+              'Server returned zero calendars; refusing to treat this as an authoritative listing'
+            )
+          }
 
-           for (const serverCalendar of serverCalendars) {
+          const storedByUrl = new Map(accountCalendars.map((calendar) => [calendar.url, calendar]))
+          const serverUrls = new Set(serverCalendars.map((calendar) => calendar.url))
+          const discoveredCalendars = accountCalendars.filter((calendar) => serverUrls.has(calendar.url))
+          const caldavDebugMode = useSettingsStore.getState().caldavDebugMode
+
+          // A collection deleted by another CalDAV client must not remain in
+          // the sidebar or be fetched during this sync.
+          for (const storedCalendar of accountCalendars) {
+            if (!serverUrls.has(storedCalendar.url)) {
+              storage.deleteCalendar(storedCalendar.id)
+              storeDeleteCalendar(storedCalendar.id)
+            }
+          }
+
+          for (const serverCalendar of serverCalendars) {
             const storedCalendar = storedByUrl.get(serverCalendar.url)
             if (storedCalendar) {
               // Collection metadata is server-authoritative. Keep UI-owned
@@ -797,7 +828,7 @@ export function useCalDAV(): UseCalDAVReturn {
           const serverEventIds = new Set<string>()
           const newCategoryNames: string[] = []
 
-          const parsedWithHref = await collectParsedWithHref(fetchedEvents, cal.id)
+          const { items: parsedWithHref, hadParseFailures } = await collectParsedWithHref(fetchedEvents, cal.id)
 
           // Detect independent events illegally sharing a UID across resources.
           // Keep one deterministically; record the rest as data issues (#22).
@@ -897,10 +928,22 @@ export function useCalDAV(): UseCalDAVReturn {
 
           // The complete collection listing makes absence an authoritative
           // remote deletion. Never remove a local change waiting to be pushed.
-          for (const localEvent of calendarEvents) {
-            if (!serverEventIds.has(localEvent.id) && !pendingLocalChangeIds.has(localEvent.id)) {
-              storeDeleteEvent(localEvent.id)
+          // Skip deletion entirely if any resource in this fetch failed to
+          // parse: that resource's UID is unknown to us, so we cannot tell
+          // whether the local event it corresponds to is genuinely gone or
+          // just temporarily unreadable. Treating the listing as authoritative
+          // in that case could delete an event that still exists on the
+          // server. Adds/updates from resources that DID parse are unaffected.
+          if (!hadParseFailures) {
+            for (const localEvent of calendarEvents) {
+              if (!serverEventIds.has(localEvent.id) && !pendingLocalChangeIds.has(localEvent.id)) {
+                storeDeleteEvent(localEvent.id)
+              }
             }
+          } else {
+            console.warn(
+              `[CalDAV] Skipping remote-deletion reconciliation for calendar ${cal.id}: one or more resources failed to parse this cycle.`
+            )
           }
         }
 

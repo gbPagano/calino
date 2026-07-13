@@ -209,7 +209,8 @@ export class CalDAVClient {
   async fetchEvents(
     calendarUrl: string,
     start: string,
-    end: string
+    end: string,
+    includeAllEvents = false
   ): Promise<{ url: string; data: string; etag?: string }[]> {
     if (!navigator.onLine) {
       throw new Error('No network connection. Please check your internet connection.')
@@ -217,13 +218,22 @@ export class CalDAVClient {
     const client = this.getClient()
     const calendar = await this.findCalendarByUrl(calendarUrl)
 
-    // Fetch VEVENTs with time range
+    // A regular sync needs the complete VEVENT listing so an absent resource
+    // can be identified as a remote deletion. Initial imports may stay bounded.
     const eventObjects = await client.fetchCalendarObjects({
       calendar,
-      timeRange: {
-        start,
-        end,
-      },
+      ...(includeAllEvents
+        ? {
+            filters: {
+              'comp-filter': {
+                _attributes: { name: 'VCALENDAR' },
+                'comp-filter': { _attributes: { name: 'VEVENT' } },
+              },
+            },
+          }
+        : {
+            timeRange: { start, end },
+          }),
     })
 
     // Fetch VTODOs with custom filter (tsdav defaults to VEVENT only)

@@ -57,7 +57,7 @@ export class SyncEngine {
       throw new Error(`Calendar not found: ${this.calendarId}`)
     }
 
-    const serverEventsRaw = await this.client.fetchEvents(calendar.url, start, end)
+    const serverEventsRaw = await this.client.fetchEvents(calendar.url, start, end, true)
 
     const parsedEvents: CalendarEvent[] = []
     const allCategoryNames = new Set<string>()

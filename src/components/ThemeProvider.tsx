@@ -11,6 +11,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const themeMode = useSettingsStore((s) => s.themeMode)
   const lightTheme = useSettingsStore((s) => s.lightTheme)
   const darkTheme = useSettingsStore((s) => s.darkTheme)
+  const mochaAccent = useSettingsStore((s) => s.mochaAccent)
   const [loadedThemes, setLoadedThemes] = useState<ThemeInfo[]>([])
   const [, setTick] = useState(0)
 
@@ -61,6 +62,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
     document.documentElement.setAttribute('data-theme', effectiveMode)
     document.documentElement.setAttribute('data-theme-mode', themeMode)
+    if (currentThemeId === 'catppuccin-mocha') {
+      document.documentElement.style.setProperty('--accent-custom', mochaAccent)
+    } else {
+      document.documentElement.style.removeProperty('--accent-custom')
+    }
     if (!isBuiltIn) {
       const themeId = currentThemeId.replace(/-(light|dark)$/, '')
       document.documentElement.setAttribute('data-theme-id', themeId)
@@ -74,7 +80,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     if (metaThemeColor) {
       metaThemeColor.setAttribute('content', accentColor || '#4285f4')
     }
-  }, [combinedCSS, effectiveMode, themeMode, currentThemeId, isBuiltIn])
+  }, [combinedCSS, effectiveMode, themeMode, currentThemeId, isBuiltIn, mochaAccent])
 
   const themeModeRef = useRef(themeMode)
   useEffect(() => {

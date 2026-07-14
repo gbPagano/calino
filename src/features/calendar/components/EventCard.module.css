@@ -81,7 +81,7 @@
   bottom: 4px;
   width: 3px;
   border-radius: 3px;
-  background: color-mix(in srgb, var(--event-color, var(--accent)) 50%, var(--canvas, #fff));
+  background: color-mix(in srgb, var(--event-color, var(--accent)) var(--event-rail-mix, 50%), var(--canvas, #fff));
 }
 
 .compact::before {

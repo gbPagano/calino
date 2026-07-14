@@ -1,10 +1,20 @@
 import { useEffect, useMemo } from 'react'
-import type { JSX } from 'react'
+import type { CSSProperties, JSX } from 'react'
 import { useSettingsStore, THEME_MODE_OPTIONS } from '@/store/settingsStore'
 import { useTheme } from '@/components/ThemeContext'
 import { getThemePreviewCSS } from '@/lib/themes'
 import type { ThemeMode } from '@/types'
 import styles from './Settings.module.css'
+
+const MOCHA_ACCENTS = [
+  { label: 'Blue', value: '#89b4fa' },
+  { label: 'Lavender', value: '#b4befe' },
+  { label: 'Mauve', value: '#cba6f7' },
+  { label: 'Pink', value: '#f5c2e7' },
+  { label: 'Teal', value: '#94e2d5' },
+  { label: 'Green', value: '#a6e3a1' },
+  { label: 'Peach', value: '#fab387' },
+]
 
 function MiniCalendarPreview({ themeId, variant }: { themeId: string; variant: 'light' | 'dark' | 'system' }): JSX.Element {
   // Extract theme colors from the theme's CSS (dynamically reflects the selected theme)
@@ -96,6 +106,7 @@ export function ThemeSettings(): JSX.Element {
   const themeMode = useSettingsStore((s) => s.themeMode)
   const lightTheme = useSettingsStore((s) => s.lightTheme)
   const darkTheme = useSettingsStore((s) => s.darkTheme)
+  const mochaAccent = useSettingsStore((s) => s.mochaAccent)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
   const showEventIcons = useSettingsStore((s) => s.showEventIcons)
   const { loadedThemes, refetchThemes } = useTheme()
@@ -185,6 +196,28 @@ export function ThemeSettings(): JSX.Element {
             />
           ))}
         </div>
+        {darkTheme === 'catppuccin-mocha' && (
+          <div className={styles.row} data-component="setting-row" data-setting="mocha-accent">
+            <div className={styles.rowInfo}>
+              <div className={styles.rowLabel}>Catppuccin accent</div>
+              <div className={styles.rowDesc}>Used for selection, focus, and primary actions</div>
+            </div>
+            <div className={styles.mochaAccentOptions} role="group" aria-label="Catppuccin accent color">
+              {MOCHA_ACCENTS.map((accent) => (
+                <button
+                  key={accent.value}
+                  className={`${styles.mochaAccentOption} ${mochaAccent === accent.value ? styles.mochaAccentOptionActive : ''}`}
+                  style={{ '--mocha-accent': accent.value } as CSSProperties}
+                  onClick={() => updateSettings({ mochaAccent: accent.value })}
+                  aria-label={`Use ${accent.label} accent`}
+                  aria-pressed={mochaAccent === accent.value}
+                  title={accent.label}
+                  type="button"
+                />
+              ))}
+            </div>
+          </div>
+        )}
         <div className={styles.row} data-component="setting-row" data-setting="show-event-icons" data-value={String(showEventIcons)}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Event icons</div>

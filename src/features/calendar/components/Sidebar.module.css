@@ -320,7 +320,7 @@
 
 .miniDay.selected {
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast, #fff);
   font-weight: 600;
 }
 

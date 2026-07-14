@@ -119,6 +119,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   themeMode: 'auto' as ThemeMode,
   lightTheme: config.defaultLightTheme,
   darkTheme: config.defaultDarkTheme,
+  mochaAccent: '#89b4fa',
   caldavDebugMode: false,
   hideCompletedTasksInMonthView: true,
   useCategoryColors: true,

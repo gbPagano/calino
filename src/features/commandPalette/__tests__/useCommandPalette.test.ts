@@ -132,6 +132,7 @@ vi.mock('@/store/settingsStore', () => ({
       themeMode: 'auto',
       lightTheme: 'default',
       darkTheme: 'default',
+      mochaAccent: '#89b4fa',
       caldavDebugMode: false,
       hideCompletedTasksInMonthView: true,
       monthViewEventLimit: 3,

@@ -142,7 +142,7 @@
 }
 
 .dayHeader.today {
-  background: rgba(176, 125, 79, 0.04);
+  background: var(--day-column-today-bg, var(--selected-bg));
 }
 
 .dayHeader.today .dayNumber {
@@ -152,7 +152,7 @@
   width: 28px;
   height: 28px;
   background: var(--accent, #b07d4f);
-  color: white;
+  color: var(--accent-contrast, #fff);
   border-radius: 50%;
   font-weight: 600;
 }
@@ -200,7 +200,7 @@
 }
 
 .dayColumn.todayColumn {
-  background: rgba(176, 125, 79, 0.02);
+  background: var(--day-column-today-bg, var(--selected-bg));
 }
 
 .hourCells {
@@ -219,7 +219,7 @@
 }
 
 .cell:hover {
-  background: rgba(var(--ink-raw), 0.03);
+  background: var(--hover-bg);
 }
 
 .cell:active {

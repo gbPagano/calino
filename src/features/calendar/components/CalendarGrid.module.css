@@ -184,7 +184,7 @@
 
 .today .dayNumber {
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast, #fff);
   font-weight: 600;
 }
 
@@ -215,7 +215,8 @@
 }
 
 .dayNumber:hover {
-  background: rgba(var(--ink-raw, 44, 40, 33), 0.06);
+  background: var(--day-number-hover-bg, var(--hover-bg));
+  color: var(--color-text-primary);
 }
 
 .dayNumber:active {

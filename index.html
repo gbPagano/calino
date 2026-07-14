@@ -86,9 +86,18 @@
       (function() {
         try {
           var stored = JSON.parse(localStorage.getItem('calino-settings') || '{}');
-          var mode = (stored.state && stored.state.themeMode) || 'auto';
+          var settings = stored.state || {};
+          var mode = settings.themeMode || 'auto';
           var isDark = mode === 'dark' || (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          document.body.style.background = isDark ? '#1a1816' : '#fafafa';
+          var isMocha = isDark && settings.darkTheme === 'catppuccin-mocha';
+          var mochaAccent = settings.mochaAccent || '#89b4fa';
+          var background = isMocha ? '#1e1e2e' : (isDark ? '#1a1816' : '#fafafa');
+          document.documentElement.style.background = background;
+          document.body.style.background = background;
+          if (isMocha) {
+            var themeColor = document.querySelector('meta[name="theme-color"]');
+            if (themeColor) themeColor.setAttribute('content', mochaAccent);
+          }
           document.body.style.transition = 'background 0.3s ease';
         } catch(e) {}
       })();

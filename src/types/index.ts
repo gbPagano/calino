@@ -270,6 +270,7 @@ export interface UserSettings {
   themeMode: ThemeMode
   lightTheme: string
   darkTheme: string
+  mochaAccent: string
   caldavDebugMode: boolean
   hideCompletedTasksInMonthView: boolean
   useCategoryColors: boolean

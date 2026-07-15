@@ -258,6 +258,7 @@ export interface UserSettings {
   defaultDuration: DefaultDuration
   defaultView: ViewType
   showWeekNumbers: boolean
+  showWeekNumbersInSidebar: boolean
   eventDensity: EventDensity
   mapProvider: MapProvider
   defaultReminderMinutes: number

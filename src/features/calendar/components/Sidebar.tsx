@@ -18,6 +18,7 @@ import {
   addMonths,
   subMonths,
   parseISO,
+  getISOWeek,
 } from 'date-fns'
 import { CALENDAR_COLORS, config, TOAST_DURATION_MS } from '@/config'
 import { useCalendarStore } from '@/store/calendarStore'
@@ -97,6 +98,7 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
   const updateSettings = useSettingsStore((state) => state.updateSettings)
   const sidebarWidth = useSettingsStore((state) => state.sidebarWidth)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
+  const showWeekNumbersInSidebar = useSettingsStore((state) => state.showWeekNumbersInSidebar)
   const hideCompletedTasksInMonthView = useSettingsStore((state) => state.hideCompletedTasksInMonthView)
   const showAddCalendar = useCalendarStore((state) => state.showAddCalendar)
   const setShowAddCalendar = useCalendarStore((state) => state.setShowAddCalendar)
@@ -405,6 +407,14 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
     return [...days.slice(idx), ...days.slice(0, idx)]
   }, [firstDayOfWeek])
 
+  const miniWeeks = useMemo(() => {
+    const weeks: Date[][] = []
+    for (let i = 0; i < miniCalendarDays.length; i += 7) {
+      weeks.push(miniCalendarDays.slice(i, i + 7))
+    }
+    return weeks
+  }, [miniCalendarDays])
+
   const handlePrevMonth = (): void => {
     setMiniDate(subMonths(effectiveMiniDate, 1))
   }
@@ -530,31 +540,44 @@ export function Sidebar({ isOpen = false, onClose, isCollapsed: controlledCollap
               <ChevronRight />
             </button>
           </div>
-          <div className={styles.miniWeekdays}>
+          <div
+            className={`${styles.miniWeekdays} ${showWeekNumbersInSidebar ? styles.withWeekNum : ''}`}
+          >
+            {showWeekNumbersInSidebar && <span className={styles.miniWeekNumHeader} aria-hidden="true" />}
             {weekdays.map((day, idx) => (
               <span key={idx} className={styles.miniWeekday}>
                 {day}
               </span>
             ))}
           </div>
-          <div className={styles.miniDays}>
-            {miniCalendarDays.map((day) => {
-              const isCurrentMonth = isSameMonth(day, effectiveMiniDate)
-              const isSelected = isSameDay(day, parseISO(currentDate))
-              const isTodayDate = isToday(day)
-              return (
-                <button
-                  key={day.toISOString()}
-                  className={`${styles.miniDay} ${!isCurrentMonth ? styles.otherMonth : ''} ${
-                    isSelected ? styles.selected : ''
-                  } ${isTodayDate ? styles.today : ''}`}
-                  onClick={() => handleDayClick(day)}
-                  onDoubleClick={() => handleDayDoubleClick(day)}
-                >
-                  {format(day, 'd')}
-                </button>
-              )
-            })}
+          <div className={styles.miniDaysWrapper}>
+            {miniWeeks.map((week, weekIdx) => (
+              <div
+                key={weekIdx}
+                className={`${styles.miniDays} ${showWeekNumbersInSidebar ? styles.withWeekNum : ''}`}
+              >
+                {showWeekNumbersInSidebar && (
+                  <span className={styles.miniWeekNumber}>{getISOWeek(week[0])}</span>
+                )}
+                {week.map((day) => {
+                  const isCurrentMonth = isSameMonth(day, effectiveMiniDate)
+                  const isSelected = isSameDay(day, parseISO(currentDate))
+                  const isTodayDate = isToday(day)
+                  return (
+                    <button
+                      key={day.toISOString()}
+                      className={`${styles.miniDay} ${!isCurrentMonth ? styles.otherMonth : ''} ${
+                        isSelected ? styles.selected : ''
+                      } ${isTodayDate ? styles.today : ''}`}
+                      onClick={() => handleDayClick(day)}
+                      onDoubleClick={() => handleDayDoubleClick(day)}
+                    >
+                      {format(day, 'd')}
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
           </div>
           <button className={styles.todayBtn} onClick={handleToday} data-component="sidebar-today-button">
             Today

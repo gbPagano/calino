@@ -10,6 +10,7 @@ import styles from './Settings.module.css'
 export function CalendarSettings(): JSX.Element {
   const defaultView = useSettingsStore((s) => s.defaultView)
   const showWeekNumbers = useSettingsStore((s) => s.showWeekNumbers)
+  const showWeekNumbersInSidebar = useSettingsStore((s) => s.showWeekNumbersInSidebar)
   const eventDensity = useSettingsStore((s) => s.eventDensity)
   const compactRecurringEvents = useSettingsStore((s) => s.compactRecurringEvents)
   const compressPastWeeks = useSettingsStore((s) => s.compressPastWeeks)
@@ -71,6 +72,26 @@ export function CalendarSettings(): JSX.Element {
                 checked={showWeekNumbers}
                 aria-label="Show week numbers"
                 onChange={() => updateSettings({ showWeekNumbers: !showWeekNumbers })}
+              />
+              <span className={styles.pill} />
+              <span className={styles.knob} />
+            </label>
+          </div>
+        </div>
+        <div className={styles.row} data-component="setting-row" data-setting="show-week-numbers-in-sidebar" data-value={String(showWeekNumbersInSidebar)}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Show Week Numbers in Sidebar</div>
+            <div className={styles.rowDesc}>Display ISO week numbers next to each row in the mini calendar</div>
+          </div>
+          <div className={styles.rowControl}>
+            <label className={styles.toggle} data-component="toggle" data-setting="show-week-numbers-in-sidebar">
+              <input
+                type="checkbox"
+                checked={showWeekNumbersInSidebar}
+                aria-label="Show week numbers in sidebar"
+                onChange={() =>
+                  updateSettings({ showWeekNumbersInSidebar: !showWeekNumbersInSidebar })
+                }
               />
               <span className={styles.pill} />
               <span className={styles.knob} />

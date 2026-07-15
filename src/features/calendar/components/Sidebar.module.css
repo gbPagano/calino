@@ -277,6 +277,30 @@
   grid-template-columns: repeat(7, 1fr);
 }
 
+.miniWeekdays.withWeekNum,
+.miniDays.withWeekNum {
+  grid-template-columns: 18px repeat(7, 1fr);
+}
+
+.miniDaysWrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.miniWeekNumHeader {
+  display: block;
+}
+
+.miniWeekNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
 .miniWeekday {
   text-align: center;
   font-size: 10.5px;

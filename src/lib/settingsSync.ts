@@ -34,6 +34,7 @@ export const SYNCABLE_SETTINGS: (keyof UserSettings)[] = [
   'defaultDuration',
   'defaultView',
   'showWeekNumbers',
+  'showWeekNumbersInSidebar',
   'eventDensity',
   'defaultReminderMinutes',
   'defaultEventColor',

@@ -28,9 +28,7 @@ describe('CalendarSettings', () => {
     const user = userEvent.setup()
     render(<CalendarSettings />)
 
-    const checkbox = screen.getAllByRole('checkbox')
-    // checkbox[0] = showWeekNumbers, checkbox[1] = compactRecurring
-    const compactToggle = checkbox[1]
+    const compactToggle = screen.getByLabelText('Compact recurring events')
 
     expect(compactToggle).toBeChecked()
 
@@ -43,9 +41,7 @@ describe('CalendarSettings', () => {
     const user = userEvent.setup()
     render(<CalendarSettings />)
 
-    const checkbox = screen.getAllByRole('checkbox')
-    // checkbox[0] = showWeekNumbers, checkbox[1] = compactRecurring, checkbox[2] = compressPast
-    const compressToggle = checkbox[2]
+    const compressToggle = screen.getByLabelText('Compact past weeks')
 
     expect(compressToggle).toBeChecked()
 

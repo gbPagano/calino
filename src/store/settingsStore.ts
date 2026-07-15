@@ -107,6 +107,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   defaultDuration: 60,
   defaultView: config.defaultView,
   showWeekNumbers: true,
+  showWeekNumbersInSidebar: false,
   eventDensity: 'comfortable',
   mapProvider: 'google',
   defaultReminderMinutes: 15,

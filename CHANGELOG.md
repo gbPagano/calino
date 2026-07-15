@@ -2,6 +2,20 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.22.4] - 2026-07-15
+
+### Added
+
+- **Configurable map provider for event locations** — event locations opened Google Maps unconditionally; Settings → Calendar now has a "Map Provider" option covering Google Maps, Apple Maps, OpenStreetMap, mapy.com, or a generic `geo:` link for device-default apps like OsmAnd or CoMaps. Closes [#48](https://github.com/Ivan-Malinovski/calino/issues/48).
+- **Swipe left/right to change month** — month view already supported swiping up/down; it now also supports the horizontal swipe most calendar apps use, on both touch gestures and trackpad/touch input. Closes [#47](https://github.com/Ivan-Malinovski/calino/issues/47).
+- **Optional week numbers in the sidebar mini calendar** — Settings → Calendar has a new "Show Week Numbers in Sidebar" toggle (off by default) that adds ISO week numbers next to each row of the mini calendar, also reachable from the command palette. Closes [#49](https://github.com/Ivan-Malinovski/calino/issues/49).
+- **Custom color picker for categories** — pick any color for a category, not just the preset swatches. ([#51](https://github.com/Ivan-Malinovski/calino/pull/51), thanks [@gbPagano](https://github.com/gbPagano)!)
+- **Catppuccin theme with configurable accents** — a new Catppuccin (Mocha) theme option alongside a configurable accent color. ([#50](https://github.com/Ivan-Malinovski/calino/pull/50), thanks [@gbPagano](https://github.com/gbPagano)!)
+
+### Fixed
+
+- **Mobile split-view day panel now stays in sync with the sidebar** — the bottom day panel in month view's mobile split layout tracked its own local state instead of the shared current date, so picking a day in the sidebar while another day was already open had no effect. Closes [#46](https://github.com/Ivan-Malinovski/calino/issues/46).
+
 ## [0.22.2] - 2026-07-12
 
 ### Added

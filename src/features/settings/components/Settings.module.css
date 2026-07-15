@@ -738,6 +738,35 @@
   line-height: 1.2;
 }
 
+.mochaAccentOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.mochaAccentOption {
+  width: 24px;
+  height: 24px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--mocha-accent);
+  cursor: pointer;
+}
+
+.mochaAccentOption:hover,
+.mochaAccentOption:focus-visible {
+  transform: scale(1.1);
+}
+
+.mochaAccentOption:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.mochaAccentOptionActive {
+  border-color: var(--color-text-primary);
+}
+
 /* ── Accent Color Swatches ──────────────────────────────────────────────── */
 .swatches {
   display: flex;

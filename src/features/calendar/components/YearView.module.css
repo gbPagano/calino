@@ -153,7 +153,7 @@
 
 .today {
   background: var(--accent, #b07d4f);
-  color: #fff;
+  color: var(--accent-contrast, #fff);
   font-weight: 600;
 }
 
@@ -174,5 +174,5 @@
 }
 
 .today .eventDot {
-  background: #fff;
+  background: var(--accent-contrast, #fff);
 }

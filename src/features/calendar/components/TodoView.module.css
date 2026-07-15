@@ -323,7 +323,7 @@
   height: 20px;
   border-radius: 50%;
   cursor: pointer;
-  border: 1.7px solid color-mix(in srgb, var(--event-color, var(--accent)) 55%, var(--ink-3, #a39d93));
+  border: 1.7px solid color-mix(in srgb, var(--event-color, var(--accent)) var(--event-marker-mix, 55%), var(--ink-3, #a39d93));
   background: transparent;
   display: grid;
   place-content: center;
@@ -345,7 +345,7 @@
 
 .taskRow:hover .taskCheck {
   border-color: var(--event-color, var(--accent));
-  background: color-mix(in srgb, var(--event-color, var(--accent)) 9%, transparent);
+  background: color-mix(in srgb, var(--event-color, var(--accent)) var(--event-bg-mix, 9%), transparent);
 }
 
 .taskRow:hover .taskCheck svg {

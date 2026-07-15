@@ -117,7 +117,7 @@
   width: 28px;
   height: 28px;
   background: var(--accent, #b07d4f);
-  color: white;
+  color: var(--accent-contrast, #fff);
   border-radius: 50%;
   font-weight: 600;
 }
@@ -169,7 +169,7 @@
 }
 
 .cell:hover {
-  background: rgba(var(--ink-raw, 44, 40, 33), 0.03);
+  background: var(--hover-bg);
 }
 
 .cell:active {

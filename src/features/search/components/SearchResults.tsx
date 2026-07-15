@@ -177,7 +177,7 @@ export function SearchResults({ results, onSelectEvent }: SearchResultsProps): J
                   <LocationLink
                     location={result.event.location}
                     className={styles.resultLocation}
-                    ariaLabel={`Open ${result.event.location} in Google Maps (new tab)`}
+                    ariaLabel={`Open ${result.event.location} in Maps (new tab)`}
                   >
                     <svg aria-hidden="true"
                       width="12"

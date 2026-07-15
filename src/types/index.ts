@@ -248,6 +248,7 @@ export type FirstDayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6
 export type EventDensity = 'comfortable' | 'compact'
 export type DefaultDuration = 15 | 30 | 60 | 90 | 120
 export type ThemeMode = 'light' | 'dark' | 'auto'
+export type MapProvider = 'google' | 'apple' | 'osm' | 'mapy' | 'geo'
 
 export interface UserSettings {
   timezone: string
@@ -258,6 +259,7 @@ export interface UserSettings {
   defaultView: ViewType
   showWeekNumbers: boolean
   eventDensity: EventDensity
+  mapProvider: MapProvider
   defaultReminderMinutes: number
   defaultEventColor: string
   enableDesktopNotifications: boolean

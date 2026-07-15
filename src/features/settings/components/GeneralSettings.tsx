@@ -5,6 +5,7 @@ import {
   TIMEZONE_OPTIONS,
   DATE_FORMAT_OPTIONS,
   TIME_FORMAT_OPTIONS,
+  MAP_PROVIDER_OPTIONS,
 } from '@/store/settingsStore'
 import { useSettingsSync } from '@/hooks/useSettingsSync'
 import styles from './Settings.module.css'
@@ -56,6 +57,7 @@ export function GeneralSettings(): JSX.Element {
   const dateFormat = useSettingsStore((s) => s.dateFormat)
   const timeFormat = useSettingsStore((s) => s.timeFormat)
   const firstDayOfWeek = useSettingsStore((s) => s.firstDayOfWeek)
+  const mapProvider = useSettingsStore((s) => s.mapProvider)
   const journalEnabled = useSettingsStore((s) => s.journalEnabled)
   const contactsEnabled = useSettingsStore((s) => s.contactsEnabled)
   const updateSettings = useSettingsStore((s) => s.updateSettings)
@@ -129,6 +131,30 @@ export function GeneralSettings(): JSX.Element {
               }
             >
               {DATE_FORMAT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className={styles.row} data-component="setting-row" data-setting="map-provider" data-value={mapProvider}>
+          <div className={styles.rowInfo}>
+            <div className={styles.rowLabel}>Map Provider</div>
+            <div className={styles.rowDesc}>Service used to open event locations</div>
+          </div>
+          <div className={styles.rowControl}>
+            <select
+              className={styles.select}
+              value={mapProvider}
+              aria-label="Map provider"
+              onChange={(e) =>
+                updateSettings({
+                  mapProvider: e.target.value as typeof mapProvider,
+                })
+              }
+            >
+              {MAP_PROVIDER_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>

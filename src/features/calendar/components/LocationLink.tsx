@@ -1,4 +1,6 @@
 import type { JSX, ReactNode } from 'react'
+import { useSettingsStore } from '@/store/settingsStore'
+import { buildMapUrl } from '@/lib/mapProvider'
 
 interface LocationLinkProps {
   location: string
@@ -14,7 +16,7 @@ interface LocationLinkProps {
    * and you just want a small icon button to open the maps link.
    */
   iconOnly?: boolean
-  /** ARIA label override; defaults to "Open [location] in Google Maps". */
+  /** ARIA label override; defaults to "Open [location] in Maps". */
   ariaLabel?: string
 }
 
@@ -48,7 +50,8 @@ export function LocationLink({
   iconOnly = false,
   ariaLabel,
 }: LocationLinkProps): JSX.Element {
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
+  const mapProvider = useSettingsStore((s) => s.mapProvider)
+  const mapsUrl = buildMapUrl(mapProvider, location)
   return (
     <a
       href={mapsUrl}
@@ -56,8 +59,8 @@ export function LocationLink({
       rel="noopener noreferrer"
       className={className}
       onClick={(e) => e.stopPropagation()}
-      aria-label={ariaLabel ?? `Open ${location} in Google Maps`}
-      title={`Open in Google Maps: ${location}`}
+      aria-label={ariaLabel ?? `Open ${location} in Maps`}
+      title={`Open in Maps: ${location}`}
     >
       {iconOnly ? externalLinkIcon : (children ?? <span>{location}</span>)}
     </a>

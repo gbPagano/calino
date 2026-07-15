@@ -787,7 +787,7 @@ export function EventPreviewPopup({
                 location={editLocation || event.location || ''}
                 className={styles.locationMapLink}
                 iconOnly
-                ariaLabel={`Open ${editLocation || event.location} in Google Maps (new tab)`}
+                ariaLabel={`Open ${editLocation || event.location} in Maps (new tab)`}
               />
             </div>
           )}

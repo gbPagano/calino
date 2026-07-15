@@ -11,6 +11,7 @@ import type {
   DefaultDuration,
   ViewType,
   ThemeMode,
+  MapProvider,
 } from '@/types'
 import { config, DEFAULT_CALENDAR_COLOR, EVENT_COLORS as _EVENT_COLORS_FROM_CONFIG } from '@/config'
 
@@ -107,6 +108,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   defaultView: config.defaultView,
   showWeekNumbers: true,
   eventDensity: 'comfortable',
+  mapProvider: 'google',
   defaultReminderMinutes: 15,
   defaultEventColor: DEFAULT_CALENDAR_COLOR,
   enableDesktopNotifications: true,
@@ -233,4 +235,12 @@ export const THEME_MODE_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
   { value: 'auto', label: 'System' },
+]
+
+export const MAP_PROVIDER_OPTIONS: { value: MapProvider; label: string }[] = [
+  { value: 'google', label: 'Google Maps' },
+  { value: 'apple', label: 'Apple Maps' },
+  { value: 'osm', label: 'OpenStreetMap' },
+  { value: 'mapy', label: 'mapy.com' },
+  { value: 'geo', label: 'Device default (geo:)' },
 ]

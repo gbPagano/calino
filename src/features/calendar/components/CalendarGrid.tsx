@@ -174,6 +174,12 @@ export function CalendarGrid(): JSX.Element {
     currentDateRef.current = currentDate
   }, [currentDate])
 
+  // Keep the open bottom-panel day in sync when currentDate changes elsewhere
+  // (e.g. sidebar mini-calendar tap), so the split view doesn't get stuck on a stale day.
+  useEffect(() => {
+    setBottomPanelDay((prev) => (prev !== null && prev !== currentDate ? currentDate : prev))
+  }, [currentDate])
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -618,6 +624,7 @@ export function CalendarGrid(): JSX.Element {
   const handleDayClick = (day: Date): void => {
     const dateStr = format(day, 'yyyy-MM-dd')
     if (isTallWindow || isCompactMobile) {
+      setCurrentDate(dateStr)
       setBottomPanelDay((prev) => (prev === dateStr ? null : dateStr))
     } else {
       openModal(dateStr)
@@ -632,7 +639,9 @@ export function CalendarGrid(): JSX.Element {
 
   const handleDayNumberClick = (day: Date): void => {
     if (isTallWindow || isCompactMobile) {
-      setBottomPanelDay((prev) => (prev === format(day, 'yyyy-MM-dd') ? null : format(day, 'yyyy-MM-dd')))
+      const dateStr = format(day, 'yyyy-MM-dd')
+      setCurrentDate(dateStr)
+      setBottomPanelDay((prev) => (prev === dateStr ? null : dateStr))
       return
     }
     setCurrentDate(format(day, 'yyyy-MM-dd'))

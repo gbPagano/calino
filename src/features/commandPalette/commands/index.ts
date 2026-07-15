@@ -21,6 +21,7 @@ interface CommandFactoryDeps {
   useCategoryColors?: boolean
   journalEnabled?: boolean
   contactsEnabled?: boolean
+  showWeekNumbersInSidebar?: boolean
   updateSettings?: (
     settings: Partial<{
       themeMode: ThemeMode
@@ -31,6 +32,7 @@ interface CommandFactoryDeps {
       useCategoryColors: boolean
       journalEnabled: boolean
       contactsEnabled: boolean
+      showWeekNumbersInSidebar: boolean
     }>
   ) => void
 }
@@ -389,6 +391,21 @@ const createSettingsCommands = (deps: CommandFactoryDeps): Command[] => [
       const newValue = !deps.contactsEnabled
       deps.updateSettings?.({ contactsEnabled: newValue })
       return newValue ? 'Contacts enabled' : 'Contacts disabled'
+    },
+  },
+  {
+    id: 'toggle-week-numbers-sidebar',
+    label: deps.showWeekNumbersInSidebar
+      ? 'Hide Week Numbers in Sidebar'
+      : 'Show Week Numbers in Sidebar',
+    description: 'Display ISO week numbers next to each row in the mini calendar',
+    category: 'settings',
+    keywords: ['week', 'numbers', 'sidebar', 'mini calendar', 'iso week'],
+    icon: ICONS.sidebar,
+    action: () => {
+      const newValue = !deps.showWeekNumbersInSidebar
+      deps.updateSettings?.({ showWeekNumbersInSidebar: newValue })
+      return newValue ? 'Week numbers shown in sidebar' : 'Week numbers hidden in sidebar'
     },
   },
   {

@@ -92,6 +92,7 @@ export function useCommandPalette({ toggleSidebar, sidebarOpen }: UseCommandPale
   const useCategoryColors = useSettingsStore((state) => state.useCategoryColors)
   const journalEnabled = useSettingsStore((state) => state.journalEnabled)
   const contactsEnabled = useSettingsStore((state) => state.contactsEnabled)
+  const showWeekNumbersInSidebar = useSettingsStore((state) => state.showWeekNumbersInSidebar)
 
   const commands = useMemo(() => {
     return createCommandRegistry({
@@ -106,6 +107,7 @@ export function useCommandPalette({ toggleSidebar, sidebarOpen }: UseCommandPale
       useCategoryColors,
       journalEnabled,
       contactsEnabled,
+      showWeekNumbersInSidebar,
       sidebarOpen,
       toggleSidebar,
       updateSettings,
@@ -123,6 +125,7 @@ export function useCommandPalette({ toggleSidebar, sidebarOpen }: UseCommandPale
     useCategoryColors,
     journalEnabled,
     contactsEnabled,
+    showWeekNumbersInSidebar,
     sidebarOpen,
     toggleSidebar,
     updateSettings,

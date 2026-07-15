@@ -110,8 +110,12 @@ export function CalendarGrid(): JSX.Element {
 
   const { bind } = useGestures({
     onSwipe: (direction) => {
-      if (direction === 'down' || direction === 'up') {
-        changeMonth(direction)
+      // Vertical swipes map directly; horizontal swipes mirror the
+      // Google Calendar convention (left → next month, right → previous).
+      if (direction === 'down' || direction === 'left') {
+        changeMonth('down')
+      } else if (direction === 'up' || direction === 'right') {
+        changeMonth('up')
       }
     },
     onPinch: (scaleValue) => {
@@ -655,26 +659,33 @@ export function CalendarGrid(): JSX.Element {
     navigate(VIEW_ROUTES.week, { replace: true })
   }
 
-  const touchStartY = useRef<number | null>(null)
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null)
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 1) {
-      touchStartY.current = e.touches[0].clientY
+      touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
     }
   }, [])
 
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent) => {
-      if (touchStartY.current === null) return
+      if (touchStartPos.current === null) return
 
-      const touchEndY = e.changedTouches[0].clientY
-      const diff = touchStartY.current - touchEndY
+      const touch = e.changedTouches[0]
+      const diffX = touchStartPos.current.x - touch.clientX
+      const diffY = touchStartPos.current.y - touch.clientY
 
-      if (Math.abs(diff) > 50) {
-        changeMonth(diff > 0 ? 'up' : 'down')
+      // Whichever axis moved further decides the swipe direction, matching
+      // the useGestures onSwipe mapping above (left/down = next month).
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        if (Math.abs(diffX) > 50) {
+          changeMonth(diffX > 0 ? 'down' : 'up')
+        }
+      } else if (Math.abs(diffY) > 50) {
+        changeMonth(diffY > 0 ? 'up' : 'down')
       }
 
-      touchStartY.current = null
+      touchStartPos.current = null
     },
     [changeMonth]
   )

@@ -2,8 +2,9 @@ import { type JSX, useRef, useEffect, useState, useCallback, useMemo } from 'rea
 import { createPortal } from 'react-dom'
 import { format, parseISO, isSameDay } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
-import { formatTime } from '@/lib/datetime'
+import { formatTime, daysBetween, addDays } from '@/lib/datetime'
 import { buildMasterTruncation } from '@/lib/recurrenceSplit'
+import { showToast } from '@/lib/toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useSettingsStore } from '@/store/settingsStore'
@@ -186,6 +187,15 @@ export function EventPreviewPopup({
       const originalEndDate = format(parseISO(effectiveEnd), 'yyyy-MM-dd')
       const endDateToUse = editEndDate || originalEndDate
       updates.end = `${endDateToUse}T${endTime}:00`
+
+      // Safety net: the end-date field (editingField === 'endDate') has no
+      // shifting logic of its own, so it can still be set to a date before
+      // the start independently. Refuse to persist an inverted range rather
+      // than silently saving start > end (issue #44).
+      if (new Date(updates.end).getTime() <= new Date(updates.start).getTime()) {
+        showToast('End must be after start')
+        return
+      }
     }
 
     const recurring = !!event.recurrence || !!event.rruleString || !!originalEventId
@@ -370,6 +380,15 @@ export function EventPreviewPopup({
     if (field === 'title') {
       setEditTitle(value)
     } else if (field === 'date') {
+      if (!isTask) {
+        // Shift the end date by the same number of days the start date moved,
+        // preserving the event's span so a multi-day/overnight event doesn't
+        // end up with start > end (issue #44).
+        const oldStartDate = editDate || format(parseISO(effectiveStart), 'yyyy-MM-dd')
+        const oldEndDate = editEndDate || format(parseISO(effectiveEnd), 'yyyy-MM-dd')
+        const dayDelta = daysBetween(oldStartDate, value)
+        setEditEndDate(addDays(oldEndDate, dayDelta))
+      }
       setEditDate(value)
     } else if (field === 'endDate') {
       setEditEndDate(value)

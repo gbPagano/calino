@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { RecurrenceRule, Reminder, CalendarEvent, CalendarAttachment } from '@/types'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useScrollInput } from '@/hooks/useScrollInput'
-import { pad2 } from '@/lib/datetime'
+import { pad2, daysBetween, addDays } from '@/lib/datetime'
 import { AttachmentSection } from './AttachmentSection'
 import { TimeInput } from './TimeInput'
 import { getWeekdayLabels } from './weekdayLabels'
@@ -80,20 +80,6 @@ const MONTH_SHORT = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ]
-
-/** Number of whole days between two `yyyy-MM-dd` date strings (UTC-based, DST-safe). */
-function daysBetween(fromDate: string, toDate: string): number {
-  const from = new Date(`${fromDate}T00:00:00Z`).getTime()
-  const to = new Date(`${toDate}T00:00:00Z`).getTime()
-  return Math.round((to - from) / 86400000)
-}
-
-/** Add `days` (may be negative) to a `yyyy-MM-dd` date string (UTC-based, DST-safe). */
-function addDays(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().split('T')[0]!
-}
 
 type MonthlyPattern = 'dayOfMonth' | 'nthWeekday' | 'lastWeekday'
 

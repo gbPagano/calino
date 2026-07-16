@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { format, parseISO } from 'date-fns'
 import { EventPreviewPopup } from '../components/EventPreviewPopup'
 import { useCalendarStore } from '@/store/calendarStore'
 import type { CalendarEvent } from '@/types'
@@ -34,6 +35,19 @@ const mockTask: CalendarEvent = {
   type: 'task',
   dueDate: '2024-03-15',
   priority: 3,
+}
+
+// Times are chosen 8 hours apart, spanning midnight, so the event lands on
+// different local calendar days regardless of the test runner's timezone
+// offset (unlike a tight 23:00→01:00 span, which can collapse onto the same
+// local day under positive UTC offsets).
+const mockOvernightEvent: CalendarEvent = {
+  id: 'test-event-overnight',
+  title: 'Overnight Event',
+  start: '2024-03-13T20:00:00.000Z',
+  end: '2024-03-14T04:00:00.000Z',
+  calendarId: 'default',
+  isAllDay: false,
 }
 
 const mockRecurringEvent: CalendarEvent = {
@@ -381,6 +395,82 @@ describe('EventPreviewPopup', () => {
         expect(exception?.title).toBe('Just This One')
         expect(exception?.start).toContain('2024-03-15')
         expect(exception?.recurrence).toBeUndefined()
+      })
+    })
+  })
+
+  describe('date field changes preserve start<=end (issue #44)', () => {
+    // Local-time (test-runner timezone) representations of the fixture, matching
+    // what the component itself derives via date-fns `format`/`parseISO`.
+    const startLocalDate = format(parseISO(mockOvernightEvent.start), 'yyyy-MM-dd')
+    const startLocalTime = format(parseISO(mockOvernightEvent.start), 'HH:mm')
+    const endLocalDate = format(parseISO(mockOvernightEvent.end), 'yyyy-MM-dd')
+    const endLocalTime = format(parseISO(mockOvernightEvent.end), 'HH:mm')
+    const startDisplay = format(parseISO(mockOvernightEvent.start), 'd MMM yyyy')
+    const endDisplay = format(parseISO(mockOvernightEvent.end), 'd MMM yyyy')
+
+    it('shifts the end date along with the start date for an overnight event, keeping the range valid', async () => {
+      const store = useCalendarStore.getState()
+      store.addEvent(mockOvernightEvent)
+      render(
+        <EventPreviewPopup
+          event={mockOvernightEvent}
+          position={mockPosition}
+          clickedEventId="test-event-overnight"
+        />
+      )
+
+      fireEvent.click(screen.getByText(startDisplay))
+      const shiftedStartDate = format(
+        new Date(new Date(`${startLocalDate}T00:00:00`).getTime() + 86400000),
+        'yyyy-MM-dd'
+      )
+      const shiftedEndDate = format(
+        new Date(new Date(`${endLocalDate}T00:00:00`).getTime() + 86400000),
+        'yyyy-MM-dd'
+      )
+      fireEvent.change(screen.getByDisplayValue(startLocalDate), {
+        target: { value: shiftedStartDate },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+      await waitFor(() => {
+        const updated = useCalendarStore
+          .getState()
+          .events.find((e) => e.id === 'test-event-overnight')
+        expect(updated?.start).toBe(`${shiftedStartDate}T${startLocalTime}:00`)
+        expect(updated?.end).toBe(`${shiftedEndDate}T${endLocalTime}:00`)
+      })
+    })
+
+    it('refuses to save when the end date is edited to a date before the start date', async () => {
+      const store = useCalendarStore.getState()
+      store.addEvent(mockOvernightEvent)
+      render(
+        <EventPreviewPopup
+          event={mockOvernightEvent}
+          position={mockPosition}
+          clickedEventId="test-event-overnight"
+        />
+      )
+
+      fireEvent.click(screen.getByText(endDisplay))
+      const beforeStartDate = format(
+        new Date(new Date(`${startLocalDate}T00:00:00`).getTime() - 86400000),
+        'yyyy-MM-dd'
+      )
+      fireEvent.change(screen.getByDisplayValue(endLocalDate), {
+        target: { value: beforeStartDate },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+      await waitFor(() => {
+        const updated = useCalendarStore
+          .getState()
+          .events.find((e) => e.id === 'test-event-overnight')
+        // The invalid edit must not be persisted — start/end stay as originally seeded.
+        expect(updated?.start).toBe(mockOvernightEvent.start)
+        expect(updated?.end).toBe(mockOvernightEvent.end)
       })
     })
   })

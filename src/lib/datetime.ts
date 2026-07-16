@@ -50,3 +50,17 @@ export function formatDateLong(
   const timePattern = timeFormat === '24h' ? 'HH:mm' : 'h:mm a'
   return format(d, `MMM d, yyyy ${timePattern}`)
 }
+
+/** Number of whole days between two `yyyy-MM-dd` date strings (UTC-based, DST-safe). */
+export function daysBetween(fromDate: string, toDate: string): number {
+  const from = new Date(`${fromDate}T00:00:00Z`).getTime()
+  const to = new Date(`${toDate}T00:00:00Z`).getTime()
+  return Math.round((to - from) / 86400000)
+}
+
+/** Add `days` (may be negative) to a `yyyy-MM-dd` date string (UTC-based, DST-safe). */
+export function addDays(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().split('T')[0]!
+}

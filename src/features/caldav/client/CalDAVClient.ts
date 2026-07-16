@@ -665,6 +665,31 @@ export class CalDAVClient {
   private static readonly SETTINGS_FILENAME = 'calino-settings.ics'
 
   /**
+   * Parse a WebDAV multistatus (or any XML) response body into a Document.
+   * Uses DOMParser instead of regex so element lookups are namespace-aware —
+   * servers are free to use any namespace prefix (or none), and a regex
+   * hardcoded to one prefix silently fails to match on servers that differ.
+   */
+  private parseXmlDocument(text: string): Document {
+    const doc = new DOMParser().parseFromString(text, 'application/xml')
+    const parserError = doc.getElementsByTagName('parsererror')[0]
+    if (parserError) {
+      throw new Error(`Failed to parse WebDAV XML response: ${parserError.textContent}`)
+    }
+    return doc
+  }
+
+  /** All descendant elements matching a local name in the DAV: namespace. */
+  private getDavElements(scope: Document | Element, localName: string): Element[] {
+    return Array.from(scope.getElementsByTagNameNS('DAV:', localName))
+  }
+
+  /** Text content of the first descendant element matching a local name in the DAV: namespace. */
+  private getDavElementText(scope: Document | Element, localName: string): string | null {
+    return this.getDavElements(scope, localName)[0]?.textContent ?? null
+  }
+
+  /**
    * Discover whether the dedicated Calino Settings calendar exists.
    * Returns the calendar object + URL when found, null otherwise.
    */
@@ -702,25 +727,28 @@ export class CalDAVClient {
     }
 
     const text = await response.text()
+    const doc = this.parseXmlDocument(text)
 
-    // Iterate response blocks independently of property order
-    const responseBlocks = text.match(/<d:response>[\s\S]*?<\/d:response>/g) || []
+    // Iterate response elements independently of namespace prefix or property order
+    const responseElements = this.getDavElements(doc, 'response')
 
-    for (const block of responseBlocks) {
-      const hrefMatch = block.match(/<d:href>([^<]+)<\/d:href>/)
-      if (!hrefMatch?.[1]) continue
+    for (const responseEl of responseElements) {
+      const href = this.getDavElementText(responseEl, 'href')
+      if (!href) continue
 
       // Match by dead property (preferred) or displayname + URL fragment
-      const hasDeadProp = block.includes(`<${CalDAVClient.SETTINGS_DEAD_PROP}`) && block.includes(`>${CalDAVClient.SETTINGS_DEAD_PROP}`)
-        ? block.match(new RegExp(`<[^:]*:${CalDAVClient.SETTINGS_DEAD_PROP}[^>]*>1</[^:]*:${CalDAVClient.SETTINGS_DEAD_PROP}>`))
-        : block.match(new RegExp(`<${CalDAVClient.SETTINGS_DEAD_PROP}[^>]*>1</${CalDAVClient.SETTINGS_DEAD_PROP}>`))
+      const deadPropText = responseEl.getElementsByTagNameNS(
+        'http://calino.app/ns/',
+        CalDAVClient.SETTINGS_DEAD_PROP,
+      )[0]?.textContent
+      const hasDeadProp = deadPropText?.trim() === '1'
 
-      const displayNameMatch = block.match(/<d:displayname>([^<]*)<\/d:displayname>/)
-      const hasDisplayName = displayNameMatch?.[1] === CalDAVClient.SETTINGS_CAL_DISPLAY &&
-        hrefMatch[1].includes(CalDAVClient.SETTINGS_CAL_NAME)
+      const displayName = this.getDavElementText(responseEl, 'displayname')
+      const hasDisplayName = displayName === CalDAVClient.SETTINGS_CAL_DISPLAY &&
+        href.includes(CalDAVClient.SETTINGS_CAL_NAME)
 
       if (hasDeadProp || hasDisplayName) {
-        let calUrl = hrefMatch[1]
+        let calUrl = href
         if (calUrl.startsWith('/')) {
           const homeOrigin = new URL(calendarHomeUrl).origin
           calUrl = homeOrigin + calUrl
@@ -846,30 +874,33 @@ export class CalDAVClient {
     }
 
     const text = await response.text()
+    const doc = this.parseXmlDocument(text)
 
-    // Extract the response blocks — each <d:response> contains href, etag, calendar-data
-    const responseBlocks = text.match(/<d:response>[\s\S]*?<\/d:response>/g) || []
+    // Iterate response elements — each contains href, etag, calendar-data
+    const responseElements = this.getDavElements(doc, 'response')
 
-    for (const block of responseBlocks) {
-      const hrefMatch = block.match(/<d:href>([^<]+)<\/d:href>/)
-      const etagMatch = block.match(/<d:getetag>([^<]+)<\/d:getetag>/)
-      const dataMatch = block.match(/<[^:]*:calendar-data[^>]*>([\s\S]*?)<\/[^:]*:calendar-data>/)
+    for (const responseEl of responseElements) {
+      const href = this.getDavElementText(responseEl, 'href')
+      const etag = this.getDavElementText(responseEl, 'getetag')
+      const icalData = responseEl.getElementsByTagNameNS(
+        'urn:ietf:params:xml:ns:caldav',
+        'calendar-data',
+      )[0]?.textContent
 
-      if (hrefMatch?.[1] && dataMatch?.[1]) {
+      if (href && icalData) {
         // Resolve relative hrefs against the calendar home origin
-        let href = hrefMatch[1]
-        if (href.startsWith('/')) {
+        let resolvedHref = href
+        if (resolvedHref.startsWith('/')) {
           const homeOrigin = new URL(settingsCalendarUrl).origin
-          href = homeOrigin + href
+          resolvedHref = homeOrigin + resolvedHref
         }
-        // Decode HTML entities in ETag (e.g. &quot; → ")
-        const rawEtag = etagMatch?.[1] || ''
-        const etag = rawEtag.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
-        const icalData = dataMatch[1].trim()
+        // Note: textContent from a parsed DOM node is already entity-decoded,
+        // so no manual &quot;/&lt;/&gt;/&amp; unescaping is needed here.
+        const trimmedData = icalData.trim()
         // Extract DTSTAMP for conflict resolution
-        const dtstampMatch = icalData.match(/DTSTAMP:(\d{8}T\d{6}Z)/)
+        const dtstampMatch = trimmedData.match(/DTSTAMP:(\d{8}T\d{6}Z)/)
         const dtstamp = dtstampMatch?.[1] || ''
-        return { data: icalData, etag, href, dtstamp }
+        return { data: trimmedData, etag: etag || '', href: resolvedHref, dtstamp }
       }
     }
 

@@ -582,6 +582,268 @@ END:VCALENDAR`,
     })
   })
 
+  // Regression coverage for issue #52: discoverSettingsCalendar/fetchSettingsEvent
+  // used to parse multistatus XML with regexes hardcoded to a literal lowercase
+  // `d:` namespace prefix. WebDAV namespace prefixes are arbitrary per spec — a
+  // server can emit `D:`, some other prefix, or a default namespace with none at
+  // all — so a server that doesn't happen to use `d:` (e.g. Fastmail) silently
+  // failed to be discovered even though the calendar/event existed. These tests
+  // exercise the namespace-aware DOMParser-based parsing across prefix variants.
+  describe('discoverSettingsCalendar', () => {
+    const calendarHomeUrl = 'https://caldav.example.com/calendars/test/'
+    const settingsCalUrl = `${calendarHomeUrl}calino-settings/`
+
+    it('finds the settings calendar via dead property with a lowercase d: prefix', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response(
+          `<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:C="http://calino.app/ns/">
+  <d:response>
+    <d:href>${settingsCalUrl}</d:href>
+    <d:propstat>
+      <d:prop>
+        <d:displayname>Calino Settings</d:displayname>
+        <C:X-CALINO-SETTINGS-CALENDAR>1</C:X-CALINO-SETTINGS-CALENDAR>
+      </d:prop>
+    </d:propstat>
+  </d:response>
+</d:multistatus>`,
+          { status: 207 },
+        ),
+      )
+
+      const result = await client.discoverSettingsCalendar(calendarHomeUrl)
+      expect(result).toEqual({ url: settingsCalUrl })
+    })
+
+    it('finds the settings calendar with an uppercase D: prefix (Fastmail/Cyrus-style)', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response(
+          `<?xml version="1.0"?>
+<D:multistatus xmlns:D="DAV:" xmlns:C="http://calino.app/ns/">
+  <D:response>
+    <D:href>${settingsCalUrl}</D:href>
+    <D:propstat>
+      <D:prop>
+        <D:displayname>Calino Settings</D:displayname>
+        <C:X-CALINO-SETTINGS-CALENDAR>1</C:X-CALINO-SETTINGS-CALENDAR>
+      </D:prop>
+    </D:propstat>
+  </D:response>
+</D:multistatus>`,
+          { status: 207 },
+        ),
+      )
+
+      const result = await client.discoverSettingsCalendar(calendarHomeUrl)
+      expect(result).toEqual({ url: settingsCalUrl })
+    })
+
+    it('finds the settings calendar with an arbitrary namespace prefix', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response(
+          `<?xml version="1.0"?>
+<x1:multistatus xmlns:x1="DAV:" xmlns:x2="http://calino.app/ns/">
+  <x1:response>
+    <x1:href>${settingsCalUrl}</x1:href>
+    <x1:propstat>
+      <x1:prop>
+        <x1:displayname>Calino Settings</x1:displayname>
+        <x2:X-CALINO-SETTINGS-CALENDAR>1</x2:X-CALINO-SETTINGS-CALENDAR>
+      </x1:prop>
+    </x1:propstat>
+  </x1:response>
+</x1:multistatus>`,
+          { status: 207 },
+        ),
+      )
+
+      const result = await client.discoverSettingsCalendar(calendarHomeUrl)
+      expect(result).toEqual({ url: settingsCalUrl })
+    })
+
+    it('finds the settings calendar with a default namespace (no prefix)', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response(
+          `<?xml version="1.0"?>
+<multistatus xmlns="DAV:" xmlns:C="http://calino.app/ns/">
+  <response>
+    <href>${settingsCalUrl}</href>
+    <propstat>
+      <prop>
+        <displayname>Calino Settings</displayname>
+        <C:X-CALINO-SETTINGS-CALENDAR>1</C:X-CALINO-SETTINGS-CALENDAR>
+      </prop>
+    </propstat>
+  </response>
+</multistatus>`,
+          { status: 207 },
+        ),
+      )
+
+      const result = await client.discoverSettingsCalendar(calendarHomeUrl)
+      expect(result).toEqual({ url: settingsCalUrl })
+    })
+
+    it('falls back to displayname + URL fragment when the dead property is absent', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response(
+          `<?xml version="1.0"?>
+<D:multistatus xmlns:D="DAV:">
+  <D:response>
+    <D:href>${settingsCalUrl}</D:href>
+    <D:propstat>
+      <D:prop>
+        <D:displayname>Calino Settings</D:displayname>
+      </D:prop>
+    </D:propstat>
+  </D:response>
+</D:multistatus>`,
+          { status: 207 },
+        ),
+      )
+
+      const result = await client.discoverSettingsCalendar(calendarHomeUrl)
+      expect(result).toEqual({ url: settingsCalUrl })
+    })
+
+    it('returns null when no matching collection is present', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response(
+          `<?xml version="1.0"?>
+<D:multistatus xmlns:D="DAV:">
+  <D:response>
+    <D:href>${calendarHomeUrl}default/</D:href>
+    <D:propstat>
+      <D:prop>
+        <D:displayname>Default Calendar</D:displayname>
+      </D:prop>
+    </D:propstat>
+  </D:response>
+</D:multistatus>`,
+          { status: 207 },
+        ),
+      )
+
+      const result = await client.discoverSettingsCalendar(calendarHomeUrl)
+      expect(result).toBeNull()
+    })
+
+    it('throws a clear error on malformed XML instead of failing silently', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response('<D:multistatus xmlns:D="DAV:"><D:response>', { status: 207 }),
+      )
+
+      await expect(client.discoverSettingsCalendar(calendarHomeUrl)).rejects.toThrow(
+        /Failed to parse WebDAV XML response/,
+      )
+    })
+  })
+
+  describe('fetchSettingsEvent', () => {
+    const settingsCalUrl = 'https://caldav.example.com/calendars/test/calino-settings/'
+    const eventHref = `${settingsCalUrl}calino-settings.ics`
+    const icalData = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:calino-settings\r\nDTSTAMP:20260101T000000Z\r\nEND:VEVENT\r\nEND:VCALENDAR`
+
+    it('parses href, etag, and calendar-data with a lowercase d: prefix', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response(
+          `<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+  <d:response>
+    <d:href>${eventHref}</d:href>
+    <d:propstat>
+      <d:prop>
+        <d:getetag>"etag-1"</d:getetag>
+        <c:calendar-data>${icalData}</c:calendar-data>
+      </d:prop>
+    </d:propstat>
+  </d:response>
+</d:multistatus>`,
+          { status: 207 },
+        ),
+      )
+
+      const result = await client.fetchSettingsEvent(settingsCalUrl)
+      expect(result).not.toBeNull()
+      expect(result?.href).toBe(eventHref)
+      expect(result?.etag).toBe('"etag-1"')
+      expect(result?.dtstamp).toBe('20260101T000000Z')
+      expect(result?.data).toContain('UID:calino-settings')
+    })
+
+    it('parses correctly when calendar-data uses a different prefix than href/getetag', async () => {
+      // Realistic on real servers: many declare a separate xmlns:cal for CalDAV
+      // properties distinct from the DAV: prefix used for href/getetag.
+      fetchSpy.mockResolvedValue(
+        new Response(
+          `<?xml version="1.0"?>
+<D:multistatus xmlns:D="DAV:" xmlns:cal="urn:ietf:params:xml:ns:caldav">
+  <D:response>
+    <D:href>${eventHref}</D:href>
+    <D:propstat>
+      <D:prop>
+        <D:getetag>"etag-2"</D:getetag>
+        <cal:calendar-data>${icalData}</cal:calendar-data>
+      </D:prop>
+    </D:propstat>
+  </D:response>
+</D:multistatus>`,
+          { status: 207 },
+        ),
+      )
+
+      const result = await client.fetchSettingsEvent(settingsCalUrl)
+      expect(result).not.toBeNull()
+      expect(result?.href).toBe(eventHref)
+      expect(result?.etag).toBe('"etag-2"')
+      expect(result?.data).toContain('UID:calino-settings')
+    })
+
+    it('parses correctly with a default namespace (no prefix)', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response(
+          `<?xml version="1.0"?>
+<multistatus xmlns="DAV:" xmlns:cal="urn:ietf:params:xml:ns:caldav">
+  <response>
+    <href>${eventHref}</href>
+    <propstat>
+      <prop>
+        <getetag>"etag-3"</getetag>
+        <cal:calendar-data>${icalData}</cal:calendar-data>
+      </prop>
+    </propstat>
+  </response>
+</multistatus>`,
+          { status: 207 },
+        ),
+      )
+
+      const result = await client.fetchSettingsEvent(settingsCalUrl)
+      expect(result).not.toBeNull()
+      expect(result?.etag).toBe('"etag-3"')
+    })
+
+    it('returns null when no matching event is present', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response('<D:multistatus xmlns:D="DAV:"></D:multistatus>', { status: 207 }),
+      )
+
+      const result = await client.fetchSettingsEvent(settingsCalUrl)
+      expect(result).toBeNull()
+    })
+
+    it('throws a clear error on malformed XML instead of failing silently', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response('<D:multistatus xmlns:D="DAV:"><D:response>', { status: 207 }),
+      )
+
+      await expect(client.fetchSettingsEvent(settingsCalUrl)).rejects.toThrow(
+        /Failed to parse WebDAV XML response/,
+      )
+    })
+  })
+
   describe('updateEvent', () => {
     it('updates a calendar object', async () => {
       await client.connect()

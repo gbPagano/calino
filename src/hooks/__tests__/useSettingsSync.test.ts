@@ -14,6 +14,13 @@ import * as accountStorage from '@/features/caldav/sync/accountStorage'
 import { getCredentialById } from '@/features/caldav/client/credentials'
 import { createCalDAVClient } from '@/features/caldav/client/CalDAVClient'
 
+// Mock sonner so push()/discoverSettings() toast calls can be asserted
+// directly instead of only inferring behavior from side effects.
+// `vi.mock` factories are hoisted above imports, so the mock must be
+// created via `vi.hoisted` rather than a plain top-level const.
+const { mockToast } = vi.hoisted(() => ({ mockToast: Object.assign(vi.fn(), { error: vi.fn() }) }))
+vi.mock('sonner', () => ({ toast: mockToast }))
+
 // In-memory localStorage
 const storage = createLocalStorageMock()
 
@@ -159,6 +166,54 @@ describe('useSettingsSync', () => {
 
       expect(mockPutSettingsEvent).toHaveBeenCalled()
       expect(getEtag()).toBe('"new-etag"')
+      expect(mockToast).toHaveBeenCalledWith('Settings saved to server.')
+      expect(mockToast.error).not.toHaveBeenCalled()
+    })
+
+    // Regression for issue #52's silent-failure symptom: a push failure
+    // previously only set internal `error` state, visible solely in the
+    // settings panel's inline text — invisible if the user isn't looking
+    // right at it. Push failures must now also surface as a toast.
+    it('should surface an error toast when the settings calendar cannot be resolved', async () => {
+      setPrimaryAccountId('account-1')
+      mockDiscoverSettingsCalendar.mockResolvedValue(null)
+
+      const { result } = renderHook(() => useSettingsSync())
+      await act(async () => { await result.current.push() })
+
+      expect(mockPutSettingsEvent).not.toHaveBeenCalled()
+      expect(result.current.error).toBe('Settings calendar not found')
+      expect(mockToast.error).toHaveBeenCalledTimes(1)
+      expect(mockToast.error.mock.calls[0][0]).toContain('Settings sync failed')
+    })
+
+    it('should surface an error toast when putSettingsEvent throws', async () => {
+      setPrimaryAccountId('account-1')
+      mockDiscoverSettingsCalendar.mockResolvedValue({ url: 'https://example.com/dav.php/calendars/user/calino-settings/' })
+      mockFetchSettingsEvent.mockResolvedValue(null)
+      mockPutSettingsEvent.mockRejectedValue(new Error('500 Internal Server Error'))
+
+      const { result } = renderHook(() => useSettingsSync())
+      await act(async () => { await result.current.push() })
+
+      expect(result.current.error).toBe('500 Internal Server Error')
+      expect(mockToast.error).toHaveBeenCalledTimes(1)
+    })
+
+    it('should not toast an error when a 412 conflict is silently recovered via retry', async () => {
+      setPrimaryAccountId('account-1')
+      mockDiscoverSettingsCalendar.mockResolvedValue({ url: 'https://example.com/dav.php/calendars/user/calino-settings/' })
+      mockFetchSettingsEvent.mockResolvedValue(null)
+      mockPutSettingsEvent
+        .mockRejectedValueOnce(new Error('412 Precondition Failed'))
+        .mockResolvedValueOnce('"recovered-etag"')
+
+      const { result } = renderHook(() => useSettingsSync())
+      await act(async () => { await result.current.push() })
+
+      expect(mockPutSettingsEvent).toHaveBeenCalledTimes(2)
+      expect(result.current.error).toBeNull()
+      expect(mockToast.error).not.toHaveBeenCalled()
     })
   })
 
@@ -197,6 +252,34 @@ describe('useSettingsSync', () => {
 
       // Settings should not be modified when there's no remote event
       expect(useSettingsStore.getState().timezone).toBe(originalTimezone)
+    })
+  })
+
+  describe('discoverSettings', () => {
+    it('should silently no-op when no settings calendar exists yet', async () => {
+      mockDiscoverSettingsCalendar.mockResolvedValue(null)
+
+      const { result } = renderHook(() => useSettingsSync())
+      await act(async () => { await result.current.discoverSettings('account-1') })
+
+      expect(getPrimaryAccountId()).toBeNull()
+      expect(mockToast).not.toHaveBeenCalled()
+      expect(mockToast.error).not.toHaveBeenCalled()
+    })
+
+    // Regression for issue #52: previously this catch block only logged to
+    // the console — a real failure during auto-discovery (e.g. on adding a
+    // second device to an already-syncing account) gave the user zero
+    // feedback that anything had gone wrong.
+    it('should surface an error toast when discovery throws', async () => {
+      mockDiscoverSettingsCalendar.mockRejectedValue(new Error('Failed to parse WebDAV XML response'))
+
+      const { result } = renderHook(() => useSettingsSync())
+      await act(async () => { await result.current.discoverSettings('account-1') })
+
+      expect(getPrimaryAccountId()).toBeNull()
+      expect(mockToast.error).toHaveBeenCalledTimes(1)
+      expect(mockToast.error.mock.calls[0][0]).toContain('Settings sync failed')
     })
   })
 })

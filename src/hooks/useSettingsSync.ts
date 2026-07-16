@@ -39,6 +39,35 @@ function showToast(message: string): void {
   sonnerToast(message)
 }
 
+/**
+ * Turn a raw sync error message into a short, user-facing toast string.
+ * Mirrors the categories `formatSyncError` in GeneralSettings.tsx already
+ * shows inline, so a failure is never purely silent — push() previously
+ * only toasted on success, leaving failures visible solely in the settings
+ * panel's inline error text (invisible if the user isn't looking at it,
+ * e.g. background autosave-style pushes or auto-discovery on account add).
+ */
+function formatSyncErrorForToast(message: string): string {
+  const lower = message.toLowerCase()
+  if (lower.includes('cors') || lower.includes('cross-origin')) {
+    return 'Settings sync failed: your server is blocking the connection (CORS).'
+  }
+  if (lower.includes('network') || lower.includes('fetch')) {
+    return "Settings sync failed: couldn't reach your CalDAV server."
+  }
+  if (lower.includes('401') || lower.includes('403') || lower.includes('unauthorized') || lower.includes('forbidden')) {
+    return 'Settings sync failed: authentication error. Check your CalDAV credentials.'
+  }
+  if (lower.includes('404') || lower.includes('not found')) {
+    return 'Settings sync failed: settings calendar not found. Try disabling and re-enabling sync.'
+  }
+  return `Settings sync failed: ${message}`
+}
+
+function showErrorToast(message: string): void {
+  sonnerToast.error(formatSyncErrorForToast(message))
+}
+
 // ─── Return type ──────────────────────────────────────────────────────────────
 
 interface UseSettingsSyncReturn {
@@ -178,13 +207,13 @@ export function useSettingsSync(): UseSettingsSyncReturn {
     try {
       if (useSettingsStore.getState().caldavDebugMode) console.log('[SettingsSync] Push: resolving calendar URL...')
       const calUrl = await resolveSettingsCalendarUrl(accountId)
-      if (!calUrl) { setError('Settings calendar not found'); return }
+      if (!calUrl) { setError('Settings calendar not found'); showErrorToast('Settings calendar not found'); return }
       if (useSettingsStore.getState().caldavDebugMode) console.log('[SettingsSync] Push: calendar URL =', calUrl)
 
       const account = accountStorage.getAccountById(accountId)
-      if (!account) { setError('Account not found'); return }
+      if (!account) { setError('Account not found'); showErrorToast('Account not found'); return }
       const credential = await getCredentialById(account.credentialId)
-      if (!credential) { setError('Credentials not found'); return }
+      if (!credential) { setError('Credentials not found'); showErrorToast('Credentials not found'); return }
 
       const client = await createCalDAVClient(account.serverUrl, credential, account.proxyUrl)
       const json = serializeSettings()
@@ -205,6 +234,7 @@ export function useSettingsSync(): UseSettingsSyncReturn {
       console.error('[SettingsSync] Push failed:', err)
       if (isMountedRef.current) setError(msg)
       const is412 = msg.includes('412') || msg.includes('If-Match') || msg.includes('Precondition')
+      let recovered = false
       if (retryDepth < 1 && is412) {
         if (useSettingsStore.getState().caldavDebugMode) console.log('[SettingsSync] Push: 412 detected, pulling then retrying...')
         // Temporarily release inFlightRef so pull() can run
@@ -223,10 +253,14 @@ export function useSettingsSync(): UseSettingsSyncReturn {
               setEtag(newEtag)
               touchLastModified()
               if (isMountedRef.current) setError(null)
+              recovered = true
             }
           }
         } catch { /* give up */ }
       }
+      // Only toast when the failure is final — a silently-recovered 412
+      // retry shouldn't surface an error the user never actually hit.
+      if (!recovered && isMountedRef.current) showErrorToast(msg)
     } finally {
       inFlightRef.current = false
       setSyncing(false)
@@ -346,7 +380,13 @@ export function useSettingsSync(): UseSettingsSyncReturn {
 
       showToast(applied ? 'Calino Settings found — sync enabled automatically.' : 'Calino Settings calendar found — sync enabled.')
     } catch (err) {
+      // Distinct from `discoverSettingsCalendar` returning null (no settings
+      // calendar exists yet — a normal, silent no-op above). Reaching here
+      // means an actual request failed, which previously only logged to the
+      // console — the user had zero signal that auto-discovery broke.
+      const msg = err instanceof Error ? err.message : 'Auto-discovery failed'
       console.warn('[SettingsSync] Auto-discovery failed:', err)
+      if (isMountedRef.current) showErrorToast(msg)
     }
   }, [pull])
 

@@ -2,6 +2,13 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.22.5] - 2026-07-16
+
+### Fixed
+
+- **CalDAV settings sync now works on servers that don't use a `d:` XML namespace prefix (e.g. Fastmail)** — `discoverSettingsCalendar`/`fetchSettingsEvent` parsed WebDAV multistatus responses with regexes hardcoded to a literal lowercase `d:` prefix; since WebDAV namespace prefixes are arbitrary per spec, servers that emit a different prefix (or none) made calendar/event discovery silently fail even after the settings calendar had already been created. Parsing now goes through `DOMParser` with namespace-aware lookups instead. Closes [#52](https://github.com/Ivan-Malinovski/calino/issues/52).
+- **Settings sync failures are no longer silent** — a failed push or auto-discovery only set internal error state, visible solely in the settings panel's inline text. Both now also surface an error toast, so a sync problem is never invisible.
+
 ## [0.22.4] - 2026-07-15
 
 ### Added

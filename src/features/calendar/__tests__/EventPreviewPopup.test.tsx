@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { format, parseISO } from 'date-fns'
 import { EventPreviewPopup } from '../components/EventPreviewPopup'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useSettingsStore } from '@/store/settingsStore'
+import { formatTime } from '@/lib/datetime'
 import type { CalendarEvent } from '@/types'
 
 const mockEvent: CalendarEvent = {
@@ -99,7 +101,11 @@ describe('EventPreviewPopup', () => {
     render(
       <EventPreviewPopup event={mockEvent} position={mockPosition} clickedEventId="test-event-1" />
     )
-    expect(screen.getByText(/11:00.*12:00/)).toBeInTheDocument()
+    // Compare against the same local-time formatting the popup uses, so this
+    // assertion holds regardless of the test runner's timezone.
+    const tf = useSettingsStore.getState().timeFormat
+    const expected = `${formatTime(mockEvent.start, tf)} - ${formatTime(mockEvent.end, tf)}`
+    expect(screen.getByText(expected)).toBeInTheDocument()
   })
 
   it('renders "All day" for all-day events', () => {
@@ -363,7 +369,13 @@ describe('EventPreviewPopup', () => {
         // Master keeps its title/anchor but is truncated to before the split.
         expect(original?.title).toBe('Weekly Sync')
         expect(original?.start).toBe('2024-03-01T10:00:00.000Z')
-        expect(original?.recurrence?.endDate).toContain('2024-03-14')
+        // For a timed series the UNTIL boundary sits immediately before the
+        // clicked occurrence (10:00 on 03-15), so it excludes that occurrence
+        // while still keeping the prior one (03-08). Assert the boundary rather
+        // than a specific string form, which is timezone/representation-robust.
+        const endMs = new Date(original!.recurrence!.endDate!).getTime()
+        expect(endMs).toBeLessThan(new Date('2024-03-15T10:00:00.000Z').getTime())
+        expect(endMs).toBeGreaterThanOrEqual(new Date('2024-03-08T11:00:00.000Z').getTime())
         // A new series carries the new title starting on the clicked occurrence.
         const newSeries = events.find((e) => e.id !== 'series' && e.title === 'New Series')
         expect(newSeries).toBeDefined()

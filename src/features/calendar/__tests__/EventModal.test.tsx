@@ -489,7 +489,12 @@ describe('EventModal', () => {
         // Master keeps the old title and is truncated to before the split date.
         const master = events.find((e) => e.id === 'series-master')
         expect(master?.title).toBe('Original Title')
-        expect(master?.recurrence?.endDate).toContain('2024-03-14')
+        // Timed series: the UNTIL boundary sits immediately before the clicked
+        // occurrence (10:00 on 03-15), excluding it while keeping the prior one
+        // (03-08). Assert the boundary rather than a timezone-fragile string.
+        const endMs = new Date(master!.recurrence!.endDate!).getTime()
+        expect(endMs).toBeLessThan(new Date('2024-03-15T10:00:00.000Z').getTime())
+        expect(endMs).toBeGreaterThanOrEqual(new Date('2024-03-08T11:00:00.000Z').getTime())
         // A new series carries the new title and starts on the clicked occurrence.
         const newSeries = events.find((e) => e.id !== 'series-master' && e.title === 'New Title')
         expect(newSeries).toBeDefined()

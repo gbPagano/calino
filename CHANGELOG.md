@@ -2,6 +2,20 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.22.6] - 2026-07-18
+
+### Added
+
+- **Delete "This and following events" on a recurring series** — the delete dialog for a recurring event now offers a third option alongside "This event" and "All events", removing the selected occurrence and every one after it while leaving earlier occurrences intact. Works across timed, all-day, and sub-daily recurrences. ([#54](https://github.com/Ivan-Malinovski/calino/pull/54), thanks [@gbPagano](https://github.com/gbPagano)!)
+- **Type compact times in event forms** — the time field now accepts a bare digit string like `930` or `1400` and expands it to `9:30` / `14:00`, so you don't have to type the colon. ([#55](https://github.com/Ivan-Malinovski/calino/pull/55), thanks [@gbPagano](https://github.com/gbPagano)!)
+
+### Fixed
+
+- **Recurring events shared across CalDAV resources no longer corrupt each other on sync** — editing one occurrence could bleed into sibling series stored in the same resource; masters and overrides are now serialized atomically, detached/cancelled instances are preserved, timed `EXDATE` values are matched exactly, and categories survive an occurrence edit. ([#54](https://github.com/Ivan-Malinovski/calino/pull/54), thanks [@gbPagano](https://github.com/gbPagano)!)
+- **Settings → Appearance layout cleanup** — the Light/Dark/System mode picker now uses the same "label, then a row of cards" layout as the theme palette pickers below it, instead of being crammed into the right side of a row with a large empty gap. The palette grids are aligned with the rest of the panel (they previously bled slightly to the left), and section dividers now sit between groups so each heading reads as belonging to the cards beneath it.
+- **Cramped "Back" button on mobile settings** — the chevron sat flush against the button's left edge; it now has even internal spacing.
+- **Default Duration dropdown was too wide** — it stretched far past its short options ("15 min", "Custom…"); it's now sized to its content, which also leaves room for the inline minutes field when "Custom…" is selected.
+
 ## [0.22.5] - 2026-07-16
 
 ### Fixed

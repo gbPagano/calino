@@ -122,47 +122,45 @@ export function ThemeSettings(): JSX.Element {
     <section className={`${styles.section} ${styles.sectionActive}`} data-component="theme-settings">
       <h1 className={styles.pageTitle}>Appearance</h1>
       <div className={styles.group}>
-        <div className={`${styles.row} ${styles.rowTop}`} data-component="setting-row" data-setting="theme-mode" data-value={themeMode}>
+        <div className={`${styles.row} ${styles.rowSubhead}`} data-component="setting-row" data-setting="theme-mode" data-value={themeMode}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Appearance</div>
             <div className={styles.rowDesc}>Choose how Calino looks</div>
           </div>
-          <div className={styles.rowControl} style={{ alignItems: 'flex-start', paddingTop: '2px' }}>
-            <div className={styles.themeCards}>
-              {(THEME_MODE_OPTIONS as { value: ThemeMode; label: string }[]).map((opt) => {
-                const isActive = themeMode === opt.value
-                const isLight = opt.value === 'light'
-                const isDark = opt.value === 'dark'
-                const isSystem = opt.value === 'auto'
-                return (
-                  <button
-                    key={opt.value}
-                    className={`${styles.themeCard} ${isActive ? styles.themeCardActive : ''}`}
-                    onClick={() => updateSettings({ themeMode: opt.value })}
-                    data-component="theme-mode-option"
-                    data-value={opt.value}
-                    data-active={isActive ? 'true' : undefined}
-                    type="button"
-                  >
-                    <MiniCalendarPreview
-                      themeId={isLight ? lightTheme : isDark ? darkTheme : (window.matchMedia('(prefers-color-scheme: dark)').matches ? darkTheme : lightTheme)}
-                      variant={isLight ? 'light' : isDark ? 'dark' : 'system'}
-                    />
-                    <div className={styles.themeCardLabel}>
-                      {isSystem ? 'System' : opt.label}
-                      <div className={styles.tcCheck}>
-                        <svg viewBox="0 0 9 9" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                          <path d="M1.5 4.5l2 2L7.5 2" />
-                        </svg>
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
         </div>
-        <div className={styles.row} data-component="setting-row" data-setting="light-theme" data-value={lightTheme}>
+        <div className={styles.themeCards}>
+          {(THEME_MODE_OPTIONS as { value: ThemeMode; label: string }[]).map((opt) => {
+            const isActive = themeMode === opt.value
+            const isLight = opt.value === 'light'
+            const isDark = opt.value === 'dark'
+            const isSystem = opt.value === 'auto'
+            return (
+              <button
+                key={opt.value}
+                className={`${styles.themeCard} ${isActive ? styles.themeCardActive : ''}`}
+                onClick={() => updateSettings({ themeMode: opt.value })}
+                data-component="theme-mode-option"
+                data-value={opt.value}
+                data-active={isActive ? 'true' : undefined}
+                type="button"
+              >
+                <MiniCalendarPreview
+                  themeId={isLight ? lightTheme : isDark ? darkTheme : (window.matchMedia('(prefers-color-scheme: dark)').matches ? darkTheme : lightTheme)}
+                  variant={isLight ? 'light' : isDark ? 'dark' : 'system'}
+                />
+                <div className={styles.themeCardLabel}>
+                  {isSystem ? 'System' : opt.label}
+                  <div className={styles.tcCheck}>
+                    <svg viewBox="0 0 9 9" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                      <path d="M1.5 4.5l2 2L7.5 2" />
+                    </svg>
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+        <div className={`${styles.row} ${styles.rowSubhead}`} data-component="setting-row" data-setting="light-theme" data-value={lightTheme}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Light Theme</div>
             <div className={styles.rowDesc}>Color palette used in light mode</div>
@@ -179,7 +177,7 @@ export function ThemeSettings(): JSX.Element {
             />
           ))}
         </div>
-        <div className={styles.row} data-component="setting-row" data-setting="dark-theme" data-value={darkTheme}>
+        <div className={`${styles.row} ${styles.rowSubhead}`} data-component="setting-row" data-setting="dark-theme" data-value={darkTheme}>
           <div className={styles.rowInfo}>
             <div className={styles.rowLabel}>Dark Theme</div>
             <div className={styles.rowDesc}>Color palette used in dark mode</div>

@@ -218,7 +218,7 @@ export function CalendarSettings(): JSX.Element {
           </div>
           <div className={styles.rowControl}>
             <select
-              className={styles.select}
+              className={`${styles.select} ${styles.selectCompact}`}
               value={isCustomDuration ? 'custom' : String(defaultDuration)}
               aria-label="Default duration"
               onChange={(e) => {

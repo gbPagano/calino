@@ -19,6 +19,7 @@ import { useDragModifierStore } from '@/store/dragModifierStore'
 import { safeCalDAVUpdate } from '@/lib/caldavHelpers'
 import { deleteEventWithUndo } from '@/lib/deleteWithUndo'
 import { showToast } from '@/lib/toast'
+import { buildMasterTruncation, getFutureOverrideIds, isFirstOccurrence } from '@/lib/recurrenceSplit'
 
 import { extractOriginalEventId, hasDueTime, formatTravelDuration } from '@/lib/events'
 import { hapticIfEnabled } from '@/lib/haptics'
@@ -75,7 +76,12 @@ export const EventCard = React.memo(function EventCard({
   const addEvent = useCalendarStore((state) => state.addEvent)
   const duplicateEvent = useCalendarStore((state) => state.duplicateEvent)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
-  const { deleteEvent: deleteCalDAVEvent, updateEvent: updateCalDAVEvent, createEvent: createCalDAVEvent } = useCalDAV()
+  const {
+    deleteEvent: deleteCalDAVEvent,
+    updateEvent: updateCalDAVEvent,
+    createEvent: createCalDAVEvent,
+    saveRecurrenceOverride,
+  } = useCalDAV()
   // Cross-fragment hover: a multi-day event is rendered as separate cards per
   // grid cell. Share one hover highlight by tracking the hovered id in a store.
   // Subscribe to a boolean so only the previously- and newly-hovered cards
@@ -605,25 +611,64 @@ export const EventCard = React.memo(function EventCard({
             isOpen={showDeleteDialog}
             onClose={() => setShowDeleteDialog(false)}
             onConfirm={async (mode) => {
-              if (mode === 'this' && originalEventId) {
-                const masterEvent = useCalendarStore.getState().events.find((e) => e.id === originalEventId)
+              const recurringMasterId = originalEventId || event.id
+              if (mode === 'this') {
+                const masterEvent = useCalendarStore.getState().events.find((e) => e.id === recurringMasterId)
                 if (masterEvent) {
-                  const dateMatch = event.id.match(/(\d{4}-\d{2}-\d{2})/)
-                  const dateStr = dateMatch ? dateMatch[1] : null
+                  const occurrenceStart = event.recurrenceId || event.start
+                  const dateStr = occurrenceStart.split('T')[0]
                   if (dateStr) {
+                    const exclusionValue = masterEvent.isAllDay ? dateStr : occurrenceStart
                     const excludedDates = masterEvent.excludedDates || []
-                    if (!excludedDates.includes(dateStr)) {
-                      const updatedExcludedDates = [...excludedDates, dateStr]
-                      updateEvent(originalEventId, {
-                        excludedDates: updatedExcludedDates,
-                      })
-                      await safeCalDAVUpdate(
-                        updateCalDAVEvent,
+                    const updatedExcludedDates = excludedDates.includes(exclusionValue)
+                      ? excludedDates
+                      : [...excludedDates, exclusionValue]
+                    try {
+                      await saveRecurrenceOverride(
                         masterEvent.calendarId,
                         { ...masterEvent, excludedDates: updatedExcludedDates },
-                        { excludedDates: updatedExcludedDates }
+                        null,
+                        event.recurrenceId ? [event.id] : []
                       )
+                    } catch {
+                      showToast('Failed to delete this occurrence. The event was kept.')
+                      return
                     }
+                  }
+                }
+              } else if (mode === 'future') {
+                const storedEvents = useCalendarStore.getState().events
+                const masterEvent = storedEvents.find((candidate) => candidate.id === recurringMasterId)
+                const occurrenceStart = event.recurrenceId || event.start
+                const occurrenceDate = occurrenceStart.split('T')[0]
+                if (masterEvent && occurrenceDate) {
+                  if (isFirstOccurrence(masterEvent, occurrenceStart)) {
+                    deleteEventWithUndo({
+                      event: masterEvent,
+                      deleteEvent,
+                      addEvent,
+                      createCalDAVEvent,
+                      deleteCalDAVEvent,
+                    })
+                    setShowDeleteDialog(false)
+                    return
+                  }
+                  const truncation = buildMasterTruncation(masterEvent, occurrenceStart)
+                  const removedOverrideIds = getFutureOverrideIds(
+                    storedEvents,
+                    masterEvent,
+                    occurrenceStart
+                  )
+                  try {
+                    await saveRecurrenceOverride(
+                      masterEvent.calendarId,
+                      { ...masterEvent, ...truncation },
+                      null,
+                      removedOverrideIds
+                    )
+                  } catch {
+                    showToast('Failed to delete this and following events. The series was kept.')
+                    return
                   }
                 }
               } else if (originalEventId) {

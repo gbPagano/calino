@@ -8,6 +8,7 @@ describe('EventModal', () => {
     const store = useCalendarStore.getState()
     store.events.forEach((e) => store.deleteEvent(e.id))
     store.calendars.forEach((c) => store.deleteCalendar(c.id))
+    store.categories.forEach((c) => store.deleteCategory(c.id))
     store.addCalendar({
       id: 'default',
       name: 'Default Calendar',
@@ -512,12 +513,58 @@ describe('EventModal', () => {
         // Master title unchanged; the occurrence is excluded from expansion.
         const master = events.find((e) => e.id === 'series-master')
         expect(master?.title).toBe('Original Title')
-        expect(master?.excludedDates).toContain('2024-03-15')
+        expect(master?.excludedDates ?? []).not.toContain('2024-03-15T10:00:00.000Z')
         // Exception event lands on the clicked date (2024-03-15), not 2024-03-01.
         const exception = events.find((e) => e.title === 'Just This One')
         expect(exception).toBeDefined()
         expect(exception?.start).toContain('2024-03-15')
         expect(exception?.recurrence).toBeUndefined()
+      })
+    })
+
+    it('keeps the selected category on a single-occurrence exception', async () => {
+      const store = useCalendarStore.getState()
+      store.addCategory({ id: 'work-category', name: 'Work', color: '#4285F4' })
+      seedSeries()
+      render(<EventModal />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Work' }))
+      fireEvent.click(screen.getByRole('button', { name: /save/i }))
+      fireEvent.click(screen.getByRole('button', { name: /this event only/i }))
+
+      await waitFor(() => {
+        const exception = useCalendarStore
+          .getState()
+          .events.find((event) => event.recurrenceId === '2024-03-15T10:00:00.000Z')
+        expect(exception?.categories).toEqual(['Work'])
+      })
+    })
+
+    it('re-edits an existing exception without changing the recurrence master', async () => {
+      const store = useCalendarStore.getState()
+      store.addCategory({ id: 'work-category', name: 'Work', color: '#4285F4' })
+      store.addEvent({
+        id: 'series-master', uid: 'series-master', calendarId: 'default', title: 'Master title',
+        start: '2024-03-01T10:00:00', end: '2024-03-01T11:00:00', isAllDay: false,
+        recurrence: { frequency: 'weekly', interval: 1 },
+      })
+      store.addEvent({
+        id: 'series-master-2024-03-15T10:00:00.000Z', uid: 'series-master', calendarId: 'default',
+        title: 'Edited occurrence', start: '2024-03-15T10:00:00.000Z',
+        end: '2024-03-15T11:00:00.000Z', isAllDay: false,
+        recurrenceId: '2024-03-15T10:00:00.000Z', recurrenceMasterId: 'series-master',
+      })
+      store.openModal(undefined, undefined, 'series-master-2024-03-15T10:00:00.000Z')
+      render(<EventModal />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Work' }))
+      fireEvent.click(screen.getByRole('button', { name: /save/i }))
+
+      expect(screen.queryByText('Edit recurring event')).not.toBeInTheDocument()
+      await waitFor(() => {
+        const events = useCalendarStore.getState().events
+        expect(events.find((event) => event.id === 'series-master')?.categories).toEqual([])
+        expect(events.find((event) => event.recurrenceId)?.categories).toEqual(['Work'])
       })
     })
   })

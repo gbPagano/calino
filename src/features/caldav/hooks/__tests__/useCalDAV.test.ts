@@ -118,6 +118,7 @@ describe('useCalDAV', () => {
   let mockSyncEngineInstance: {
     pushEvent: ReturnType<typeof vi.fn>
     updateEvent: ReturnType<typeof vi.fn>
+    updateEventGroup: ReturnType<typeof vi.fn>
     deleteEvent: ReturnType<typeof vi.fn>
   }
 
@@ -171,6 +172,7 @@ describe('useCalDAV', () => {
     mockSyncEngineInstance = {
       pushEvent: vi.fn().mockResolvedValue({ url: 'https://...', etag: 'abc' }),
       updateEvent: vi.fn().mockResolvedValue({ url: 'https://...', etag: 'def' }),
+      updateEventGroup: vi.fn().mockResolvedValue({ url: 'https://series.ics', etag: 'group-etag' }),
       deleteEvent: vi.fn().mockResolvedValue(undefined),
     }
     mockSyncEngine.SyncEngine.mockImplementation(function () {
@@ -639,6 +641,105 @@ describe('useCalDAV', () => {
       })
 
       expect(mockSyncEngineInstance.updateEvent).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('saveRecurrenceOverride', () => {
+    beforeEach(() => {
+      mockAccountStorage.getAllAccounts.mockReturnValue([mockAccount])
+      mockAccountStorage.getAllCalendars.mockReturnValue([mockCalendar])
+    })
+
+    it('removes future overrides from the grouped CalDAV resource and local store', async () => {
+      const master: CalendarEvent = {
+        ...mockEvent,
+        id: 'series',
+        uid: 'series',
+        recurrence: { frequency: 'daily', interval: 1 },
+      }
+      const past: CalendarEvent = {
+        ...mockEvent,
+        id: 'past',
+        uid: 'series',
+        recurrenceId: '2026-04-14T09:00:00Z',
+        recurrenceMasterId: master.id,
+      }
+      const selected: CalendarEvent = {
+        ...past,
+        id: 'selected',
+        recurrenceId: '2026-04-15T09:00:00Z',
+      }
+      const future: CalendarEvent = {
+        ...past,
+        id: 'future',
+        recurrenceId: '2026-04-16T09:00:00Z',
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(master)
+        useCalendarStore.getState().addEvent(past)
+        useCalendarStore.getState().addEvent(selected)
+        useCalendarStore.getState().addEvent(future)
+      })
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+      await act(async () => {
+        await result.current.saveRecurrenceOverride(
+          'cal-1',
+          master,
+          null,
+          [selected.id, future.id]
+        )
+      })
+
+      expect(mockSyncEngineInstance.updateEventGroup).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ id: master.id }),
+          expect.objectContaining({ id: past.id }),
+        ]),
+        ''
+      )
+      const groupedEvents = mockSyncEngineInstance.updateEventGroup.mock.calls[0][0]
+      expect(groupedEvents.map((event: CalendarEvent) => event.id)).not.toContain(selected.id)
+      expect(groupedEvents.map((event: CalendarEvent) => event.id)).not.toContain(future.id)
+      expect(useCalendarStore.getState().events.some((event) => event.id === past.id)).toBe(true)
+      expect(useCalendarStore.getState().events.some((event) => event.id === selected.id)).toBe(false)
+      expect(useCalendarStore.getState().events.some((event) => event.id === future.id)).toBe(false)
+    })
+
+    it('preserves unrelated events stored in the same CalDAV resource', async () => {
+      const resourceHref = `${mockCalendar.url}shared.ics`
+      const master: CalendarEvent = {
+        ...mockEvent, id: 'series', uid: 'series', resourceHref,
+        recurrence: { frequency: 'daily', interval: 1 },
+      }
+      const unrelated: CalendarEvent = {
+        ...mockEvent, id: 'unrelated', uid: 'unrelated', title: 'Must remain', resourceHref,
+      }
+      const exception: CalendarEvent = {
+        ...mockEvent, id: 'series-2026-04-15T09:00:00Z', uid: 'series', resourceHref,
+        recurrenceId: '2026-04-15T09:00:00Z', recurrenceMasterId: master.id, categories: ['Work'],
+      }
+      act(() => {
+        useCalendarStore.getState().addEvent(master)
+        useCalendarStore.getState().addEvent(unrelated)
+      })
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+      await act(async () => {
+        await result.current.saveRecurrenceOverride('cal-1', master, exception)
+      })
+
+      const groupedEvents = mockSyncEngineInstance.updateEventGroup.mock.calls[0][0]
+      expect(groupedEvents).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: master.id }),
+        expect.objectContaining({ id: exception.id, categories: ['Work'] }),
+        expect.objectContaining({ id: unrelated.id, title: 'Must remain' }),
+      ]))
+      expect(useCalendarStore.getState().events.find((event) => event.id === unrelated.id)).toEqual(
+        expect.objectContaining({ resourceHref: 'https://series.ics', etag: 'group-etag' })
+      )
     })
   })
 
@@ -1548,6 +1649,28 @@ describe('useCalDAV', () => {
 
       const store = useCalendarStore.getState()
       expect(store.events.find((e) => e.id === 'server-new')).toBeDefined()
+    })
+
+    it('preserves the server resource URL and etag on imported events', async () => {
+      const serverEvent: CalendarEvent = { ...mockEvent, id: 'remote-uid' }
+      const resourceHref = `${mockCalendar.url}server-generated.ics`
+      const iCalendarAdapter = await import('../../adapter/iCalendarAdapter')
+      vi.mocked(iCalendarAdapter.parseICALData).mockReturnValue([serverEvent])
+      mockCalDAVClient.createCalDAVClient.mockResolvedValue({
+        fetchEvents: vi.fn().mockResolvedValue([
+          { url: resourceHref, data: 'ical-data', etag: '"remote-etag"' },
+        ]),
+        fetchCalendars: vi.fn().mockResolvedValue([mockCalendar]),
+      } as any)
+
+      const { result } = renderHook(() => useCalDAV())
+      await waitFor(() => expect(result.current.accounts.length).toBe(1))
+      await act(async () => result.current.syncAccount(mockAccount.id))
+
+      expect(useCalendarStore.getState().events.find((event) => event.id === serverEvent.id)).toMatchObject({
+        resourceHref,
+        etag: '"remote-etag"',
+      })
     })
   })
 

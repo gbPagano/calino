@@ -389,12 +389,45 @@ describe('EventPreviewPopup', () => {
         const events = useCalendarStore.getState().events
         const original = events.find((e) => e.id === 'series')
         expect(original?.title).toBe('Weekly Sync')
-        expect(original?.excludedDates).toContain('2024-03-15')
+        expect(original?.excludedDates ?? []).not.toContain('2024-03-15T10:00:00.000Z')
         // Exception lands on the clicked occurrence date, not the master's start.
         const exception = events.find((e) => e.id === instanceId)
         expect(exception?.title).toBe('Just This One')
         expect(exception?.start).toContain('2024-03-15')
         expect(exception?.recurrence).toBeUndefined()
+      })
+    })
+
+    it('re-edits a detached occurrence without showing recurrence options', async () => {
+      const master = seedSeries()
+      const exception: CalendarEvent = {
+        ...master,
+        id: instanceId,
+        title: 'Detached occurrence',
+        start: '2024-03-15T10:00:00.000Z',
+        end: '2024-03-15T11:00:00.000Z',
+        recurrence: undefined,
+        recurrenceId: '2024-03-15T10:00:00.000Z',
+        recurrenceMasterId: master.id,
+      }
+      useCalendarStore.getState().addEvent(exception)
+      render(
+        <EventPreviewPopup event={exception} position={mockPosition} clickedEventId={instanceId} />
+      )
+
+      fireEvent.click(screen.getByText('Detached occurrence'))
+      fireEvent.change(screen.getByDisplayValue('Detached occurrence'), {
+        target: { value: 'Detached occurrence updated' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+      expect(screen.queryByText('Edit recurring event')).not.toBeInTheDocument()
+      await waitFor(() => {
+        const events = useCalendarStore.getState().events
+        expect(events.find((event) => event.id === master.id)?.title).toBe('Weekly Sync')
+        expect(events.find((event) => event.id === instanceId)?.title).toBe(
+          'Detached occurrence updated'
+        )
       })
     })
   })

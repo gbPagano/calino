@@ -468,6 +468,40 @@
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
+/* ── Number input (e.g. custom duration) ────────────────────────────────── */
+.numberInputWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+.numberInput {
+  width: 72px;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 14px;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.numberInput:hover {
+  border-color: rgba(var(--ink-raw), 0.18);
+}
+
+.numberInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.numberInputUnit {
+  font-size: 13px;
+  color: var(--ink-muted, rgba(var(--ink-raw), 0.55));
+}
+
 /* ── Toggle ─────────────────────────────────────────────────────────────── */
 .toggle {
   position: relative;

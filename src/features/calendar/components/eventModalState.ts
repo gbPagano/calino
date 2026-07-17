@@ -40,6 +40,20 @@ export type InitialFormStateWithMeta = InitialFormState & {
   originalEventId: string | null
 }
 
+/**
+ * Add `minutes` to a "HH:mm" time-of-day string, wrapping past midnight
+ * (same convention the rest of this module uses — time-of-day only, no date
+ * rollover). Used to derive a new event's end time from the configured
+ * default duration.
+ */
+export function addMinutesToTimeStr(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number)
+  const total = h * 60 + m + minutes
+  const endH = Math.floor(total / 60) % 24
+  const endM = ((total % 60) + 60) % 60
+  return `${pad2(endH)}:${pad2(endM)}`
+}
+
 export function makeDefaultState(
   overrides: Partial<InitialFormStateWithMeta> = {}
 ): InitialFormStateWithMeta {
@@ -83,12 +97,15 @@ export function getInitialFormState(
   selectedEndDate: string | null,
   events: CalendarEvent[],
   calendars: { id: string; isDefault: boolean }[],
-  allCategories: { id: string; name: string }[]
+  allCategories: { id: string; name: string }[],
+  defaultDuration: number = 60
 ): InitialFormStateWithMeta {
+  const defaultEndTime = addMinutesToTimeStr('09:00', defaultDuration)
+
   // Early return when modal is closed — skip all computation
   if (!isModalOpen) {
     const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
-    return makeDefaultState({ calendarId: defaultCalendar?.id || '' })
+    return makeDefaultState({ calendarId: defaultCalendar?.id || '', endTime: defaultEndTime })
   }
 
   const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
@@ -189,32 +206,27 @@ export function getInitialFormState(
       const dateStr = hasTime ? selectedDate.split('T')[0] : selectedDate
 
       let startTimeVal = '09:00'
-      let endTimeVal = '10:00'
+      let endTimeVal = defaultEndTime
 
       if (hasTime) {
         const time = selectedDate.split('T')[1]?.substring(0, 5) || '09:00'
         startTimeVal = time
-        const [h, m] = time.split(':').map(Number)
-        const endMins = h * 60 + m + 60
-        const endH = Math.floor(endMins / 60) % 24
-        const endM = endMins % 60
-        endTimeVal = `${pad2(endH)}:${pad2(endM)}`
+        endTimeVal = addMinutesToTimeStr(time, defaultDuration)
       } else {
         // No specific time - smart default only applies for TODAY
         const todayStr = format(new Date(), 'yyyy-MM-dd')
         if (dateStr === todayStr) {
-          // Round up to next hour, then add 1 hour
+          // Round up to next hour, then apply the default duration
           const now = new Date()
           let hours = now.getHours()
           const mins = now.getMinutes()
           if (mins > 0) hours += 1 // round up to next hour
-          hours += 1 // add 1 more hour
+          hours += 1 // start one hour out
           hours = hours % 24
           startTimeVal = `${pad2(hours)}:00`
-          const endHour = (hours + 1) % 24
-          endTimeVal = `${pad2(endHour)}:00`
+          endTimeVal = addMinutesToTimeStr(startTimeVal, defaultDuration)
         }
-        // else: use default 09:00/10:00
+        // else: use default 09:00 + default duration
       }
 
       if (selectedEndDate && selectedEndDate.includes('T')) {
@@ -244,5 +256,5 @@ export function getInitialFormState(
     }
   }
 
-  return makeDefaultState({ calendarId: defaultCalendar?.id || '' })
+  return makeDefaultState({ calendarId: defaultCalendar?.id || '', endTime: defaultEndTime })
 }

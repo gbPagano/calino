@@ -254,7 +254,7 @@ export type DateFormat = 'MM/dd/yyyy' | 'dd/MM/yyyy' | 'yyyy-MM-dd'
 export type TimeFormat = '12h' | '24h'
 export type FirstDayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6
 export type EventDensity = 'comfortable' | 'compact'
-export type DefaultDuration = 15 | 30 | 60 | 90 | 120
+export type DefaultDuration = number
 export type ThemeMode = 'light' | 'dark' | 'auto'
 export type MapProvider = 'google' | 'apple' | 'osm' | 'mapy' | 'geo'
 

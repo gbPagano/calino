@@ -23,6 +23,7 @@ export function CalendarSettings(): JSX.Element {
   const updateCalendar = useCalendarStore((s) => s.updateCalendar)
 
   const defaultCalendar = calendars.find((c) => c.isDefault) || calendars[0]
+  const isCustomDuration = !DURATION_OPTIONS.some((o) => o.value === defaultDuration)
 
   return (
     <section className={`${styles.section} ${styles.sectionActive}`} data-component="calendar-settings">
@@ -218,18 +219,42 @@ export function CalendarSettings(): JSX.Element {
           <div className={styles.rowControl}>
             <select
               className={styles.select}
-              value={defaultDuration}
+              value={isCustomDuration ? 'custom' : String(defaultDuration)}
               aria-label="Default duration"
-              onChange={(e) =>
-                updateSettings({ defaultDuration: Number(e.target.value) as 15 | 30 | 60 | 90 | 120 })
-              }
+              onChange={(e) => {
+                if (e.target.value === 'custom') {
+                  if (!isCustomDuration) updateSettings({ defaultDuration: 45 })
+                } else {
+                  updateSettings({ defaultDuration: Number(e.target.value) })
+                }
+              }}
             >
               {DURATION_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
               ))}
+              <option value="custom">Custom…</option>
             </select>
+            {isCustomDuration && (
+              <span className={styles.numberInputWrap}>
+                <input
+                  type="number"
+                  className={styles.numberInput}
+                  min={1}
+                  max={1440}
+                  step={5}
+                  value={defaultDuration}
+                  aria-label="Custom duration in minutes"
+                  onChange={(e) => {
+                    const n = Number(e.target.value)
+                    if (!Number.isFinite(n) || e.target.value === '') return
+                    updateSettings({ defaultDuration: Math.min(1440, Math.max(1, Math.round(n))) })
+                  }}
+                />
+                <span className={styles.numberInputUnit}>min</span>
+              </span>
+            )}
           </div>
         </div>
         <div className={styles.row} data-component="setting-row" data-setting="default-calendar" data-value={defaultCalendar?.id || ''}>

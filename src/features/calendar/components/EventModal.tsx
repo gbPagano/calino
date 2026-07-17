@@ -16,12 +16,13 @@ import { TaskFormFields } from './TaskFormFields'
 import { EventFormFields } from './EventFormFields'
 import { RecurrenceDialog } from './RecurrenceDialog'
 import { DeleteDialog } from './DeleteDialog'
-import { getInitialFormState } from './eventModalState'
+import { getInitialFormState, addMinutesToTimeStr } from './eventModalState'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { parseNaturalLanguage } from '@/features/nlp'
 import type { NLPParseResult } from '@/features/nlp'
 import { useSmartDefaultsStore } from '@/store/smartDefaultsStore'
+import { useSettingsStore } from '@/store/settingsStore'
 
 import styles from './EventModal.module.css'
 
@@ -39,6 +40,7 @@ export function EventModal(): JSX.Element | null {
   const events = useCalendarStore((state) => state.events)
   const calendars = useCalendarStore((state) => state.calendars)
   const categories = useCalendarStore((state) => state.categories)
+  const defaultDuration = useSettingsStore((state) => state.defaultDuration)
   const addEvent = useCalendarStore((state) => state.addEvent)
   const deleteEvent = useCalendarStore((state) => state.deleteEvent)
   const updateEvent = useCalendarStore((state) => state.updateEvent)
@@ -92,9 +94,10 @@ export function EventModal(): JSX.Element | null {
         selectedEndDate,
         events,
         compatibleCalendars,
-        categories
+        categories,
+        defaultDuration
       ),
-    [isModalOpen, selectedEventId, selectedDate, selectedEndDate, events, compatibleCalendars, categories]
+    [isModalOpen, selectedEventId, selectedDate, selectedEndDate, events, compatibleCalendars, categories, defaultDuration]
   )
 
   const [title, setTitle] = useState(initialState.title)
@@ -272,8 +275,8 @@ export function EventModal(): JSX.Element | null {
     setLocation(ev.location || '')
     setSelectedCategories(ev.categories || [])
     setRelatedTo(ev.relatedTo || [])
-    // Fill time only if using default (09:00-10:00)
-    if (startTime === '09:00' && endTime === '10:00') {
+    // Fill time only if still on the untouched default (09:00 + default duration)
+    if (startTime === '09:00' && endTime === addMinutesToTimeStr('09:00', defaultDuration)) {
       const evStart = parseISO(ev.start)
       setStartTime(format(evStart, 'HH:mm'))
       const evEnd = parseISO(ev.end)
@@ -373,7 +376,8 @@ export function EventModal(): JSX.Element | null {
         selectedEndDate,
         currentEvents,
         currentCalendars,
-        currentCategories
+        currentCategories,
+        useSettingsStore.getState().defaultDuration
       )
 
       calendarTouchedRef.current = false

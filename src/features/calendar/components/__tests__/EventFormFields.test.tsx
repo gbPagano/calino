@@ -407,4 +407,40 @@ describe('EventFormFields', () => {
       expect(onEndTimeChange).toHaveBeenCalledWith('16:00')
     })
   })
+
+  describe('compact time input', () => {
+    it('normalizes a four-digit time on blur', () => {
+      const onStartTimeChange = vi.fn()
+      render(<EventFormFields {...defaultProps} onStartTimeChange={onStartTimeChange} />)
+
+      const startTime = screen.getByLabelText('Start time')
+      fireEvent.change(startTime, { target: { value: '1140' } })
+      fireEvent.blur(startTime)
+
+      expect(onStartTimeChange).toHaveBeenCalledWith('11:40')
+    })
+
+    it('normalizes a three-digit time on blur', () => {
+      const onStartTimeChange = vi.fn()
+      render(<EventFormFields {...defaultProps} onStartTimeChange={onStartTimeChange} />)
+
+      const startTime = screen.getByLabelText('Start time')
+      fireEvent.change(startTime, { target: { value: '940' } })
+      fireEvent.blur(startTime)
+
+      expect(onStartTimeChange).toHaveBeenCalledWith('09:40')
+    })
+
+    it('rejects an invalid compact time', () => {
+      const onStartTimeChange = vi.fn()
+      render(<EventFormFields {...defaultProps} onStartTimeChange={onStartTimeChange} />)
+
+      const startTime = screen.getByLabelText('Start time')
+      fireEvent.change(startTime, { target: { value: '2460' } })
+      fireEvent.blur(startTime)
+
+      expect(onStartTimeChange).not.toHaveBeenCalled()
+      expect(startTime).toHaveValue('09:00')
+    })
+  })
 })

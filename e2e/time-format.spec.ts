@@ -23,6 +23,17 @@ test.describe('time format in event form', () => {
     await expect(endTime).toHaveValue('3:30 PM')
   })
 
+  test('normalizes a compact 24-hour time when creating an event', async ({ page }) => {
+    await page.goto('/month')
+    await page.keyboard.press('c')
+
+    const startTime = page.locator('[data-component="event-start-time"]')
+    await startTime.fill('1140')
+    await startTime.press('Tab')
+
+    await expect(startTime).toHaveValue('11:40')
+  })
+
   test('uses the selected 12-hour format when creating a task', async ({ page }) => {
     await page.goto('/settings')
     await page.getByRole('radio', { name: '12-hour (2:30 PM)' }).click()

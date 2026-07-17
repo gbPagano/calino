@@ -201,6 +201,51 @@
   background: var(--canvas);
 }
 
+/* ── "Saved" indicator ──────────────────────────────────────────────────── */
+.savedBar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 0; /* float over content without occupying vertical space */
+  display: flex;
+  align-items: flex-start; /* don't stretch the pill to the 0-height bar */
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.savedPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  margin-right: -16px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 10px rgba(var(--ink-raw), 0.18);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.savedPillVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .savedPill {
+    transition: opacity 0.1s ease;
+    transform: none;
+  }
+  .savedPillVisible {
+    transform: none;
+  }
+}
+
 .sectionHeader {
   display: none;
 }

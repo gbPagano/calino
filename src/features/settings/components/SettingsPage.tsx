@@ -9,6 +9,7 @@ import { DataSettings } from './DataSettings'
 import { CalDAVSettings } from './CalDAVSettings'
 import { CategoriesSettings } from './CategoriesSettings'
 import { useCalendarStore } from '@/store/calendarStore'
+import { useSettingsStore } from '@/store/settingsStore'
 import styles from './Settings.module.css'
 
 type SettingsTab = 'general' | 'theme' | 'calendar' | 'categories' | 'notifications' | 'caldav' | 'data'
@@ -118,6 +119,22 @@ export function SettingsPage(): JSX.Element {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  // Settings persist immediately on change (no explicit save), so flash a
+  // transient "Saved" pill whenever any setting is updated to confirm it stuck.
+  const [showSaved, setShowSaved] = useState(false)
+  const savedTimerRef = useRef<number | null>(null)
+  useEffect(() => {
+    const unsubscribe = useSettingsStore.subscribe(() => {
+      setShowSaved(true)
+      if (savedTimerRef.current) window.clearTimeout(savedTimerRef.current)
+      savedTimerRef.current = window.setTimeout(() => setShowSaved(false), 1600)
+    })
+    return () => {
+      unsubscribe()
+      if (savedTimerRef.current) window.clearTimeout(savedTimerRef.current)
+    }
+  }, [])
+
   useEffect(() => {
     if (!isDropdownOpen) return
     const handleClickOutside = (e: MouseEvent): void => {
@@ -175,6 +192,17 @@ export function SettingsPage(): JSX.Element {
           </nav>
         </aside>
         <main className={styles.main} data-component="settings-panel">
+          <div className={styles.savedBar} role="status" aria-live="polite">
+            <span
+              className={`${styles.savedPill} ${showSaved ? styles.savedPillVisible : ''}`}
+              data-component="settings-saved-indicator"
+            >
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M2.5 7.5L6 11l5.5-8" />
+              </svg>
+              Saved
+            </span>
+          </div>
           <div className={styles.backMobile}>
             <button className={styles.back} onClick={() => navigate('/')}>
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">

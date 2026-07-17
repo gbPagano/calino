@@ -20,10 +20,24 @@ function formatTimeValue(value: string, timeFormat: TimeFormat): string {
   return `${hours % 12 || 12}:${String(minutes).padStart(2, '0')} ${hours < 12 ? 'AM' : 'PM'}`
 }
 
-function parseTimeValue(value: string, timeFormat: TimeFormat): string | null {
+function parseTimeValue(
+  value: string,
+  timeFormat: TimeFormat,
+  allowCompact = false
+): string | null {
   if (timeFormat === '24h') {
-    const match = value.match(/^([01]\d|2[0-3]):([0-5]\d)$/)
-    return match ? `${match[1]}:${match[2]}` : null
+    const trimmedValue = value.trim()
+    const match = trimmedValue.match(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    if (match) return `${match[1]}:${match[2]}`
+
+    if (allowCompact) {
+      const compactMatch = trimmedValue.match(/^(\d{1,2})([0-5]\d)$/)
+      if (compactMatch && Number(compactMatch[1]) <= 23) {
+        return `${compactMatch[1].padStart(2, '0')}:${compactMatch[2]}`
+      }
+    }
+
+    return null
   }
 
   const match = value.trim().match(/^(1[0-2]|0?[1-9]):([0-5]\d)\s*([AP]M)$/i)
@@ -51,7 +65,8 @@ export function TimeInput({
   }, [formattedValue])
 
   const commit = (): void => {
-    const parsed = parseTimeValue(draft, resolvedTimeFormat)
+    const parsed = parseTimeValue(draft, resolvedTimeFormat, true)
+    if (parsed && parsed !== value) onChange(parsed)
     setDraft(formatTimeValue(parsed ?? value, resolvedTimeFormat))
   }
 

@@ -485,7 +485,9 @@
 
 .modalSelect:hover {
   border-color: rgba(0, 0, 0, 0.15);
-  background: var(--color-bg-hover, rgba(0, 0, 0, 0.03));
+  /* background-color, not the `background` shorthand: the shorthand resets
+     background-image and would erase the chevron on hover. */
+  background-color: var(--color-bg-hover, rgba(0, 0, 0, 0.03));
 }
 
 .modalSelect:focus-visible {
@@ -495,7 +497,7 @@
 }
 
 .modalSelect:active {
-  background: var(--color-bg-hover, rgba(0, 0, 0, 0.06));
+  background-color: var(--color-bg-hover, rgba(0, 0, 0, 0.06));
 }
 
 .modalAddDesc {
@@ -691,6 +693,34 @@
   margin-left: auto;
 }
 
+/* "Add subtask" sits beside the Parent task select, not above it. The two
+   fields are unequal heights (only the select has a label above it), so
+   bottom-align the row to put the button on the select's line, and let the
+   button hug its text instead of claiming half the row via .row .field. */
+.row.parentTaskRow {
+  align-items: flex-end;
+}
+
+.row .addSubtaskField {
+  flex: 0 0 auto;
+}
+
+/* "Due time" holds a fixed-width HH:MM, so it doesn't need an equal third of
+   the row. Take 25% off it and hand that space to "Due date", whose value is
+   longer; Priority keeps its default flex: 1. */
+.row .dueTimeField {
+  flex: 0.75;
+}
+
+.row .dueDateField {
+  flex: 1.25;
+}
+
+/* Match the select's height so the two read as one line. */
+.addSubtaskField .secondaryButton {
+  height: 32px;
+}
+
 .row.taskMetaRow {
   align-items: center;
 }
@@ -733,16 +763,69 @@
   box-shadow: none;
 }
 
+/* One control height for every field in the modal — text inputs and dropdowns
+   alike — so rows like "Due date / Due time / Priority" line up. Vertical
+   padding is zeroed because the fixed height already sets the box; the UA
+   centers the text. .textarea keeps the 8px padding from the rule above. */
 .input,
-.select {
-  height: 36px;
+.select,
+.modalSelect {
+  height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Draw our own chevron rather than the native one: the browser arrow sits
+   hard against the right border and its inset can't be controlled portably.
+   Matches the Settings select (see Settings.module.css .select).
+   .modalSelect is a separate near-duplicate of .select used by the calendar
+   picker; it shares the chevron and height so the two look identical. */
+.select,
+.modalSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%23a39d93' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  cursor: pointer;
 }
 
 @media (max-width: 768px) {
+  /* 44px is the minimum comfortable touch target; 16px font is what stops iOS
+     zooming the page on focus. */
   .input,
-  .select {
-    height: 48px;
+  .select,
+  .modalSelect {
+    height: 44px;
     font-size: 16px;
+  }
+
+  /* Stack the Start and End groups onto their own rows on mobile. Two 1fr
+     tracks leave each date+time pair too narrow to read: the native date
+     input truncates and the time input loses its AM/PM suffix. */
+  .dateTimeRow {
+    grid-template-columns: 1fr;
+  }
+
+  .addSubtaskField .secondaryButton {
+    height: 44px;
+  }
+
+  /* On mobile "Due time" is a native <input type="time">, whose intrinsic
+     width already accounts for its digits and clock indicator (and is wider
+     in 12h locales, which add AM/PM). Size the field to that content instead
+     of a fixed ratio: any hardcoded share either clips the value or leaves
+     dead space. "Due date" absorbs whatever is left. */
+  .row .dueTimeField {
+    flex: 0 0 auto;
+  }
+
+  /* Trim the side padding on native time inputs so the value and the picker
+     indicator both fit within the field. */
+  .input[type='time'] {
+    padding-left: 8px;
+    padding-right: 4px;
   }
 
   /* Issue #59 — stack the "Completed" checkbox row above the due-mode

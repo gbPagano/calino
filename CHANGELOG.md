@@ -6,12 +6,17 @@ All notable changes to Calino will be documented in this file.
 
 ### Added
 
-- **Native time picker on mobile** — the event/task form now shows the OS wheel picker (`<input type="time">`) on mobile instead of the typeable `TimeInput`, making time selection faster on touch devices. Closes [#56](https://github.com/Ivan-Malinovski/calino/issues/56).
+- **Native time picker on mobile** — the event/task form now shows the OS wheel picker (`<input type="time">`) on mobile instead of the typeable `TimeInput`, making time selection faster on touch devices. This now covers the task form's "Due time" field as well, which was still using the typeable input. Closes [#56](https://github.com/Ivan-Malinovski/calino/issues/56).
 
 ### Fixed
 
 - **Changing an event's start time now preserves its duration** — shifting a start time forward or backward now shifts the end time by the same amount rather than blindly adding 1 hour. The previous logic caused events to unexpectedly grow or shrink when their start was edited. Closes [#60](https://github.com/Ivan-Malinovski/calino/issues/60).
 - **Task-form "Completed" row no longer wraps awkwardly on mobile** — the checkbox and due-mode segmented control are now stacked vertically on small screens so the long-segment tabs ("Due date and time" / "Date only" / "No due date") don't squeeze the checkbox off-screen. Closes [#59](https://github.com/Ivan-Malinovski/calino/issues/59).
+- **Start and End no longer share a line on mobile** — the two date/time groups stack vertically below 768px, so neither pair is squeezed too narrow to read.
+- **Event modal control sizing** — every input and dropdown in the modal now shares one height (32px desktop / 44px mobile) so rows like "Due date / Due time / Priority" line up. The calendar picker previously used a near-duplicate style that left it visibly shorter than its neighbours.
+- **Dropdown chevrons sat flush against the field edge** — the modal's selects now draw the same custom chevron as the Settings selects, inset from the border instead of using the browser's built-in arrow, whose position can't be controlled portably.
+- **"Add subtask" sat above the Parent task field instead of beside it** — it's now on the same line, aligned to the select's height.
+- **"Due time" field width** — narrower than "Due date" on desktop, and sized to its own content on mobile, where the native time input's clock indicator needs the extra room.
 
 ## [0.22.6] - 2026-07-18
 

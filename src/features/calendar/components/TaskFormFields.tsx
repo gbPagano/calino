@@ -5,7 +5,7 @@ import type { CalendarEvent, TaskPriority } from '@/types'
 import { useScrollInput } from '@/hooks/useScrollInput'
 import { useSettingsStore } from '@/store/settingsStore'
 import styles from './EventModal.module.css'
-import { TimeInput } from './TimeInput'
+import { TimeField } from './TimeField'
 
 interface TaskFormFieldsProps {
   completed: boolean
@@ -133,7 +133,7 @@ export function TaskFormFields({
         </div>
       </div>
 
-      <div className={styles.row} data-component="task-subtasks">
+      <div className={`${styles.row} ${styles.parentTaskRow}`} data-component="task-subtasks">
         <div className={styles.field}>
           {parentTask && <div className={styles.helperText} data-component="subtask-parent">Subtask of: {parentTask.title}</div>}
           <label className={styles.label} htmlFor="parent-task-select">
@@ -152,7 +152,7 @@ export function TaskFormFields({
           </select>
         </div>
         {onAddSubtask && (
-          <div className={styles.field}>
+          <div className={`${styles.field} ${styles.addSubtaskField}`}>
             <button type="button" className={styles.secondaryButton} onClick={onAddSubtask} data-component="add-subtask">
               Add subtask
             </button>
@@ -179,7 +179,7 @@ export function TaskFormFields({
       <div className={styles.row}>
         {hasDueDate && (
           <>
-            <div className={styles.field}>
+            <div className={`${styles.field} ${styles.dueDateField}`}>
               <label className={styles.label} htmlFor="due-date">
                 Due date
               </label>
@@ -194,11 +194,11 @@ export function TaskFormFields({
             </div>
 
             {!dueAllDay && (
-              <div className={styles.field}>
+              <div className={`${styles.field} ${styles.dueTimeField}`}>
                 <label className={styles.label} htmlFor="due-time">
                   Due time
                 </label>
-                <TimeInput
+                <TimeField
                   value={dueTime}
                   timeFormat={timeFormat}
                   onChange={onDueTimeChange}

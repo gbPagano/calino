@@ -50,6 +50,9 @@
 }
 
 .tpCount {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
   font-size: 14px;
   color: var(--ink-2, #6f6a62);
 }
@@ -68,6 +71,34 @@
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+@media (max-width: 768px) {
+  /* "N active" over "N completed" on separate lines — at phone widths the
+     single-line form crowds the filter tabs and Add button beside it. The
+     middot only separated the two inline, so it goes away once they stack. */
+  .tpCount {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .tpCount .dim {
+    display: none;
+  }
+
+  /* Keep the counts on the switcher's row — stacking them into two lines is
+     what buys the horizontal room, so the bar must not wrap. Shrink the gap
+     and give the Add button a little clearance from the right edge. */
+  .tpBar {
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding-right: 10px;
+  }
+
+  .tpControls {
+    gap: 8px;
+  }
 }
 
 .tpMeta {

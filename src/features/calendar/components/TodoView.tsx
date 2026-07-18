@@ -653,7 +653,9 @@ export function TodoView(): JSX.Element {
               </div>
             )}
             <div className={styles.tpCount}>
-              <b>{activeCount}</b> active <span className={styles.dim}>·</span> {completedCount} completed
+              <span><b>{activeCount}</b> active</span>
+              <span className={styles.dim} aria-hidden="true">·</span>
+              <span>{completedCount} done</span>
             </div>
           </div>
           <div className={styles.tpControls}>

@@ -716,9 +716,16 @@
   flex: 1.25;
 }
 
-/* Match the select's height so the two read as one line. */
+/* Match the select's height so the two read as one line. The button inherits
+   8px of vertical padding, which fights the fixed height and pushes the label
+   off-centre; zero it and centre the text with flex instead. */
 .addSubtaskField .secondaryButton {
   height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .row.taskMetaRow {

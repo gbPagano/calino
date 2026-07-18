@@ -17,6 +17,8 @@ All notable changes to Calino will be documented in this file.
 - **Dropdown chevrons sat flush against the field edge** — the modal's selects now draw the same custom chevron as the Settings selects, inset from the border instead of using the browser's built-in arrow, whose position can't be controlled portably.
 - **"Add subtask" sat above the Parent task field instead of beside it** — it's now on the same line, aligned to the select's height.
 - **"Due time" field width** — narrower than "Due date" on desktop, and sized to its own content on mobile, where the native time input's clock indicator needs the extra room.
+- **"Add subtask" label sat below centre** — the button's inherited vertical padding fought its fixed height; the label is now centred at any height.
+- **Cramped task list top bar on mobile** — the task counts now read as "N active" over "N done" on two lines, which frees enough width to keep them, the filter tabs, and the "Add" button on a single row without the button pressing against the screen edge. "completed" is shortened to "done" in the count only; the filter tab still reads "Completed".
 
 ## [0.22.6] - 2026-07-18
 

@@ -2,7 +2,7 @@ import { type JSX, useRef, useEffect, useState, useCallback, useMemo } from 'rea
 import { createPortal } from 'react-dom'
 import { format, parseISO, isSameDay } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
-import { formatTime, daysBetween, addDays } from '@/lib/datetime'
+import { formatTime, daysBetween, addDays, addMinutesToTimeStr } from '@/lib/datetime'
 import { buildMasterTruncation, getFutureOverrideIds, isFirstOccurrence } from '@/lib/recurrenceSplit'
 import { showToast } from '@/lib/toast'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -48,6 +48,7 @@ export function EventPreviewPopup({
   const timeFormat = useSettingsStore((state) => state.timeFormat)
   const dateFormat = useSettingsStore((state) => state.dateFormat)
   const showEventIcons = useSettingsStore((state) => state.showEventIcons)
+  const defaultDuration = useSettingsStore((state) => state.defaultDuration)
   const openModal = useCalendarStore((state) => state.openModal)
   const closePreview = useCalendarStore((state) => state.closePreview)
   const [isClosing, setIsClosing] = useState(false)
@@ -430,6 +431,19 @@ export function EventPreviewPopup({
     } else if (field === 'endDate') {
       setEditEndDate(value)
     } else if (field === 'time') {
+      // Issue #60: preserve the existing event duration. Compute the
+      // (endTime - startTime) delta in minutes and apply it to the new start.
+      // Falls back to defaultDuration from settings when the existing duration
+      // is non-positive (e.g. a corrupt / freshly-loaded event with no end yet).
+      // Tasks use dueTime only; we guard on `!isTask` so we never auto-shift
+      // task due-times (a task has a single time, not a range).
+      if (value !== editTime && !isTask) {
+        const [sH, sM] = (editTime || '00:00').split(':').map(Number)
+        const [eH, eM] = (editEndTime || editTime || '00:00').split(':').map(Number)
+        const oldDuration = eH * 60 + eM - (sH * 60 + sM)
+        const minutes = oldDuration > 0 ? oldDuration : defaultDuration
+        setEditEndTime(addMinutesToTimeStr(value, minutes))
+      }
       setEditTime(value)
     } else if (field === 'endTime') {
       setEditEndTime(value)

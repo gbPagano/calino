@@ -5,9 +5,9 @@ import { v4 as uuidv4 } from 'uuid'
 import type { RecurrenceRule, Reminder, CalendarEvent, CalendarAttachment } from '@/types'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useScrollInput } from '@/hooks/useScrollInput'
-import { pad2, daysBetween, addDays } from '@/lib/datetime'
+import { daysBetween, addDays, addMinutesToTimeStr } from '@/lib/datetime'
 import { AttachmentSection } from './AttachmentSection'
-import { TimeInput } from './TimeInput'
+import { TimeField } from './TimeField'
 import { getWeekdayLabels } from './weekdayLabels'
 import styles from './EventModal.module.css'
 
@@ -163,6 +163,7 @@ export function EventFormFields({
   const reminderMenuRef = useRef<HTMLDivElement>(null)
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek)
   const timeFormat = useSettingsStore((state) => state.timeFormat)
+  const defaultDuration = useSettingsStore((state) => state.defaultDuration)
   const weekdayLabels = getWeekdayLabels(firstDayOfWeek)
 
   const startDateRef = useRef<HTMLInputElement>(null)
@@ -235,17 +236,27 @@ export function EventFormFields({
               required
             />
             {!isAllDay && (
-              <TimeInput
+              <TimeField
                 value={startTime}
                 timeFormat={timeFormat}
                 onChange={(newStart) => {
+                  // No-op when the value didn't change (controlled inputs sometimes fire
+                  // onChange with identical values during format round-trips).
+                  if (newStart === startTime) return
+
+                  // Issue #60: shift end time by the same delta so the event's duration is
+                  // preserved. Compute the existing duration from (endTime - startTime) and
+                  // apply it to the new start. Fall back to defaultDuration from settings
+                  // when the duration is non-positive (corrupt state) so we always emit a
+                  // sane end.
+                  const [sH, sM] = startTime.split(':').map(Number)
+                  const [eH, eM] = endTime.split(':').map(Number)
+                  const oldDuration = eH * 60 + eM - (sH * 60 + sM)
+                  const minutes = oldDuration > 0 ? oldDuration : defaultDuration
+                  const newEnd = addMinutesToTimeStr(newStart, minutes)
+
                   onStartTimeChange(newStart)
-                  if (startDate === endDate && newStart >= endTime) {
-                    // Add 1 hour to the new start time
-                    const [h, m] = newStart.split(':').map(Number)
-                    const endHour = (h + 1) % 24
-                    onEndTimeChange(`${pad2(endHour)}:${pad2(m)}`)
-                  }
+                  onEndTimeChange(newEnd)
                 }}
                 className={styles.input}
                 dataComponent="event-start-time"
@@ -268,7 +279,7 @@ export function EventFormFields({
               required
             />
             {!isAllDay && (
-              <TimeInput
+              <TimeField
                 value={endTime}
                 timeFormat={timeFormat}
                 onChange={onEndTimeChange}

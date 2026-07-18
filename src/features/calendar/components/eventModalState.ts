@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns'
-import { pad2 } from '@/lib/datetime'
+import { pad2, addMinutesToTimeStr } from '@/lib/datetime'
+export { addMinutesToTimeStr }
 import { extractOriginalEventId } from '@/lib/events'
 import { isUUID } from '@/lib/uuid'
 import type { CalendarEvent, CalendarAttachment, RecurrenceRule, Reminder } from '@/types'
@@ -40,19 +41,6 @@ export type InitialFormStateWithMeta = InitialFormState & {
   originalEventId: string | null
 }
 
-/**
- * Add `minutes` to a "HH:mm" time-of-day string, wrapping past midnight
- * (same convention the rest of this module uses — time-of-day only, no date
- * rollover). Used to derive a new event's end time from the configured
- * default duration.
- */
-export function addMinutesToTimeStr(time: string, minutes: number): string {
-  const [h, m] = time.split(':').map(Number)
-  const total = h * 60 + m + minutes
-  const endH = Math.floor(total / 60) % 24
-  const endM = ((total % 60) + 60) % 60
-  return `${pad2(endH)}:${pad2(endM)}`
-}
 
 export function makeDefaultState(
   overrides: Partial<InitialFormStateWithMeta> = {}

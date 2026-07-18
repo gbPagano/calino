@@ -2,6 +2,17 @@
 
 All notable changes to Calino will be documented in this file.
 
+## [0.22.7] - 2026-07-18
+
+### Added
+
+- **Native time picker on mobile** — the event/task form now shows the OS wheel picker (`<input type="time">`) on mobile instead of the typeable `TimeInput`, making time selection faster on touch devices. Closes [#56](https://github.com/Ivan-Malinovski/calino/issues/56).
+
+### Fixed
+
+- **Changing an event's start time now preserves its duration** — shifting a start time forward or backward now shifts the end time by the same amount rather than blindly adding 1 hour. The previous logic caused events to unexpectedly grow or shrink when their start was edited. Closes [#60](https://github.com/Ivan-Malinovski/calino/issues/60).
+- **Task-form "Completed" row no longer wraps awkwardly on mobile** — the checkbox and due-mode segmented control are now stacked vertically on small screens so the long-segment tabs ("Due date and time" / "Date only" / "No due date") don't squeeze the checkbox off-screen. Closes [#59](https://github.com/Ivan-Malinovski/calino/issues/59).
+
 ## [0.22.6] - 2026-07-18
 
 ### Added

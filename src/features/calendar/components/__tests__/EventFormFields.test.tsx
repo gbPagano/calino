@@ -6,6 +6,12 @@ import { useSettingsStore } from '@/store/settingsStore'
 vi.mock('@/store/settingsStore', () => ({
   useSettingsStore: vi.fn(),
 }))
+vi.mock('@/hooks/useIsMobile', () => ({
+  useIsMobile: vi.fn().mockReturnValue(false),
+}))
+vi.mock('@/hooks/useScrollInput', () => ({
+  useScrollInput: vi.fn(),
+}))
 
 describe('EventFormFields', () => {
   const defaultProps = {
@@ -61,14 +67,13 @@ describe('EventFormFields', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(useSettingsStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue(0)
+    ;(useSettingsStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (selector: (state: { firstDayOfWeek: number; timeFormat: '24h'; defaultDuration: number }) => unknown) =>
+        selector({ firstDayOfWeek: 0, timeFormat: '24h', defaultDuration: 60 })
+    )
   })
 
   describe('weekday selection with firstDayOfWeek=0 (Sunday)', () => {
-    beforeEach(() => {
-      ;(useSettingsStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue(0)
-    })
-
     it('renders weekday buttons when recurrence is weekly', () => {
       renderWithMoreOptions({ recurrence: 'weekly' })
       expect(screen.getByRole('button', { name: 'Include Sun' })).toBeInTheDocument()
@@ -317,7 +322,7 @@ describe('EventFormFields', () => {
     })
   })
 
-  describe('Bug 8: time overflow at 24:xx', () => {
+  describe('Bug 8: time overflow at 24:xx (duration-preserving)', () => {
     it('wraps end time to 00:xx when start time is 23:xx', () => {
       const onEndTimeChange = vi.fn()
       render(
@@ -337,9 +342,9 @@ describe('EventFormFields', () => {
       const startTimeInput = startTimeInputs[0]
       fireEvent.change(startTimeInput, { target: { value: '23:30' } })
 
-      // Since same date and newStart (23:30) >= endTime (23:30), it should auto-adjust
-      // With the fix: (23 + 1) % 24 = 0, so end time becomes "00:30"
-      expect(onEndTimeChange).toHaveBeenCalledWith('00:30')
+      // Issue #60: duration is preserved. Existing duration = 23:30 - 23:00 = 30 min.
+      // New end = addMinutesToTimeStr('23:30', 30) = '00:00'.
+      expect(onEndTimeChange).toHaveBeenCalledWith('00:00')
     })
 
     it('does not produce invalid 24:xx time', () => {
@@ -385,7 +390,7 @@ describe('EventFormFields', () => {
       expect(onEndTimeChange).not.toHaveBeenCalled()
     })
 
-    it('auto-adjusts end time by +1 hour for normal case', () => {
+    it('falls back to defaultDuration (60 min) when existing duration is zero', () => {
       const onEndTimeChange = vi.fn()
       render(
         <EventFormFields
@@ -403,7 +408,8 @@ describe('EventFormFields', () => {
       // The first one is the start time input
       fireEvent.change(timeInputs[0], { target: { value: '15:00' } })
 
-      // 15:00 >= 14:00 is true, so (15 + 1) % 24 = 16
+      // Issue #60: existing duration is 0 (corrupt state), so we fall back to
+      // defaultDuration=60 from settings. New end = addMinutesToTimeStr('15:00', 60) = '16:00'.
       expect(onEndTimeChange).toHaveBeenCalledWith('16:00')
     })
   })
@@ -441,6 +447,88 @@ describe('EventFormFields', () => {
 
       expect(onStartTimeChange).not.toHaveBeenCalled()
       expect(startTime).toHaveValue('09:00')
+    })
+  })
+
+  describe('Issue #60: duration-preserving start-time shift', () => {
+    it('shifts end by the existing duration when start moves earlier', () => {
+      const onEndTimeChange = vi.fn()
+      render(
+        <EventFormFields
+          {...defaultProps}
+          startTime="10:00"
+          endTime="11:30"
+          startDate="2024-03-15"
+          endDate="2024-03-15"
+          onEndTimeChange={onEndTimeChange}
+        />
+      )
+      fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '09:00' } })
+      expect(onEndTimeChange).toHaveBeenLastCalledWith('10:30')
+    })
+
+    it('shifts end by the existing duration when start moves later', () => {
+      const onEndTimeChange = vi.fn()
+      render(
+        <EventFormFields
+          {...defaultProps}
+          startTime="10:00"
+          endTime="11:30"
+          startDate="2024-03-15"
+          endDate="2024-03-15"
+          onEndTimeChange={onEndTimeChange}
+        />
+      )
+      fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '12:00' } })
+      expect(onEndTimeChange).toHaveBeenLastCalledWith('13:30')
+    })
+
+    it('falls back to defaultDuration when existing duration is zero', () => {
+      const onEndTimeChange = vi.fn()
+      render(
+        <EventFormFields
+          {...defaultProps}
+          startTime="10:00"
+          endTime="10:00"
+          startDate="2024-03-15"
+          endDate="2024-03-15"
+          onEndTimeChange={onEndTimeChange}
+        />
+      )
+      fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '11:00' } })
+      expect(onEndTimeChange).toHaveBeenLastCalledWith('12:00')
+    })
+
+    it('wraps end past midnight using addMinutesToTimeStr', () => {
+      const onEndTimeChange = vi.fn()
+      render(
+        <EventFormFields
+          {...defaultProps}
+          startTime="22:00"
+          endTime="23:00"
+          startDate="2024-03-15"
+          endDate="2024-03-15"
+          onEndTimeChange={onEndTimeChange}
+        />
+      )
+      fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '23:30' } })
+      expect(onEndTimeChange).toHaveBeenLastCalledWith('00:30')
+    })
+
+    it('does not call onEndTimeChange when start equals previous start', () => {
+      const onEndTimeChange = vi.fn()
+      render(
+        <EventFormFields
+          {...defaultProps}
+          startTime="09:00"
+          endTime="10:00"
+          startDate="2024-03-15"
+          endDate="2024-03-15"
+          onEndTimeChange={onEndTimeChange}
+        />
+      )
+      fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '09:00' } })
+      expect(onEndTimeChange).not.toHaveBeenCalled()
     })
   })
 })

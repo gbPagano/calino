@@ -64,3 +64,16 @@ export function addDays(date: string, days: number): string {
   d.setUTCDate(d.getUTCDate() + days)
   return d.toISOString().split('T')[0]!
 }
+
+/**
+ * Add `minutes` to a "HH:mm" time-of-day string, wrapping past midnight.
+ * Time-of-day only — no date rollover. Used to derive an event's end time
+ * from its start plus a duration (default or user-preserved).
+ */
+export function addMinutesToTimeStr(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number)
+  const total = h * 60 + m + minutes
+  const endH = Math.floor(total / 60) % 24
+  const endM = ((total % 60) + 60) % 60
+  return `${pad2(endH)}:${pad2(endM)}`
+}

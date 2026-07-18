@@ -334,18 +334,12 @@ export function CategoriesSettings(): JSX.Element {
             >
               {editingCategoryId === category.id ? (
                 <>
-                  <div className={styles.swatches} style={{ gap: 'var(--space-1)' }}>
-                    {EVENT_COLORS.slice(0, 8).map((color) => (
+                  <div className={`${styles.swatches} ${styles.catSwatches}`}>
+                    {EVENT_COLORS.map((color) => (
                       <button
                         key={color}
-                        className={`${styles.swatch} ${editCategoryColor === color ? styles.swatchActive : ''}`}
-                        style={
-                          {
-                            '--swatch-color': color,
-                            width: '20px',
-                            height: '20px',
-                          } as React.CSSProperties
-                        }
+                        className={`${styles.swatch} ${styles.swatchSm} ${editCategoryColor === color ? styles.swatchActive : ''}`}
+                        style={{ '--swatch-color': color } as React.CSSProperties}
                         aria-label={`Color ${color}`}
                         onMouseDown={(e) => {
                           e.preventDefault()
@@ -464,18 +458,12 @@ export function CategoriesSettings(): JSX.Element {
                 autoFocus
                 aria-label="New category name"
               />
-              <div className={styles.swatches} style={{ gap: 'var(--space-1)' }}>
-                {EVENT_COLORS.slice(0, 6).map((color) => (
+              <div className={`${styles.swatches} ${styles.catSwatches}`}>
+                {EVENT_COLORS.map((color) => (
                   <button
                     key={color}
-                    className={`${styles.swatch} ${newCategoryColor === color ? styles.swatchActive : ''}`}
-                    style={
-                      {
-                        '--swatch-color': color,
-                        width: '22px',
-                        height: '22px',
-                      } as React.CSSProperties
-                    }
+                    className={`${styles.swatch} ${styles.swatchSm} ${newCategoryColor === color ? styles.swatchActive : ''}`}
+                    style={{ '--swatch-color': color } as React.CSSProperties}
                     aria-label={`Color ${color}`}
                     onClick={() => setNewCategoryColor(color)}
                     type="button"

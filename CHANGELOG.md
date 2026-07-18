@@ -18,6 +18,7 @@ All notable changes to Calino will be documented in this file.
 - **"Add subtask" sat above the Parent task field instead of beside it** — it's now on the same line, aligned to the select's height.
 - **"Due time" field width** — narrower than "Due date" on desktop, and sized to its own content on mobile, where the native time input's clock indicator needs the extra room.
 - **"Add subtask" label sat below centre** — the button's inherited vertical padding fought its fixed height; the label is now centred at any height.
+- **Category color picker hid most of the palette** — the add-category form offered 6 of the 13 colors and the edit form 8, with no way to reach the rest since the strip didn't scroll or wrap. The full palette now wraps onto its own line within the row, with larger swatches on mobile. Closes [#58](https://github.com/Ivan-Malinovski/calino/issues/58).
 - **Cramped task list top bar on mobile** — the task counts now read as "N active" over "N done" on two lines, which frees enough width to keep them, the filter tabs, and the "Add" button on a single row without the button pressing against the screen edge. "completed" is shortened to "done" in the count only; the filter tab still reads "Completed".
 
 ## [0.22.6] - 2026-07-18

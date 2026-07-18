@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { TimeField } from '../TimeField'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { useScrollInput } from '@/hooks/useScrollInput'
 
 vi.mock('@/hooks/useIsMobile', () => ({
   useIsMobile: vi.fn(),
